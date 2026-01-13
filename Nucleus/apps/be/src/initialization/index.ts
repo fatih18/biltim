@@ -1,8 +1,6 @@
-import { createGodminUser } from './createGodminUser'
-import { createInitialCardAbilities } from './createInitialCardAbilities'
-import { createInitialCards } from './createInitialCards'
-import { createInitialClaims } from './createInitialClaims'
-import { createInitialRoles } from './createInitialRoles'
+import { createGodminUser } from "./createGodminUser";
+import { createInitialClaims } from "./createInitialClaims";
+import { createInitialRoles } from "./createInitialRoles";
 
 /**
  * Runs all initialization tasks in sequence:
@@ -13,13 +11,11 @@ import { createInitialRoles } from './createInitialRoles'
  * 5. Create initial card abilities (if not exists)
  */
 export async function runInitialization() {
-  console.log('\n🚀 Starting system initialization...\n')
+	console.log("\n🚀 Starting system initialization...\n");
 
-  await createGodminUser()
-  await createInitialClaims()
-  await createInitialRoles()
-  await createInitialCards()
-  await createInitialCardAbilities()
+	await createGodminUser();
+	await createInitialClaims();
+	await createInitialRoles();
 
-  console.log('\n✨ System initialization complete!\n')
+	console.log("\n✨ System initialization complete!\n");
 }
