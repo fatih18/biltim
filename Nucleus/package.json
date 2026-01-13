@@ -12,8 +12,8 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "latest",
-		"turbo": "latest",
-		"concurrently": "latest"
+		"concurrently": "latest",
+		"turbo": "^2.7.4"
 	},
 	"peerDependencies": {
 		"typescript": "latest"
