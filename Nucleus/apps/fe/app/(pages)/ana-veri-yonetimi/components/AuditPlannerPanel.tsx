@@ -72,7 +72,10 @@ export function AuditPlannerPanel(props: {
 			<div className="p-4 space-y-5">
 				<div className="grid gap-4 md:grid-cols-2">
 					<div className="space-y-1">
-						<label className="block text-xs font-medium text-slate-300">
+						<label
+							htmlFor="plannedDate"
+							className="block text-xs font-medium text-slate-300"
+						>
 							Denetim Tarihi
 						</label>
 						<Input
@@ -83,7 +86,10 @@ export function AuditPlannerPanel(props: {
 					</div>
 
 					<div className="space-y-1">
-						<label className="block text-xs font-medium text-slate-300">
+						<label
+							htmlFor="locationId"
+							className="block text-xs font-medium text-slate-300"
+						>
 							Lokasyon
 						</label>
 						<Select
@@ -100,7 +106,10 @@ export function AuditPlannerPanel(props: {
 					</div>
 
 					<div className="space-y-1">
-						<label className="block text-xs font-medium text-slate-300">
+						<label
+							htmlFor="assignedTeamId"
+							className="block text-xs font-medium text-slate-300"
+						>
 							Atanan Ekip
 						</label>
 						<Select
@@ -117,7 +126,10 @@ export function AuditPlannerPanel(props: {
 					</div>
 
 					<div className="space-y-1">
-						<label className="block text-xs font-medium text-slate-300">
+						<label
+							htmlFor="note"
+							className="block text-xs font-medium text-slate-300"
+						>
 							Not
 						</label>
 						<Input value={note} onChange={(e) => setNote(e.target.value)} />

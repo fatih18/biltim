@@ -6,127 +6,235 @@
  * Usage: bun run scripts/bundle-for-deployment.ts
  */
 
-import { $ } from "bun";
-import {
-	copyFileSync,
-	cpSync,
-	existsSync,
-	mkdirSync,
-	rmSync,
-	writeFileSync,
-} from "node:fs";
-import { join } from "node:path";
+import { $ } from 'bun'
+import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 
-const ROOT = join(import.meta.dir, "..");
-const DIST = join(ROOT, "dist-deployment");
+const ROOT = join(import.meta.dir, '..')
+const DIST = join(ROOT, 'dist-deployment')
+const REQUIRED_PACKAGES = join(ROOT, '../required_packages')
 
 async function main() {
-	console.log("🚀 Starting deployment bundle...\n");
+  console.log('🚀 Starting deployment bundle...\n')
 
-	// Clean previous build
-	if (existsSync(DIST)) {
-		console.log("🗑️  Cleaning previous build...");
-		rmSync(DIST, { recursive: true });
-	}
-	mkdirSync(DIST, { recursive: true });
+  // Clean previous build
+  if (existsSync(DIST)) {
+    console.log('🗑️  Cleaning previous build...')
+    rmSync(DIST, { recursive: true })
+  }
+  mkdirSync(DIST, { recursive: true })
 
-	// Step 1: Build Frontend (Next.js standalone)
-	console.log("\n📦 Building Frontend (Next.js standalone)...");
-	await $`bun run --cwd ${join(ROOT, "apps/fe")} build`.quiet();
+  // Step 1: Build Frontend (Next.js standalone)
+  console.log('\n📦 Building Frontend (Next.js standalone)...')
+  await $`bun run --cwd ${join(ROOT, 'apps/fe')} build`.quiet()
 
-	const standaloneDir = join(ROOT, "apps/fe/.next/standalone");
-	const staticDir = join(ROOT, "apps/fe/.next/static");
-	const publicDir = join(ROOT, "apps/fe/public");
+  const standaloneDir = join(ROOT, 'apps/fe/.next/standalone')
+  const staticDir = join(ROOT, 'apps/fe/.next/static')
+  const publicDir = join(ROOT, 'apps/fe/public')
 
-	if (!existsSync(standaloneDir)) {
-		throw new Error("Standalone build not found! Check Next.js build output.");
-	}
+  if (!existsSync(standaloneDir)) {
+    throw new Error('Standalone build not found! Check Next.js build output.')
+  }
 
-	// Copy standalone output
-	console.log("📁 Copying frontend standalone...");
-	cpSync(standaloneDir, join(DIST, "frontend"), { recursive: true });
+  // Copy standalone output
+  console.log('📁 Copying frontend standalone...')
+  cpSync(standaloneDir, join(DIST, 'frontend'), { recursive: true })
 
-	// Copy static files (required for standalone)
-	if (existsSync(staticDir)) {
-		cpSync(staticDir, join(DIST, "frontend/apps/fe/.next/static"), {
-			recursive: true,
-		});
-	}
+  // Copy static files (required for standalone)
+  if (existsSync(staticDir)) {
+    cpSync(staticDir, join(DIST, 'frontend/apps/fe/.next/static'), {
+      recursive: true,
+    })
+  }
 
-	// Copy public folder
-	if (existsSync(publicDir)) {
-		cpSync(publicDir, join(DIST, "frontend/apps/fe/public"), {
-			recursive: true,
-		});
-	}
+  // Copy public folder
+  if (existsSync(publicDir)) {
+    cpSync(publicDir, join(DIST, 'frontend/apps/fe/public'), {
+      recursive: true,
+    })
+  }
 
-	// Step 2: Build Backend with Bun
-	console.log("\n📦 Building Backend...");
+  // Copy ALL dependencies from bun cache to frontend node_modules
+  // This ensures Next.js standalone has all required packages
+  console.log('📁 Copying all Next.js dependencies from bun cache...')
+  const bunCache = join(ROOT, 'node_modules/.bun')
+  const feNodeModules = join(DIST, 'frontend/apps/fe/node_modules')
 
-	// Bundle backend (not compile - for cross-platform compatibility)
-	await $`bun build --minify --target bun --outdir ${join(DIST, "backend")} ${join(ROOT, "apps/be/src/index.ts")}`.quiet();
+  mkdirSync(feNodeModules, { recursive: true })
 
-	// Copy backend public folder if exists
-	const bePublicDir = join(ROOT, "apps/be/public");
-	if (existsSync(bePublicDir)) {
-		cpSync(bePublicDir, join(DIST, "backend/public"), { recursive: true });
-	}
+  let copiedCount = 0
+  if (existsSync(bunCache)) {
+    const bunCacheEntries = readdirSync(bunCache)
 
-	// Step 3: Create environment templates
-	console.log("\n📝 Creating environment templates...");
+    for (const entry of bunCacheEntries) {
+      const entryPath = join(bunCache, entry, 'node_modules')
+      if (!existsSync(entryPath)) continue
 
-	const feEnvTemplate = `# Frontend Environment
-NEXT_PUBLIC_API_URL=http://localhost:1001
-AUTH_API_URL=http://localhost:1001
-`;
+      const packages = readdirSync(entryPath)
+      for (const pkg of packages) {
+        const sourcePath = join(entryPath, pkg)
 
-	const beEnvTemplate = `# Backend Environment
-NODE_ENV=production
-PORT=1001
-DATABASE_URL=postgresql://postgres:password@localhost:5432/nucleus
+        // Handle scoped packages (@org/package)
+        if (pkg.startsWith('@')) {
+          const scopedPackages = readdirSync(sourcePath)
+          for (const scopedPkg of scopedPackages) {
+            const scopedSource = join(sourcePath, scopedPkg)
+            const scopedDest = join(feNodeModules, pkg, scopedPkg)
+            if (!existsSync(scopedDest)) {
+              mkdirSync(join(feNodeModules, pkg), { recursive: true })
+              try {
+                cpSync(scopedSource, scopedDest, { recursive: true, dereference: true })
+                copiedCount++
+              } catch {
+                /* skip broken symlinks */
+              }
+            }
+          }
+        } else {
+          const destPath = join(feNodeModules, pkg)
+          if (!existsSync(destPath)) {
+            try {
+              cpSync(sourcePath, destPath, { recursive: true, dereference: true })
+              copiedCount++
+            } catch {
+              /* skip broken symlinks */
+            }
+          }
+        }
+      }
+    }
+  }
+  console.log(`   ✅ Copied ${copiedCount} packages from bun cache`)
 
-# JWT Configuration
-JWT_SECRET=your-production-secret-change-this
-JWT_EXPIRES_IN=30m
-JWT_REFRESH_SECRET=your-refresh-secret-change-this
-JWT_REFRESH_EXPIRES_IN=30d
+  // Step 2: Build Backend with Bun
+  console.log('\n📦 Building Backend...')
 
-# App Config
-IS_MULTI_TENANT=false
-NUCLEUS_APP_ID=default_be
-GODMIN_EMAIL=admin@company.com
-GODMIN_PASSWORD=change-this-password
-GODMIN_FIRST_NAME=Admin
-GODMIN_LAST_NAME=User
-`;
+  // Bundle backend (not compile - for cross-platform compatibility)
+  await $`bun build --minify --target bun --outdir ${join(DIST, 'backend')} ${join(ROOT, 'apps/be/src/index.ts')}`.quiet()
 
-	writeFileSync(join(DIST, "frontend/.env"), feEnvTemplate);
-	writeFileSync(join(DIST, "backend/.env"), beEnvTemplate);
+  // Copy backend public folder if exists
+  const bePublicDir = join(ROOT, 'apps/be/public')
+  if (existsSync(bePublicDir)) {
+    cpSync(bePublicDir, join(DIST, 'backend/public'), { recursive: true })
+  }
 
-	// Step 4: Create Windows start scripts
-	console.log("\n🪟 Creating Windows start scripts...");
+  // Step 2.5: Copy required packages (Node.js, Bun) for offline install
+  console.log('\n📦 Copying required packages for offline install...')
+  const runtimeDir = join(DIST, 'runtime')
+  mkdirSync(runtimeDir, { recursive: true })
 
-	// PowerShell script (recommended)
-	const startPs1 = `# Nucleus Startup Script for Windows
+  // Windows files
+  const bunExe = join(REQUIRED_PACKAGES, 'bun.exe')
+  const nodeMsi = join(REQUIRED_PACKAGES, 'node-v24.12.0-x64.msi')
+
+  // macOS files
+  const bunMac = join(REQUIRED_PACKAGES, 'bun-darwin')
+  const nodePkg = join(REQUIRED_PACKAGES, 'node-v24.12.0.pkg')
+
+  console.log('   Windows:')
+  if (existsSync(bunExe)) {
+    cpSync(bunExe, join(runtimeDir, 'bun.exe'))
+    console.log('     ✅ bun.exe copied')
+  } else {
+    console.warn('     ⚠️  bun.exe not found')
+  }
+
+  if (existsSync(nodeMsi)) {
+    cpSync(nodeMsi, join(runtimeDir, 'node-v24.12.0-x64.msi'))
+    console.log('     ✅ node MSI copied')
+  } else {
+    console.warn('     ⚠️  node MSI not found')
+  }
+
+  console.log('   macOS:')
+  if (existsSync(bunMac)) {
+    cpSync(bunMac, join(runtimeDir, 'bun-darwin'))
+    console.log('     ✅ bun-darwin copied')
+  } else {
+    console.warn('     ⚠️  bun-darwin not found (download from https://bun.sh)')
+  }
+
+  if (existsSync(nodePkg)) {
+    cpSync(nodePkg, join(runtimeDir, 'node-v24.12.0.pkg'))
+    console.log('     ✅ node PKG copied')
+  } else {
+    console.warn('     ⚠️  node PKG not found (download from https://nodejs.org)')
+  }
+
+  // Step 3: Copy actual environment files (instead of templates)
+  console.log('\n📝 Copying environment files...')
+
+  const feEnvSource = join(ROOT, 'apps/fe/.env')
+  const beEnvSource = join(ROOT, 'apps/be/.env')
+
+  if (existsSync(feEnvSource)) {
+    cpSync(feEnvSource, join(DIST, 'frontend/.env'))
+    console.log('   ✅ Frontend .env copied')
+  } else {
+    console.warn('   ⚠️  Frontend .env not found - creating template')
+    writeFileSync(
+      join(DIST, 'frontend/.env'),
+      `NEXT_PUBLIC_API_URL=http://localhost:1001\nAUTH_API_URL=http://localhost:1001\n`
+    )
+  }
+
+  if (existsSync(beEnvSource)) {
+    cpSync(beEnvSource, join(DIST, 'backend/.env'))
+    console.log('   ✅ Backend .env copied')
+  } else {
+    console.warn('   ⚠️  Backend .env not found - creating template')
+    writeFileSync(
+      join(DIST, 'backend/.env'),
+      `NODE_ENV=production\nPORT=1001\nDATABASE_URL=postgresql://postgres:password@localhost:5432/nucleus\n`
+    )
+  }
+
+  // Step 4: Create Windows start scripts
+  console.log('\n🪟 Creating Windows start scripts...')
+
+  // PowerShell script (recommended)
+  const startPs1 = `# Nucleus Startup Script for Windows
 # Run as: powershell -ExecutionPolicy Bypass -File start.ps1
 
 $ErrorActionPreference = "Stop"
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 Write-Host "🚀 Starting Nucleus..." -ForegroundColor Cyan
+Write-Host ""
 
-# Check if Bun is installed
-if (-not (Get-Command bun -ErrorAction SilentlyContinue)) {
-    Write-Host "❌ Bun is not installed. Installing..." -ForegroundColor Yellow
-    powershell -c "irm bun.sh/install.ps1 | iex"
-    Write-Host "✅ Bun installed. Please restart this script." -ForegroundColor Green
-    exit 1
-}
-
-# Check if Node.js is installed (for Next.js)
+# Check if Node.js is installed
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
-    Write-Host "❌ Node.js is not installed. Please install Node.js 20+ from https://nodejs.org" -ForegroundColor Red
-    exit 1
+    Write-Host "❌ Node.js is not installed." -ForegroundColor Yellow
+    $nodeMsi = Join-Path $ScriptDir "runtime\\node-v24.12.0-x64.msi"
+    if (Test-Path $nodeMsi) {
+        Write-Host "📦 Installing Node.js from local package..." -ForegroundColor Cyan
+        Start-Process msiexec.exe -ArgumentList "/i", "\`"$nodeMsi\`"", "/passive", "/norestart" -Wait
+        Write-Host "✅ Node.js installed. Please restart this script." -ForegroundColor Green
+        Write-Host "   (You may need to open a new terminal for PATH to update)" -ForegroundColor Yellow
+        Read-Host "Press Enter to exit"
+        exit 0
+    } else {
+        Write-Host "❌ Node.js installer not found at: $nodeMsi" -ForegroundColor Red
+        exit 1
+    }
 }
+
+# Check if Bun is available (use local bun.exe if not in PATH)
+$bunPath = "bun"
+if (-not (Get-Command bun -ErrorAction SilentlyContinue)) {
+    $localBun = Join-Path $ScriptDir "runtime\\bun.exe"
+    if (Test-Path $localBun) {
+        Write-Host "📦 Using local bun.exe..." -ForegroundColor Cyan
+        $bunPath = $localBun
+    } else {
+        Write-Host "❌ Bun not found. Please place bun.exe in runtime folder." -ForegroundColor Red
+        exit 1
+    }
+}
+
+Write-Host "✅ Node.js: $(node --version)" -ForegroundColor Green
+Write-Host "✅ Bun: $bunPath" -ForegroundColor Green
+Write-Host ""
 
 Write-Host "📦 Starting Backend on port 1001..." -ForegroundColor Green
 $backendJob = Start-Job -ScriptBlock {
@@ -160,10 +268,10 @@ try {
     Stop-Job $backendJob, $frontendJob -ErrorAction SilentlyContinue
     Remove-Job $backendJob, $frontendJob -ErrorAction SilentlyContinue
 }
-`;
+`
 
-	// Batch script (alternative)
-	const startBat = `@echo off
+  // Batch script (alternative)
+  const startBat = `@echo off
 title Nucleus Server
 echo.
 echo ========================================
@@ -208,19 +316,106 @@ pause >nul
 taskkill /FI "WINDOWTITLE eq Nucleus Backend" /F >nul 2>&1
 taskkill /FI "WINDOWTITLE eq Nucleus Frontend" /F >nul 2>&1
 echo Services stopped.
-`;
+`
 
-	writeFileSync(join(DIST, "start.ps1"), startPs1);
-	writeFileSync(join(DIST, "start.bat"), startBat);
+  // macOS/Linux shell script
+  const startSh = `#!/bin/bash
+# Nucleus Startup Script for macOS/Linux
+# Run as: chmod +x start.sh && ./start.sh
 
-	// Step 5: Create README
-	const readme = `# Nucleus Deployment Package
+SCRIPT_DIR="$(cd "$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+echo "🚀 Starting Nucleus..."
+echo ""
+
+# Check if Node.js is installed
+if ! command -v node &> /dev/null; then
+    echo "❌ Node.js is not installed."
+    if [ -f "runtime/node-v24.12.0.pkg" ]; then
+        echo "📦 Found local Node.js installer."
+        echo "   Please run: sudo installer -pkg runtime/node-v24.12.0.pkg -target /"
+        echo "   Then restart this script."
+        exit 1
+    else
+        echo "   Please install Node.js from: https://nodejs.org"
+        exit 1
+    fi
+fi
+
+# Check if Bun is available
+BUN_PATH="bun"
+if ! command -v bun &> /dev/null; then
+    if [ -f "runtime/bun-darwin" ]; then
+        echo "📦 Using local bun-darwin..."
+        chmod +x runtime/bun-darwin
+        BUN_PATH="./runtime/bun-darwin"
+    else
+        echo "❌ Bun not found. Please install from https://bun.sh"
+        exit 1
+    fi
+fi
+
+echo "✅ Node.js: $(node --version)"
+echo "✅ Bun: $BUN_PATH"
+echo ""
+
+# Start Backend
+echo "📦 Starting Backend on port 1001..."
+cd backend
+$BUN_PATH run index.js &
+BACKEND_PID=$!
+cd ..
+
+# Start Frontend  
+echo "🌐 Starting Frontend on port 3000..."
+cd frontend
+PORT=3000 HOSTNAME=0.0.0.0 node apps/fe/server.js &
+FRONTEND_PID=$!
+cd ..
+
+echo ""
+echo "✅ Nucleus is running!"
+echo "   Frontend: http://localhost:3000"
+echo "   Backend:  http://localhost:1001"
+echo ""
+echo "Press Ctrl+C to stop..."
+
+# Trap SIGINT (Ctrl+C) to kill both processes
+trap "echo 'Stopping services...'; kill $BACKEND_PID $FRONTEND_PID 2>/dev/null; exit 0" SIGINT SIGTERM
+
+# Wait for processes
+wait
+`
+
+  writeFileSync(join(DIST, 'start.ps1'), startPs1)
+  writeFileSync(join(DIST, 'start.bat'), startBat)
+  writeFileSync(join(DIST, 'start.sh'), startSh, { mode: 0o755 })
+
+  // Step 5: Create README
+  const readme = `# Nucleus Deployment Package
 
 ## Gereksinimler
 
 1. **Node.js 20+**: https://nodejs.org
-2. **Bun**: https://bun.sh (PowerShell: \`irm bun.sh/install.ps1 | iex\`)
-3. **PostgreSQL 15+**: https://www.postgresql.org/download/windows/
+2. **Bun**: https://bun.sh
+3. **PostgreSQL 15+**: https://www.postgresql.org/download/
+
+## Offline Kurulum (İnternet Yoksa)
+
+\`runtime/\` klasöründe hazır kurulum dosyaları bulunur:
+- **Windows**: \`bun.exe\`, \`node-v24.12.0-x64.msi\`
+- **macOS**: \`bun-darwin\`, \`node-v24.12.0.pkg\`
+
+### Windows'ta Node.js Kurulumu:
+\`\`\`cmd
+msiexec /i runtime\\node-v24.12.0-x64.msi /passive
+\`\`\`
+
+### macOS'ta Node.js Kurulumu:
+\`\`\`bash
+sudo installer -pkg runtime/node-v24.12.0.pkg -target /
+\`\`\`
 
 ## Kurulum
 
@@ -241,14 +436,20 @@ echo Services stopped.
 
 ### 3. Başlatma
 
-**PowerShell ile (Önerilen):**
+**Windows - PowerShell ile (Önerilen):**
 \`\`\`powershell
 powershell -ExecutionPolicy Bypass -File start.ps1
 \`\`\`
 
-**Batch ile:**
+**Windows - Batch ile:**
 \`\`\`cmd
 start.bat
+\`\`\`
+
+**macOS/Linux:**
+\`\`\`bash
+chmod +x start.sh
+./start.sh
 \`\`\`
 
 ## Portlar
@@ -257,20 +458,20 @@ start.bat
 
 ## Servis Olarak Çalıştırma (Opsiyonel)
 
-Windows Service olarak çalıştırmak için PM2 kullanabilirsiniz:
+PM2 ile servis olarak çalıştırabilirsiniz:
 
-\`\`\`powershell
+\`\`\`bash
 npm install -g pm2
 pm2 start ecosystem.config.js
 pm2 save
-pm2-startup install
+pm2 startup
 \`\`\`
-`;
+`
 
-	writeFileSync(join(DIST, "README.md"), readme);
+  writeFileSync(join(DIST, 'README.md'), readme)
 
-	// Step 6: Create PM2 ecosystem config
-	const pm2Config = `module.exports = {
+  // Step 6: Create PM2 ecosystem config
+  const pm2Config = `module.exports = {
   apps: [
     {
       name: 'nucleus-backend',
@@ -295,26 +496,26 @@ pm2-startup install
     }
   ]
 };
-`;
+`
 
-	writeFileSync(join(DIST, "ecosystem.config.js"), pm2Config);
+  writeFileSync(join(DIST, 'ecosystem.config.js'), pm2Config)
 
-	// Done
-	console.log("\n✅ Deployment bundle created successfully!");
-	console.log(`📁 Output: ${DIST}`);
-	console.log("\n📋 Contents:");
-	console.log("   - frontend/     (Next.js standalone)");
-	console.log("   - backend/      (Bun bundle)");
-	console.log("   - start.ps1     (PowerShell starter)");
-	console.log("   - start.bat     (Batch starter)");
-	console.log("   - README.md     (Kurulum talimatları)");
-	console.log("   - ecosystem.config.js (PM2 config)");
-	console.log(
-		"\n🎉 Ready to deploy! Zip the dist-deployment folder and send to customer.",
-	);
+  // Done
+  console.log('\n✅ Deployment bundle created successfully!')
+  console.log(`📁 Output: ${DIST}`)
+  console.log('\n📋 Contents:')
+  console.log('   - frontend/     (Next.js standalone)')
+  console.log('   - backend/      (Bun bundle)')
+  console.log('   - runtime/      (Offline installers)')
+  console.log('   - start.ps1     (Windows PowerShell)')
+  console.log('   - start.bat     (Windows Batch)')
+  console.log('   - start.sh      (macOS/Linux)')
+  console.log('   - README.md     (Kurulum talimatları)')
+  console.log('   - ecosystem.config.js (PM2 config)')
+  console.log('\n🎉 Ready to deploy! Zip the dist-deployment folder and send to customer.')
 }
 
 main().catch((err) => {
-	console.error("❌ Build failed:", err);
-	process.exit(1);
-});
+  console.error('❌ Build failed:', err)
+  process.exit(1)
+})

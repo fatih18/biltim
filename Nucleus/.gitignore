@@ -51,3 +51,8 @@ apps/be/storage/**
 # Local standalone NPM packages (ignored from main repo)
 custom-fetch-npm/
 nucleus-generic-api-caller/
+
+# Deployment
+dist-deployment/
+dist-deployment.zip
+required_packages/

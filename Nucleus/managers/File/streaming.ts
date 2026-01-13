@@ -60,7 +60,7 @@ export const createFileWriter = async (
 			}
 
 			try {
-				const bytesWritten = writer.write(chunk);
+				const bytesWritten = writer.write(chunk) as number;
 
 				// Auto flush if enabled
 				if (config.autoFlush && bytesWritten > 0) {

@@ -20,7 +20,8 @@
 	},
 	"resolutions": {
 		"drizzle-orm": "0.44.7",
-		"drizzle-kit": "0.31.5"
+		"drizzle-kit": "0.31.5",
+		"postgres": "3.4.7"
 	},
 	"description": "Nucleus is a monorepo for building applications as fast as possible with backend and frontend",
 	"license": "MIT",
@@ -38,6 +39,7 @@
 		"build:desktop:mac": "bun --cwd apps/desktop build:compile:mac-arm64",
 		"build:desktop:dist": "bun --cwd apps/desktop build:dist",
 		"build": "turbo run build",
+		"bundle:deploy": "bun run scripts/bundle-for-deployment.ts",
 		"setup-azure": "bun run devops/setup-azure-devops.ts"
 	},
 	"workspaces": [
