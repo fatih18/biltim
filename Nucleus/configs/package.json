@@ -1,0 +1,23 @@
+{
+	"name": "@monorepo/configs",
+	"version": "1.0.0",
+	"private": true,
+	"files": [
+		"tsconfig/*.json",
+		"next/*.ts",
+		"biome/*.json"
+	],
+	"exports": {
+		"./tsconfig/base": "./tsconfig/base.json",
+		"./tsconfig/nextjs": "./tsconfig/nextjs.json",
+		"./next/base": "./next/base.ts",
+		"./biome/base": "./biome/base.json",
+		"./biome/nextjs": "./biome/nextjs.json",
+		"./tsconfig/elysiajs": "./tsconfig/elysiajs.json"
+	},
+	"peerDependencies": {
+		"typescript": "latest",
+		"next": "latest",
+		"@types/node": "latest"
+	}
+}

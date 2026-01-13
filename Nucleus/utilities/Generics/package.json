@@ -1,0 +1,33 @@
+{
+	"name": "@monorepo/generics",
+	"version": "1.0.0",
+	"private": true,
+	"main": "index.ts",
+	"dependencies": {
+		"@monorepo/file-manager": "workspace:*",
+		"@monorepo/drizzle-manager": "workspace:*",
+		"@monorepo/db-entities": "workspace:*"
+	},
+	"exports": {
+		".": {
+			"import": "./index.ts",
+			"require": "./index.ts"
+		},
+		"./index": {
+			"import": "./index.ts",
+			"require": "./index.ts"
+		},
+		"./SearchConfig": {
+			"import": "./SearchConfig/index.ts",
+			"require": "./SearchConfig/index.ts"
+		}
+	},
+	"files": [
+		"index.ts",
+		"SearchConfig"
+	],
+	"peerDependencies": {
+		"argon2": "latest",
+		"nanoid": "latest"
+	}
+}

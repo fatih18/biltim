@@ -1,0 +1,204 @@
+# ============================================
+# REUSABLE APP BUILD & DEPLOY TEMPLATE
+# Sadece jobs döndürür (stage'ler ayrı dosyalarda)
+# ============================================
+
+parameters:
+  - name: appName
+    type: string
+  
+  - name: appType
+    type: string
+    values:
+      - backend
+      - frontend
+  
+  - name: port
+    type: number
+    default: 4000
+  
+  - name: artifactName
+    type: string
+  
+  - name: jobCondition
+    type: string
+    default: 'succeeded()'
+
+  - name: hasDaprSubscription
+    type: boolean
+    default: false
+
+jobs:
+# ============================================
+# BUILD JOB
+# ============================================
+- job: Build_${{ parameters.appName }}
+  displayName: 'Build ${{ parameters.appName }} Docker Image'
+  condition: ${{ parameters.jobCondition }}
+  pool:
+    vmImage: 'ubuntu-latest'
+  steps:
+    - checkout: none
+
+    - task: DownloadPipelineArtifact@2
+      displayName: 'Download ${{ parameters.appName }} minimal'
+      inputs:
+        artifact: '${{ parameters.artifactName }}'
+        path: $(Pipeline.Workspace)/${{ parameters.appName }}
+      continueOnError: false
+
+    - bash: |
+        echo "${{ parameters.appName }} Docker context size:"
+        du -sh $(Pipeline.Workspace)/${{ parameters.appName }}
+        echo "Contents:"
+        ls -lah $(Pipeline.Workspace)/${{ parameters.appName }}/
+      displayName: 'Verify ${{ parameters.appName }} Artifact'
+
+    # ============================================
+    # DOCKERFILE GENERATION
+    # ============================================
+    - bash: |
+        APP_TYPE="${{ parameters.appType }}"
+        APP_NAME="${{ parameters.appName }}"
+        PORT="${{ parameters.port }}"
+
+        if [ "$APP_TYPE" = "backend" ]; then
+          echo "Generating backend Dockerfile"
+          cat > $(Pipeline.Workspace)/$APP_NAME/Dockerfile << EOF
+        # AUTO-GENERATED BACKEND DOCKERFILE
+        FROM oven/bun:1-slim
+
+        WORKDIR /app
+
+        ENV NODE_ENV=production
+
+        # Copy minimal node_modules
+        COPY --chown=bun:bun node_modules ./node_modules
+
+        # Copy public directory
+        COPY --chown=bun:bun public ./public
+
+        # Copy desktop agent seed (if present)
+        # This will later be used by an initContainer to seed the PVC at /app/storage
+        COPY --chown=bun:bun storage-seed ./storage-seed
+
+        # Copy binary
+        COPY --chown=bun:bun --chmod=755 ${APP_NAME}-server ./server
+
+        USER bun
+
+        EXPOSE $PORT
+
+        CMD ["./server"]
+        EOF
+        elif [ "$APP_TYPE" = "frontend" ]; then
+          echo "Generating frontend Dockerfile"
+          cat > $(Pipeline.Workspace)/$APP_NAME/Dockerfile << EOF
+        # AUTO-GENERATED FRONTEND DOCKERFILE
+        FROM node:20-alpine
+
+        WORKDIR /app
+
+        ENV NODE_ENV=production
+        ENV NEXT_TELEMETRY_DISABLED=1
+        ENV PORT=$PORT
+        ENV HOSTNAME="0.0.0.0"
+
+        COPY --chown=node:node . .
+
+        USER node
+
+        EXPOSE $PORT
+
+        CMD ["node", "apps/${APP_NAME}/server.js"]
+        EOF
+        else
+          echo "ERROR: Unknown app type: $APP_TYPE"
+          exit 1
+        fi
+
+        echo "Dockerfile created:"
+        cat $(Pipeline.Workspace)/$APP_NAME/Dockerfile
+      displayName: 'Create ${{ parameters.appName }} Dockerfile'
+
+    # ============================================
+    # DOCKER BUILD & PUSH
+    # ============================================
+    - task: Docker@2
+      displayName: 'Build & Push ${{ parameters.appName }} Docker Image'
+      inputs:
+        command: buildAndPush
+        repository: '$(appName)-${{ parameters.appName }}'
+        dockerfile: '$(Pipeline.Workspace)/${{ parameters.appName }}/Dockerfile'
+        containerRegistry: $(dockerRegistryServiceConnection)
+        buildContext: '$(Pipeline.Workspace)/${{ parameters.appName }}'
+        tags: |
+          $(tag)
+          latest
+
+# ============================================
+# DEPLOYMENT
+# ============================================
+- deployment: Deploy_${{ parameters.appName }}
+  displayName: 'Deploy ${{ parameters.appName }}'
+  condition: ${{ parameters.jobCondition }}
+  dependsOn: Build_${{ parameters.appName }}
+  environment: 'production'
+  pool:
+    vmImage: 'ubuntu-latest'
+  strategy:
+    runOnce:
+      deploy:
+        steps:
+          - checkout: self
+
+          - ${{ if ne(parameters.appType, 'frontend') }}:
+            - task: KubernetesManifest@1
+              displayName: 'Deploy ${{ parameters.appName }} PVC'
+              inputs:
+                action: 'deploy'
+                kubernetesServiceConnection: $(kubernetesServiceConnection)
+                namespace: $(k8sNamespace)
+                manifests: |
+                  $(Build.SourcesDirectory)/apps/${{ parameters.appName }}/k8s/pvc.yaml
+              continueOnError: true
+
+          - task: KubernetesManifest@1
+            displayName: 'Deploy ${{ parameters.appName }} ConfigMap'
+            inputs:
+              action: 'deploy'
+              kubernetesServiceConnection: $(kubernetesServiceConnection)
+              namespace: $(k8sNamespace)
+              manifests: |
+                $(Build.SourcesDirectory)/apps/${{ parameters.appName }}/k8s/configmap.yaml
+
+          - task: KubernetesManifest@1
+            displayName: 'Deploy ${{ parameters.appName }} App & Service'
+            inputs:
+              action: 'deploy'
+              kubernetesServiceConnection: $(kubernetesServiceConnection)
+              namespace: $(k8sNamespace)
+              manifests: |
+                $(Build.SourcesDirectory)/apps/${{ parameters.appName }}/k8s/deployment.yaml
+                $(Build.SourcesDirectory)/apps/${{ parameters.appName }}/k8s/service.yaml
+              containers: |
+                $(containerRegistry)/$(appName)-${{ parameters.appName }}:$(tag)
+
+          - task: KubernetesManifest@1
+            displayName: 'Deploy ${{ parameters.appName }} Ingress'
+            inputs:
+              action: 'deploy'
+              kubernetesServiceConnection: $(kubernetesServiceConnection)
+              namespace: $(k8sNamespace)
+              manifests: |
+                $(Build.SourcesDirectory)/apps/${{ parameters.appName }}/k8s/ingress.yaml
+
+          - ${{ if eq(parameters.hasDaprSubscription, true) }}:
+            - task: KubernetesManifest@1
+              displayName: 'Deploy ${{ parameters.appName }} Dapr Subscription'
+              inputs:
+                action: 'deploy'
+                kubernetesServiceConnection: $(kubernetesServiceConnection)
+                namespace: $(k8sNamespace)
+                manifests: |
+                  $(Build.SourcesDirectory)/apps/${{ parameters.appName }}/k8s/subscription.yaml

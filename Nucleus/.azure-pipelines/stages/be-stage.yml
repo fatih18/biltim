@@ -1,0 +1,31 @@
+# ============================================
+# BACKEND BUILD & DEPLOY STAGE
+# ============================================
+
+stages:
+- stage: BuildAndDeployBE
+  displayName: '🚀 Backend Build & Deploy'
+  dependsOn: TurboBuild
+  condition: and(succeeded(), eq(dependencies.TurboBuild.outputs['Build.buildOutput.beBuilt'], 'true'))
+  jobs:
+  - job: DebugBE
+    displayName: '🔍 Debug BE Stage'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - bash: |
+        echo "============================================"
+        echo "🚀 BACKEND BUILD & DEPLOY"
+        echo "============================================"
+        echo "Condition met: BE was built in TurboBuild"
+        echo "Starting BE Docker build and K8s deployment"
+        echo "============================================"
+      displayName: '🔍 Debug: BE Stage Started'
+  
+  - template: ../templates/app-build-deploy.yml
+    parameters:
+      appName: 'be'
+      appType: 'backend'
+      port: 4000
+      artifactName: 'be-minimal'
+      hasDaprSubscription: true

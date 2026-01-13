@@ -1,0 +1,25 @@
+{
+  "extends": "@monorepo/configs/tsconfig/elysiajs",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@configs": ["src/configs/index.ts"],
+      "@middlewares": ["src/middlewares/index.ts"],
+      "@routes": ["src/routes/index.ts"],
+      "@server": ["src/server.ts"],
+      "@controllers": ["src/controllers/index.ts"],
+      "@exceptions": ["src/exceptions/index.ts"],
+      "@utils": ["src/utils/index.ts"],
+      "@services": ["src/services/index.ts"],
+      "@managers": ["src/managers/index.ts"],
+      "@schemas": ["src/schemas/index.ts"],
+      "@models": ["src/types/models/index.ts"],
+      "@htmls": ["src/htmls/index.ts"],
+      "@db": ["drizzle/db.ts"],
+      "drizzle-orm": ["../../node_modules/drizzle-orm"],
+      "drizzle-orm/*": ["../../node_modules/drizzle-orm/*"]
+    }
+  },
+  "exclude": ["node_modules,.backups"]
+}

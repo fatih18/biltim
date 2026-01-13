@@ -1,0 +1,48 @@
+{
+	"name": "@monorepo/db-entities",
+	"version": "1.0.0",
+	"private": true,
+	"main": "schemas/index.ts",
+	"types": "types/index.ts",
+	"dependencies": {},
+	"exports": {
+		".": {
+			"import": "./schemas/index.ts",
+			"require": "./schemas/index.ts",
+			"default": "./schemas/index.ts",
+			"types": "./schemas/index.ts"
+		},
+		"./schemas": {
+			"import": "./schemas/index.ts",
+			"require": "./schemas/index.ts",
+			"default": "./schemas/index.ts",
+			"types": "./schemas/index.ts"
+		},
+		"./schemas/*": {
+			"import": "./schemas/*.ts",
+			"require": "./schemas/*.ts",
+			"default": "./schemas/*.ts",
+			"types": "./schemas/*.ts"
+		},
+		"./types": {
+			"import": "./types/index.ts",
+			"require": "./types/index.ts",
+			"default": "./types/index.ts",
+			"types": "./types/index.ts"
+		},
+		"./types/*": {
+			"import": "./types/*.ts",
+			"require": "./types/*.ts",
+			"default": "./types/*.ts",
+			"types": "./types/*.ts"
+		}
+	},
+	"files": [
+		"schemas/**/*",
+		"types/**/*"
+	],
+	"peerDependencies": {
+		"@monorepo/generics": "workspace:*",
+		"drizzle-orm": "workspace:*"
+	}
+}

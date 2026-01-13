@@ -1,0 +1,53 @@
+# dependencies (bun install)
+node_modules
+
+# output
+out
+dist
+**/.next
+
+*.tgz
+
+# code coverage
+coverage
+*.lcov
+
+# logs
+_.log
+report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
+
+# dotenv environment variable files
+# .env
+# .env.development.local
+# .env.test.local
+# .env.production.local
+# .env.local
+
+# caches
+.eslintcache
+.cache
+.turbo
+*.tsbuildinfo
+
+
+# IntelliJ based IDEs
+.idea
+
+# Finder (MacOS) folder config
+.DS_Store
+
+./TEMP_LOOKUP
+
+*.local
+*.exe
+.git-backup
+*.bun-build
+# .next directories are already ignored with **/.next above
+
+apps/be/storage/**
+.windsurf
+.bun.lock
+
+# Local standalone NPM packages (ignored from main repo)
+custom-fetch-npm/
+nucleus-generic-api-caller/

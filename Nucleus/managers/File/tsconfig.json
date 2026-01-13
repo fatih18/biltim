@@ -1,0 +1,5 @@
+{
+	"extends": "@monorepo/configs/tsconfig/elysiajs",
+	"compilerOptions": {},
+	"exclude": ["node_modules,.backups"]
+}

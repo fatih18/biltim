@@ -1,0 +1,8 @@
+export * from './CTA'
+export * from './Features'
+export { Footer as AvatarFooter } from './Footer'
+export { Header as AvatarHeader } from './Header'
+export { Hero as AvatarHero } from './Hero'
+export * from './InteractiveAvatar'
+export * from './MockAvatar'
+export * from './Testimonials'

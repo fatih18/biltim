@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nucleus-fe-configmap
+  namespace: pairbone
+data:
+  HOSTNAME: 0.0.0.0
+  APP_PORT: '3000'
+  # Backend service URL for OAuth proxy and file proxy
+  AUTH_API_URL: 'http://nucleus-api-service.pairbone.svc.cluster.local:3000'
+  NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: 'vtyUohWPBvcMqmmJz110GxSs3UhhHiE4VnFz36za96Q='
+  BYPASS_IDENTITY_MIDDLEWARE: 'false'
+  OPENAI_API_KEY: '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'
+  NEXT_PUBLIC_AZURE_REDIRECT_URI: 'https://nucleus-fe.57-152-73-173.nip.io/pocs/telekom/1'
+  NEXT_PUBLIC_AZURE_LOGOUT_URI: 'https://nucleus-fe.57-152-73-173.nip.io/pocs/telekom/1'
+  HEYGEN_API_KEY: 'OTNhODBhYmMwNTNmNDlhYWJjNmFmZTZjYTgzMDkxMmMtMTc0MTY4Nzk5OQ=='
+  

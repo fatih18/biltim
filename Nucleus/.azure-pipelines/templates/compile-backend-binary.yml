@@ -1,0 +1,66 @@
+# ============================================
+# BACKEND BINARY COMPILE TEMPLATE
+# Bun ile backend'i binary'ye compile eder
+# ============================================
+
+parameters:
+  - name: appName
+    type: string
+    displayName: 'App name (e.g., be, bifrost)'
+  - name: appPath
+    type: string
+    displayName: 'App path relative to root'
+    default: 'apps'
+  - name: externalDeps
+    type: object
+    displayName: 'External dependencies (not bundled)'
+    default:
+      - pg
+      - drizzle-orm
+      - postgres
+      - argon2
+
+steps:
+- bash: |
+    echo "============================================"
+    echo "🔨 Compiling ${{ parameters.appName }} Binary"
+    echo "============================================"
+    cd ${{ parameters.appPath }}/${{ parameters.appName }}
+    
+    EXTERNAL_FLAGS=""
+    for dep in ${{ join(' ', parameters.externalDeps) }}; do
+      EXTERNAL_FLAGS="$EXTERNAL_FLAGS --external $dep"
+    done
+    
+    bun build \
+      --compile \
+      --minify-whitespace \
+      --minify-syntax \
+      --target bun-linux-x64 \
+      $EXTERNAL_FLAGS \
+      --outfile ../../${{ parameters.appName }}-server \
+      src/index.ts
+    
+    cd ../..
+    
+    # VALIDATE BINARY EXISTS
+    if [ ! -f "./${{ parameters.appName }}-server" ]; then
+      echo "❌ ERROR: Binary not found at ./${{ parameters.appName }}-server"
+      echo "Build command may have failed silently!"
+      exit 1
+    fi
+    
+    chmod +x ./${{ parameters.appName }}-server
+    
+    echo "✅ ${{ parameters.appName }} binary compiled successfully"
+    ls -lh ./${{ parameters.appName }}-server
+    
+    # Test if binary is executable
+    if ./${{ parameters.appName }}-server --version 2>/dev/null; then
+      echo "✅ Binary is executable"
+    else
+      echo "⚠️ Binary exists but may have issues (Bun binaries may not support --version)"
+    fi
+    
+    echo "============================================"
+  displayName: '🔨 Compile ${{ parameters.appName }} Binary'

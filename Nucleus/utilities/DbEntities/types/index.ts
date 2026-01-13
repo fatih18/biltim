@@ -1,0 +1,16 @@
+export type * as T_Addresses from "../schemas/default/address";
+export type * as T_Audit from "../schemas/default/audit";
+export type * as T_Claims from "../schemas/default/claim";
+export type * as T_Companies from "../schemas/default/company";
+export type * as T_Files from "../schemas/default/file";
+export type * as T_Phones from "../schemas/default/phone";
+export type * as T_Profiles from "../schemas/default/profile";
+export type * as T_RemoteCommandLogs from "../schemas/default/remote_command_log";
+export type * as T_RemoteComputers from "../schemas/default/remote_computer";
+export type * as T_RemotePermissions from "../schemas/default/remote_permission";
+export type * as T_RemoteSessions from "../schemas/default/remote_session";
+export type * as T_Tenants from "../schemas/default/tenants";
+export type * as T_Users from "../schemas/default/user";
+export type * as T_UserClaims from "../schemas/default/user_claim";
+export type * as T_Verifications from "../schemas/default/verification";
+export type * as T_VerificationRequirements from "../schemas/default/verification_requirement";

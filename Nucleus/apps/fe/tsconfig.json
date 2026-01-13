@@ -1,0 +1,20 @@
+{
+  "extends": "@monorepo/configs/tsconfig/nextjs",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"],
+      "@components": ["./app/_components/index.ts"],
+      "@store/*": ["./app/_store/*"],
+      "@lib/*": ["lib/*"],
+      "@monorepo/db-entities/*": ["../../utilities/DbEntities/*"],
+      "@monorepo/db-entities": ["../../utilities/DbEntities/index.ts"],
+      "@monorepo/generics": ["../../utilities/Generics/index.ts"],
+      "@monorepo/h-state": ["../../packages/h-state/index.ts"],
+      "@monorepo/file-manager": ["../../managers/File/index.ts"],
+      "@monorepo/drizzle-manager": ["../../managers/Drizzle/index.ts"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules", ".next", "dist", "build"]
+}

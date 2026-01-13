@@ -1,0 +1,88 @@
+'use client'
+
+import { FaMicrosoft } from 'react-icons/fa'
+import { toast } from 'sonner'
+import { useGenericApiActions } from '@/app/_hooks/UseGenericApiStore'
+
+type AzureButtonProps = {
+  mode: 'login' | 'register' | 'link'
+  returnUrl?: string
+  linkToUserId?: string
+  isLinked?: boolean
+  className?: string
+}
+
+export function AzureButton({
+  mode,
+  returnUrl,
+  linkToUserId,
+  isLinked = false,
+  className,
+}: AzureButtonProps) {
+  const actions = useGenericApiActions()
+
+  function handleClick() {
+    if (isLinked) {
+      // Unlink Azure account
+      if (!confirm('Are you sure you want to unlink your Microsoft account?')) {
+        return
+      }
+
+      actions.UNLINK_AZURE?.start({
+        onAfterHandle: () => {
+          toast.success('Microsoft account unlinked successfully')
+          // Refresh page to update linked accounts
+          window.location.reload()
+        },
+        onErrorHandle: (error) => {
+          console.error('Azure unlink error:', error)
+          toast.error('Failed to unlink Microsoft account')
+        },
+      })
+    } else {
+      // Link Azure account
+      actions.GET_AZURE_AUTH_URL?.start({
+        payload: {
+          returnUrl: returnUrl || window.location.origin,
+          linkToUserId,
+        },
+        onAfterHandle: (data) => {
+          if (data?.authUrl) {
+            // Redirect to Azure OAuth page
+            window.location.href = data.authUrl
+          } else {
+            toast.error('Failed to get Microsoft authorization URL')
+          }
+        },
+        onErrorHandle: (error) => {
+          console.error('Azure OAuth error:', error)
+          toast.error('Failed to connect with Microsoft')
+        },
+      })
+    }
+  }
+
+  const buttonText = {
+    login: 'Continue with Microsoft',
+    register: 'Sign up with Microsoft',
+    link: isLinked ? 'Unlink Microsoft' : 'Link Microsoft Account',
+  }
+
+  const isLoading =
+    actions.GET_AZURE_AUTH_URL?.state?.isPending || actions.UNLINK_AZURE?.state?.isPending || false
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      disabled={isLoading}
+      className={
+        className ||
+        'flex w-full items-center justify-center gap-3 rounded-lg border-2 border-blue-600 bg-white px-6 py-3.5 text-base font-semibold text-blue-600 transition hover:bg-blue-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:opacity-50 disabled:cursor-not-allowed'
+      }
+    >
+      <FaMicrosoft className="h-5 w-5" />
+      <span>{isLoading ? 'Connecting...' : buttonText[mode]}</span>
+    </button>
+  )
+}

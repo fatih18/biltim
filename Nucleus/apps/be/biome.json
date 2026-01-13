@@ -1,0 +1,4 @@
+{
+  "extends": ["@monorepo/configs/biome/base"],
+  "root": false
+}

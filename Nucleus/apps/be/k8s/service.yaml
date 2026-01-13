@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nucleus-api-service
+  namespace: pairbone
+spec:
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 4000
+  selector:
+    app: nucleus-api
+  type: ClusterIP

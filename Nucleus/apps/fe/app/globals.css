@@ -1,0 +1,674 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+/* Cyan variant for triadic cyberpunk glitch */
+@keyframes tcs-glitch-c {
+  0% {
+    transform: translate(0, 0);
+    clip-path: inset(0 0 0 0);
+  }
+
+  6% {
+    transform: translate(1px, 0);
+    clip-path: inset(0 0 68% 0);
+  }
+
+  14% {
+    transform: translate(-2px, 1px) skewX(-1deg);
+    clip-path: inset(58% 0 0 0);
+  }
+
+  22% {
+    transform: translate(2px, -1px);
+    clip-path: inset(0 0 48% 0);
+  }
+
+  30% {
+    transform: translate(-1px, 1px);
+    clip-path: inset(36% 0 0 0);
+  }
+
+  38% {
+    transform: translate(3px, 0);
+    clip-path: inset(0 0 24% 0);
+  }
+
+  46% {
+    transform: translate(-3px, 0);
+    clip-path: inset(12% 0 0 0);
+  }
+
+  58% {
+    transform: translate(1px, -1px);
+    clip-path: inset(0 0 52% 0);
+  }
+
+  70% {
+    transform: translate(-1px, 1px);
+    clip-path: inset(66% 0 0 0);
+  }
+
+  84% {
+    transform: translate(2px, 0);
+    clip-path: inset(0 0 26% 0);
+  }
+
+  100% {
+    transform: translate(0, 0);
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+.glitch-layer-cyan {
+  animation:
+    tcs-glitch-c 1900ms steps(22) infinite,
+    tcs-flicker 3000ms linear infinite;
+  will-change: transform, clip-path, opacity;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* ===== Global glitch effect utilities ===== */
+@keyframes tcs-glitch-r {
+  0% {
+    transform: translate(0, 0);
+    clip-path: inset(0 0 0 0);
+  }
+
+  8% {
+    transform: translate(2px, -1px);
+    clip-path: inset(0 0 82% 0);
+  }
+
+  16% {
+    transform: translate(-2px, 1px) skewX(-2deg);
+    clip-path: inset(78% 0 0 0);
+  }
+
+  24% {
+    transform: translate(1px, 0);
+    clip-path: inset(0 0 64% 0);
+  }
+
+  32% {
+    transform: translate(-1px, 0) skewX(1.5deg);
+    clip-path: inset(40% 0 0 0);
+  }
+
+  40% {
+    transform: translate(3px, -2px);
+    clip-path: inset(0 0 28% 0);
+  }
+
+  48% {
+    transform: translate(-3px, 2px);
+    clip-path: inset(20% 0 0 0);
+  }
+
+  56% {
+    transform: translate(1px, -1px);
+    clip-path: inset(0 0 46% 0);
+  }
+
+  64% {
+    transform: translate(-1px, 1px);
+    clip-path: inset(60% 0 0 0);
+  }
+
+  72% {
+    transform: translate(2px, 0);
+    clip-path: inset(0 0 34% 0);
+  }
+
+  80% {
+    transform: translate(-2px, 0);
+    clip-path: inset(24% 0 0 0);
+  }
+
+  88% {
+    transform: translate(1px, -1px);
+    clip-path: inset(0 0 12% 0);
+  }
+
+  100% {
+    transform: translate(0, 0);
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes tcs-glitch-f {
+  0% {
+    transform: translate(0, 0);
+    clip-path: inset(0 0 0 0);
+  }
+
+  10% {
+    transform: translate(-2px, 1px) skewX(2deg);
+    clip-path: inset(70% 0 0 0);
+  }
+
+  18% {
+    transform: translate(2px, -1px);
+    clip-path: inset(0 0 76% 0);
+  }
+
+  26% {
+    transform: translate(-1px, 0);
+    clip-path: inset(32% 0 0 0);
+  }
+
+  34% {
+    transform: translate(1px, 0);
+    clip-path: inset(0 0 55% 0);
+  }
+
+  42% {
+    transform: translate(-3px, 2px);
+    clip-path: inset(18% 0 0 0);
+  }
+
+  50% {
+    transform: translate(3px, -2px);
+    clip-path: inset(0 0 26% 0);
+  }
+
+  58% {
+    transform: translate(-1px, 1px);
+    clip-path: inset(62% 0 0 0);
+  }
+
+  66% {
+    transform: translate(1px, -1px);
+    clip-path: inset(0 0 44% 0);
+  }
+
+  74% {
+    transform: translate(-2px, 0);
+    clip-path: inset(28% 0 0 0);
+  }
+
+  82% {
+    transform: translate(2px, 0);
+    clip-path: inset(0 0 12% 0);
+  }
+
+  100% {
+    transform: translate(0, 0);
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+.glitch-layer-red {
+  animation:
+    tcs-glitch-r 1800ms steps(18) infinite,
+    tcs-flicker 2600ms linear infinite;
+  will-change: transform, clip-path, opacity;
+}
+
+.glitch-layer-fuchsia {
+  animation:
+    tcs-glitch-f 1800ms steps(20) infinite,
+    tcs-flicker 3200ms linear infinite;
+  animation-delay: 120ms;
+  will-change: transform, clip-path, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .glitch-layer-red,
+  .glitch-layer-fuchsia {
+    animation: none;
+  }
+}
+
+/* Neon/cyberpunk helpers */
+@keyframes tcs-flicker {
+  0% {
+    opacity: 0.95;
+  }
+
+  2% {
+    opacity: 0.6;
+  }
+
+  4% {
+    opacity: 0.92;
+  }
+
+  8% {
+    opacity: 0.75;
+  }
+
+  10% {
+    opacity: 0.98;
+  }
+
+  12% {
+    opacity: 0.7;
+  }
+
+  16% {
+    opacity: 0.97;
+  }
+
+  22% {
+    opacity: 0.82;
+  }
+
+  28% {
+    opacity: 0.96;
+  }
+
+  34% {
+    opacity: 0.72;
+  }
+
+  40% {
+    opacity: 0.99;
+  }
+
+  48% {
+    opacity: 0.78;
+  }
+
+  56% {
+    opacity: 0.95;
+  }
+
+  64% {
+    opacity: 0.68;
+  }
+
+  72% {
+    opacity: 0.94;
+  }
+
+  82% {
+    opacity: 0.76;
+  }
+
+  92% {
+    opacity: 0.98;
+  }
+
+  100% {
+    opacity: 0.93;
+  }
+}
+
+.cyberpunk-text-base {
+  text-shadow:
+    0 0 6px rgba(255, 255, 255, 0.35),
+    0 0 14px rgba(255, 255, 255, 0.25);
+}
+
+.neon-red {
+  text-shadow:
+    0 0 4px rgba(244, 63, 94, 0.55),
+    0 0 10px rgba(244, 63, 94, 0.35),
+    0 0 18px rgba(244, 63, 94, 0.25);
+}
+
+.neon-fuchsia {
+  text-shadow:
+    0 0 4px rgba(217, 70, 239, 0.5),
+    0 0 10px rgba(217, 70, 239, 0.3),
+    0 0 18px rgba(217, 70, 239, 0.2);
+}
+
+/* Cyan neon helper */
+.neon-cyan {
+  text-shadow:
+    0 0 4px rgba(34, 211, 238, 0.55),
+    0 0 10px rgba(34, 211, 238, 0.35),
+    0 0 18px rgba(34, 211, 238, 0.25);
+}
+
+/* Scanlines overlay */
+@keyframes tcs-scanlines {
+  0% {
+    opacity: 0.06;
+  }
+
+  50% {
+    opacity: 0.12;
+  }
+
+  100% {
+    opacity: 0.06;
+  }
+}
+
+.scanlines {
+  background-image: repeating-linear-gradient(to bottom,
+      rgba(255, 255, 255, 0.06) 0px,
+      rgba(255, 255, 255, 0.06) 1px,
+      transparent 2px,
+      transparent 3px);
+  pointer-events: none;
+}
+
+.scanlines-animate {
+  animation: tcs-scanlines 4200ms linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scanlines-animate {
+    animation: none;
+  }
+}
+
+/* Rotating holographic rim sweep for orbs */
+@keyframes tcs-rim-sweep {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.orb-rim-sweep {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: conic-gradient(from 0deg,
+      rgba(244, 63, 94, 0) 0deg,
+      rgba(244, 63, 94, 0.45) 40deg,
+      rgba(217, 70, 239, 0.45) 140deg,
+      rgba(34, 211, 238, 0.45) 220deg,
+      rgba(244, 63, 94, 0.45) 320deg,
+      rgba(244, 63, 94, 0) 360deg);
+  -webkit-mask: radial-gradient(closest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  mask: radial-gradient(closest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  opacity: 0.5;
+  mix-blend-mode: screen;
+  animation: tcs-rim-sweep 10s linear infinite;
+  pointer-events: none;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sb-thumb-solid) var(--sb-track-solid);
+}
+
+/* WebKit */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--sb-track);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--sb-thumb);
+  border-radius: 9999px;
+  border: 1px solid rgba(34, 211, 238, 0.25);
+  box-shadow:
+    0 0 8px rgba(34, 211, 238, 0.35),
+    0 0 16px rgba(59, 130, 246, 0.25);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--sb-thumb-hover);
+  box-shadow:
+    0 0 10px rgba(34, 211, 238, 0.55),
+    0 0 22px rgba(99, 102, 241, 0.45);
+}
+
+.marble-base-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #8db5ff 0%, #9a8bff 40%, #f5a7ff 100%);
+}
+
+.marble-secondary-gradient {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 25% 30%, rgba(136, 199, 255, 0.45), transparent 65%),
+    radial-gradient(ellipse at 80% 65%, rgba(210, 175, 255, 0.4), transparent 60%);
+  mix-blend-mode: screen;
+  opacity: 0.85;
+}
+
+.marble-overlay-gradient {
+  position: absolute;
+  inset: 0;
+  background: conic-gradient(from 90deg at 48% 55%,
+      rgba(236, 72, 153, 0.28) 0deg,
+      rgba(59, 130, 246, 0.28) 120deg,
+      rgba(147, 51, 234, 0.32) 240deg,
+      rgba(236, 72, 153, 0.28) 360deg);
+  mix-blend-mode: overlay;
+  opacity: 0.55;
+  filter: blur(6px);
+}
+
+.marble-canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.marble-swirl {
+  position: absolute;
+  inset: 0;
+  background: conic-gradient(from 0deg at 50% 50%,
+      transparent 0deg,
+      rgba(93, 133, 255, 0.25) 90deg,
+      rgba(255, 153, 229, 0.28) 180deg,
+      rgba(118, 65, 255, 0.22) 270deg,
+      transparent 360deg);
+  mix-blend-mode: color-dodge;
+  animation: marbleSwirlRotate 30s linear infinite;
+  opacity: 0.5;
+  filter: blur(14px);
+}
+
+.marble-highlight {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 55% 30% at 30% 20%, rgba(255, 255, 255, 0.35), transparent 70%),
+    radial-gradient(ellipse 40% 20% at 70% 35%, rgba(255, 255, 255, 0.28), transparent 70%),
+    radial-gradient(ellipse 45% 30% at 50% 80%, rgba(255, 255, 255, 0.24), transparent 75%);
+  mix-blend-mode: screen;
+  animation: marbleHighlightPulse 9s ease-in-out infinite;
+}
+
+.marble-glass {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg,
+      rgba(6, 3, 26, 0.2) 0%,
+      rgba(26, 7, 60, 0.08) 40%,
+      rgba(21, 5, 50, 0.22) 100%);
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.marble-bubble {
+  position: absolute;
+  display: block;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.65), transparent 70%);
+  filter: blur(0.6px);
+  animation-name: marbleBubbleFloat;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+@keyframes marbleBubbleFloat {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  33% {
+    transform: translate3d(12px, -14px, 0) scale(1.12);
+  }
+
+  66% {
+    transform: translate3d(-6px, 10px, 0) scale(0.96);
+  }
+
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes marbleSwirlRotate {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  50% {
+    transform: rotate(180deg) scale(1.02);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes marbleHighlightPulse {
+  0% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.6;
+    transform: scale(1.05);
+  }
+
+  100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+}
+
+@keyframes slowSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* 404 Page Animations */
+.shadow-glow {
+  text-shadow: 0 0 40px rgba(255, 255, 255, 0.2);
+}
+
+@keyframes softExpand {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.3;
+  }
+
+  50% {
+    opacity: 0.1;
+  }
+
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+@keyframes gentlePulse {
+  0% {
+    width: 0;
+    height: 0;
+    opacity: 0.3;
+  }
+
+  100% {
+    width: 600px;
+    height: 600px;
+    opacity: 0;
+  }
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+
+  50% {
+    transform: translate(-50%, -50%) rotate(180deg) scale(1.1);
+  }
+}
+
+@keyframes grow {
+  0% {
+    width: 0;
+  }
+
+  100% {
+    width: 6rem;
+  }
+}
+
+@keyframes breathe {
+
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.5);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+/* =========================
+   DARK INPUT AUTOFILL FIX
+   (Chrome / Safari)
+   ========================= */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus {
+  -webkit-text-fill-color: rgb(226 232 240) !important;
+  /* slate-200 */
+  -webkit-box-shadow: 0 0 0px 1000px rgba(2, 6, 23, 0.7) inset !important;
+  /* slate-950/70 */
+  box-shadow: 0 0 0px 1000px rgba(2, 6, 23, 0.7) inset !important;
+  transition: background-color 9999s ease-in-out 0s !important;
+  caret-color: rgb(226 232 240) !important;
+}

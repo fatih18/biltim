@@ -1,0 +1,74 @@
+# ============================================
+# PACKAGE BACKEND ARTIFACT
+# Backend binary + minimal deps + public → artifact
+# ============================================
+
+parameters:
+  - name: appName
+    type: string
+
+steps:
+- bash: |
+    echo "============================================"
+    echo "📦 Packaging ${{ parameters.appName }} Artifact"
+    echo "============================================"
+    
+    ARTIFACT_DIR="$(Build.ArtifactStagingDirectory)/${{ parameters.appName }}-minimal"
+    mkdir -p "$ARTIFACT_DIR"
+    
+    # VALIDATE SOURCE BINARY EXISTS
+    if [ ! -f "${{ parameters.appName }}-server" ]; then
+      echo "❌ ERROR: Source binary not found: ${{ parameters.appName }}-server"
+      echo "Compile step may have failed!"
+      ls -la ./ | grep server || true
+      exit 1
+    fi
+    
+    # Copy binary
+    cp ${{ parameters.appName }}-server "$ARTIFACT_DIR/"
+    chmod +x "$ARTIFACT_DIR/${{ parameters.appName }}-server"
+    
+    # VALIDATE BINARY WAS COPIED
+    if [ ! -f "$ARTIFACT_DIR/${{ parameters.appName }}-server" ]; then
+      echo "❌ ERROR: Binary copy failed!"
+      exit 1
+    fi
+    
+    echo "✅ Binary copied successfully"
+    ls -lh "$ARTIFACT_DIR/${{ parameters.appName }}-server"
+    
+    # Copy minimal node_modules
+    if [ -d "minimal-${{ parameters.appName }}-deps/node_modules" ]; then
+      cp -r minimal-${{ parameters.appName }}-deps/node_modules "$ARTIFACT_DIR/"
+      echo "✅ Minimal node_modules copied:"
+      du -sh "$ARTIFACT_DIR/node_modules"
+    fi
+
+    # Copy public folder (always try, create if missing)
+    if [ -d "apps/${{ parameters.appName }}/public" ]; then
+      cp -r apps/${{ parameters.appName }}/public "$ARTIFACT_DIR/"
+      echo "✅ Public folder copied"
+    else
+      mkdir -p "$ARTIFACT_DIR/public"
+      echo "# Static files directory" > "$ARTIFACT_DIR/public/.gitkeep"
+      echo "✅ Empty public directory created"
+    fi
+
+    # Copy desktop agent distribution into storage-seed (required for AKS downloads)
+    if [ -d "apps/${{ parameters.appName }}/storage/downloads/desktop-agent" ]; then
+      mkdir -p "$ARTIFACT_DIR/storage-seed/downloads"
+      cp -r apps/${{ parameters.appName }}/storage/downloads/desktop-agent "$ARTIFACT_DIR/storage-seed/downloads/desktop-agent"
+      echo "✅ Desktop agent distribution copied to storage-seed/downloads/desktop-agent"
+    else
+      echo "❌ Desktop agent distribution not found at apps/${{ parameters.appName }}/storage/downloads/desktop-agent"
+      echo "   Run 'bun run build:desktop:dist' before packaging backend artifact."
+      exit 1
+    fi
+
+    echo ""
+    echo "📊 ${{ parameters.appName }} artifact summary:"
+    echo "Total size: $(du -sh "$ARTIFACT_DIR" | cut -f1)"
+    echo "Contents:"
+    ls -lh "$ARTIFACT_DIR/"
+    echo "============================================"
+  displayName: '📦 Package ${{ parameters.appName }} Artifact'

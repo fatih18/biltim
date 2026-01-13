@@ -1,0 +1,28 @@
+{
+	"name": "@monorepo/drizzle-manager",
+	"version": "1.0.0",
+	"private": true,
+	"main": "index.ts",
+	"exports": {
+		".": {
+			"import": "./index.ts",
+			"require": "./index.ts"
+		},
+		"./index": {
+			"import": "./index.ts",
+			"require": "./index.ts"
+		},
+		"./operators": {
+			"import": "./operators.ts",
+			"require": "./operators.ts"
+		}
+	},
+	"files": [
+		"index.ts",
+		"operators.ts"
+	],
+	"peerDependencies": {
+		"@monorepo/db-entities": "workspace:*",
+		"postgres": "latest"
+	}
+}

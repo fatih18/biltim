@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nucleus-api-deployment
+  namespace: pairbone
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: nucleus-api
+  template:
+    metadata:
+      labels:
+        app: nucleus-api
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "nucleus-api"
+        dapr.io/app-port: "4000"
+        dapr.io/log-level: "info"
+        dapr.io/enable-metrics: "true"
+        dapr.io/metrics-port: "9090"
+    spec:
+      initContainers:
+        - name: seed-desktop-agent
+          image: pairacr.azurecr.io/nucleus-be:latest
+          imagePullPolicy: Always
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -e
+              if [ -d "/app/storage-seed/downloads/desktop-agent" ]; then
+                echo "Seeding desktop agent into PVC..."
+                # Eski desktop-agent klasörünü tamamen temizle ki nested klasör oluşmasın
+                # ve her deploy'da en güncel binary'ler kullanılsın
+                rm -rf /app/storage/downloads/desktop-agent
+                mkdir -p /app/storage/downloads
+                cp -R /app/storage-seed/downloads/desktop-agent /app/storage/downloads/desktop-agent
+                echo "Seed completed."
+              else
+                echo "No /app/storage-seed/downloads/desktop-agent found, skipping seed."
+              fi
+          volumeMounts:
+            - name: storage
+              mountPath: /app/storage
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: "OnRootMismatch"
+      containers:
+        - name: nucleus-api
+          image: pairacr.azurecr.io/nucleus-be:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 4000
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: nucleus-api-configmap
+          volumeMounts:
+            - name: storage
+              mountPath: /app/storage
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 4000
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 4000
+            initialDelaySeconds: 30
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 5
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: nucleus-api-storage-pvc

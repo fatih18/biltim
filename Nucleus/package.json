@@ -1,0 +1,50 @@
+{
+	"name": "nucleus",
+	"version": "1.0.0",
+	"author": "Hidayet Can Özcan",
+	"dependencies": {
+		"@hidayetcanozcan/custom-fetch": "latest",
+		"babel-plugin-react-compiler": "latest",
+		"dexie": "^4.2.1",
+		"drizzle-kit": "0.31.5",
+		"drizzle-orm": "0.44.7",
+		"elysia": "latest"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "latest",
+		"turbo": "latest",
+		"concurrently": "latest"
+	},
+	"peerDependencies": {
+		"typescript": "latest"
+	},
+	"resolutions": {
+		"drizzle-orm": "0.44.7",
+		"drizzle-kit": "0.31.5"
+	},
+	"description": "Nucleus is a monorepo for building applications as fast as possible with backend and frontend",
+	"license": "MIT",
+	"packageManager": "bun@1.2.23",
+	"private": true,
+	"scripts": {
+		"format-and-lint": "biome check .",
+		"format-and-lint:fix": "biome check . --write",
+		"lint": "turbo run format-and-lint",
+		"lint:fix": "turbo run format-and-lint:fix",
+		"dev": "turbo run dev",
+		"dev:system": "concurrently \"turbo run dev --filter=!desktop\" \"bun --cwd apps/be db:studio\" ",
+		"dev:system:desktop": "bun run build:desktop:dist && concurrently -n be,fe,desktop -c blue,green,yellow \"bun --cwd apps/be dev\" \"bun --cwd apps/fe dev\" \"bun --cwd apps/desktop dev\" ",
+		"build:desktop": "bun --cwd apps/desktop build:compile:all",
+		"build:desktop:mac": "bun --cwd apps/desktop build:compile:mac-arm64",
+		"build:desktop:dist": "bun --cwd apps/desktop build:dist",
+		"build": "turbo run build",
+		"setup-azure": "bun run devops/setup-azure-devops.ts"
+	},
+	"workspaces": [
+		"apps/*",
+		"managers/*",
+		"utilities/*",
+		"configs",
+		"configs/*"
+	]
+}
