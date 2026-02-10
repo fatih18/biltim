@@ -8,10 +8,13 @@
 		"dexie": "^4.2.1",
 		"drizzle-kit": "0.31.5",
 		"drizzle-orm": "0.44.7",
-		"elysia": "latest"
+		"elysia": "latest",
+		"postgres": "^3.4.7"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "latest",
+		"@types/node": "latest",
+		"bun-types": "^1.3.9",
 		"concurrently": "latest",
 		"turbo": "^2.7.4"
 	},
@@ -32,15 +35,20 @@
 		"format-and-lint:fix": "biome check . --write",
 		"lint": "turbo run format-and-lint",
 		"lint:fix": "turbo run format-and-lint:fix",
+		"dev:system": "concurrently \"turbo run dev\" \"bun --cwd apps/be db:studio\"",
 		"dev": "turbo run dev",
-		"dev:system": "concurrently \"turbo run dev --filter=!desktop\" \"bun --cwd apps/be db:studio\" ",
 		"dev:system:desktop": "bun run build:desktop:dist && concurrently -n be,fe,desktop -c blue,green,yellow \"bun --cwd apps/be dev\" \"bun --cwd apps/fe dev\" \"bun --cwd apps/desktop dev\" ",
 		"build:desktop": "bun --cwd apps/desktop build:compile:all",
 		"build:desktop:mac": "bun --cwd apps/desktop build:compile:mac-arm64",
 		"build:desktop:dist": "bun --cwd apps/desktop build:dist",
 		"build": "turbo run build",
 		"bundle:deploy": "bun run scripts/bundle-for-deployment.ts",
-		"setup-azure": "bun run devops/setup-azure-devops.ts"
+		"setup-azure": "bun run devops/setup-azure-devops.ts",
+		"db:reset": "bun run scripts/reset-db.ts --yes",
+		"db:reset:seed": "bun run scripts/reset-db.ts --yes --seed",
+		"db:migrate": "drizzle-kit migrate",
+		"db:push": "drizzle-kit push",
+		"db:seed": "bun run src/seed.ts"
 	},
 	"workspaces": [
 		"apps/*",

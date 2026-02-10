@@ -1,5 +1,4 @@
 export * from "./AuthV2";
-export * from "./Dapr";
 export * from "./Downloads";
 export * from "./Files";
 export * from "./Generic";

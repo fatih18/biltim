@@ -18,7 +18,6 @@
     "@elysiajs/static": "latest",
     "@monorepo/db-entities": "workspace:*",
     "@monorepo/drizzle-manager": "workspace:*",
-    "@monorepo/dapr-manager": "workspace:*",
     "@monorepo/file-manager": "workspace:*",
     "@monorepo/generics": "workspace:*",
     "@monorepo/redis-manager": "workspace:*",
@@ -33,14 +32,14 @@
     "bcryptjs": "latest"
   },
   "devDependencies": {
-    "@monorepo/configs": "workspace:*",
-    "@types/jsonwebtoken": "latest",
     "@biomejs/biome": "latest",
+    "@monorepo/configs": "workspace:*",
     "@types/bcryptjs": "latest",
+    "@types/jsonwebtoken": "latest",
     "@types/pg": "latest",
     "bun-types": "latest",
     "cross-env": "latest",
-    "drizzle-kit": "0.31.5"
+    "drizzle-kit": "^0.31.5"
   },
   "module": "src/index.js"
 }

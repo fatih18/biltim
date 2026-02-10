@@ -1,52 +1,66 @@
 'use client'
-import { useStore } from '@store/globalStore'
+
+import React, { useEffect, useRef } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useRef } from 'react'
+import { useStore } from '@store/globalStore'
 import { useGenericApiActions } from '@/app/_hooks/UseGenericApiStore'
 import { Loader } from '../Loader'
 
 const unauthPaths = ['/login', '/register']
 const publicPaths = ['/lyrics', '/pocs/humanis/avatar', '/pocs/vorion'] // PWA - No auth required
 
-// Check if path is public (including sub-routes like /lyrics/settings)
-const isPublicPath = (path: string) => {
-  return publicPaths.some((publicPath) => path.startsWith(publicPath))
-}
+const isPublicPath = (path: string) => publicPaths.some((p) => path.startsWith(p))
 
 export function LoginChecker({ children }: { children: React.ReactNode }) {
   const actions = useGenericApiActions()
   const store = useStore()
   const path = usePathname()
   const router = useRouter()
-  const isCheckingRef = useRef(false)
 
-  // Skip auth check for public paths
+  const isCheckingRef = useRef(false)
+  const redirectedRef = useRef(false)
+
   const isPublic = isPublicPath(path)
-  const requiresAuth = !unauthPaths.includes(path) && !isPublic
+  const isUnauthPage = unauthPaths.includes(path)
+  const requiresAuth = !isUnauthPage && !isPublic
 
   useEffect(() => {
-    // Prevent multiple simultaneous GET_ME calls
-    if (!store.isLoginChecked && requiresAuth && !isCheckingRef.current) {
-      isCheckingRef.current = true
+    if (!requiresAuth) return
 
-      actions.GET_ME_V2?.start({
-        disableAutoRedirect: true,
-        onAfterHandle: (data) => {
-          console.log('getMeState', data)
-          store.user = data
-          store.isLoginChecked = true
-          isCheckingRef.current = false
-        },
-        onErrorHandle: (error) => {
-          console.log('error', error)
-          store.isLoginChecked = true
-          isCheckingRef.current = false
-        },
-      })
+    if (store.user) {
+      store.isLoginChecked = true
+      return
     }
-  }, [store.isLoginChecked, path, requiresAuth, router, actions])
 
-  if ((!store.isLoginChecked || !store.user) && requiresAuth) {
+    // prevent multiple simultaneous GET_ME calls
+    if (store.isLoginChecked || isCheckingRef.current) return
+    isCheckingRef.current = true
+
+    actions.GET_ME_V2?.start({
+      disableAutoRedirect: true,
+
+      onAfterHandle: (data) => {
+        store.user = data
+        store.isLoginChecked = true
+        isCheckingRef.current = false
+        redirectedRef.current = false
+      },
+
+      onErrorHandle: () => {
+        store.user = undefined
+        store.isLoginChecked = true
+        isCheckingRef.current = false
+
+        if (!redirectedRef.current && !isUnauthPage) {
+          redirectedRef.current = true
+          const returnUrl = encodeURIComponent(path || '/')
+          router.replace(`/login?returnUrl=${returnUrl}`)
+        }
+      },
+    })
+  }, [requiresAuth, path, router, actions, store, isUnauthPage])
+
+  if (requiresAuth && (!store.isLoginChecked || !store.user)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-gray-100">
         <Loader message="Loading..." />
@@ -54,5 +68,5 @@ export function LoginChecker({ children }: { children: React.ReactNode }) {
     )
   }
 
-  return children
+  return <>{children}</>
 }

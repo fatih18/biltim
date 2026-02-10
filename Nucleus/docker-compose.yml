@@ -1,0 +1,76 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: biltim-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: biltim
+      POSTGRES_DB: biltim
+    ports:
+      - "5432:5432"
+    volumes:
+      - biltim_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d biltim"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: biltim-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - biltim_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  be:
+    build:
+      context: .
+      dockerfile: apps/be/Dockerfile
+    container_name: biltim-be
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - apps/be/.env.docker
+    ports:
+      - "1001:1001"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    working_dir: /app
+
+  fe:
+    build:
+      context: .
+      dockerfile: apps/fe/Dockerfile
+    container_name: biltim-fe
+    restart: unless-stopped
+    depends_on:
+      - be
+    env_file:
+      - apps/fe/.env.docker
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    working_dir: /app
+
+volumes:
+  biltim_postgres_data:
+  biltim_redis_data:

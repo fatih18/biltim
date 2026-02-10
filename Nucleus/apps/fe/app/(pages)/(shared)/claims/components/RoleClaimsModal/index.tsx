@@ -229,11 +229,10 @@ export function RoleClaimsModal({ isOpen, role, onClose }: RoleClaimsModalProps)
               type="button"
               onClick={() => handleToggle(claim)}
               disabled={busy}
-              className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                isAssigned
-                  ? 'bg-emerald-500 text-emerald-950 hover:bg-emerald-400'
-                  : 'border border-white/30 bg-white/10 text-white hover:bg-white/20'
-              }`}
+              className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${isAssigned
+                ? 'bg-emerald-500 text-emerald-950 hover:bg-emerald-400'
+                : 'border border-white/30 bg-white/10 text-white hover:bg-white/20'
+                }`}
             >
               {busy ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

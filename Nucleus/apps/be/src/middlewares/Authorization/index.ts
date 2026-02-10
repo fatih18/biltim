@@ -1,14 +1,11 @@
 import type { OnRequest } from '@server'
-import { getUserEffectiveClaims, hasClaimForEndpoint, isGodAdmin } from '@/services/Authorization'
+import {
+  type EffectiveClaim,
+  getUserEffectiveClaims,
+  hasClaimForEndpoint,
+  isGodAdmin,
+} from '@/services/Authorization'
 import type { CompanyInfo } from '../Identity'
-
-type EffectiveClaim = {
-  action?: string
-  method?: string
-  path?: string
-  mode?: 'exact' | 'startsWith'
-  description?: string
-}
 
 function nowMs() {
   return Date.now()
@@ -173,6 +170,23 @@ export async function AuthorizationMiddleware(ctx: OnRequest) {
     rolesInToken: profile.roles ?? [],
     schemaName,
   })
+
+  const authzPermissive =
+    process.env.AUTHZ_PERMISSIVE === '1' ||
+    process.env.AUTHZ_ALLOW_ALL === '1' ||
+    String(process.env.AUTHZ_PERMISSIVE || '').toLowerCase() === 'true' ||
+    String(process.env.AUTHZ_ALLOW_ALL || '').toLowerCase() === 'true'
+
+  dbg(traceId, 'Permissive mode resolved', {
+    authzPermissive,
+    AUTHZ_PERMISSIVE: process.env.AUTHZ_PERMISSIVE,
+    AUTHZ_ALLOW_ALL: process.env.AUTHZ_ALLOW_ALL,
+  })
+
+  if (authzPermissive) {
+    dbg(traceId, '✅ Authorization permissive mode - bypass', { userId, method, normalizedPath })
+    return
+  }
 
   // 1) God admin bypass
   const t0 = nowMs()

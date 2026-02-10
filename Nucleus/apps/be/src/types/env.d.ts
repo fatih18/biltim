@@ -19,7 +19,6 @@ declare namespace NodeJS {
     AUTH_V2_COOKIE_SAME_SITE: string
 
     // AuthV2 Session Store Configuration
-    AUTH_V2_SESSION_STORE: string
     AUTH_V2_SESSION_PREFIX: string
     AUTH_V2_SESSION_TTL_SECONDS: string
 

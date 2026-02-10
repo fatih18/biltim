@@ -4,6 +4,7 @@ type RoleData = {
 	name: string;
 	description: string;
 	is_system: boolean;
+	alias?: string;
 };
 
 const INITIAL_ROLES: RoleData[] = [
@@ -11,28 +12,33 @@ const INITIAL_ROLES: RoleData[] = [
 		name: "Super Admin",
 		description: "Full system access - God mode equivalent for non-god users",
 		is_system: true,
+		alias: "Super Admin",
 	},
 
 	{
 		name: "Manager",
 		description: "Kullanıcı rol ataması ve bulguların status değişimi.",
 		is_system: true,
+		alias: "Müdür",
 	},
 
 	{
 		name: "Content Manager Core Team",
 		description: "Ana veri yönetimi ve bulgu onay.",
 		is_system: false,
+		alias: "Merkez Ekip",
 	},
 	{
 		name: "Field Manager",
 		description: "Açık bulgu kapatabilir ve sonrası fotoğraf yükleyebilir.",
 		is_system: false,
+		alias: "Saha Sorumlusu",
 	},
 	{
 		name: "Auditor",
 		description: "Denetim kaydı açabilir. Termin tarihi girebilir.",
 		is_system: false,
+		alias: "Denetçi",
 	},
 ];
 const ROLES_WITH_ALL_CLAIMS = [

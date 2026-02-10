@@ -35,6 +35,7 @@ export const columns = {
 	name: varchar("name", { length: 100 }).notNull(),
 	description: varchar("description", { length: 500 }),
 	is_system: boolean("is_system").default(false).notNull(),
+	alias: varchar("alias", { length: 50 }),
 };
 
 export const indexes = (table: {
@@ -43,10 +44,10 @@ export const indexes = (table: {
 	is_active: PgColumn;
 	created_at: PgColumn;
 }) => [
-	unique().on(table.name),
-	index().on(table.name),
-	index().on(table.is_system),
-];
+		unique().on(table.name),
+		index().on(table.name),
+		index().on(table.is_system),
+	];
 
 export const T_Roles = pgTable(tablename, columns, indexes);
 

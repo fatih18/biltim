@@ -16,7 +16,6 @@ import {
 } from "./middlewares";
 import {
 	AuthV2Routes,
-	DaprRoute,
 	DownloadsRoute,
 	FilesRoute,
 	GenericRoutes,
@@ -196,13 +195,13 @@ type BaseOnError = Parameters<Parameters<typeof appSettings.onError>[1][2]>[0];
 type OnErrorBaseError = BaseOnError extends { error: infer T } ? T : never;
 type AugmentedError<T> = T extends object
 	? T & {
-			status?: number;
-			message?: string;
-		}
+		status?: number;
+		message?: string;
+	}
 	: {
-			status?: number;
-			message?: string;
-		};
+		status?: number;
+		message?: string;
+	};
 type OnErrorError = AugmentedError<OnErrorBaseError>;
 export type OnError = Omit<BaseOnError, "error"> & {
 	error: OnErrorError;
@@ -217,8 +216,8 @@ export type ElysiaRequestWOBody = BaseElysiaRequest;
 export type ElysiaRequest<B = unknown> = BaseElysiaRequest & {
 	body: B extends { body: infer Body } ? Body : BaseElysiaRequest["body"];
 	params: B extends { params: infer Params }
-		? Params
-		: BaseElysiaRequest["params"];
+	? Params
+	: BaseElysiaRequest["params"];
 };
 export type ElysiaContext = Parameters<
 	// @ts-expect-error
@@ -236,7 +235,6 @@ const server = appSettings
 	.use(AuthV2Routes)
 	.use(FilesRoute)
 	.use(DownloadsRoute)
-	.use(DaprRoute)
 	.use(SubscriptionRoute)
 	.ws("/api/remote/agent", {
 		open(ws) {

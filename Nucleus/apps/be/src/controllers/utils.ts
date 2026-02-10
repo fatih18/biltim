@@ -17,28 +17,43 @@ export async function withChecks<S, E, T, TReq extends ElysiaRequest | ElysiaReq
     return result
   } catch (error) {
     console.log('❗❌❌❌ Error in withChecks:', error)
-    if (req) req.set.status = 500
+    const anyErr = error as any
+    const pgCode = anyErr?.code ?? anyErr?.cause?.code
+    const isConflict = pgCode === '23503' || pgCode === '23505'
+    const status = isConflict ? 409 : 500
+    if (req) req.set.status = status
     const profile = JSON.parse(req.request.headers.get('profile') || '{}')
-    AddAuditLog({
-      input: {
-        entity_name: operationName,
-        operation_type: 'ERROR',
-        user_agent: req.request.headers.get('user-agent') || undefined,
-        ip_address: req.server?.requestIP(req.request)?.address || 'unknown',
-        summary: `Failed to ${operationName}: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-        user_id: profile.sub,
-        entity_id: operationName,
-      },
-    })
+
+    const isUuid = (value: unknown): value is string =>
+      typeof value === 'string' &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+
+    const candidateEntityId = (req as any)?.params?.id
+    const entity_id = isUuid(candidateEntityId) ? candidateEntityId : undefined
+
+    try {
+      await AddAuditLog({
+        input: {
+          entity_name: operationName,
+          operation_type: 'ERROR',
+          user_agent: req.request.headers.get('user-agent') || undefined,
+          ip_address: req.server?.requestIP(req.request)?.address || 'unknown',
+          summary: `Failed to ${operationName}: ${error instanceof Error ? error.message : String(error)
+            }`,
+          user_id: profile.sub,
+          entity_id,
+        },
+      })
+    } catch (auditErr) {
+      console.warn('⚠️ Failed to add audit log (ignored):', auditErr)
+    }
+
     return generateResponse({
       isSuccess: false,
-      message: `Failed to ${operationName}: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
+      message: `Failed to ${operationName}: ${error instanceof Error ? error.message : String(error)
+        }`,
       errors: [error],
-      status: 500,
+      status,
       request: req,
     })
   }

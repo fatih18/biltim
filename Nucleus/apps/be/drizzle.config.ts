@@ -10,4 +10,5 @@ export default defineConfig({
   dbCredentials: {
     url: connectionString,
   },
+  schemaFilter: ['main']
 })

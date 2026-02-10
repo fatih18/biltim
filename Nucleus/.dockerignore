@@ -16,3 +16,14 @@ coverage
 *.exe
 .bun.lock
 apps/be/storage
+.git
+.gitignore
+node_modules
+**/node_modules
+**/.next
+**/dist
+**/build
+**/.turbo
+**/coverage
+**/.DS_Store
+bun.lockb
