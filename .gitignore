@@ -1,0 +1,9 @@
+# OS
+.DS_Store
+
+# Large binary packages
+required_packages/*.exe
+required_packages/*.msi
+
+# Node / Bun
+node_modules/

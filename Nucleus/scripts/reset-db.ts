@@ -4,11 +4,14 @@
 import { join } from 'node:path'
 import { existsSync, readFileSync } from 'node:fs'
 import postgres from 'postgres'
+import * as allTables from '../utilities/DbEntities/schemas/index'
+import { pushSchema } from 'drizzle-kit/api'
+import { drizzle } from 'drizzle-orm/node-postgres'
+import { pgSchema } from 'drizzle-orm/pg-core'
 
 const ROOT = join(import.meta.dir, '..')
 const BE_DIR = join(ROOT, 'apps/be')
 const BE_ENV = join(BE_DIR, '.env')
-const DRIZZLE_BIN = join(BE_DIR, 'node_modules', 'drizzle-kit', 'bin.cjs')
 
 function readEnvValue(filePath: string, key: string): string | undefined {
     if (!existsSync(filePath)) return undefined
@@ -40,21 +43,10 @@ function maskUrl(url: string) {
     }
 }
 
-function runCmd(cmd: string[], cwd: string) {
-    const p = Bun.spawnSync(cmd, {
-        cwd,
-        stdout: 'inherit',
-        stderr: 'inherit',
-        stdin: 'inherit',
-    })
-    if (p.exitCode !== 0) {
-        throw new Error(`Command failed (${p.exitCode}): ${cmd.join(' ')}`)
-    }
-}
 
 const yes = Bun.argv.includes('--yes')
 if (!yes) {
-    console.log('This will DROP SCHEMA public CASCADE. Re-run with --yes')
+    console.log('This will DROP SCHEMA main CASCADE. Re-run with --yes')
     process.exit(1)
 }
 
@@ -71,7 +63,7 @@ if (!dbUrl) {
 async function run() {
     console.log(`🎯 Target DB: ${maskUrl(dbUrl)}`)
     console.log(`📁 backend dir: ${BE_DIR}`)
-    console.log('🧨 Resetting schema public...')
+    console.log('🧨 Resetting schema main...')
 
     const sql = postgres(dbUrl, {
         max: 1,
@@ -88,44 +80,42 @@ async function run() {
         AND pid <> pg_backend_pid()
     `
 
-        await sql`DROP SCHEMA IF EXISTS public CASCADE`
-        await sql`CREATE SCHEMA public`
-        await sql`GRANT ALL ON SCHEMA public TO public`
+        await sql`DROP SCHEMA IF EXISTS main CASCADE`
 
         console.log('✅ Schema reset complete')
     } finally {
         await sql.end({ timeout: 5 })
     }
 
-    console.log('📚 Applying schema with drizzle push...')
-    runCmd(['bun', DRIZZLE_BIN, 'push'], BE_DIR)
-    console.log('✅ drizzle push finished')
+    console.log('📚 Applying schema with programmatic pushSchema...')
 
-    const sql2 = postgres(dbUrl, {
-        max: 1,
-        idle_timeout: 5,
-        connect_timeout: 10,
-        prepare: false,
-    })
+    const appId = readEnvValue(BE_ENV, 'NUCLEUS_APP_ID') || 'default_be'
+    const schema = pgSchema('main')
+    // biome-ignore lint/suspicious/noExplicitAny: <too complex without need to define>
+    const schemaTables: Record<string, any> = {}
 
-    try {
-        const rows = await sql2<{ c: number }[]>`
-      select count(*)::int as c
-      from information_schema.tables
-      where table_schema = 'public'
-        and table_type = 'BASE TABLE'
-    `
-        const count = rows?.[0]?.c ?? 0
-        console.log(`🔎 Tables in public schema: ${count}`)
+    for (const [key, value] of Object.entries(allTables)) {
+        const isTableForApp = value.available_app_ids.includes(appId)
+        const isTableForMainTenant =
+            value.available_schemas.includes('*') ||
+            value.available_schemas.includes('main')
+        const isTableExcludedOnMain =
+            value.excluded_schemas?.length > 0
+                ? (value.excluded_schemas as string[]).includes('main')
+                : false
 
-        if (count === 0) {
-            throw new Error(
-                'public schema is still empty after drizzle push. drizzle.config.ts likely points to a different schema/db.'
-            )
-        }
-    } finally {
-        await sql2.end({ timeout: 5 })
+        if (!isTableForMainTenant || isTableExcludedOnMain || !isTableForApp)
+            continue
+        schemaTables[key] = value.createTableForSchema(schema)
     }
+
+    console.log(`📋 Tables to push (${Object.keys(schemaTables).length}):`, Object.keys(schemaTables))
+
+    const tenantDb = drizzle(dbUrl)
+    const push = await pushSchema({ schema, ...schemaTables }, tenantDb)
+    await push.apply()
+
+    console.log('✅ pushSchema finished')
 
     console.log('🎉 DB reset flow finished')
 }
