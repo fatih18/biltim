@@ -75,12 +75,16 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
     }
   }, [isOpen])
 
+  const isManageRolesOpen = usersStore.modals.manageClaims
+
   useEffect(() => {
     if (!isOpen || !user?.id) {
       setRolesWithClaims([])
       setRolesErrorCode(null)
       return
     }
+
+    if (isManageRolesOpen) return
 
     setIsLoadingRoles(true)
     setRolesErrorCode(null)
@@ -133,7 +137,7 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
         console.error('Get user roles failed:', error)
       },
     })
-  }, [isOpen, user?.id])
+  }, [isOpen, user?.id, isManageRolesOpen])
 
   function handleClose() {
     setIsVisible(false)
@@ -155,16 +159,18 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
       {/* Backdrop */}
       <button
         type="button"
-        className={`fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'
-          }`}
+        className={`fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
+          isVisible ? 'opacity-100' : 'opacity-0'
+        }`}
         onClick={handleClose}
         aria-label="Close drawer"
       />
 
       {/* Drawer */}
       <div
-        className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-2xl transform flex-col border-l border-slate-800 bg-slate-950 text-slate-50 shadow-2xl shadow-slate-950/60 transition-all duration-300 ease-out ${isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
-          }`}
+        className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-2xl transform flex-col border-l border-slate-800 bg-slate-950 text-slate-50 shadow-2xl shadow-slate-950/60 transition-all duration-300 ease-out ${
+          isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
+        }`}
       >
         {/* Header */}
         <div className="relative px-6 py-6 text-white bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-b border-slate-800">
@@ -220,23 +226,42 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
 
         {/* Content */}
         <div
-          className={`flex-1 space-y-8 overflow-y-auto px-6 py-6 transition-all duration-500 delay-100 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
-            }`}
+          className={`flex-1 space-y-8 overflow-y-auto px-6 py-6 transition-all duration-500 delay-100 ${
+            isVisible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
+          }`}
         >
           {/* Account Information */}
-          <InfoSection title="Account Information" icon={<User size={16} className="text-slate-300" />}>
+          <InfoSection
+            title="Account Information"
+            icon={<User size={16} className="text-slate-300" />}
+          >
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <InfoCard icon={<Key size={16} />} label="User ID" value={user.id} />
               <InfoCard icon={<Mail size={16} />} label="Email" value={user.email || ''} />
               <InfoCard icon={<User size={16} />} label="Full Name" value={fullName} />
-              <InfoCard icon={<Calendar size={16} />} label="Created" value={formatDate(user.created_at)} />
-              <InfoCard icon={<Clock size={16} />} label="Updated" value={formatDate(user.updated_at)} />
-              <InfoCard icon={<Activity size={16} />} label="Last Login" value={formatDate(user.last_login_at)} />
+              <InfoCard
+                icon={<Calendar size={16} />}
+                label="Created"
+                value={formatDate(user.created_at)}
+              />
+              <InfoCard
+                icon={<Clock size={16} />}
+                label="Updated"
+                value={formatDate(user.updated_at)}
+              />
+              <InfoCard
+                icon={<Activity size={16} />}
+                label="Last Login"
+                value={formatDate(user.last_login_at)}
+              />
             </div>
           </InfoSection>
 
           {/* Security */}
-          <InfoSection title="Security & Access" icon={<Shield size={16} className="text-slate-300" />}>
+          <InfoSection
+            title="Security & Access"
+            icon={<Shield size={16} className="text-slate-300" />}
+          >
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <InfoCard
                 icon={
@@ -249,7 +274,11 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
                 label="Email Verified"
                 value={user.verified_at ? formatDate(user.verified_at) : 'Not verified'}
               />
-              <InfoCard icon={<Activity size={16} />} label="Login Count" value={String(user.login_count ?? 0)} />
+              <InfoCard
+                icon={<Activity size={16} />}
+                label="Login Count"
+                value={String(user.login_count ?? 0)}
+              />
               <InfoCard
                 icon={
                   user.is_locked ? (
@@ -261,10 +290,20 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
                 label="Account Status"
                 value={user.is_locked ? 'Locked' : 'Unlocked'}
               />
-              <InfoCard icon={<Clock size={16} />} label="Locked Until" value={formatDate(user.locked_until)} />
-              <InfoCard icon={<XCircle size={16} />} label="Failed Attempts" value={String(user.failed_login_attempts ?? 0)} />
               <InfoCard
-                icon={user.is_god ? <Crown size={16} className="text-purple-400" /> : <User size={16} />}
+                icon={<Clock size={16} />}
+                label="Locked Until"
+                value={formatDate(user.locked_until)}
+              />
+              <InfoCard
+                icon={<XCircle size={16} />}
+                label="Failed Attempts"
+                value={String(user.failed_login_attempts ?? 0)}
+              />
+              <InfoCard
+                icon={
+                  user.is_god ? <Crown size={16} className="text-purple-400" /> : <User size={16} />
+                }
                 label="Admin Access"
                 value={user.is_god ? 'Enabled' : 'Disabled'}
               />
@@ -287,11 +326,17 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
                     </div>
                     <div className="min-w-0 flex-1">
                       <h4 className="truncate font-semibold text-slate-100">{address.name}</h4>
-                      {address.street ? <p className="mt-1 text-sm text-slate-300">{address.street}</p> : null}
+                      {address.street ? (
+                        <p className="mt-1 text-sm text-slate-300">{address.street}</p>
+                      ) : null}
                       <p className="text-sm text-slate-300">
-                        {[address.city, address.province, address.country].filter(Boolean).join(' / ') || '—'}
+                        {[address.city, address.province, address.country]
+                          .filter(Boolean)
+                          .join(' / ') || '—'}
                       </p>
-                      {address.zip ? <p className="mt-1 text-xs text-slate-400">ZIP: {address.zip}</p> : null}
+                      {address.zip ? (
+                        <p className="mt-1 text-xs text-slate-400">ZIP: {address.zip}</p>
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -318,8 +363,12 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
                       <p className="mt-1 text-sm text-slate-300">
                         {[phone.country_code, phone.number].filter(Boolean).join(' ')}
                       </p>
-                      {phone.type ? <p className="text-xs text-slate-400">Type: {phone.type}</p> : null}
-                      {phone.extension ? <p className="text-xs text-slate-400">Ext: {phone.extension}</p> : null}
+                      {phone.type ? (
+                        <p className="text-xs text-slate-400">Type: {phone.type}</p>
+                      ) : null}
+                      {phone.extension ? (
+                        <p className="text-xs text-slate-400">Ext: {phone.extension}</p>
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -342,8 +391,12 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
                       <FileText size={16} className="text-fuchsia-300" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h4 className="truncate font-semibold text-slate-100">{file.name ?? file.id}</h4>
-                      <p className="mt-1 text-xs text-slate-400">Type: {file.mime_type ?? 'Unknown'}</p>
+                      <h4 className="truncate font-semibold text-slate-100">
+                        {file.name ?? file.id}
+                      </h4>
+                      <p className="mt-1 text-xs text-slate-400">
+                        Type: {file.mime_type ?? 'Unknown'}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -389,7 +442,9 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <h4 className="truncate font-semibold text-slate-100">{role.name}</h4>
-                        {role.description ? <p className="mt-1 text-xs text-slate-400">{role.description}</p> : null}
+                        {role.description ? (
+                          <p className="mt-1 text-xs text-slate-400">{role.description}</p>
+                        ) : null}
                       </div>
 
                       {role.is_system ? (
@@ -487,7 +542,11 @@ function CollectionGrid<Item>({ items, emptyMessage, renderItem }: CollectionGri
     )
   }
 
-  return <div className="grid grid-cols-1 gap-4 md:grid-cols-2">{items.map((item) => renderItem(item))}</div>
+  return (
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      {items.map((item) => renderItem(item))}
+    </div>
+  )
 }
 
 function formatDate(value: string | null | undefined) {

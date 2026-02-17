@@ -41,6 +41,11 @@ const publicPaths = [
   '/health',
   '/pocs/vorion',
   '/api/downloads', // Static file downloads - public
+  // NOTE: /auth/me and /v2/auth/me are intentionally NOT here.
+  // They need the middleware to parse the auth cookie and set the
+  // profile header so GetMeV2 can identify the user. When no token
+  // is present the middleware already returns early without an error,
+  // allowing the endpoint to respond with 401 on its own.
 ]
 
 // const CLEVEL_TITLES = ['evp', 'project_manager', 'operations_manager']

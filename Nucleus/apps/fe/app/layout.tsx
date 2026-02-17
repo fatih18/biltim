@@ -5,8 +5,6 @@ import { Toaster } from 'sonner'
 import { Header, LoginChecker } from './_components'
 //import { FetchDebug } from './_components/fetchDebug'
 
-
-
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
@@ -21,10 +19,10 @@ export const metadata: Metadata = {
   title: 'NUCLEUS',
   description: 'Seed your startup with Nucleus',
   // Next.js 16 automatically uses /app/manifest.ts
-  icons: {
-    icon: '/icon.png',
-    apple: '/icon-192x192.png',
-  },
+  // icons: {
+  //   icon: '/icon.png',
+  //   apple: '/icon-192x192.png',
+  // },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
