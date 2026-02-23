@@ -75,7 +75,10 @@ export const useGenericApiActions = createNucleusApiHook<typeof Endpoints, Actio
   },
 
   routerPush: (path: string) => {
-    if (typeof window !== 'undefined') window.location.href = path
+    if (typeof window === 'undefined') return
+    const p = String(path ?? '')
+    if (p === '/forbidden' || p.startsWith('/forbidden?')) return
+    window.location.href = p
   },
 })
 
