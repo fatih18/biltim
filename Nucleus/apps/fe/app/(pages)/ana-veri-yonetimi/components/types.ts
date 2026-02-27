@@ -9,12 +9,15 @@ export type MasterEntity = {
 export type AuditStatus = "planned" | "cancelled" | "completed";
 
 export type Audit = {
-	id: string;
-	planned_date: string;
-	location_id: string;
-	assigned_team_id: string;
-	note?: string;
-	status: AuditStatus;
-	audit_id?: string;
+  id: string;
+  createdAt: string;
+  status: AuditStatus;
+
+  plannedDate: string;
+  locationId: string;
+  assignedTeamId: string;
+
+  auditId?: string | null;
+  note?: string;
 };
 export type User = { id: string; name: string; roles?: { name: string }[] };

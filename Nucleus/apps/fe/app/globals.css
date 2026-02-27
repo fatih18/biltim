@@ -672,3 +672,11 @@ select:-webkit-autofill:focus {
   transition: background-color 9999s ease-in-out 0s !important;
   caret-color: rgb(226 232 240) !important;
 }
+.date-dark::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.75;
+  cursor: pointer;
+}
+.date-dark::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}

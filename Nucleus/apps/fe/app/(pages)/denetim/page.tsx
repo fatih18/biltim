@@ -444,15 +444,25 @@ export default function FiveSAuditFormPage() {
   }, [roleName, roles, roleLoading])
 
   const stepScores = useMemo(() => {
-    const scores: Record<StepCode, number> = { S1: 0, S2: 0, S3: 0, S4: 0, S5: 0 }
-    for (const q of questions) {
-      const ans = answers[q.id]
-      if (!ans || !ans.rating) continue
-      scores[q.stepCode] += q.maxScore * ratingFactor[ans.rating]
-    }
-    return scores
-  }, [answers])
+  const scores: Record<StepCode, number> = { S1: 0, S2: 0, S3: 0, S4: 0, S5: 0 }
 
+  for (const step of steps) {
+    const qs = questions.filter((q) => q.stepCode === step.code)
+
+    const rawMax = qs.reduce((sum, q) => sum + (q.maxScore ?? 0), 0)
+
+    const rawEarned = qs.reduce((sum, q) => {
+      const ans = answers[q.id]
+      if (!ans?.rating) return sum
+      return sum + (q.maxScore ?? 0) * ratingFactor[ans.rating]
+    }, 0)
+
+    const scale = rawMax > 0 ? step.maxScore / rawMax : 0
+    scores[step.code] = rawEarned * scale
+  }
+
+  return scores
+}, [answers])
   const totalScore = useMemo(
     () => (Object.values(stepScores) as number[]).reduce((a, b) => a + b, 0),
     [stepScores]
@@ -1177,7 +1187,7 @@ export default function FiveSAuditFormPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
-    const missing: string[] = []
+  const missing = new Set<string>()
 
     if (!header.teamName || !header.department || !header.date) {
       alert('Ekip, Lokasyon ve Tarih alanları plan üzerinden otomatik gelmelidir.')
@@ -1191,24 +1201,24 @@ export default function FiveSAuditFormPage() {
     for (const q of questions) {
       const ans = answers[q.id]
       if (!ans || !ans.rating) {
-        missing.push(q.id)
+        missing.add(q.id)
         continue
       }
 
-      if (isExplanationRequired(q, ans) && !ans.explanation.trim()) missing.push(q.id)
+      if (isExplanationRequired(q, ans) && !ans.explanation.trim()) missing.add(q.id)
 
       if (ans.rating !== 'good') {
-        if (!ans.findingType) missing.push(q.id)
-        if (!ans.actionToTake?.trim()) missing.push(q.id)
-        if (!ans.dueDate) missing.push(q.id)
+        if (!ans.findingType) missing.add(q.id)
+        if (!ans.actionToTake?.trim()) missing.add(q.id)
+        if (!ans.dueDate) missing.add(q.id)
         const loc = (ans.locationName ?? header.department).trim()
-        if (!loc) missing.push(q.id)
+        if (!loc) missing.add(q.id)
       }
     }
 
-    if (missing.length > 0) {
+    if (missing.size > 0) {
       alert(
-        `Bazı sorularda seçim veya açıklama/bulgu tipi / aksiyon alanları eksik. Lütfen tüm soruları doldurun.\nEksik soru sayısı: ${missing.length}`
+        `Bazı sorularda seçim veya açıklama/bulgu tipi / aksiyon alanları eksik. Lütfen tüm soruları doldurun.\nEksik soru sayısı: ${missing.size}`
       )
       return
     }
@@ -1666,7 +1676,7 @@ export default function FiveSAuditFormPage() {
                       type="date"
                       value={header.date}
                       onChange={(e) => handleHeaderChange('date', e.target.value)}
-                      className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+                      className="date-dark w-full rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
                     />
                   </div>
                 </div>
@@ -1787,7 +1797,7 @@ export default function FiveSAuditFormPage() {
                     type="date"
                     value={singleFinding.dueDate || header.date}
                     onChange={(e) => handleSingleFindingFieldChange('dueDate', e.target.value)}
-                    className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+                    className="date-dark w-full rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
                   />
                 </div>
               </div>
@@ -2024,7 +2034,7 @@ export default function FiveSAuditFormPage() {
                   type="date"
                   value={header.date}
                   readOnly
-                  className="w-full rounded-md border border-slate-700 bg-slate-950/40 px-3 py-2 text-sm text-slate-200 opacity-90"
+                  className="date-dark w-full rounded-md border border-slate-700 bg-slate-950/40 px-3 py-2 text-sm text-slate-200 opacity-90"
                 />
               </div>
             </div>
@@ -2474,7 +2484,7 @@ export default function FiveSAuditFormPage() {
                     type="date"
                     value={activeAnswer.dueDate ?? header.date}
                     onChange={(e) => handleDueDateChange(activeQuestion.id, e.target.value)}
-                    className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+                    className="date-dark w-full rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
                   />
                 </div>
 

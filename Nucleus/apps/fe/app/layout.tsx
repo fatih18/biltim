@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'NUCLEUS',
-  description: 'Seed your startup with Nucleus',
+  title: 'Biltim',
+  description: 'Biltim 5S Yönetim Sistemi',
   // Next.js 16 automatically uses /app/manifest.ts
   // icons: {
   //   icon: '/icon.png',
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'NUCLEUS',
+    title: 'BİLTİM',
   },
   formatDetection: {
     telephone: false,

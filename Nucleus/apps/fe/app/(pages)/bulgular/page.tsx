@@ -509,7 +509,7 @@ export default function FiveSFindingsListPage() {
                                     type="date"
                                     value={dateFrom}
                                     onChange={(e) => setDateFrom(e.target.value)}
-                                    className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+                                    className="date-dark w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
                                 />
                             </div>
 
@@ -521,7 +521,7 @@ export default function FiveSFindingsListPage() {
                                     type="date"
                                     value={dateTo}
                                     onChange={(e) => setDateTo(e.target.value)}
-                                    className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+                                    className="date-dark w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
                                 />
                             </div>
                         </div>
@@ -672,7 +672,7 @@ export default function FiveSFindingsListPage() {
                                                     type="date"
                                                     value={f.due_date ? f.due_date.slice(0, 10) : ""}
                                                     onChange={(e) => handleDueDateChange(f, e.target.value)}
-                                                    className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1 text-[11px] outline-none ring-sky-500/30 focus:border-sky-400 focus:ring-2"
+                                                    className="date-dark w-full rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1 text-[11px] outline-none ring-sky-500/30 focus:border-sky-400 focus:ring-2"
                                                 />
                                                 {savingDueForId === f.id && (
                                                     <span className="mt-1 block text-[10px] text-slate-500">Kaydediliyor...</span>
