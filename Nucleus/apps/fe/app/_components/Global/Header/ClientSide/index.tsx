@@ -19,8 +19,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import type React from 'react'
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
-import { useGenericApiActions } from '@/app/_hooks/UseGenericApiStore'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Endpoints, FactoryFunction } from '@/lib/api'
 import { SkeletonHeader } from '../Skeleton'
 import type {
@@ -30,6 +29,7 @@ import type {
   HeaderViewStateUpdates,
 } from '../types'
 import { useGetUserRole } from '@/app/_hooks/user/useGetUserRole'
+import { useGenericApiActions } from '@/app/_hooks/UseGenericApiStore' // ✅ sadece NotificationDropdown’da kullanılıyor
 
 gsap.registerPlugin(useGSAP)
 
@@ -37,6 +37,9 @@ function defaultLogout(): undefined {
   console.log('Logout')
   return undefined
 }
+
+// ✅ DEBUG SWITCH (şimdilik kapalı)
+const DEBUG_HEADER = false
 
 // Notification Dropdown Component
 type NotificationItem = {
@@ -67,7 +70,6 @@ function NotificationDropdown({
 
   const userId = globalStore.user?.id
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -78,19 +80,13 @@ function NotificationDropdown({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Load notifications when dropdown opens
   useEffect(() => {
-    if (isOpen && userId) {
-      loadNotifications()
-    }
+    if (isOpen && userId) loadNotifications()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, userId])
 
-  // Initial unread count load
   useEffect(() => {
-    if (userId) {
-      loadUnreadCount()
-    }
+    if (userId) loadUnreadCount()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId])
 
@@ -130,9 +126,7 @@ function NotificationDropdown({
         filters: { user_id: userId, is_seen: false },
       },
       onAfterHandle: (data) => {
-        if (data?.data) {
-          setUnreadCount(data.data.length)
-        }
+        if (data?.data) setUnreadCount(data.data.length)
       },
     })
   }
@@ -147,7 +141,9 @@ function NotificationDropdown({
       onAfterHandle: () => {
         setNotificationList((prev) =>
           prev.map((n) =>
-            n.id === notificationId ? { ...n, is_seen: true, seen_at: new Date().toISOString() } : n
+            n.id === notificationId
+              ? { ...n, is_seen: true, seen_at: new Date().toISOString() }
+              : n
           )
         )
         setUnreadCount((prev) => Math.max(0, prev - 1))
@@ -157,18 +153,12 @@ function NotificationDropdown({
 
   const markAllAsSeen = () => {
     const unseenIds = notificationList.filter((n) => !n.is_seen).map((n) => n.id)
-    for (const id of unseenIds) {
-      markAsSeen(id)
-    }
+    for (const id of unseenIds) markAsSeen(id)
   }
 
   const handleNotificationClick = (notif: NotificationItem) => {
-    // Mark as seen
-    if (!notif.is_seen) {
-      markAsSeen(notif.id)
-    }
+    if (!notif.is_seen) markAsSeen(notif.id)
 
-    // Navigate based on entity
     if (notif.entity_name && notif.entity_id) {
       setIsOpen(false)
       router.push(`/${notif.entity_name}s/${notif.entity_id}`)
@@ -239,22 +229,25 @@ function NotificationDropdown({
                   <button
                     key={notif.id}
                     type="button"
-                    className={`w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors ${!notif.is_seen ? 'bg-indigo-50/50' : ''
-                      }`}
+                    className={`w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors ${
+                      !notif.is_seen ? 'bg-indigo-50/50' : ''
+                    }`}
                     onClick={() => handleNotificationClick(notif)}
                   >
                     <div className="flex items-start gap-3">
                       <div className="mt-2">
                         <div
-                          className={`h-2 w-2 rounded-full ${notif.is_seen ? 'bg-slate-300' : 'bg-indigo-500'
-                            }`}
+                          className={`h-2 w-2 rounded-full ${
+                            notif.is_seen ? 'bg-slate-300' : 'bg-indigo-500'
+                          }`}
                         />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
                           <span
-                            className={`text-sm text-slate-900 truncate ${!notif.is_seen ? 'font-semibold' : 'font-medium'
-                              }`}
+                            className={`text-sm text-slate-900 truncate ${
+                              !notif.is_seen ? 'font-semibold' : 'font-medium'
+                            }`}
                           >
                             {notif.title}
                           </span>
@@ -263,9 +256,7 @@ function NotificationDropdown({
                           </span>
                         </div>
                         {notif.body && (
-                          <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">
-                            {notif.body}
-                          </p>
+                          <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{notif.body}</p>
                         )}
                         {notif.entity_name && (
                           <span className="inline-block mt-1 text-[10px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">
@@ -352,73 +343,130 @@ export function ClientSide({
 }: HeaderProps): React.JSX.Element | null {
   const path = usePathname()
   const router = useRouter()
-
   const globalStore = useStore()
 
   const headerStore = useHeaderStore()
-  const { ui } = headerStore
-  const { isExpanded, isProfileOpen, isSearchOpen, activeNav } = ui
+  const { isExpanded, isProfileOpen, isSearchOpen, activeNav } = headerStore.ui
 
-  // role check
   const { roleName, roles, isLoading: isRoleLoading } = useGetUserRole()
+  const normRole = (v: string) => (v ?? '').trim().toLowerCase().replace(/\s+/g, ' ')
 
-  function normRole(v: string) {
-    return (v ?? '').trim().toLowerCase().replace(/\s+/g, ' ')
-  }
+  const allRoleNames = useMemo(() => {
+    return [roleName ?? '', ...(roles ?? []).map((r) => r?.name ?? '')]
+      .filter(Boolean)
+      .map((x) => normRole(String(x)))
+  }, [roleName, roles])
 
+  const canSeeUsersPage = useMemo(() => {
+    if (isRoleLoading) return false
+    return allRoleNames.some(
+      (n) => n === 'super admin' || (n.includes('content manager') && n.includes('core team'))
+    )
+  }, [allRoleNames, isRoleLoading])
 
   const canSeeMasterMenus = useMemo(() => {
     if (isRoleLoading) return false
-
-    const allNames = [roleName ?? '', ...(roles ?? []).map((r) => r?.name ?? '')]
-      .filter(Boolean)
-      .map((x) => normRole(String(x)))
-
-    return allNames.some((n) => {
-      // manager
+    return allRoleNames.some((n) => {
       if (n === 'manager') return true
-
-      // "content manager core team" / "content manager and core team" gibi varyasyonlar
       const hasContentManager = n.includes('content manager')
       const hasCoreTeam = n.includes('core team')
-      return hasContentManager && hasCoreTeam
+      if (hasContentManager && hasCoreTeam) return true
+      if (n === 'super admin') return true
+      return false
     })
-  }, [roleName, roles, isRoleLoading])
+  }, [allRoleNames, isRoleLoading])
+
+  const isUsersHref = (href?: string) => {
+    if (!href) return false
+    return (
+      href === '/kullanicilar' ||
+      href.startsWith('/kullanicilar/') ||
+      href === '/users' ||
+      href.startsWith('/users/')
+    )
+  }
+
+  const isMasterRestrictedHref = (href?: string) => {
+    if (!href) return false
+    return (
+      href === '/ana-veri-yonetimi' ||
+      href.startsWith('/ana-veri-yonetimi/') ||
+      href === '/iyilestirici-faaliyetler' ||
+      href.startsWith('/iyilestirici-faaliyetler/')
+    )
+  }
 
   const restrictedIds = useMemo(
-    () => new Set(['ana-veri-yonetimi', 'iyilestirici-faaliyetler']),
+    () => new Set(['ana-veri-yonetimi', 'iyilestirici-faaliyetler', 'kullanicilar']),
     []
   )
 
+  // ✅ isteğe bağlı debug
+  useEffect(() => {
+    if (!DEBUG_HEADER) return
+    console.groupCollapsed('[HEADER DEBUG] roles/permissions')
+    console.log({ path, roleName, roles, allRoleNames, canSeeUsersPage, canSeeMasterMenus })
+    console.groupEnd()
+  }, [path, roleName, roles, allRoleNames, canSeeUsersPage, canSeeMasterMenus])
+
   const visibleNavCategories = useMemo(() => {
-    if (canSeeMasterMenus) return navCategories
     return navCategories.map((cat) => {
-      if (cat.id !== 'system' || !cat.items?.length) return cat
-      return {
-        ...cat,
-        items: cat.items.filter((it) => !restrictedIds.has(it.id)),
-      }
+      if (!cat.items?.length) return cat
+
+      const nextItems = cat.items.filter((it) => {
+        const isUsersItem = it.id === 'kullanicilar' || isUsersHref(it.href)
+        if (isUsersItem && !canSeeUsersPage) return false
+
+        if (!canSeeMasterMenus && (restrictedIds.has(it.id) || isMasterRestrictedHref(it.href))) {
+          return false
+        }
+
+        return true
+      })
+
+      return { ...cat, items: nextItems }
     })
-  }, [navCategories, canSeeMasterMenus, restrictedIds])
+  }, [navCategories, canSeeMasterMenus, canSeeUsersPage, restrictedIds])
 
   const visibleNavItems = useMemo(() => {
-    if (canSeeMasterMenus) return navItems
-    return (navItems ?? []).filter((it) => !restrictedIds.has(it.id))
-  }, [navItems, canSeeMasterMenus, restrictedIds])
+    return (navItems ?? []).filter((it) => {
+      const isUsersItem = it.id === 'kullanicilar' || isUsersHref(it.href)
+      if (isUsersItem && !canSeeUsersPage) return false
 
-  // to-do this part can be handled from middleware also
+      if (!canSeeMasterMenus && (restrictedIds.has(it.id) || isMasterRestrictedHref(it.href))) {
+        return false
+      }
+
+      return true
+    })
+  }, [navItems, canSeeMasterMenus, canSeeUsersPage, restrictedIds])
+
+  // ✅ Route guard
   useEffect(() => {
     if (isRoleLoading) return
 
-    const restrictedPaths = ['/ana-veri-yonetimi', '/iyilestirici-faaliyetler']
-    const isRestrictedRoute = restrictedPaths.some((p) => path === p || path.startsWith(`${p}/`))
+    const isUsersRoute =
+      path === '/kullanicilar' ||
+      path.startsWith('/kullanicilar/') ||
+      path === '/users' ||
+      path.startsWith('/users/')
 
-    if (!canSeeMasterMenus && isRestrictedRoute) {
+    if (isUsersRoute && !canSeeUsersPage) {
+      router.replace('/')
+      return
+    }
+
+    const isMasterRoute =
+      path === '/ana-veri-yonetimi' ||
+      path.startsWith('/ana-veri-yonetimi/') ||
+      path === '/iyilestirici-faaliyetler' ||
+      path.startsWith('/iyilestirici-faaliyetler/')
+
+    if (isMasterRoute && !canSeeMasterMenus) {
       router.replace('/')
     }
-  }, [canSeeMasterMenus, isRoleLoading, path, router])
+  }, [canSeeMasterMenus, canSeeUsersPage, isRoleLoading, path, router])
 
-  // Track which category dropdown is open
   const [openCategory, setOpenCategory] = useState<string | null>(null)
   const [mobileExpandedCategory, setMobileExpandedCategory] = useState<string | null>(null)
   const categoryRefs = useRef<{ [key: string]: HTMLDivElement | null }>({})
@@ -427,17 +475,13 @@ export function ClientSide({
     function handleClickOutside(event: MouseEvent) {
       if (openCategory) {
         const ref = categoryRefs.current[openCategory]
-        if (ref && !ref.contains(event.target as Node)) {
-          setOpenCategory(null)
-        }
+        if (ref && !ref.contains(event.target as Node)) setOpenCategory(null)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [openCategory])
 
-  // Hide header for /lyrics and all its sub-routes
-  // Show header on /pocs main listing page, hide on specific POC pages
   const shouldHideHeader =
     pathsWithoutHeader.includes(path) ||
     path.startsWith('/lyrics') ||
@@ -452,52 +496,37 @@ export function ClientSide({
 
   function pickLatestProfilePictureSrc(): string | undefined {
     const files = globalStore.user?.files
-    if (!files || files.length === 0) {
-      return undefined
-    }
+    if (!files?.length) return undefined
 
     const profilePictures = files.filter((file) => file.type === 'profile_picture')
-    if (profilePictures.length === 0) {
-      return undefined
-    }
+    if (!profilePictures.length) return undefined
 
     const sortedPictures = profilePictures.slice().sort((a, b) => {
-      const aTimestamp = typeof a.updated_at === 'string' ? Date.parse(a.updated_at) : 0
-      const bTimestamp = typeof b.updated_at === 'string' ? Date.parse(b.updated_at) : 0
-
-      if (Number.isNaN(bTimestamp) && Number.isNaN(aTimestamp)) return 0
-      if (Number.isNaN(bTimestamp)) return 1
-      if (Number.isNaN(aTimestamp)) return -1
-
-      return bTimestamp - aTimestamp
+      const aTs = typeof a.updated_at === 'string' ? Date.parse(a.updated_at) : 0
+      const bTs = typeof b.updated_at === 'string' ? Date.parse(b.updated_at) : 0
+      return bTs - aTs
     })
 
     const latestPicture = sortedPictures[0]
-    if (!latestPicture) return undefined
-
-    return `file-proxy/${latestPicture.id}`
+    return latestPicture ? `file-proxy/${latestPicture.id}` : undefined
   }
 
   const profileImageSrc = pickLatestProfilePictureSrc()
   const profileName = getProfileName()
 
-  // Sync activeNav with current pathname
   useEffect(() => {
-    // First check category items
     for (const category of visibleNavCategories) {
       if (category.href && !category.items) {
         if (category.href === '/' ? path === '/' : path.startsWith(category.href)) {
-          if (activeNav !== category.id) {
-            headerStore.updateUi({ activeNav: category.id })
-          }
+          if (activeNav !== category.id) headerStore.updateUi({ activeNav: category.id })
           return
         }
       }
+
       if (category.items) {
         const matchingItem = category.items.find((item) => {
           if (!item.href) return false
-          if (item.href === '/') return path === '/'
-          return path.startsWith(item.href)
+          return item.href === '/' ? path === '/' : path.startsWith(item.href)
         })
         if (matchingItem && activeNav !== matchingItem.id) {
           headerStore.updateUi({ activeNav: matchingItem.id })
@@ -506,11 +535,9 @@ export function ClientSide({
       }
     }
 
-    // Fallback to legacy navItems
     const matchingNav = visibleNavItems.find((item) => {
       if (!item.href) return false
-      if (item.href === '/') return path === '/'
-      return path.startsWith(item.href)
+      return item.href === '/' ? path === '/' : path.startsWith(item.href)
     })
 
     if (matchingNav && activeNav !== matchingNav.id) {
@@ -527,7 +554,6 @@ export function ClientSide({
 
   useGSAP(
     () => {
-      // Immediately hide nav elements before any render
       const navElement = navRef.current
       if (navElement) {
         gsap.set(navElement, { opacity: 0, visibility: 'hidden' })
@@ -546,23 +572,18 @@ export function ClientSide({
   useGSAP(animateProfileDropdown, { dependencies: [isProfileOpen], scope: headerRef })
   useGSAP(animateSearchToggle, { dependencies: [isSearchOpen], scope: headerRef })
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (isProfileOpen && profileRef.current && !profileRef.current.contains(event.target as Node)) {
         headerStore.updateUi({ isProfileOpen: false })
       }
     }
-
     document.addEventListener('mousedown', handleClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
+    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [isProfileOpen, headerStore])
 
-  if (shouldHideHeader) {
-    return null
-  }
+  if (shouldHideHeader) return null
+  if (!globalStore.isLoginChecked) return <SkeletonHeader />
 
   function runInitialAnimations(): undefined {
     const logoElement = logoRef.current
@@ -587,7 +608,6 @@ export function ClientSide({
 
     if (navElement) {
       const navigationChildren = Array.from(navElement.children)
-
       if (navigationChildren.length > 0) {
         gsap.set(navigationChildren, { y: 20, opacity: 0, scale: 0.9 })
         gsap.set(navElement, { opacity: 1, visibility: 'visible' })
@@ -613,7 +633,6 @@ export function ClientSide({
 
     if (isExpanded) {
       gsap.set(menuContainer, { display: 'block' })
-
       gsap.fromTo(
         menuContainer,
         { height: 0, opacity: 0 },
@@ -637,9 +656,7 @@ export function ClientSide({
         opacity: 0,
         duration: 0.3,
         ease: 'power2.in',
-        onComplete: (): void => {
-          gsap.set(menuContainer, { display: 'none' })
-        },
+       onComplete: () => void gsap.set(menuContainer, { display: 'none' })
       })
     }
 
@@ -664,9 +681,7 @@ export function ClientSide({
         y: -20,
         duration: 0.2,
         ease: 'power2.in',
-        onComplete: (): void => {
-          gsap.set(profileContainer, { display: 'none' })
-        },
+        onComplete: () => void gsap.set(profileContainer, { display: 'none' }),
       })
     }
 
@@ -690,9 +705,7 @@ export function ClientSide({
         opacity: 0,
         duration: 0.3,
         ease: 'power2.in',
-        onComplete: (): void => {
-          gsap.set(searchContainer, { display: 'none' })
-        },
+        onComplete: () => void gsap.set(searchContainer, { display: 'none' }),
       })
     }
 
@@ -726,18 +739,15 @@ export function ClientSide({
   }
 
   function createNavClickHandler(navId: string, navAction?: () => undefined) {
-    function navClick(): undefined {
+    return function navClick(): undefined {
       const updates: HeaderViewStateUpdates = { activeNav: navId }
       if (isExpanded) updates.isExpanded = false
 
       headerStore.updateUi(updates)
       animateActiveNav(navId)
       if (navAction) navAction()
-
       return undefined
     }
-
-    return navClick
   }
 
   async function handleLogout(): Promise<undefined> {
@@ -756,16 +766,11 @@ export function ClientSide({
 
   function renderDesktopNavItem(item: HeaderNavItem): React.JSX.Element {
     const handleNav = createNavClickHandler(item.id, item.onClick)
-    const baseClassName = `nav-item-${item.id} relative px-2 py-1 rounded-lg transition-all duration-300 flex items-center gap-2 group ${activeNav === item.id
-      ? 'bg-slate-600/50 shadow-lg border border-slate-500/50'
-      : 'hover:bg-slate-600/30'
-      }`
-
-    const iconElement = (
-      <span className="group-hover:rotate-12 transition-transform duration-300">{item.icon}</span>
-    )
-
-    const labelElement = <span className="font-medium text-sm">{item.label}</span>
+    const baseClassName = `nav-item-${item.id} relative px-2 py-1 rounded-lg transition-all duration-300 flex items-center gap-2 group ${
+      activeNav === item.id
+        ? 'bg-slate-600/50 shadow-lg border border-slate-500/50'
+        : 'hover:bg-slate-600/30'
+    }`
 
     const badgeElement = item.badge ? (
       <span className="absolute -top-1 -right-1 bg-red-500 text-xs rounded-full size-4 flex items-center justify-center animate-pulse">
@@ -776,8 +781,8 @@ export function ClientSide({
     if (item.href) {
       return (
         <Link key={item.id} href={item.href} onClick={handleNav} className={baseClassName}>
-          {iconElement}
-          {labelElement}
+          <span className="group-hover:rotate-12 transition-transform duration-300">{item.icon}</span>
+          <span className="font-medium text-sm">{item.label}</span>
           {badgeElement}
         </Link>
       )
@@ -785,8 +790,8 @@ export function ClientSide({
 
     return (
       <button type="button" key={item.id} onClick={handleNav} className={baseClassName}>
-        {iconElement}
-        {labelElement}
+        <span className="group-hover:rotate-12 transition-transform duration-300">{item.icon}</span>
+        <span className="font-medium text-sm">{item.label}</span>
         {badgeElement}
       </button>
     )
@@ -794,10 +799,11 @@ export function ClientSide({
 
   function renderMobileNavItem(item: HeaderNavItem): React.JSX.Element {
     const handleNav = createNavClickHandler(item.id, item.onClick)
-    const baseClassName = `relative px-4 py-3 rounded-lg transition-all duration-300 flex items-center gap-3 ${activeNav === item.id
-      ? 'bg-slate-600/50 shadow-lg border border-slate-500/50'
-      : 'hover:bg-slate-600/30'
-      }`
+    const baseClassName = `relative px-4 py-3 rounded-lg transition-all duration-300 flex items-center gap-3 ${
+      activeNav === item.id
+        ? 'bg-slate-600/50 shadow-lg border border-slate-500/50'
+        : 'hover:bg-slate-600/30'
+    }`
 
     const badgeElement = item.badge ? (
       <span className="ml-auto bg-red-500 text-xs rounded-full px-2 py-1">{item.badge}</span>
@@ -822,11 +828,8 @@ export function ClientSide({
     )
   }
 
-  // Check if any item in category is active
   function isCategoryActive(category: HeaderNavCategory): boolean {
-    if (category.href) {
-      return category.href === '/' ? path === '/' : path.startsWith(category.href)
-    }
+    if (category.href) return category.href === '/' ? path === '/' : path.startsWith(category.href)
     return (
       category.items?.some(
         (item) => item.href && (item.href === '/' ? path === '/' : path.startsWith(item.href))
@@ -834,22 +837,21 @@ export function ClientSide({
     )
   }
 
-  // Render desktop category navigation with dropdown
   function renderDesktopCategoryNav(category: HeaderNavCategory): React.JSX.Element {
     const isActive = isCategoryActive(category)
     const isOpen = openCategory === category.id
     const hasDropdown = category.items && category.items.length > 0
 
     if (!hasDropdown && category.href) {
-      // Direct link without dropdown
       return (
         <Link
           key={category.id}
           href={category.href}
           className={`relative px-3 py-2 rounded-xl transition-all duration-300 flex items-center gap-2 group
-            ${isActive
-              ? 'bg-gradient-to-r from-indigo-500/20 to-purple-500/20 shadow-lg shadow-indigo-500/10 border border-indigo-400/30'
-              : 'hover:bg-white/10 hover:shadow-md'
+            ${
+              isActive
+                ? 'bg-gradient-to-r from-indigo-500/20 to-purple-500/20 shadow-lg shadow-indigo-500/10 border border-indigo-400/30'
+                : 'hover:bg-white/10 hover:shadow-md'
             }`}
           onClick={() => {
             headerStore.updateUi({ activeNav: category.id })
@@ -857,8 +859,9 @@ export function ClientSide({
           }}
         >
           <span
-            className={`transition-all duration-300 ${isActive ? 'text-indigo-300' : 'group-hover:text-indigo-300 group-hover:scale-110'
-              }`}
+            className={`transition-all duration-300 ${
+              isActive ? 'text-indigo-300' : 'group-hover:text-indigo-300 group-hover:scale-110'
+            }`}
           >
             {category.icon}
           </span>
@@ -872,7 +875,6 @@ export function ClientSide({
       )
     }
 
-    // Category with dropdown
     return (
       <div
         key={category.id}
@@ -885,15 +887,17 @@ export function ClientSide({
           type="button"
           onClick={() => setOpenCategory(isOpen ? null : category.id)}
           className={`relative px-3 py-2 rounded-xl transition-all duration-300 flex items-center gap-2 group
-            ${isActive
-              ? 'bg-gradient-to-r from-indigo-500/20 to-purple-500/20 shadow-lg shadow-indigo-500/10 border border-indigo-400/30'
-              : 'hover:bg-white/10 hover:shadow-md'
+            ${
+              isActive
+                ? 'bg-gradient-to-r from-indigo-500/20 to-purple-500/20 shadow-lg shadow-indigo-500/10 border border-indigo-400/30'
+                : 'hover:bg-white/10 hover:shadow-md'
             }
             ${isOpen ? 'bg-white/10' : ''}`}
         >
           <span
-            className={`transition-all duration-300 ${isActive ? 'text-indigo-300' : 'group-hover:text-indigo-300 group-hover:scale-110'
-              }`}
+            className={`transition-all duration-300 ${
+              isActive ? 'text-indigo-300' : 'group-hover:text-indigo-300 group-hover:scale-110'
+            }`}
           >
             {category.icon}
           </span>
@@ -902,15 +906,15 @@ export function ClientSide({
           </span>
           <ChevronDown
             size={14}
-            className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''} ${isActive ? 'text-indigo-300' : ''
-              }`}
+            className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''} ${
+              isActive ? 'text-indigo-300' : ''
+            }`}
           />
           {isActive && (
             <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-gradient-to-r from-indigo-400 to-purple-400 rounded-full" />
           )}
         </button>
 
-        {/* Dropdown Menu */}
         {isOpen && category.items && (
           <div className="absolute top-full left-0 mt-2 min-w-[220px] py-2 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/20 border border-white/20 z-[9999] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
             <div className="absolute inset-0 bg-gradient-to-br from-slate-50 to-slate-100/80 -z-10" />
@@ -926,23 +930,24 @@ export function ClientSide({
                     setOpenCategory(null)
                   }}
                   className={`flex items-center gap-3 px-4 py-2.5 mx-2 rounded-xl transition-all duration-200 group
-                    ${isItemActive
-                      ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/30'
-                      : 'text-slate-700 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50'
+                    ${
+                      isItemActive
+                        ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/30'
+                        : 'text-slate-700 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50'
                     }
                     ${index > 0 ? 'mt-1' : ''}`}
                 >
                   <span
-                    className={`transition-all duration-200 ${isItemActive
-                      ? 'text-white'
-                      : 'text-slate-500 group-hover:text-indigo-500 group-hover:scale-110'
-                      }`}
+                    className={`transition-all duration-200 ${
+                      isItemActive
+                        ? 'text-white'
+                        : 'text-slate-500 group-hover:text-indigo-500 group-hover:scale-110'
+                    }`}
                   >
                     {item.icon}
                   </span>
                   <span
-                    className={`font-medium text-sm ${isItemActive ? '' : 'group-hover:text-indigo-600'
-                      }`}
+                    className={`font-medium text-sm ${isItemActive ? '' : 'group-hover:text-indigo-600'}`}
                   >
                     {item.label}
                   </span>
@@ -960,14 +965,12 @@ export function ClientSide({
     )
   }
 
-  // Render mobile category navigation with collapsible sections
   function renderMobileCategoryNav(category: HeaderNavCategory): React.JSX.Element {
     const isActive = isCategoryActive(category)
-    const isExpanded = mobileExpandedCategory === category.id
+    const isExpandedLocal = mobileExpandedCategory === category.id
     const hasItems = category.items && category.items.length > 0
 
     if (!hasItems && category.href) {
-      // Direct link
       return (
         <Link
           key={category.id}
@@ -976,9 +979,10 @@ export function ClientSide({
             headerStore.updateUi({ activeNav: category.id, isExpanded: false })
           }}
           className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300
-            ${isActive
-              ? 'bg-gradient-to-r from-indigo-500/30 to-purple-500/30 border border-indigo-400/30'
-              : 'hover:bg-white/10'
+            ${
+              isActive
+                ? 'bg-gradient-to-r from-indigo-500/30 to-purple-500/30 border border-indigo-400/30'
+                : 'hover:bg-white/10'
             }`}
         >
           <span className={`${isActive ? 'text-indigo-300' : ''}`}>{category.icon}</span>
@@ -989,16 +993,16 @@ export function ClientSide({
       )
     }
 
-    // Collapsible category
     return (
       <div key={category.id} className="space-y-1">
         <button
           type="button"
-          onClick={() => setMobileExpandedCategory(isExpanded ? null : category.id)}
+          onClick={() => setMobileExpandedCategory(isExpandedLocal ? null : category.id)}
           className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300
-            ${isActive
-              ? 'bg-gradient-to-r from-indigo-500/30 to-purple-500/30 border border-indigo-400/30'
-              : 'hover:bg-white/10'
+            ${
+              isActive
+                ? 'bg-gradient-to-r from-indigo-500/30 to-purple-500/30 border border-indigo-400/30'
+                : 'hover:bg-white/10'
             }`}
         >
           <span className={`${isActive ? 'text-indigo-300' : ''}`}>{category.icon}</span>
@@ -1007,12 +1011,11 @@ export function ClientSide({
           </span>
           <ChevronDown
             size={16}
-            className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+            className={`transition-transform duration-300 ${isExpandedLocal ? 'rotate-180' : ''}`}
           />
         </button>
 
-        {/* Collapsible content */}
-        {isExpanded && category.items && (
+        {isExpandedLocal && category.items && (
           <div className="ml-4 pl-4 border-l-2 border-indigo-500/30 space-y-1 animate-in slide-in-from-top-2 duration-200">
             {category.items.map((item) => {
               const isItemActive =
@@ -1026,9 +1029,10 @@ export function ClientSide({
                     setMobileExpandedCategory(null)
                   }}
                   className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200
-                    ${isItemActive
-                      ? 'bg-gradient-to-r from-indigo-500/40 to-purple-500/40 text-white'
-                      : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                    ${
+                      isItemActive
+                        ? 'bg-gradient-to-r from-indigo-500/40 to-purple-500/40 text-white'
+                        : 'text-slate-300 hover:bg-white/10 hover:text-white'
                     }`}
                 >
                   <span className={`${isItemActive ? 'text-indigo-200' : 'text-slate-400'}`}>
@@ -1043,8 +1047,6 @@ export function ClientSide({
       </div>
     )
   }
-
-  if (!globalStore.isLoginChecked) return <SkeletonHeader />
 
   return (
     <header

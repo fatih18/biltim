@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useGenericApiActions } from "@/app/_hooks/UseGenericApiStore";
+import { DateInput } from "@/app/_components/DateInput";
 
 type DecisionStatus = "open" | "in_progress" | "done" | "cancelled";
 
@@ -332,12 +333,10 @@ export default function BoardMeetingDecisionsPage() {
                                     <label className="block text-xs font-medium text-slate-300">
                                         Toplantı Tarihi <span className="text-rose-400">*</span>
                                     </label>
-                                    <input
-                                        type="date"
-                                        value={form.meetingDate}
-                                        onChange={(e) => handleFormChange("meetingDate", e.target.value)}
-                                        className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
-                                    />
+                                   <DateInput 
+                                    className="date-dark w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+                                    value={form.meetingDate} 
+                                    onChange={(value) => handleFormChange("meetingDate", value)}/>
                                 </div>
 
                                 <div className="space-y-1 md:col-span-2">

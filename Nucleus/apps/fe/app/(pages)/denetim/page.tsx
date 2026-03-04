@@ -7,6 +7,7 @@ import { useGenericApiActions } from '@/app/_hooks/UseGenericApiStore'
 import { useGetUserRole } from '@/app/_hooks/user/useGetUserRole'
 import { UploadedFileInfo, useUploadAnswerPhoto } from '../bulgular/hooks/useUploadAnswersPhoto'
 import { Question, questions, StepCode, steps } from './constants'
+import { DateInput } from '@/app/_components/DateInput'
 
 /* ───────────────────────────── Types ───────────────────────────── */
 type Rating = 'good' | 'medium' | 'bad'
@@ -1050,6 +1051,7 @@ export default function FiveSAuditFormPage() {
           >
             Yenile
           </button>
+
         </div>
       </div>
 
@@ -1672,12 +1674,12 @@ export default function FiveSAuditFormPage() {
                     <label className="mb-1 block font-medium text-slate-300">
                       Tarih <span className="text-rose-400">(zorunlu)</span>
                     </label>
-                    <input
-                      type="date"
+                    <DateInput
+                   
                       value={header.date}
-                      onChange={(e) => handleHeaderChange('date', e.target.value)}
-                      className="date-dark w-full rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
-                    />
+                      onChange={(value) => handleHeaderChange('date',  value)}
+                      className="date-dark w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+/>
                   </div>
                 </div>
 
@@ -1793,12 +1795,11 @@ export default function FiveSAuditFormPage() {
                   <label className="mb-1 block font-medium text-slate-300">
                     Termin Tarihi <span className="text-rose-400">(zorunlu)</span>
                   </label>
-                  <input
-                    type="date"
+                  <DateInput
                     value={singleFinding.dueDate || header.date}
-                    onChange={(e) => handleSingleFindingFieldChange('dueDate', e.target.value)}
-                    className="date-dark w-full rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
-                  />
+                    onChange={(value) => handleSingleFindingFieldChange('dueDate',  value)}
+                    className="date-dark w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+/>
                 </div>
               </div>
 
@@ -1812,6 +1813,7 @@ export default function FiveSAuditFormPage() {
                 </button>
                 <button
                   type="button"
+                   disabled={(singleFinding.photos?.length ?? 0) === 0}
                   onClick={handleSingleFindingSave}
                   className="rounded-md bg-emerald-500 px-4 py-1.5 font-semibold text-slate-950 hover:bg-emerald-400"
                 >
@@ -2480,12 +2482,12 @@ export default function FiveSAuditFormPage() {
                   <label className="mb-1 block font-medium text-slate-300">
                     Termin Tarihi <span className="text-rose-400">(zorunlu)</span>
                   </label>
-                  <input
-                    type="date"
+                  <DateInput
+                   
                     value={activeAnswer.dueDate ?? header.date}
-                    onChange={(e) => handleDueDateChange(activeQuestion.id, e.target.value)}
-                    className="date-dark w-full rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
-                  />
+                    onChange={(value) => handleDueDateChange(activeQuestion.id,  value)}
+                   className="date-dark w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+/>
                 </div>
 
                 <div>

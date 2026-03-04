@@ -164,6 +164,15 @@ const INITIAL_CLAIMS: ClaimData[] = [
     description: 'Delete companies',
   },
 
+  // five_s_findings special: status update is restricted (Auditor-only users must NOT have this)
+  {
+    action: 'five_s_findings.update_status',
+    method: 'PATCH',
+    path: '/api/five_s_findings/',
+    mode: 'startsWith',
+    description: 'Update status of five_s_findings (not available to Auditor-only users)',
+  },
+
   // User-role assignments (only Super Admin should normally get these via roles)
   {
     action: 'user_roles.read',

@@ -274,13 +274,20 @@ export const SearchConfig: HybridSearchConfig = {
 			operators: ["like", "eq", "in"],
 		},
 		detected_date_gte: {
-			// HybridSearch tarafında tarih range’i direkt filters ile de çözeceksin
 			column: "detected_date",
 			type: "date",
 			searchable: false,
-			filterable: false,
+			filterable: true,
 			sortable: false,
-			operators: [],
+			operators: ["gte"],
+		},
+		detected_date_lte: {
+			column: "detected_date",
+			type: "date",
+			searchable: false,
+			filterable: true,
+			sortable: false,
+			operators: ["lte"],
 		},
 
 		// photo_before_files: { ... }

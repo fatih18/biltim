@@ -5,6 +5,7 @@ import { resolveSchemaEntityKey, withChecks } from '@/controllers/utils'
 import type { CompanyInfo } from '@/middlewares'
 import type { TokenPayload } from '@/middlewares/Identity/types'
 import type { ElysiaRequestWOBody } from '@/server'
+import { getUserEffectiveClaims } from '@/services/Authorization'
 import { generateResponse } from '@/utils'
 import { convertDates } from '@/utils/ConvertDates'
 
@@ -27,6 +28,25 @@ export async function GenericUpdateEntity<T extends keyof typeof tables>(
         user_id = profile.sub.toString()
       } catch (_) {
         user_id = undefined
+      }
+
+      if (schema.tablename === 'five_s_findings' && 'status' in body) {
+        const effectiveClaims = await getUserEffectiveClaims({
+          userId: user_id ?? '',
+          schemaName: companyInfo.schema_name || 'main',
+        })
+        const canUpdateStatus = effectiveClaims.some(
+          (c) => c.action === 'five_s_findings.update_status'
+        )
+        if (!canUpdateStatus) {
+          return generateResponse({
+            isSuccess: false,
+            message: 'Bulgu durumunu güncelleme yetkiniz yok.',
+            data: null,
+            status: 403,
+            request,
+          })
+        }
       }
 
       const entityKey = resolveSchemaEntityKey(schema)

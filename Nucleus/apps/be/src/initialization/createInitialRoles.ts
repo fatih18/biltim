@@ -49,6 +49,14 @@ const ROLES_WITH_ALL_CLAIMS = [
 	"Auditor",
 ];
 
+const ROLES_WITH_FIVE_S_UPDATE_STATUS = [
+	"Super Admin",
+	"Manager",
+	"Content Manager Core Team",
+	"Field Manager",
+	// "Auditor" 
+];
+
 export async function createInitialRoles() {
 	console.log("👥 Creating initial roles...");
 
@@ -190,5 +198,77 @@ export async function createInitialRoles() {
 	console.log(`   - Already assigned: ${assignExistingCount}`);
 	if (assignFailedCount > 0) {
 		console.log(`   - Failed: ${assignFailedCount}`);
+	}
+
+	// Step 4: Assign five_s_findings.update_status only to non-auditor roles
+	console.log("🔗 Assigning five_s_findings.update_status claim to non-auditor roles...");
+	const updateStatusClaim = allClaims.find((c) => c.action === 'five_s_findings.update_status');
+	if (updateStatusClaim) {
+		for (const roleName of ROLES_WITH_FIVE_S_UPDATE_STATUS) {
+			const roleId = createdRoles.get(roleName);
+			if (!roleId) continue;
+			try {
+				await GenericAction({
+					ip_address: "127.0.0.1",
+					user_agent: "system",
+					schema_name: "main",
+					table_name: "T_RoleClaims",
+					action_type: "INSERT",
+					data: { role_id: roleId, claim_id: updateStatusClaim.id },
+				});
+			} catch (error) {
+				const err = error as { cause?: { code?: string } };
+				if (err?.cause?.code !== "23505") {
+					console.error(`❌ Failed to assign five_s_findings.update_status to role ${roleName}`);
+				}
+			}
+		}
+		console.log("✅ five_s_findings.update_status claim assigned.");
+	} else {
+		console.warn("⚠️  five_s_findings.update_status claim not found — was it created?");
+	}
+
+	// Step 5: Assign Super Admin role to godmin user
+	const godminEmail = process.env.GODMIN_EMAIL;
+	if (godminEmail) {
+		console.log("👤 Assigning Super Admin role to godmin user...");
+		try {
+			const godminResult = await GenericAction({
+				ip_address: "127.0.0.1",
+				user_agent: "system",
+				schema_name: "main",
+				table_name: "T_Users",
+				action_type: "GET",
+				filters: [{ column: "email", value: godminEmail }],
+				limit: 1,
+			});
+			const godminUser = (godminResult as Array<{ id: string }>)?.[0];
+			const superAdminRoleId = createdRoles.get("Super Admin");
+
+			if (godminUser?.id && superAdminRoleId) {
+				try {
+					await GenericAction({
+						ip_address: "127.0.0.1",
+						user_agent: "system",
+						schema_name: "main",
+						table_name: "T_UserRoles",
+						action_type: "INSERT",
+						data: { user_id: godminUser.id, role_id: superAdminRoleId },
+					});
+					console.log("✅ Super Admin role assigned to godmin user.");
+				} catch (error) {
+					const err = error as { cause?: { code?: string } };
+					if (err?.cause?.code === "23505") {
+						console.log("✅ Godmin user already has Super Admin role.");
+					} else {
+						console.error("❌ Failed to assign Super Admin role to godmin user.", error);
+					}
+				}
+			} else {
+				console.warn("⚠️  Godmin user or Super Admin role not found.");
+			}
+		} catch (error) {
+			console.error("❌ Failed to fetch godmin user.", error);
+		}
 	}
 }

@@ -265,30 +265,34 @@ export function buildWhereConditions(
 					const boolValue =
 						typeof transformedValue === "boolean"
 							? transformedValue
-							: transformedValue === "true";
+							: (transformedValue as string) === "true";
 					whereConditions.push(eq(column, boolValue));
-				} else if (fieldConfig.type === "date") {
-					let dateValue: Date | undefined;
-					if (transformedValue instanceof Date) {
-						dateValue = transformedValue;
-					} else if (
-						typeof transformedValue === "string" ||
-						typeof transformedValue === "number"
-					) {
-						const d = new Date(transformedValue as string | number);
-						if (!Number.isNaN(d.getTime())) {
-							dateValue = d;
-						}
-					}
-					if (dateValue) {
-						whereConditions.push(eq(column, dateValue));
-					}
-				} else if (Array.isArray(filterValue)) {
-					whereConditions.push(
-						inArray(column, filterValue as FilterPrimitive[]),
+				} else if (Array.isArray(transformedValue)) {
+					const values = (transformedValue as FilterPrimitive[]).filter(
+						(v) => v !== null && v !== undefined && v !== "",
 					);
+					if (values.length > 0) {
+						whereConditions.push(inArray(column, values));
+					}
 				} else {
-					whereConditions.push(eq(column, transformedValue as FilterPrimitive));
+					// If the field declares exactly one range operator, use it instead of eq.
+					// Supports keys like detected_date_gte / detected_date_lte.
+					const singleOp =
+						fieldConfig.operators?.length === 1
+							? fieldConfig.operators[0]
+							: undefined;
+					const v = transformedValue as FilterPrimitive;
+					if (singleOp === "gte") {
+						whereConditions.push(gte(column, v));
+					} else if (singleOp === "lte") {
+						whereConditions.push(lte(column, v));
+					} else if (singleOp === "gt") {
+						whereConditions.push(gt(column, v));
+					} else if (singleOp === "lt") {
+						whereConditions.push(lt(column, v));
+					} else {
+						whereConditions.push(eq(column, v));
+					}
 				}
 			}
 		}

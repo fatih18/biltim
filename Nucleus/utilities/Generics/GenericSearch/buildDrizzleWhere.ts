@@ -301,9 +301,25 @@ export function buildDrizzleWhere(
 							conditions.push(or(...ors));
 						}
 					} else {
-						conditions.push(
-							eq(column, raw as string | number | boolean | Date),
-						);
+						// If the field declares exactly one range operator, use it instead of eq.
+						// This supports keys like detected_date_gte / detected_date_lte where the
+						// plain string value arrives via query params.
+						const singleOp =
+							fieldConfig.operators?.length === 1
+								? fieldConfig.operators[0]
+								: undefined;
+						const typedRaw = raw as string | number | boolean | Date;
+						if (singleOp === "gte") {
+							conditions.push(gte(column, typedRaw));
+						} else if (singleOp === "lte") {
+							conditions.push(lte(column, typedRaw));
+						} else if (singleOp === "gt") {
+							conditions.push(gt(column, typedRaw));
+						} else if (singleOp === "lt") {
+							conditions.push(lt(column, typedRaw));
+						} else {
+							conditions.push(eq(column, typedRaw));
+						}
 					}
 				}
 			}

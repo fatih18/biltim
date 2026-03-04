@@ -4,6 +4,7 @@ import React from "react";
 import type { Audit, AuditStatus, MasterEntity } from "./types";
 import { normalizeName } from "./utils";
 import { Badge, DangerButton, Input, PrimaryButton, Select } from "./ui";
+import { DateInput } from "@/app/_components/DateInput";
 
 type AuditTeam = { id: string; name: string };
 
@@ -73,12 +74,11 @@ export function AuditPlannerPanel(props: {
               Denetim Tarihi
             </label>
 
-            <input
+            <DateInput
               id="plannedDate"
-              type="date"
-              className="date-dark w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-50 outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2 placeholder:text-slate-500"
+              className="date-dark w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
               value={plannedDate}
-              onChange={(e) => setPlannedDate(e.target.value)}
+              onChange={(value) => setPlannedDate(value)}
             />
           </div>
 

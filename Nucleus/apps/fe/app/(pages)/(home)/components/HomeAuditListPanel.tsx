@@ -4,6 +4,7 @@ import React from "react";
 import type { MasterEntity } from "../../ana-veri-yonetimi/components";
 import type { TeamInfo, AuditPlanRow } from "../page";
 import { TeamLeaderWithMembersTooltip } from "./TeamLeaderWithMembersTooltip";
+import { DateInput } from "@/app/_components/DateInput";
 
 type AuditTeamLite = { id: string; name?: string | null; isActive: boolean };
 
@@ -181,12 +182,13 @@ export function HomeAuditListPanel(props: {
                                     {/* Tarih */}
                                     <div className="col-span-2 text-sm text-slate-200">
                                         {isEditing ? (
-                                            <input
-                                                type="date"
+                                            <DateInput
+
                                                 value={editDate}
-                                                onChange={(e) => setEditDate(e.target.value)}
-                                                className="w-full rounded-md border border-slate-700 bg-slate-950/60 px-2 py-1 text-xs text-slate-100 outline-none focus:border-slate-400"
-                                            />
+                                                onChange={(value) => setEditDate(value)}
+                                                className="date-dark w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+
+                                                />
                                         ) : (
                                             <span>{normalizeDateYYYYMMDD(p.planned_date) || "-"}</span>
                                         )}
