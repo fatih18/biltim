@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useGenericApiActions } from "@/app/_hooks/UseGenericApiStore";
 
 import { HomeAuditListPanel } from "./components/HomeAuditListPanel";
-import { MasterEntity, nowIso, uid } from "../ana-veri-yonetimi/components";
+import { uid } from "../ana-veri-yonetimi/components";
 
 /** Keys */
 const PLAN_KEYS = {
@@ -36,21 +36,6 @@ function extractArray(res: any): any[] {
   return [];
 }
 
-function toMasterEntity(row: any): MasterEntity {
-  const id = row?.id ?? row?._id ?? row?.data?.id;
-  const name = row?.name ?? row?.title ?? "";
-  const isActive = row?.is_active ?? true;
-  const createdAt = row?.createdAt ?? row?.created_at ?? nowIso();
-
-  return {
-    id: String(id ?? uid()),
-    name: String(name ?? ""),
-    description: row?.description ?? row?.desc ?? "",
-    isActive: Boolean(isActive),
-    createdAt: String(createdAt),
-  };
-}
-
 export type AuditPlanRow = {
   id: string;
   is_active: boolean;
@@ -61,6 +46,12 @@ export type AuditPlanRow = {
   assigned_team_id: string;
   status: string;
   audit_id: string | null;
+  date_change_count: number;
+  parent_plan_id: string | null;
+  date_range_start: string | null;
+  date_range_end: string | null;
+  quarter: string | null;
+  title: string | null;
 };
 
 type AuditTeamLite = {
@@ -116,6 +107,32 @@ export type TeamInfo = {
   memberNames: string[];
 };
 
+type LocationLite = {
+  id: string;
+  name: string;
+  isActive: boolean;
+  managerUserId: string | null;
+  fieldManagerUserIds: string[];
+};
+
+function toLocationLite(row: any): LocationLite {
+  return {
+    id: String(row?.id ?? uid()),
+    name: String(row?.name ?? ""),
+    isActive: Boolean(row?.is_active ?? true),
+    managerUserId: row?.manager_user_id ?? null,
+    fieldManagerUserIds: Array.isArray(row?.field_manager_user_ids)
+      ? row.field_manager_user_ids
+      : [],
+  };
+}
+
+export type LocInfo = {
+  name: string;
+  managerName: string | null;
+  fieldManagerNames: string[];
+};
+
 function normalizeDateYYYYMMDD(value: string): string {
   if (!value) return "";
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
@@ -138,7 +155,7 @@ export default function Page() {
   }, [actions]);
 
   const [plans, setPlans] = React.useState<AuditPlanRow[]>([]);
-  const [locations, setLocations] = React.useState<MasterEntity[]>([]);
+  const [locations, setLocations] = React.useState<LocationLite[]>([]);
   const [teams, setTeams] = React.useState<AuditTeamLite[]>([]);
   const [teamMembers, setTeamMembers] = React.useState<TeamMemberRow[]>([]);
   const [users, setUsers] = React.useState<UserLite[]>([]);
@@ -207,6 +224,11 @@ export default function Page() {
         const mapped = (arr ?? []).map((p: any) => ({
           ...p,
           planned_date: normalizeDateYYYYMMDD(p?.planned_date),
+          parent_plan_id: p?.parent_plan_id ?? null,
+          date_range_start: normalizeDateYYYYMMDD(p?.date_range_start ?? "") || null,
+          date_range_end: normalizeDateYYYYMMDD(p?.date_range_end ?? "") || null,
+          quarter: p?.quarter ?? null,
+          title: p?.title ?? null,
         }));
         setPlans(mapped as AuditPlanRow[]);
       },
@@ -215,7 +237,7 @@ export default function Page() {
 
     run(startLocs, {
       payload: { page: 1, limit: 200, orderBy: "created_at", orderDirection: "desc" },
-      onAfterHandle: (res: any) => setLocations(extractArray(res).map(toMasterEntity)),
+      onAfterHandle: (res: any) => setLocations(extractArray(res).map(toLocationLite)),
       onErrorHandle: (e: any) => console.error(`${LOC_KEYS.GET} error`, e),
     });
 
@@ -247,6 +269,39 @@ export default function Page() {
     fetchAll();
   }, [fetchAll, fetchMeOnce]);
 
+  const parentPlanRangeById = React.useMemo((): Map<string, { start: string; end: string; quarter: string | null; title: string | null }> => {
+    const map = new Map<string, { start: string; end: string; quarter: string | null; title: string | null }>();
+    for (const p of plans) {
+      if (p.date_range_start && p.date_range_end) {
+        map.set(p.id, {
+          start: p.date_range_start,
+          end: p.date_range_end,
+          quarter: p.quarter ?? null,
+          title: p.title ?? null,
+        });
+      }
+    }
+    return map;
+  }, [plans]);
+
+  const locInfoById = React.useMemo((): Map<string, LocInfo> => {
+    const userNameById = new Map(users.map((u) => [u.id, u.name]));
+    const map = new Map<string, LocInfo>();
+    for (const loc of locations) {
+      if (!loc.isActive) continue;
+      map.set(loc.id, {
+        name: loc.name,
+        managerName: loc.managerUserId
+          ? (userNameById.get(loc.managerUserId) ?? null)
+          : null,
+        fieldManagerNames: loc.fieldManagerUserIds
+          .map((id) => userNameById.get(id))
+          .filter((n): n is string => !!n),
+      });
+    }
+    return map;
+  }, [locations, users]);
+
   const teamInfoById = React.useMemo(() => {
     const userName = new Map(users.map((u) => [u.id, u.name || u.email || "Kullanıcı"]));
 
@@ -276,35 +331,24 @@ export default function Page() {
     return map;
   }, [users, teamMembers, teams]);
 
-  const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+  const MAX_DATE_CHANGES = 2;
 
   const canEditPlan = React.useCallback(
     (plan: AuditPlanRow) => {
       if (!currentUserId) return false;
-
-      // 1) yetki: sadece team leader
+      // Sadece atanan ekibin lideri düzenleyebilir
       const team = teams.find((t) => t.id === plan.assigned_team_id);
       if (!team?.leaderUserId) return false;
-      const isLeader = String(team.leaderUserId) === String(currentUserId);
-      if (!isLeader) return false;
-
-      // 2) zaman kuralı: created_at'tan sonra 24 saat geçtiyse editlenemez
-      const createdAtRaw = plan?.created_at;
-      if (createdAtRaw) {
-        const createdMs = new Date(createdAtRaw).getTime();
-        if (!Number.isNaN(createdMs)) {
-          const ageMs = Date.now() - createdMs;
-          if (ageMs > ONE_DAY_MS) return false;
-        }
-      }
-
+      if (String(team.leaderUserId) !== String(currentUserId)) return false;
+      // Maksimum 2 düzenleme hakkı
+      if ((plan.date_change_count ?? 0) >= MAX_DATE_CHANGES) return false;
       return true;
     },
     [teams, currentUserId]
   );
 
 
-  const updatePlanDate = React.useCallback((planId: string, dateYYYYMMDD: string) => {
+  const updatePlanDate = React.useCallback((planId: string, dateYYYYMMDD: string, newCount: number) => {
     const A = actionsRef.current as any;
     const startUpdate = safeStart(A, PLAN_KEYS.UPDATE);
     if (!startUpdate) return;
@@ -313,11 +357,15 @@ export default function Page() {
       payload: {
         _id: planId,
         planned_date: dateYYYYMMDD,
-
+        date_change_count: newCount,
       },
       onAfterHandle: (_res: any) => {
         setPlans((prev) =>
-          prev.map((p) => (p.id === planId ? { ...p, planned_date: dateYYYYMMDD } : p))
+          prev.map((p) =>
+            p.id === planId
+              ? { ...p, planned_date: dateYYYYMMDD, date_change_count: newCount }
+              : p
+          )
         );
       },
       onErrorHandle: (e: any) => {
@@ -331,7 +379,8 @@ export default function Page() {
       <div className="mx-auto max-w-7xl space-y-6">
         <HomeAuditListPanel
           plans={plans}
-          locations={locations.filter((x) => x.isActive)}
+          locInfoById={locInfoById}
+          parentPlanRangeById={parentPlanRangeById}
           teams={teams.filter((t) => t.isActive)}
           teamInfoById={teamInfoById}
           loading={loading}

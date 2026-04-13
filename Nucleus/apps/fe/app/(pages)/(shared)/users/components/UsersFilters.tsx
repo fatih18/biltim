@@ -6,20 +6,20 @@ import type { StoreProps } from '@/app/_store/usersStore/types'
 const FILTER_CONFIG = [
   {
     id: 'status' as const,
-    label: 'Status',
+    label: 'Durum',
     options: [
-      { value: '', label: 'All' },
-      { value: 'active', label: 'Active' },
-      { value: 'inactive', label: 'Inactive' },
+      { value: '', label: 'Tümü' },
+      { value: 'active', label: 'Aktif' },
+      { value: 'inactive', label: 'Pasif' },
     ],
   },
   {
     id: 'locked' as const,
-    label: 'Lock State',
+    label: 'Kilit Durumu',
     options: [
-      { value: '', label: 'All' },
-      { value: 'unlocked', label: 'Unlocked' },
-      { value: 'locked', label: 'Locked' },
+      { value: '', label: 'Tümü' },
+      { value: 'unlocked', label: 'Açık' },
+      { value: 'locked', label: 'Kilitli' },
     ],
   },
 ] as const
@@ -58,12 +58,12 @@ export function UsersFilters({
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex-1">
           <label htmlFor="users-search" className="sr-only">
-            Search users
+            Kullanıcı ara
           </label>
           <input
             id="users-search"
             type="search"
-            placeholder="Search by email, name, or claim…"
+            placeholder="E-posta, ad veya izin ile ara…"
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}
             className="w-full rounded-xl border border-slate-800 bg-slate-950/50 px-4 py-2.5 text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-emerald-500/40 focus:ring-2 focus:ring-emerald-500/20"
@@ -80,7 +80,7 @@ export function UsersFilters({
               }`}
           >
             <Filter size={16} />
-            Filters
+            Filtreler
           </button>
 
           <button
@@ -88,7 +88,7 @@ export function UsersFilters({
             onClick={onResetFilters}
             className="rounded-xl border border-slate-800 bg-slate-950/40 px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:bg-slate-950/70"
           >
-            Reset
+            Sıfırla
           </button>
         </div>
       </div>

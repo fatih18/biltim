@@ -199,14 +199,14 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     <StatusBadge
                       icon={user.is_active ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
-                      label={user.is_active ? 'Active' : 'Inactive'}
+                      label={user.is_active ? 'Aktif' : 'Pasif'}
                       variant={user.is_active ? 'success' : 'error'}
                     />
                     {user.is_locked ? (
-                      <StatusBadge icon={<Lock size={12} />} label="Locked" variant="warning" />
+                      <StatusBadge icon={<Lock size={12} />} label="Kilitli" variant="warning" />
                     ) : null}
                     {user.is_god ? (
-                      <StatusBadge icon={<Crown size={12} />} label="Admin" variant="premium" />
+                      <StatusBadge icon={<Crown size={12} />} label="Yönetici" variant="premium" />
                     ) : null}
                   </div>
                 </div>
@@ -232,26 +232,26 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
         >
           {/* Account Information */}
           <InfoSection
-            title="Account Information"
+            title="Hesap Bilgileri"
             icon={<User size={16} className="text-slate-300" />}
           >
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <InfoCard icon={<Key size={16} />} label="User ID" value={user.id} />
-              <InfoCard icon={<Mail size={16} />} label="Email" value={user.email || ''} />
-              <InfoCard icon={<User size={16} />} label="Full Name" value={fullName} />
+              <InfoCard icon={<Key size={16} />} label="Kullanıcı ID" value={user.id} />
+              <InfoCard icon={<Mail size={16} />} label="E-posta" value={user.email || ''} />
+              <InfoCard icon={<User size={16} />} label="Ad Soyad" value={fullName} />
               <InfoCard
                 icon={<Calendar size={16} />}
-                label="Created"
+                label="Oluşturulma"
                 value={formatDate(user.created_at)}
               />
               <InfoCard
                 icon={<Clock size={16} />}
-                label="Updated"
+                label="Güncelleme"
                 value={formatDate(user.updated_at)}
               />
               <InfoCard
                 icon={<Activity size={16} />}
-                label="Last Login"
+                label="Son Giriş"
                 value={formatDate(user.last_login_at)}
               />
             </div>
@@ -259,7 +259,7 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
 
           {/* Security */}
           <InfoSection
-            title="Security & Access"
+            title="Güvenlik ve Erişim"
             icon={<Shield size={16} className="text-slate-300" />}
           >
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -271,12 +271,12 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
                     <XCircle size={16} className="text-rose-400" />
                   )
                 }
-                label="Email Verified"
-                value={user.verified_at ? formatDate(user.verified_at) : 'Not verified'}
+                label="E-posta Doğrulama"
+                value={user.verified_at ? formatDate(user.verified_at) : 'Doğrulanmadı'}
               />
               <InfoCard
                 icon={<Activity size={16} />}
-                label="Login Count"
+                label="Giriş Sayısı"
                 value={String(user.login_count ?? 0)}
               />
               <InfoCard
@@ -287,33 +287,33 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
                     <CheckCircle2 size={16} className="text-emerald-400" />
                   )
                 }
-                label="Account Status"
-                value={user.is_locked ? 'Locked' : 'Unlocked'}
+                label="Hesap Durumu"
+                value={user.is_locked ? 'Kilitli' : 'Açık'}
               />
               <InfoCard
                 icon={<Clock size={16} />}
-                label="Locked Until"
+                label="Kilit Bitiş"
                 value={formatDate(user.locked_until)}
               />
               <InfoCard
                 icon={<XCircle size={16} />}
-                label="Failed Attempts"
+                label="Başarısız Deneme"
                 value={String(user.failed_login_attempts ?? 0)}
               />
               <InfoCard
                 icon={
                   user.is_god ? <Crown size={16} className="text-purple-400" /> : <User size={16} />
                 }
-                label="Admin Access"
-                value={user.is_god ? 'Enabled' : 'Disabled'}
+                label="Yönetici Erişimi"
+                value={user.is_god ? 'Aktif' : 'Pasif'}
               />
             </div>
           </InfoSection>
 
           {/* Addresses */}
-          <InfoSection title="Addresses" icon={<MapPin size={16} className="text-slate-300" />}>
+          <InfoSection title="Adresler" icon={<MapPin size={16} className="text-slate-300" />}>
             <CollectionGrid
-              emptyMessage="No addresses assigned"
+              emptyMessage="Kayıtlı adres yok"
               items={user.address}
               renderItem={(address) => (
                 <div
@@ -335,7 +335,7 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
                           .join(' / ') || '—'}
                       </p>
                       {address.zip ? (
-                        <p className="mt-1 text-xs text-slate-400">ZIP: {address.zip}</p>
+                        <p className="mt-1 text-xs text-slate-400">Posta Kodu: {address.zip}</p>
                       ) : null}
                     </div>
                   </div>
@@ -345,9 +345,9 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
           </InfoSection>
 
           {/* Phones */}
-          <InfoSection title="Phone Numbers" icon={<Phone size={16} className="text-slate-300" />}>
+          <InfoSection title="Telefon Numaraları" icon={<Phone size={16} className="text-slate-300" />}>
             <CollectionGrid
-              emptyMessage="No phone numbers"
+              emptyMessage="Kayıtlı telefon yok"
               items={user.phone}
               renderItem={(phone) => (
                 <div
@@ -364,10 +364,10 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
                         {[phone.country_code, phone.number].filter(Boolean).join(' ')}
                       </p>
                       {phone.type ? (
-                        <p className="text-xs text-slate-400">Type: {phone.type}</p>
+                        <p className="text-xs text-slate-400">Tür: {phone.type}</p>
                       ) : null}
                       {phone.extension ? (
-                        <p className="text-xs text-slate-400">Ext: {phone.extension}</p>
+                        <p className="text-xs text-slate-400">Dahili: {phone.extension}</p>
                       ) : null}
                     </div>
                   </div>
@@ -377,9 +377,9 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
           </InfoSection>
 
           {/* Files */}
-          <InfoSection title="Files" icon={<FileText size={16} className="text-slate-300" />}>
+          <InfoSection title="Dosyalar" icon={<FileText size={16} className="text-slate-300" />}>
             <CollectionGrid
-              emptyMessage="No files"
+              emptyMessage="Kayıtlı dosya yok"
               items={user.files}
               renderItem={(file) => (
                 <div
@@ -395,7 +395,7 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
                         {file.name ?? file.id}
                       </h4>
                       <p className="mt-1 text-xs text-slate-400">
-                        Type: {file.mime_type ?? 'Unknown'}
+                        Tür: {file.mime_type ?? 'Bilinmiyor'}
                       </p>
                     </div>
                   </div>
@@ -405,10 +405,10 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
           </InfoSection>
 
           {/* Roles */}
-          <InfoSection title="Roles" icon={<Key size={16} className="text-slate-300" />}>
+          <InfoSection title="Roller" icon={<Key size={16} className="text-slate-300" />}>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm text-slate-300">
-                Review roles assigned to this user and the claims they provide.
+                Bu kullanıcıya atanan rolleri ve sağladıkları izinleri görüntüleyin.
               </p>
 
               <button
@@ -417,22 +417,22 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
                 onClick={() => usersStore.setModalVisibility('manageClaims', true)}
                 aria-label="Manage user roles and claims"
               >
-                Manage Roles &amp; Claims
+                Rolleri ve İzinleri Yönet
               </button>
             </div>
 
             {isLoadingRoles ? (
               <div className="mt-4 flex items-center justify-center gap-2 text-sm text-slate-300">
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-600 border-t-emerald-400" />
-                Loading roles...
+                Roller yükleniyor...
               </div>
             ) : rolesErrorCode === 403 ? (
               <div className="mt-4 text-sm text-rose-300">
-                You do not have permission to view roles for this user.
+                Bu kullanıcının rollerini görüntüleme izniniz yok.
               </div>
             ) : (
               <CollectionGrid
-                emptyMessage="No roles assigned"
+                emptyMessage="Atanmış rol yok"
                 items={rolesWithClaims}
                 renderItem={(role) => (
                   <div
@@ -449,7 +449,7 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
 
                       {role.is_system ? (
                         <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200">
-                          System
+                          Sistem
                         </span>
                       ) : null}
                     </div>
@@ -467,7 +467,7 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
                           ))}
                         </ul>
                       ) : (
-                        <p className="text-xs text-slate-400">No claims assigned to this role.</p>
+                        <p className="text-xs text-slate-400">Bu role atanmış izin yok.</p>
                       )}
                     </div>
                   </div>

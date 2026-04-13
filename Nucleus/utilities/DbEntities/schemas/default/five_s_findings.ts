@@ -83,9 +83,13 @@ export const columns = {
 
 	completed_at: date("completed_at"),
 
+	// Saha sorumlusu — bulguyı kapatacak kişi (lokasyondan otomatik doldurulur)
 	responsible_name: text("responsible_name"),
-
 	responsible_user_id: uuid("responsible_user_id"),
+
+	// Denetimi yapan kişi (audit ekibinden)
+	auditor_name: text("auditor_name"),
+	auditor_user_id: uuid("auditor_user_id"),
 
 	status: text("status").notNull().default("open"),
 
@@ -146,6 +150,7 @@ export type Read = {
 		detected_date_gte?: string;
 		detected_date_lte?: string;
 		responsible_user_id?: string | string[];
+		auditor_user_id?: string | string[];
 
 		// ✅ Opsiyonel: offline debug/filtre
 		client_submission_id?: string | string[];

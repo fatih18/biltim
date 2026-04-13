@@ -19,5 +19,17 @@ export type Audit = {
 
   auditId?: string | null;
   note?: string;
+  dateChangeCount?: number;
+
+  parentPlanId?: string | null;
+  quarter?: string | null;
+  dateRangeStart?: string | null;
+  dateRangeEnd?: string | null;
+  title?: string | null;
 };
 export type User = { id: string; name: string; roles?: { name: string }[] };
+
+export type LocationEntity = MasterEntity & {
+    managerUserId?: string | null;
+    fieldManagerUserIds?: string[];
+};

@@ -1,8 +1,7 @@
 "use client";
 
 import React from "react";
-import type { MasterEntity } from "../../ana-veri-yonetimi/components";
-import type { TeamInfo, AuditPlanRow } from "../page";
+import type { TeamInfo, AuditPlanRow, LocInfo } from "../page";
 import { TeamLeaderWithMembersTooltip } from "./TeamLeaderWithMembersTooltip";
 import { DateInput } from "@/app/_components/DateInput";
 
@@ -70,20 +69,20 @@ function normalizeDateYYYYMMDD(value: string): string {
 
 export function HomeAuditListPanel(props: {
     plans: AuditPlanRow[];
-    locations: MasterEntity[];
+    locInfoById: Map<string, LocInfo>;
+    parentPlanRangeById: Map<string, { start: string; end: string; quarter: string | null; title: string | null }>;
     teams: AuditTeamLite[];
     teamInfoById: Map<string, TeamInfo>;
     loading: boolean;
     onRefresh?: () => void;
     onOpenPlan?: (id: string) => void;
-
-    // ✅ new
     canEditPlan: (plan: AuditPlanRow) => boolean;
-    onUpdatePlanDate: (planId: string, dateYYYYMMDD: string) => void;
+    onUpdatePlanDate: (planId: string, dateYYYYMMDD: string, newCount: number) => void;
 }) {
     const {
         plans,
-        locations,
+        locInfoById,
+        parentPlanRangeById,
         teamInfoById,
         loading,
         onRefresh,
@@ -98,14 +97,8 @@ export function HomeAuditListPanel(props: {
     const [editingId, setEditingId] = React.useState<string | null>(null);
     const [editDate, setEditDate] = React.useState<string>("");
 
-    const locNameById = React.useMemo(() => {
-        const m = new Map<string, string>();
-        for (const l of locations) m.set(l.id, l.name);
-        return m;
-    }, [locations]);
-
-    const upcoming = React.useMemo(() => plans.filter((p) => p.status !== "completed"), [plans]);
-    const completed = React.useMemo(() => plans.filter((p) => p.status === "completed"), [plans]);
+    const upcoming = React.useMemo(() => plans.filter((p) => !!p.location_id && p.status !== "completed"), [plans]);
+    const completed = React.useMemo(() => plans.filter((p) => !!p.location_id && p.status === "completed"), [plans]);
 
     const list = tab === "upcoming" ? upcoming : completed;
 
@@ -119,10 +112,11 @@ export function HomeAuditListPanel(props: {
         setEditDate("");
     };
 
-    const saveEdit = () => {
+    const saveEdit = (plan: AuditPlanRow) => {
         if (!editingId) return;
         if (!editDate) return;
-        onUpdatePlanDate(editingId, editDate);
+        const newCount = (plan.date_change_count ?? 0) + 1;
+        onUpdatePlanDate(editingId, editDate, newCount);
         setEditingId(null);
     };
 
@@ -161,8 +155,9 @@ export function HomeAuditListPanel(props: {
                 <div className="overflow-hidden rounded-lg border border-slate-800">
                     <div className="grid grid-cols-12 bg-slate-900/60 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-slate-400">
                         <div className="col-span-2">Tarih</div>
-                        <div className="col-span-4">Lokasyon</div>
-                        <div className="col-span-3">Ekip / Lider</div>
+                        <div className="col-span-2">Dönem</div>
+                        <div className="col-span-3">Lokasyon</div>
+                        <div className="col-span-2">Ekip / Lider</div>
                         <div className="col-span-1 text-center">Durum</div>
                         <div className="col-span-2 text-right">İşlem</div>
                     </div>
@@ -173,30 +168,97 @@ export function HomeAuditListPanel(props: {
                         <div className="px-3 py-6 text-sm text-slate-400">Kayıt bulunamadı.</div>
                     ) : (
                         list.map((p) => {
-                            const loc = locNameById.get(p.location_id) ?? "-";
+                            const locInfo = locInfoById.get(p.location_id);
+                            const loc = locInfo?.name ?? "-";
+                            const managerName = locInfo?.managerName ?? null;
+                            const fieldManagerNames = locInfo?.fieldManagerNames ?? [];
                             const editable = canEditPlan(p);
                             const isEditing = editingId === p.id;
+                            const parentRange = p.parent_plan_id
+                                ? parentPlanRangeById.get(p.parent_plan_id)
+                                : undefined;
+                            const outOfRange = !!(parentRange && editDate &&
+                                (editDate < parentRange.start || editDate > parentRange.end));
 
                             return (
                                 <div key={p.id} className="grid grid-cols-12 items-center gap-2 border-t border-slate-800/80 px-3 py-2">
                                     {/* Tarih */}
-                                    <div className="col-span-2 text-sm text-slate-200">
+                                    <div className="col-span-2">
                                         {isEditing ? (
-                                            <DateInput
-
-                                                value={editDate}
-                                                onChange={(value) => setEditDate(value)}
-                                                className="date-dark w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
-
+                                            <div className="flex flex-col gap-1">
+                                                <DateInput
+                                                    value={editDate}
+                                                    onChange={(value) => setEditDate(value)}
+                                                    className={[
+                                                        "date-dark w-full rounded-md border px-3 py-2 text-xs outline-none ring-sky-500/40 focus:ring-2",
+                                                        outOfRange
+                                                            ? "border-rose-600 bg-rose-950/20 focus:border-rose-400"
+                                                            : "border-slate-700 bg-slate-950/70 focus:border-sky-400",
+                                                    ].join(" ")}
                                                 />
+                                                {parentRange && (
+                                                    <p className="text-[10px] text-slate-500">
+                                                        Aralık: {parentRange.start} – {parentRange.end}
+                                                    </p>
+                                                )}
+                                                {outOfRange && (
+                                                    <p className="text-[10px] text-rose-400">
+                                                        ⚠ Seçilen tarih ana plan aralığı dışında
+                                                    </p>
+                                                )}
+                                                <div className="flex gap-1">
+                                                    <button
+                                                        className="rounded-md border border-emerald-800/60 bg-emerald-950/30 px-3 py-1 text-xs text-emerald-200 hover:bg-emerald-950/50 disabled:opacity-50"
+                                                        onClick={() => saveEdit(p)}
+                                                        disabled={!editDate || outOfRange}
+                                                    >
+                                                        Kaydet
+                                                    </button>
+                                                    <button
+                                                        className="rounded-md border border-slate-700 bg-slate-950/60 px-3 py-1 text-xs hover:bg-slate-950"
+                                                        onClick={cancelEdit}
+                                                    >
+                                                        İptal
+                                                    </button>
+                                                </div>
+                                            </div>
                                         ) : (
-                                            <span>{normalizeDateYYYYMMDD(p.planned_date) || "-"}</span>
+                                            <div className="flex flex-col gap-0.5">
+                                                <span className="text-sm text-slate-200">{normalizeDateYYYYMMDD(p.planned_date) || "-"}</span>
+                                                {editable ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => startEdit(p)}
+                                                        className="text-left text-[10px] text-sky-400 hover:underline"
+                                                    >
+                                                        Düzenle ({2 - (p.date_change_count ?? 0)} hak)
+                                                    </button>
+                                                ) : (p.date_change_count ?? 0) >= 2 && canEditPlan({ ...p, date_change_count: 0 }) ? (
+                                                    <span className="text-[10px] text-slate-500">Tarih kilitli</span>
+                                                ) : null}
+                                            </div>
                                         )}
                                     </div>
 
-                                    <div className="col-span-4 text-sm text-slate-100">{loc}</div>
+                                    {/* Dönem */}
+                                    <div className="col-span-2">
+                                        {parentRange ? (
+                                            <div className="flex flex-col gap-0.5">
+                                                <span className="inline-block rounded border border-indigo-700/50 bg-indigo-950/40 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-300">
+                                                    {parentRange.quarter ?? "—"}
+                                                </span>
+                                                {parentRange.title && (
+                                                    <span className="text-[10px] text-slate-500 truncate">{parentRange.title}</span>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <span className="text-[11px] text-slate-600">—</span>
+                                        )}
+                                    </div>
 
-                                    <div className="col-span-3">
+                                    <div className="col-span-3 text-sm text-slate-100">{loc}</div>
+
+                                    <div className="col-span-2">
                                         <TeamLeaderWithMembersTooltip teamId={p.assigned_team_id} teamInfoById={teamInfoById} />
                                     </div>
 
@@ -204,41 +266,32 @@ export function HomeAuditListPanel(props: {
                                         <StatusPill status={p.status} />
                                     </div>
 
-                                    <div className="col-span-2 flex justify-end gap-2">
-
-                                        {editable ? (
-                                            isEditing ? (
-                                                <>
-                                                    <button
-                                                        className="rounded-md border border-emerald-800/60 bg-emerald-950/30 px-3 py-1.5 text-xs text-emerald-200 hover:bg-emerald-950/50 disabled:opacity-50"
-                                                        onClick={saveEdit}
-                                                        disabled={!editDate}
-                                                    >
-                                                        Kaydet
-                                                    </button>
-                                                    <button
-                                                        className="rounded-md border border-slate-700 bg-slate-950/60 px-3 py-1.5 text-xs hover:bg-slate-950"
-                                                        onClick={cancelEdit}
-                                                    >
-                                                        İptal
-                                                    </button>
-                                                </>
-                                            ) : (
-                                                <button
-                                                    className="rounded-md border border-slate-700 bg-slate-950/60 px-3 py-1.5 text-xs hover:bg-slate-950"
-                                                    onClick={() => startEdit(p)}
-                                                >
-                                                    Düzenle
-                                                </button>
-                                            )
-                                        ) : null}
+                                    <div className="col-span-2 flex justify-end">
+                                        <StatusPill status={p.status} />
                                     </div>
 
-                                    {p.audit_id ? (
-                                        <div className="col-span-12 pt-1 text-[11px] text-slate-500">
-                                            <Badge>audit_id</Badge> <span className="text-slate-400">{p.audit_id}</span>
+                                    {(managerName || fieldManagerNames.length > 0) && (
+                                        <div className="col-span-12 mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-slate-800/50 pt-1.5 pb-0.5">
+                                            {managerName && (
+                                                <span className="flex items-center gap-1.5 text-[11px]">
+                                                    <span className="rounded bg-violet-950/60 border border-violet-800/40 px-1.5 py-0.5 text-[10px] font-medium text-violet-300">
+                                                        İlgili Müdür
+                                                    </span>
+                                                    <span className="text-slate-300">{managerName}</span>
+                                                </span>
+                                            )}
+                                            {fieldManagerNames.length > 0 && (
+                                                <span className="flex items-center gap-1.5 text-[11px]">
+                                                    <span className="rounded bg-sky-950/60 border border-sky-800/40 px-1.5 py-0.5 text-[10px] font-medium text-sky-300">
+                                                        Saha Sorumlusu
+                                                    </span>
+                                                    <span className="text-slate-300">
+                                                        {fieldManagerNames.join(", ")}
+                                                    </span>
+                                                </span>
+                                            )}
                                         </div>
-                                    ) : null}
+                                    )}
                                 </div>
                             );
                         })

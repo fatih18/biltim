@@ -79,6 +79,10 @@ const ROLE_ALIASES = {
     normalizeRoleName("audit leader"),
     normalizeRoleName("team leader"),
   ]),
+  MERKEZ_EKIP: new Set([
+    normalizeRoleName("merkez ekip"),
+    normalizeRoleName("content manager core team"),
+  ]),
 };
 
 function userHasAnyRoleLike(u: any, aliases: Set<string>) {
@@ -148,32 +152,35 @@ export function TeamsTab({
   }, [users]);
 
   /**
-   * ✅ İSTENEN:
-   * - Lider: SADECE "Saha Sorumlusu" (Field Manager) rolü (istersen ayrıca "Denetim Lideri" rolünü de dahil edebiliriz)
-   * - Denetçiler: SADECE "Denetçi" rolü
+   * ✅ GÜNCELLENMEŞ KURAL (Madde 7):
+   * - Lider: "Denetçi" veya "Merkez Ekip" veya "Denetim Lideri" rolündeki tüm kullanıcılar
+   *          Saha Sorumlusu lider OLAMAZ.
+   * - Denetçiler: "Denetçi" veya "Merkez Ekip" rolündekiler (Saha Sorumlusu hariç)
    *
-   * Roles yoksa (backend göndermiyorsa) => fallback: hepsi (ama bunu UI'da uyarıyoruz)
+   * Roles yoksa (backend göndermiyorsa) => fallback: hepsi (UI'da uyarıyoruz)
    */
   const leaderUsers = React.useMemo(() => {
     if (!hasAnyRolesOnUsers) return users as any[];
 
-    // Lideri "Saha Sorumlusu"ndan seç
-    const arr = (users as any[]).filter((u) => userHasAnyRoleLike(u, ROLE_ALIASES.FIELD_MANAGER));
-
-    // Eğer sahada rol isimleri farklıysa (örn "Denetim Lideri") onu da opsiyonel destekle:
-    const alt = (users as any[]).filter((u) => userHasAnyRoleLike(u, ROLE_ALIASES.TEAM_LEADER));
-
-    const merged = [...arr, ...alt].filter(
-      (u, i, a) => a.findIndex((x) => String(x?.id) === String(u?.id)) === i
+    // Lider: Denetçi + Merkez Ekip + Denetim Lideri rolüleri
+    const arr = (users as any[]).filter(
+      (u) =>
+        userHasAnyRoleLike(u, ROLE_ALIASES.AUDITOR) ||
+        userHasAnyRoleLike(u, ROLE_ALIASES.MERKEZ_EKIP) ||
+        userHasAnyRoleLike(u, ROLE_ALIASES.TEAM_LEADER)
     );
 
-    // Hiç bulunamadıysa fallback (UI'da uyarı basacağız)
-    return merged.length ? merged : (users as any[]);
+    return arr.length ? arr : (users as any[]);
   }, [users, hasAnyRolesOnUsers]);
 
   const auditorUsers = React.useMemo(() => {
     if (!hasAnyRolesOnUsers) return users as any[];
-    const arr = (users as any[]).filter((u) => userHasAnyRoleLike(u, ROLE_ALIASES.AUDITOR));
+    // Denetçi: Denetçi + Merkez Ekip rolleri (Saha Sorumlusu hariç)
+    const arr = (users as any[]).filter(
+      (u) =>
+        userHasAnyRoleLike(u, ROLE_ALIASES.AUDITOR) ||
+        userHasAnyRoleLike(u, ROLE_ALIASES.MERKEZ_EKIP)
+    );
     return arr.length ? arr : (users as any[]);
   }, [users, hasAnyRolesOnUsers]);
 
@@ -282,14 +289,14 @@ export function TeamsTab({
 
     const leaderOk = leaderUsers.some((u: any) => String(u.id) === String(draftLeaderId));
     if (!leaderOk) {
-      alert("Seçilen liderin rolü uygun değil. (Saha Sorumlusu / Denetim Lideri olmalı)");
+      alert("Seçilen liderin rolü uygun değil. Lider Denetçi veya Merkez Ekip rolünde olmalıdır. Saha Sorumlusu lider olamaz.");
       return false;
     }
 
     const auditorSet = new Set(auditorUsers.map((u: any) => String(u.id)));
     const bad = draftMembers.filter((id) => !auditorSet.has(String(id)));
     if (bad.length) {
-      alert("Denetçi listesinde rolü uygun olmayan kullanıcı(lar) var. Sadece Denetçi seçilebilir.");
+      alert("Denetçi listesinde rolü uygun olmayan kullanıcı(lar) var. Sadece Denetçi veya Merkez Ekip rolündekiler seçilebilir.");
       return false;
     }
 
@@ -466,13 +473,13 @@ export function TeamsTab({
               className="w-full rounded-md border border-slate-700 bg-slate-950/60 text-slate-50 px-3 py-2 text-sm"
               value={draftName}
               onChange={(e) => setDraftName(e.target.value)}
-              placeholder="Örn: Üretim Ekibi - A"
+              placeholder="Örn: Denetim Ekibi - A"
             />
           </div>
 
           {/* Leader */}
           <div>
-            <div className="text-xs text-slate-400 mb-1">Denetim Lideri (Saha Sorumlusu)</div>
+            <div className="text-xs text-slate-400 mb-1">Denetim Ekip Lideri </div>
             <select
               className="w-full rounded-md border border-slate-700 bg-slate-950/60 text-slate-50 px-3 py-2 text-sm"
               value={draftLeaderId}

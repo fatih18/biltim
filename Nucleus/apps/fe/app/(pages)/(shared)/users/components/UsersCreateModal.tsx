@@ -24,7 +24,9 @@ const normalize = (v: string) =>
 
 const isString = (v: unknown): v is string => typeof v === 'string'
 
-// ✅ Birlikte seçilebilecek tek ikili: Denetçi + Saha Sorumlusu
+// ✅ Birlikte seçilebilecek ikili kombinasyonlar:
+// 1) Denetçi + Saha Sorumlusu
+// 2) Denetçi + Merkez Ekip
 // EN/TR alias destekli
 const FIELD_MANAGER_ALIASES = new Set([
   normalize('Field Manager'),
@@ -38,11 +40,20 @@ const AUDITOR_ALIASES = new Set([
   normalize('Denetci'),
 ])
 
+const MERKEZ_EKIP_ALIASES = new Set([
+  normalize('Merkez Ekip'),
+  normalize('Content Manager Core Team'),
+  normalize('merkez ekip'),
+])
+
 function isFieldManagerAlias(alias: string) {
   return FIELD_MANAGER_ALIASES.has(normalize(alias))
 }
 function isAuditorAlias(alias: string) {
   return AUDITOR_ALIASES.has(normalize(alias))
+}
+function isMerkezEkipAlias(alias: string) {
+  return MERKEZ_EKIP_ALIASES.has(normalize(alias))
 }
 
 export function UsersCreateModal({
@@ -76,12 +87,15 @@ export function UsersCreateModal({
     // 3+ rol: yasak
     if (nextIds.length > 2) return false
 
-    // 2 rol: sadece FM + Auditor serbest
+    // 2 rol: izin verilen çiftler
+    //  - FM + Auditor
+    //  - Merkez Ekip + Auditor
     const nextAliases = nextIds.map((id) => rolesById.get(id)?.alias).filter(isString)
     const hasFM = nextAliases.some(isFieldManagerAlias)
     const hasAuditor = nextAliases.some(isAuditorAlias)
+    const hasMerkezEkip = nextAliases.some(isMerkezEkipAlias)
 
-    return hasFM && hasAuditor
+    return (hasFM && hasAuditor) || (hasMerkezEkip && hasAuditor)
   }
 
   function canToggleOn(targetRoleId: string): boolean {
@@ -95,14 +109,15 @@ export function UsersCreateModal({
     if (selectedRoleIds.length >= 2) return false
 
     // 1 seçim varsa ikinci seçimin kuralı:
-    // sadece Field Manager <-> Auditor ikilisi
+    // FM <-> Auditor veya MerkezEkip <-> Auditor
     const selectedAlias = selectedAliases[0] || ''
     const targetAlias = rolesById.get(targetRoleId)?.alias || ''
 
     if (isFieldManagerAlias(selectedAlias)) return isAuditorAlias(targetAlias)
-    if (isAuditorAlias(selectedAlias)) return isFieldManagerAlias(targetAlias)
+    if (isMerkezEkipAlias(selectedAlias)) return isAuditorAlias(targetAlias)
+    if (isAuditorAlias(selectedAlias)) return isFieldManagerAlias(targetAlias) || isMerkezEkipAlias(targetAlias)
 
-    // seçili rol bu ikiliden değilse ikinci hiçbir rol seçilemez
+    // seçili rol bu çiftlerden değilse ikinci hiçbir rol seçilemez
     return false
   }
 
@@ -149,6 +164,10 @@ export function UsersCreateModal({
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (selectedRoleIds.length === 0) {
+      window.alert('Lütfen en az bir rol seçin.')
+      return
+    }
     await onSubmit({
       email,
       password,
@@ -182,10 +201,10 @@ export function UsersCreateModal({
           <div className="flex items-start justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-slate-100 md:text-xl">
-                Create User
+                Kullanıcı Oluştur
               </h2>
               <p className="mt-1 text-xs text-slate-400">
-                Provide account details and assign roles for this user.
+                Hesap bilgilerini girin ve kullanıcıya rol atayın.
               </p>
             </div>
 
@@ -206,7 +225,7 @@ export function UsersCreateModal({
                 htmlFor="create-user-email"
                 className="block text-xs font-medium text-slate-300"
               >
-                Email
+                E-posta
               </label>
               <input
                 id="create-user-email"
@@ -225,7 +244,7 @@ export function UsersCreateModal({
                 htmlFor="create-user-password"
                 className="block text-xs font-medium text-slate-300"
               >
-                Temporary Password
+                Geçici Şifre
               </label>
               <input
                 id="create-user-password"
@@ -239,7 +258,7 @@ export function UsersCreateModal({
                            focus:border-sky-400 focus:ring-2"
               />
               <p className="mt-1 text-[11px] text-slate-500">
-                Password must be at least 8 characters long.
+                Şifre en az 8 karakter olmalıdır.
               </p>
             </div>
 
@@ -249,7 +268,7 @@ export function UsersCreateModal({
                   htmlFor="create-user-first-name"
                   className="block text-xs font-medium text-slate-300"
                 >
-                  First Name
+                  Ad
                 </label>
                 <input
                   id="create-user-first-name"
@@ -268,7 +287,7 @@ export function UsersCreateModal({
                   htmlFor="create-user-last-name"
                   className="block text-xs font-medium text-slate-300"
                 >
-                  Last Name
+                  Soyad
                 </label>
                 <input
                   id="create-user-last-name"
@@ -284,16 +303,16 @@ export function UsersCreateModal({
             </div>
 
             <div>
-              <p className="block text-xs font-medium text-slate-300">Roles</p>
+              <p className="block text-xs font-medium text-slate-300">Roller <span className="text-rose-400">*</span></p>
 
               <div className="mt-2 max-h-40 md:max-h-48 space-y-1 overflow-y-auto rounded-lg border border-slate-800 bg-slate-950/40 p-3">
                 {isLoadingRoles ? (
                   <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-500 border-t-sky-400" />
-                    Loading roles...
+                    Roller yükleniyor...
                   </div>
                 ) : availableRoles.length === 0 ? (
-                  <p className="text-xs text-slate-500">No roles found.</p>
+                  <p className="text-xs text-slate-500">Rol bulunamadı.</p>
                 ) : (
                   availableRoles.map((role) => {
                     const isSelected = selectedRoleIds.includes(role.id)
@@ -323,7 +342,7 @@ export function UsersCreateModal({
                         <span className="flex items-center gap-2">
                           {role.is_system ? (
                             <span className="rounded-full border border-amber-800/50 bg-amber-950/25 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200">
-                              System
+                              Sistem
                             </span>
                           ) : null}
 
@@ -342,7 +361,7 @@ export function UsersCreateModal({
               </div>
 
               <p className="mt-1 text-[11px] text-slate-500">
-                Tekli seçim serbesttir. Çoklu seçimde sadece Denetçi + Saha Sorumlusu birlikte seçilebilir.
+                Rol seçimi zorunludur. Çoklu seçimde yalnızca Denetçi + Saha Sorumlusu veya Denetçi + Merkez Ekip birlikte seçilebilir.
               </p>
             </div>
           </div>
@@ -353,15 +372,15 @@ export function UsersCreateModal({
               onClick={onClose}
               className="rounded-lg border border-slate-700 bg-slate-950/40 px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-950/70 transition-colors"
             >
-              Cancel
+              Vazgeç
             </button>
 
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || selectedRoleIds.length === 0}
               className="rounded-lg bg-sky-500 px-5 py-2.5 text-xs font-semibold text-slate-950 transition-colors hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isSubmitting ? 'Creating…' : 'Create User'}
+              {isSubmitting ? 'Oluşturuluyor…' : 'Kullanıcı Oluştur'}
             </button>
           </div>
         </form>

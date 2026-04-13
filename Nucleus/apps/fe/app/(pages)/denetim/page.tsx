@@ -6,7 +6,7 @@ import Dexie, { type Table } from 'dexie'
 import { useGenericApiActions } from '@/app/_hooks/UseGenericApiStore'
 import { useGetUserRole } from '@/app/_hooks/user/useGetUserRole'
 import { UploadedFileInfo, useUploadAnswerPhoto } from '../bulgular/hooks/useUploadAnswersPhoto'
-import { Question, questions, StepCode, steps } from './constants'
+import { Question, questions as FALLBACK_QUESTIONS, StepCode, steps as FALLBACK_STEPS, Step } from './constants'
 import { DateInput } from '@/app/_components/DateInput'
 
 /* ───────────────────────────── Types ───────────────────────────── */
@@ -62,6 +62,8 @@ type LocationRow = {
   id: string
   name: string
   is_active: boolean
+  field_manager_user_ids?: string[] | null
+  manager_user_id?: string | null
 }
 
 type MasterRow = {
@@ -77,6 +79,7 @@ type MasterRow = {
 
 type FiveSFindingLite = {
   id: string
+  finding_no?: number | null
   detected_date?: string
   location_name?: string
   finding_type?: string
@@ -102,7 +105,8 @@ const ratingFactor: Record<Rating, number> = {
 
 const TARGET_SCORE = 75
 
-const PLAN_KEYS = { GET: 'GET_FIVE_S_AUDIT_PLANS' } as const
+const PLAN_KEYS = { GET: 'GET_FIVE_S_AUDIT_PLANS', UPDATE: 'UPDATE_FIVE_S_AUDIT_PLAN' } as const
+const USERS_KEYS = { GET: 'GET_USERS' } as const
 const TEAM_KEYS = { GET: 'GET_FIVE_S_AUDIT_TEAMS' } as const
 const TEAM_MEMBER_KEYS = { GET: 'GET_FIVE_S_AUDIT_TEAM_MEMBERS' } as const
 const LOC_KEYS = { GET: 'GET_FIVE_S_LOCATIONS' } as const
@@ -110,13 +114,11 @@ const LOC_KEYS = { GET: 'GET_FIVE_S_LOCATIONS' } as const
 const FINDING_TYPE_KEYS = { GET: 'GET_FIVE_S_FINDING_TYPES' } as const
 const ACTION_KEYS = { GET: 'GET_FIVE_S_ACTIONS' } as const
 const FINDINGS_KEYS = { GET: 'GET_FIVE_S_FINDINGS' } as const
+const STEP_KEYS = { GET: 'GET_FIVE_S_STEPS' } as const
+const QUESTION_KEYS = { GET: 'GET_FIVE_S_QUESTIONS' } as const
 
 const ME_KEY = 'GET_ME_V2' as const
 
-const FILE_API_BASE_URL =
-  process.env.NEXT_PUBLIC_FILE_API_URL ??
-  process.env.NEXT_PUBLIC_AUTH_API_URL ??
-  'http://localhost:1001'
 
 /* ───────────────────────────── Helpers ───────────────────────────── */
 function formatScore(value: number | undefined) {
@@ -168,7 +170,7 @@ function toPhotoArr(ups: UploadedFileInfo[]) {
 }
 
 function buildFileUrl(fileId: string) {
-  return `${FILE_API_BASE_URL.replace(/\/+$/, '')}/files/${fileId}`
+  return `/api/view-file/${encodeURIComponent(fileId)}`
 }
 
 function extractUuidMaybe(input: string): string | null {
@@ -188,7 +190,6 @@ function resolvePhotoUrl(p: PhotoItem) {
     if (uuid) return buildFileUrl(uuid)
 
     if (u.startsWith('http')) return u
-    if (u.startsWith('/')) return `${FILE_API_BASE_URL.replace(/\/+$/, '')}${u}`
     return u
   }
 
@@ -293,6 +294,7 @@ type DraftRow = {
 
 type OfflineFindingPayload = {
   questionId: string | 'SINGLE'
+  client_finding_id: string // Madde 22: idempotency
   detected_date: string // YYYY-MM-DD
   location_name: string
   finding_type: string
@@ -300,6 +302,7 @@ type OfflineFindingPayload = {
   action_to_take: string
   due_date?: string
   responsible_name: string
+  responsible_user_id?: string | null // Madde 26
   // photo_before_files, primary vs syncte hesaplanacak
   // photo blobs eşleşmesi: submissionPhoto table
 }
@@ -360,6 +363,9 @@ export default function FiveSAuditFormPage() {
   const { uploadAnswerPhoto } = useUploadAnswerPhoto()
   const { roleName, roles, isLoading: roleLoading } = useGetUserRole()
 
+  const [questions, setQuestions] = useState<Question[]>(FALLBACK_QUESTIONS)
+  const [steps, setSteps] = useState<Step[]>(FALLBACK_STEPS)
+
   const [findingTypeOptions, setFindingTypeOptions] = useState<Array<{ value: string; label: string }>>([])
   const [actionToTakeOptions, setActionToTakeOptions] = useState<Array<{ value: string; label: string }>>([])
   const [locationNameOptions, setLocationNameOptions] = useState<string[]>([])
@@ -373,7 +379,7 @@ export default function FiveSAuditFormPage() {
 
   const [answers, setAnswers] = useState<Record<string, QuestionAnswer>>(() =>
     Object.fromEntries(
-      questions.map((q) => [
+      FALLBACK_QUESTIONS.map((q) => [
         q.id,
         {
           questionId: q.id,
@@ -401,17 +407,38 @@ export default function FiveSAuditFormPage() {
     photos: File[]
     actionToTake: ActionToTake | ''
     dueDate: string
+    linkedQuestionId: string
   }>({
     findingType: '',
     explanation: '',
     photos: [],
     actionToTake: '',
     dueDate: '',
+    linkedQuestionId: '',
   })
 
   const [assignmentLoading, setAssignmentLoading] = useState(true)
   const [assignedPlan, setAssignedPlan] = useState<PlanRow | null>(null)
   const [currentUserId, setCurrentUserId] = useState<string>('')
+
+  // Madde 17: çoklu plan seçimi
+  const [availablePlans, setAvailablePlans] = useState<PlanRow[]>([])
+  const [planSelectionMode, setPlanSelectionMode] = useState(false)
+  const [planMetaMap, setPlanMetaMap] = useState<Record<string, { locationName: string; teamName: string }>>({})
+
+  // Madde 15: eksik soru işaretleme
+  const [missingQuestions, setMissingQuestions] = useState<Set<string>>(new Set())
+
+  // Madde 18: ekip üyesi dropdown
+  const [teamMemberOptions, setTeamMemberOptions] = useState<Array<{ id: string; name: string }>>([])
+
+  // Madde 26: lokasyon → sorumlu user eşlemesi (key: normLoc(name))
+  const [locationResponsibleMap, setLocationResponsibleMap] = useState<
+    Map<string, { userId: string; userName: string }>
+  >(new Map())
+
+  // Madde 25: plan tamamlama
+  const [planUpdateKey] = useState(() => PLAN_KEYS.UPDATE)
 
   const [findingsLoading, setFindingsLoading] = useState(false)
   const [findings, setFindings] = useState<FiveSFindingLite[]>([])
@@ -425,13 +452,23 @@ export default function FiveSAuditFormPage() {
   const [queuedCount, setQueuedCount] = useState<number>(0)
   const draftSaveTimer = useRef<number | null>(null)
 
-  const openDetailModal = (questionId: string) => setActiveDetailQuestionId(questionId)
+  const openDetailModal = (questionId: string) => {
+    setAnswers((prev) => {
+      const current = ensureAnswer(prev, questionId)
+      if (!current.locationName?.trim()) {
+        return { ...prev, [questionId]: { ...current, locationName: header.department } }
+      }
+      return prev
+    })
+    setActiveDetailQuestionId(questionId)
+  }
   const closeDetailModal = () => setActiveDetailQuestionId(null)
 
   const openSingleFindingModal = () => {
     setSingleFinding((prev) => ({
       ...prev,
       dueDate: prev.dueDate || header.date,
+      linkedQuestionId: '',
     }))
     setSingleFindingOpen(true)
   }
@@ -463,11 +500,32 @@ export default function FiveSAuditFormPage() {
   }
 
   return scores
-}, [answers])
+}, [answers, questions, steps])
   const totalScore = useMemo(
     () => (Object.values(stepScores) as number[]).reduce((a, b) => a + b, 0),
     [stepScores]
   )
+
+  // Gerçek zamanlı eksik/tamamlanmamış soru seti
+  const liveUnanswered = useMemo(() => {
+    const s = new Set<string>()
+    for (const q of questions) {
+      const ans = answers[q.id]
+      if (!ans || !ans.rating) { s.add(q.id); continue }
+      if (isExplanationRequired(q, ans) && !ans.explanation.trim()) s.add(q.id)
+      if (ans.rating !== 'good') {
+        if (!ans.findingType) s.add(q.id)
+        if (!ans.actionToTake?.trim()) s.add(q.id)
+        if (!ans.dueDate) s.add(q.id)
+        const loc = (ans.locationName?.trim() || header.department || '').trim()
+        if (!loc) s.add(q.id)
+      }
+    }
+    return s
+  }, [questions, answers, header.department])
+
+  // Kaydet butonuna basıldıktan sonra highlight'lar aktif olsun
+  const [hasAttempted, setHasAttempted] = useState(false)
 
   const startAsPromise = (startFn: any, args: any) =>
     new Promise<any>((resolve, reject) => {
@@ -745,6 +803,7 @@ export default function FiveSAuditFormPage() {
             await startAsPromise(startFinding, {
               payload: {
                 audit_id: auditId,
+                client_finding_id: f.client_finding_id,
                 detected_date: f.detected_date,
                 location_name: f.location_name,
                 finding_type: f.finding_type,
@@ -752,6 +811,7 @@ export default function FiveSAuditFormPage() {
                 action_to_take: f.action_to_take,
                 due_date: f.due_date || undefined,
                 responsible_name: f.responsible_name,
+                responsible_user_id: f.responsible_user_id || undefined,
 
                 photo_before_files: beforeArr,
                 photo_before_file_id: primary?.fileId,
@@ -807,6 +867,25 @@ export default function FiveSAuditFormPage() {
     }
   }
 
+  const buildTeamMemberOptions = (
+    teamId: string,
+    members: TeamMemberRowLite[],
+    teams: TeamRow[],
+    usersById: Map<string, string>,
+  ) => {
+    const ids = new Set<string>()
+    const team = teams.find((t) => t.id === teamId)
+    if (team?.leader_user_id) ids.add(String(team.leader_user_id))
+    for (const m of members) {
+      if (!m?.is_active) continue
+      if (String(m.team_id) !== String(teamId)) continue
+      ids.add(String(m.user_id))
+    }
+    return Array.from(ids)
+      .map((id) => ({ id, name: usersById.get(id) ?? '' }))
+      .filter((x) => x.name)
+  }
+
   const fetchAssignment = async () => {
     try {
       setAssignmentLoading(true)
@@ -817,6 +896,7 @@ export default function FiveSAuditFormPage() {
       const startTeams = safeStart(A, TEAM_KEYS.GET)
       const startMembers = safeStart(A, TEAM_MEMBER_KEYS.GET)
       const startLocs = safeStart(A, LOC_KEYS.GET)
+      const startUsers = safeStart(A, USERS_KEYS.GET)
 
       const startFindingTypes = safeStart(A, FINDING_TYPE_KEYS.GET)
       const startActionToTake = safeStart(A, ACTION_KEYS.GET)
@@ -837,7 +917,7 @@ export default function FiveSAuditFormPage() {
       const fullName = `${first} ${last}`.trim()
       const auditorFallback = fullName || meData?.name || meData?.email || ''
 
-      const [plansResp, teamsResp, membersResp, locsResp, findingTypesResp, actionResp] = await Promise.all([
+      const [plansResp, teamsResp, membersResp, locsResp, findingTypesResp, actionResp, usersResp] = await Promise.all([
         startPlans
           ? startAsPromise(startPlans, {
             payload: { page: 1, limit: 1000, orderBy: 'planned_date', orderDirection: 'desc' },
@@ -873,6 +953,10 @@ export default function FiveSAuditFormPage() {
             payload: { page: 1, limit: 2000, orderBy: 'created_at', orderDirection: 'desc' },
           })
           : Promise.resolve(null),
+
+        startUsers
+          ? startAsPromise(startUsers, { payload: { page: 1, limit: 500 } })
+          : Promise.resolve(null),
       ])
 
       const plans = (extractArray(plansResp) as any[]).map((p) => ({
@@ -895,6 +979,35 @@ export default function FiveSAuditFormPage() {
         .filter(Boolean)
         .sort((a, b) => a.localeCompare(b, 'tr'))
       setLocationNameOptions(locNames)
+
+      // Madde 26: lokasyon → saha sorumlusu haritası (usersById aşağıda doluyor; buraya sonradan set ediyoruz)
+      const pendingLocRespMap = new Map<string, { userId: string; userName: string }>()
+
+      // Madde 18: kullanıcı isim haritası
+      const usersById = new Map<string, string>()
+      for (const u of extractArray(usersResp)) {
+        const id = String(u?.id ?? '')
+        const fn = u?.profile?.first_name ?? u?.first_name ?? ''
+        const ln = u?.profile?.last_name ?? u?.last_name ?? ''
+        const name = `${fn} ${ln}`.trim() || u?.name || u?.email || ''
+        if (id && name) usersById.set(id, name)
+      }
+      // Mevcut kullanıcıyı da ekle (fallback)
+      if (uidVal && auditorFallback) usersById.set(uidVal, auditorFallback)
+
+      // Madde 26: lokasyon saha sorumlusu haritasını tamamla
+      for (const l of locs) {
+        if (!l?.is_active || !l?.name) continue
+        const ids: string[] = Array.isArray((l as any).field_manager_user_ids)
+          ? (l as any).field_manager_user_ids
+          : []
+        const firstId = ids[0] ?? ''
+        const userName = firstId ? (usersById.get(firstId) ?? '') : ''
+        if (firstId) {
+          pendingLocRespMap.set(normLoc(l.name), { userId: firstId, userName })
+        }
+      }
+      setLocationResponsibleMap(new Map(pendingLocRespMap))
 
       const memberSetByTeam = new Map<string, Set<string>>()
       for (const m of members) {
@@ -927,24 +1040,33 @@ export default function FiveSAuditFormPage() {
         return
       }
 
-      const toTime = (ymd: string) => new Date(`${ymd}T00:00:00`).getTime()
-      const todayTime = new Date(new Date().toDateString()).getTime()
+      // Madde 17: plan meta haritası (lokasyon + ekip adı)
+      const metaMap: Record<string, { locationName: string; teamName: string }> = {}
+      for (const p of matched) {
+        metaMap[p.id] = {
+          locationName: locs.find((l) => l.id === p.location_id)?.name ?? '',
+          teamName: teams.find((t) => t.id === p.assigned_team_id)?.name ?? '',
+        }
+      }
+      setPlanMetaMap(metaMap)
 
-      const future = matched
-        .filter((p) => toTime(p.planned_date) >= todayTime)
-        .sort((a, b) => toTime(a.planned_date) - toTime(b.planned_date))
-
-      const chosen: PlanRow | undefined =
-        future[0] ?? matched.slice().sort((a, b) => toTime(b.planned_date) - toTime(a.planned_date))[0]
-
-      if (!chosen) {
-        setAssignedPlan(null)
+      // Madde 17: Birden fazla plan varsa seçim moduna geç
+      if (matched.length > 1) {
+        setAvailablePlans(matched)
+        setPlanSelectionMode(true)
+        setHeader((prev) => ({ ...prev, auditorName: prev.auditorName || auditorFallback }))
         return
       }
 
+      const chosen = matched[0]!
       setAssignedPlan(chosen)
-      const teamName = teams.find((t) => t.id === chosen.assigned_team_id)?.name ?? ''
-      const locName = locs.find((l) => l.id === chosen.location_id)?.name ?? ''
+
+      const teamName = metaMap[chosen.id]?.teamName ?? ''
+      const locName = metaMap[chosen.id]?.locationName ?? ''
+
+      // Madde 18: seçili ekibin üyelerini doldur
+      const memberOpts = buildTeamMemberOptions(chosen.assigned_team_id, members, teams, usersById)
+      setTeamMemberOptions(memberOpts)
 
       const nextHeader = {
         teamName,
@@ -965,6 +1087,97 @@ export default function FiveSAuditFormPage() {
     }
   }
 
+  // Madde 17: Kullanıcı bir plan seçince çağrılır
+  const selectPlan = async (plan: PlanRow) => {
+    setPlanSelectionMode(false)
+    setAssignedPlan(plan)
+
+    const meta = planMetaMap[plan.id] ?? { teamName: '', locationName: '' }
+    const nextHeader: AuditFormHeader = {
+      teamName: meta.teamName,
+      department: meta.locationName,
+      date: plan.planned_date || header.date,
+      auditorName: header.auditorName,
+    }
+    setHeader(nextHeader)
+    await tryRestoreDraft(plan.id, nextHeader)
+  }
+
+  // BE'den sorular ve adımları çek; DB boşsa fallback constants
+  const fetchQuestionsFromBE = React.useCallback(async () => {
+    const A = actions as any
+    const stepsStart = A?.[STEP_KEYS.GET]?.start
+    const qStart = A?.[QUESTION_KEYS.GET]?.start
+    if (!stepsStart || !qStart) return
+
+    try {
+      const [stepsRes, qRes] = await Promise.all([
+        new Promise<any>((resolve) =>
+          stepsStart({ payload: { page: 1, limit: 100, orderBy: 'order', orderDirection: 'asc' }, onAfterHandle: resolve, onErrorHandle: () => resolve(null) })
+        ),
+        new Promise<any>((resolve) =>
+          qStart({ payload: { page: 1, limit: 500, orderBy: 'external_id', orderDirection: 'asc' }, onAfterHandle: resolve, onErrorHandle: () => resolve(null) })
+        ),
+      ])
+
+      const extract = (res: any): any[] => {
+        const cands = [res?.data?.data, res?.data, res]
+        for (const c of cands) {
+          if (Array.isArray(c)) return c
+          if (Array.isArray(c?.data)) return c.data
+        }
+        return []
+      }
+
+      const rawSteps = extract(stepsRes)
+      const rawQ = extract(qRes)
+
+      if (rawSteps.length > 0) {
+        setSteps(
+          rawSteps.map((s: any) => ({
+            code: String(s.code ?? '') as StepCode,
+            title: String(s.title ?? ''),
+            maxScore: parseFloat(String(s.max_score ?? '0')),
+            order: Number(s.order ?? 0),
+          }))
+        )
+      }
+
+      if (rawQ.length > 0) {
+        const mapped: Question[] = rawQ.map((q: any) => ({
+          id: String(q.external_id ?? q.id ?? ''),
+          stepCode: String(q.external_id ?? '').split('-')[0] as StepCode,
+          order: Number(q.order ?? 0),
+          text: String(q.text ?? ''),
+          maxScore: parseFloat(String(q.max_score ?? '0')),
+          requireExplanation: Boolean(q.require_explanation ?? true),
+        }))
+        setQuestions(mapped)
+        // answers state'ini yeni soru listesiyle senkronize et (eksik olanları ekle)
+        setAnswers((prev) => {
+          const next = { ...prev }
+          for (const q of mapped) {
+            if (!next[q.id]) {
+              next[q.id] = {
+                questionId: q.id,
+                rating: null,
+                explanation: '',
+                photos: [],
+                findingType: null,
+                actionToTake: null,
+                dueDate: '',
+                locationName: '',
+              }
+            }
+          }
+          return next
+        })
+      }
+    } catch (err) {
+      console.error('fetchQuestionsFromBE error', err)
+    }
+  }, [actions])
+
   // Online/offline tracking
   useEffect(() => {
     const onOn = () => setIsOnline(true)
@@ -979,6 +1192,7 @@ export default function FiveSAuditFormPage() {
 
   useEffect(() => {
     fetchAssignment()
+    fetchQuestionsFromBE()
     refreshQueuedCount()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -1009,7 +1223,7 @@ export default function FiveSAuditFormPage() {
 
   const activeQuestion = useMemo(
     () => (activeDetailQuestionId ? questions.find((q) => q.id === activeDetailQuestionId) ?? null : null),
-    [activeDetailQuestionId]
+    [activeDetailQuestionId, questions]
   )
   const activeAnswer = activeDetailQuestionId ? answers[activeDetailQuestionId] : undefined
 
@@ -1055,6 +1269,18 @@ export default function FiveSAuditFormPage() {
         </div>
       </div>
 
+      {assignedPlan && (
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={openSingleFindingModal}
+            className="inline-flex items-center rounded-md bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-slate-950 hover:bg-emerald-400"
+          >
+            + Yeni Bulgu Ekle
+          </button>
+        </div>
+      )}
+
       {findingsLoading ? (
         <div className="mt-3 text-xs text-slate-400">Bulgular yükleniyor...</div>
       ) : findings.length === 0 ? (
@@ -1064,6 +1290,7 @@ export default function FiveSAuditFormPage() {
           <table className="min-w-full text-left text-xs text-slate-200">
             <thead className="bg-slate-900/80 text-[11px] uppercase tracking-wide text-slate-400">
               <tr>
+                <th className="px-3 py-2">No</th>
                 <th className="px-3 py-2">Tarih</th>
                 <th className="px-3 py-2">Bulgu Tipi</th>
                 <th className="px-3 py-2">Durum</th>
@@ -1073,8 +1300,9 @@ export default function FiveSAuditFormPage() {
               </tr>
             </thead>
             <tbody>
-              {findings.map((f) => (
+              {findings.map((f, idx) => (
                 <tr key={f.id} className="border-t border-slate-800/80">
+                  <td className="px-3 py-2 text-[11px] text-slate-400">{f.finding_no ?? idx + 1}</td>
                   <td className="px-3 py-2 text-[11px] text-slate-300">{String(f.detected_date ?? '-')}</td>
                   <td className="px-3 py-2">{String(f.finding_type ?? '-')}</td>
                   <td className="px-3 py-2 text-[11px] text-slate-300">{String(f.status ?? '-')}</td>
@@ -1144,15 +1372,20 @@ export default function FiveSAuditFormPage() {
       const effectiveLocationName = ans.locationName?.trim() || header.department.trim() || 'Bilinmeyen Lokasyon'
       const description = buildFindingDescriptionFromAnswer(ans, q, header.teamName)
 
+      const locKey = normLoc(effectiveLocationName)
+      const responsible = locationResponsibleMap.get(locKey) ?? null
+
       findingsPayload.push({
         questionId: ans.questionId,
+        client_finding_id: makeUid('fid'),
         detected_date: detectedDate,
         location_name: effectiveLocationName,
         finding_type: ans.findingType,
         description,
         action_to_take: (ans.actionToTake ?? '').trim(),
         due_date: ans.dueDate || undefined,
-        responsible_name: header.auditorName,
+        responsible_name: responsible?.userName || header.auditorName,
+        responsible_user_id: responsible?.userId || null,
       })
 
       for (const f of ans.photos ?? []) {
@@ -1186,10 +1419,25 @@ export default function FiveSAuditFormPage() {
     alert('İnternet yok veya kayıt hatası oluştu. Form offline kuyruğa eklendi. İnternet gelince otomatik senkronlanır.')
   }
 
+  const markPlanCompleted = async (planId: string, auditId: string) => {
+    try {
+      const A = actions as any
+      const startUpdate = safeStart(A, planUpdateKey)
+      if (!startUpdate) return
+      await startAsPromise(startUpdate, {
+        disableAutoRedirect: true,
+        payload: { _id: planId, status: 'completed', audit_id: auditId },
+      })
+    } catch (err) {
+      console.warn('Plan completed işaretlenemedi (kritik değil):', err)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    setHasAttempted(true)
 
-  const missing = new Set<string>()
+    const missing = new Set<string>()
 
     if (!header.teamName || !header.department || !header.date) {
       alert('Ekip, Lokasyon ve Tarih alanları plan üzerinden otomatik gelmelidir.')
@@ -1213,17 +1461,17 @@ export default function FiveSAuditFormPage() {
         if (!ans.findingType) missing.add(q.id)
         if (!ans.actionToTake?.trim()) missing.add(q.id)
         if (!ans.dueDate) missing.add(q.id)
-        const loc = (ans.locationName ?? header.department).trim()
+        const loc = (ans.locationName?.trim() || header.department || '').trim()
         if (!loc) missing.add(q.id)
       }
     }
 
     if (missing.size > 0) {
-      alert(
-        `Bazı sorularda seçim veya açıklama/bulgu tipi / aksiyon alanları eksik. Lütfen tüm soruları doldurun.\nEksik soru sayısı: ${missing.size}`
-      )
+      setMissingQuestions(new Set(missing))
       return
     }
+
+    setMissingQuestions(new Set())
 
     // offline ise direkt queue
     if (!isOnline) {
@@ -1235,6 +1483,7 @@ export default function FiveSAuditFormPage() {
 
     try {
       await startAsPromise((actions as any).ADD_FIVE_S_AUDIT?.start, {
+        disableAutoRedirect: true,
         payload: {
           department_name: header.department.trim(),
           auditor_name: header.auditorName.trim(),
@@ -1277,6 +1526,9 @@ export default function FiveSAuditFormPage() {
             const effectiveLocationName =
               ans.locationName?.trim() || header.department.trim() || 'Bilinmeyen Lokasyon'
 
+            const locKey2 = normLoc(effectiveLocationName)
+            const responsible2 = locationResponsibleMap.get(locKey2) ?? null
+
             const uploadedPhotos: UploadedFileInfo[] = []
             for (const f of ans.photos ?? []) {
               try {
@@ -1292,15 +1544,18 @@ export default function FiveSAuditFormPage() {
 
             try {
               await startAsPromise((actions as any).ADD_FIVE_S_FINDING?.start, {
+                disableAutoRedirect: true,
                 payload: {
                   audit_id: auditId,
+                  client_finding_id: crypto.randomUUID(),
                   detected_date: detectedDate,
                   location_name: effectiveLocationName,
                   finding_type: ans.findingType!,
                   description,
                   action_to_take: ans.actionToTake?.trim(),
                   due_date: ans.dueDate || undefined,
-                  responsible_name: header.auditorName,
+                  responsible_name: responsible2?.userName || header.auditorName,
+                  responsible_user_id: responsible2?.userId || undefined,
 
                   photo_before_files: beforeArr,
                   photo_before_file_id: primary?.fileId,
@@ -1315,6 +1570,11 @@ export default function FiveSAuditFormPage() {
           await Promise.all(jobs)
           setSubmitted(true)
           await clearDraft(assignedPlan?.id ?? null, header)
+
+          // Madde 25: planı "completed" olarak işaretle
+          if (assignedPlan?.id && auditId) {
+            await markPlanCompleted(assignedPlan.id, auditId)
+          }
 
           fetchFindings(header.department)
           console.log('Audit + findings (+ photos) başarıyla kaydedildi.')
@@ -1404,17 +1664,20 @@ export default function FiveSAuditFormPage() {
         findings: [
           {
             questionId: 'SINGLE',
+            client_finding_id: makeUid('fid'),
             detected_date: header.date,
             location_name: loc || 'Bilinmeyen Lokasyon',
             finding_type: singleFinding.findingType,
             description: [
               'TEKİL BULGU',
               `Ekip: ${header.teamName || 'Content Manager Core Team'}`,
+              singleFinding.linkedQuestionId ? `Bağlı Soru: ${singleFinding.linkedQuestionId}` : null,
               `Bulgu Tipi: ${singleFinding.findingType}`,
               `Açıklama: ${singleFinding.explanation.trim()}`,
               `Alınacak Faaliyet: ${singleFinding.actionToTake.trim()}`,
-            ].join('\n'),
-            responsible_name: header.auditorName,
+            ].filter(Boolean).join('\n'),
+            responsible_name: locationResponsibleMap.get(normLoc(loc))?.userName || header.auditorName,
+            responsible_user_id: locationResponsibleMap.get(normLoc(loc))?.userId || null,
             action_to_take: singleFinding.actionToTake.trim(),
             due_date: singleFinding.dueDate || undefined,
           },
@@ -1440,13 +1703,14 @@ export default function FiveSAuditFormPage() {
 
       alert('Offline: Tekil bulgu kuyruğa eklendi. İnternet gelince otomatik gönderilecek.')
       setSingleFindingOpen(false)
-      setSingleFinding({ findingType: '', explanation: '', photos: [], actionToTake: '', dueDate: '' })
+      setSingleFinding({ findingType: '', explanation: '', photos: [], actionToTake: '', dueDate: '', linkedQuestionId: '' })
       return
     }
 
     // online: mevcut akış
     try {
       await startAsPromise((actions as any).ADD_FIVE_S_AUDIT?.start, {
+        disableAutoRedirect: true,
         payload: {
           department_name: header.department.trim(),
           auditor_name: header.auditorName.trim(),
@@ -1482,21 +1746,32 @@ export default function FiveSAuditFormPage() {
           const descriptionLines: string[] = [
             'TEKİL BULGU',
             `Ekip: ${header.teamName || 'Content Manager Core Team'}`,
+            ...(singleFinding.linkedQuestionId
+              ? [
+                  `Bağlı Soru: ${singleFinding.linkedQuestionId}`,
+                  `Soru Metni: ${questions.find((q) => q.id === singleFinding.linkedQuestionId)?.text ?? ''}`,
+                ]
+              : []),
             `Bulgu Tipi: ${singleFinding.findingType}`,
             `Açıklama: ${singleFinding.explanation.trim()}`,
             `Alınacak Faaliyet: ${singleFinding.actionToTake.trim()}`,
           ]
           const description = descriptionLines.join('\n')
 
+          const singleLocResp = locationResponsibleMap.get(normLoc(loc || '')) ?? null
+
           try {
             await startAsPromise((actions as any).ADD_FIVE_S_FINDING?.start, {
+              disableAutoRedirect: true,
               payload: {
                 audit_id: auditId,
+                client_finding_id: crypto.randomUUID(),
                 detected_date: header.date,
                 location_name: loc || 'Bilinmeyen Lokasyon',
                 finding_type: singleFinding.findingType,
                 description,
-                responsible_name: header.auditorName,
+                responsible_name: singleLocResp?.userName || header.auditorName,
+                responsible_user_id: singleLocResp?.userId || undefined,
                 action_to_take: singleFinding.actionToTake.trim(),
                 due_date: singleFinding.dueDate || undefined,
 
@@ -1508,7 +1783,7 @@ export default function FiveSAuditFormPage() {
 
             alert('Tekil bulgu başarıyla kaydedildi.')
             setSingleFindingOpen(false)
-            setSingleFinding({ findingType: '', explanation: '', photos: [], actionToTake: '', dueDate: '' })
+            setSingleFinding({ findingType: '', explanation: '', photos: [], actionToTake: '', dueDate: '', linkedQuestionId: '' })
             fetchFindings(header.department)
           } catch (err) {
             console.error('TEKİL BULGU ADD_FIVE_S_FINDING error', err)
@@ -1528,6 +1803,46 @@ export default function FiveSAuditFormPage() {
       <div className="min-h-screen bg-slate-950 text-slate-50 px-4 py-10 md:px-8">
         <div className="mx-auto max-w-3xl rounded-xl border border-slate-800 bg-slate-900/60 p-6 text-sm text-slate-300">
           Planlanan denetimler kontrol ediliyor...
+        </div>
+      </div>
+    )
+  }
+
+  // Madde 17: Çoklu plan seçim ekranı
+  if (planSelectionMode && availablePlans.length > 1) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-50 px-4 py-10 md:px-8">
+        <div className="mx-auto max-w-2xl rounded-xl border border-slate-800 bg-slate-900/60 p-6">
+          <h2 className="text-base font-semibold text-slate-100">Denetim Seç</h2>
+          <p className="mt-1 text-sm text-slate-400">
+            Ekibinize atanmış birden fazla planlı denetim var. Lütfen hangi denetimi yapacağınızı seçin.
+          </p>
+
+          <div className="mt-5 space-y-3">
+            {availablePlans.map((p) => {
+              const meta = planMetaMap[p.id] ?? { locationName: '-', teamName: '-' }
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => selectPlan(p)}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-950/50 px-4 py-3 text-left hover:border-sky-500/60 hover:bg-sky-500/5 transition-colors"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-medium text-slate-100">{meta.locationName || 'Bilinmeyen Lokasyon'}</div>
+                      <div className="mt-0.5 text-[11px] text-slate-400">
+                        Ekip: <span className="text-slate-300">{meta.teamName || '-'}</span>
+                        {' · '}
+                        Tarih: <span className="text-slate-300">{p.planned_date || '-'}</span>
+                      </div>
+                    </div>
+                    <span className="text-xs text-sky-400">Seç →</span>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
         </div>
       </div>
     )
@@ -1601,7 +1916,9 @@ export default function FiveSAuditFormPage() {
                 <div>
                   <h3 className="text-sm font-semibold text-slate-100">Tekil Bulgu Girişi</h3>
                   <p className="mt-1 text-[11px] text-slate-400">
-                    Denetim planı olmasa bile (sadece yetkili rol) tekil bir 5S bulgusunu burada kaydedebilirsiniz.
+                    {assignedPlan
+                      ? 'Denetim sırasında ek tekil bulgu kaydedebilirsiniz. Bir soruya bağlamak opsiyoneldir.'
+                      : 'Denetim planı olmasa bile (sadece yetkili rol) tekil bir 5S bulgusunu burada kaydedebilirsiniz.'}
                   </p>
                   <p className="mt-1 text-[11px] text-slate-500">
                     Durum:{' '}
@@ -1704,6 +2021,24 @@ export default function FiveSAuditFormPage() {
                         </option>
                       ))
                     )}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1 block font-medium text-slate-300">
+                    Bağlı Soru <span className="text-slate-500">(opsiyonel)</span>
+                  </label>
+                  <select
+                    value={singleFinding.linkedQuestionId}
+                    onChange={(e) => handleSingleFindingFieldChange('linkedQuestionId', e.target.value)}
+                    className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+                  >
+                    <option value="">Seçiniz (bağlamak istemiyorsanız boş bırakın)</option>
+                    {questions.map((q) => (
+                      <option key={q.id} value={q.id}>
+                        {q.id} — {q.text.length > 80 ? q.text.slice(0, 80) + '…' : q.text}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -2021,13 +2356,26 @@ export default function FiveSAuditFormPage() {
 
               <div className="space-y-1">
                 <label className="block text-xs font-medium text-slate-300">Denetimi Yapan</label>
-                <input
-                  type="text"
-                  value={header.auditorName}
-                  onChange={(e) => handleHeaderChange('auditorName', e.target.value)}
-                  className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
-                  placeholder="İsim Soyisim"
-                />
+                {teamMemberOptions.length > 0 ? (
+                  <select
+                    value={header.auditorName}
+                    onChange={(e) => handleHeaderChange('auditorName', e.target.value)}
+                    className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+                  >
+                    <option value="">Seçiniz</option>
+                    {teamMemberOptions.map((m) => (
+                      <option key={m.id} value={m.name}>{m.name}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={header.auditorName}
+                    onChange={(e) => handleHeaderChange('auditorName', e.target.value)}
+                    className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+                    placeholder="İsim Soyisim"
+                  />
+                )}
               </div>
 
               <div className="space-y-1">
@@ -2099,14 +2447,22 @@ export default function FiveSAuditFormPage() {
                           const ans = answers[q.id]
                           const rating = ans?.rating
                           const point = rating != null ? q.maxScore * ratingFactor[rating] : undefined
+                          const isMissing = hasAttempted && liveUnanswered.has(q.id)
 
                           return (
-                            <tr key={q.id} className="border-t border-slate-800/80 align-top">
+                            <tr key={q.id} className={`border-t border-slate-800/80 align-top ${isMissing ? 'bg-rose-950/40 border-l-4 border-l-rose-500' : ''}`}>
                               <td className="px-4 py-2 text-[11px] text-slate-400">
                                 {step.order}.{q.order}
                               </td>
 
-                              <td className="px-4 py-2 text-xs">{q.text}</td>
+                              <td className="px-4 py-2 text-xs">
+                                <span className={isMissing ? 'font-semibold text-rose-200' : ''}>{q.text}</span>
+                                {isMissing && (
+                                  <span className="ml-2 inline-flex items-center rounded-sm bg-rose-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-rose-400 ring-1 ring-rose-500/40">
+                                    ⚠ Yanıt Gerekli
+                                  </span>
+                                )}
+                              </td>
 
                               {hasAnyDetails && (
                                 <td className="px-4 py-2">
@@ -2185,8 +2541,10 @@ export default function FiveSAuditFormPage() {
                     const ratingLabel =
                       rating === 'good' ? 'İyi' : rating === 'medium' ? 'Orta' : rating === 'bad' ? 'Kötü' : 'Seçilmedi'
 
+                    const isMissingMobile = hasAttempted && liveUnanswered.has(q.id)
+
                     return (
-                      <div key={q.id} className="px-3 py-2">
+                      <div key={q.id} className={`px-3 py-2 ${isMissingMobile ? 'bg-rose-950/40 border-l-4 border-rose-500' : ''}`}>
                         <button
                           type="button"
                           onClick={() => toggleExpanded(q.id)}
@@ -2196,7 +2554,12 @@ export default function FiveSAuditFormPage() {
                             <div className="text-[11px] text-slate-400">
                               {step.order}.{q.order}
                             </div>
-                            <div className="mt-0.5 text-xs text-slate-100">{q.text}</div>
+                            <div className="mt-0.5 text-xs">
+                              <span className={isMissingMobile ? 'font-semibold text-rose-200' : 'text-slate-100'}>{q.text}</span>
+                              {isMissingMobile && (
+                                <span className="ml-1 inline-flex items-center rounded-sm bg-rose-500/20 px-1 py-0.5 text-[10px] font-semibold text-rose-400">⚠</span>
+                              )}
+                            </div>
                             <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-400">
                               <span className="inline-flex items-center gap-1 rounded-full bg-slate-800/80 px-2 py-0.5">
                                 <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
@@ -2326,20 +2689,38 @@ export default function FiveSAuditFormPage() {
                 <p>* Orta / Kötü seçimlerinde bulgu tipi, açıklama ve aksiyon alanları zorunludur.</p>
                 <p>* Offline iken kayıt kuyruğa alınır.</p>
               </div>
-              <div className="flex gap-2 sm:items-end">
-                <button
-                  type="button"
-                  onClick={handleReset}
-                  className="inline-flex items-center justify-center rounded-md border border-slate-600 px-4 py-2 text-xs font-medium text-slate-200 hover:bg-slate-800"
-                >
-                  Temizle
-                </button>
-                <button
-                  type="submit"
-                  className="inline-flex items-center justify-center rounded-md bg-sky-500 px-4 py-2 text-xs font-semibold text-slate-950 hover:bg-sky-400"
-                >
-                  Formu Kaydet
-                </button>
+              <div className="flex flex-col items-end gap-1.5">
+                {hasAttempted && liveUnanswered.size > 0 && (
+                  <p className="text-[11px] text-rose-400">
+                    <span className="font-semibold">{liveUnanswered.size}</span> soru yanıt bekliyor — form kaydedilemez.
+                  </p>
+                )}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleReset}
+                    className="inline-flex items-center justify-center rounded-md border border-slate-600 px-4 py-2 text-xs font-medium text-slate-200 hover:bg-slate-800"
+                  >
+                    Temizle
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={hasAttempted && liveUnanswered.size > 0}
+                    title={hasAttempted && liveUnanswered.size > 0 ? `${liveUnanswered.size} soru yanıtlanmadan form kaydedilemez.` : undefined}
+                    className={`inline-flex items-center gap-1.5 justify-center rounded-md px-4 py-2 text-xs font-semibold transition-colors ${
+                      hasAttempted && liveUnanswered.size > 0
+                        ? 'cursor-not-allowed bg-slate-700 text-slate-400'
+                        : 'bg-sky-500 text-slate-950 hover:bg-sky-400'
+                    }`}
+                  >
+                    Formu Kaydet
+                    {hasAttempted && liveUnanswered.size > 0 && (
+                      <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white">
+                        {liveUnanswered.size}
+                      </span>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </section>

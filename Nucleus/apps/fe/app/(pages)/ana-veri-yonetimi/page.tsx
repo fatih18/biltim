@@ -3,11 +3,14 @@
 import React from "react";
 import {
     AuditPlannerPanel,
+    LocationsPanel,
     MasterDataPanel,
+    QuestionsPanel,
     SegmentedTabs,
     nowIso,
     uid,
     type Audit,
+    type LocationEntity,
     type MasterEntity,
     type User,
 } from "./components";
@@ -86,6 +89,16 @@ function toMasterEntity(row: any): MasterEntity {
     };
 }
 
+function toLocationEntity(row: any): LocationEntity {
+    return {
+        ...toMasterEntity(row),
+        managerUserId: row?.manager_user_id ?? null,
+        fieldManagerUserIds: Array.isArray(row?.field_manager_user_ids)
+            ? row.field_manager_user_ids
+            : [],
+    };
+}
+
 function extractArray(res: any): any[] {
     const candidates = [
         res?.response?.data,
@@ -159,6 +172,12 @@ function planRowToAuditLike(row: any): Audit {
 
         auditId: row?.audit_id ?? row?.auditId ?? null,
         note: row?.note ?? row?.remarks ?? undefined,
+        dateChangeCount: row?.date_change_count ?? row?.dateChangeCount ?? 0,
+        parentPlanId: row?.parent_plan_id ?? null,
+        quarter: row?.quarter ?? null,
+        dateRangeStart: row?.date_range_start ?? null,
+        dateRangeEnd: row?.date_range_end ?? null,
+        title: row?.title ?? null,
     } as any;
 }
 
@@ -173,7 +192,7 @@ export default function Page() {
     /** ---------------------------
      * TAB
      * -------------------------- */
-    const [tab, setTab] = React.useState<"master" | "planning" | "teams">("master");
+    const [tab, setTab] = React.useState<"master" | "planning" | "teams" | "questions">("master");
 
     /** ---------------------------
      * USERS
@@ -254,7 +273,7 @@ export default function Page() {
      * -------------------------- */
     const [actionsList, setActionsList] = React.useState<MasterEntity[]>([]);
     const [findingTypes, setFindingTypes] = React.useState<MasterEntity[]>([]);
-    const [locations, setLocations] = React.useState<MasterEntity[]>([]);
+    const [locations, setLocations] = React.useState<LocationEntity[]>([]);
 
     const [loadingMap, setLoadingMap] = React.useState<Record<MasterKind, boolean>>({
         actions: false,
@@ -269,7 +288,7 @@ export default function Page() {
     const getSetter = React.useCallback((kind: MasterKind) => {
         if (kind === "actions") return setActionsList;
         if (kind === "findingTypes") return setFindingTypes;
-        return setLocations;
+        return setLocations as React.Dispatch<React.SetStateAction<MasterEntity[]>>;
     }, []);
 
     const fetchMaster = React.useCallback(
@@ -286,8 +305,9 @@ export default function Page() {
                 payload: { page: 1, limit: 200, orderBy: "created_at", orderDirection: "desc" },
                 onAfterHandle: (res: any) => {
                     const rows = extractArray(res);
-                    const mapped = rows.map(toMasterEntity);
-                    setList(mapped);
+                    const mapper = kind === "locations" ? toLocationEntity : toMasterEntity;
+                    const mapped = rows.map(mapper);
+                    setList(mapped as MasterEntity[]);
                     setLoading(kind, false);
                 },
                 onErrorHandle: (error: any) => {
@@ -321,20 +341,47 @@ export default function Page() {
             const setList = getSetter(kind);
 
             start({
-                payload: { name: data.name, is_active: true },
+                payload: { name: (data as any).name, is_active: true },
                 onAfterHandle: (res: any) => {
                     const createdRaw = extractArray(res)?.[0] ?? res?.data?.[0] ?? res?.data ?? res;
-                    const created = toMasterEntity(createdRaw);
-                    setList((prev) => [created, ...prev]);
+                    const created = kind === "locations" ? toLocationEntity(createdRaw) : toMasterEntity(createdRaw);
+                    setList((prev) => [created as MasterEntity, ...prev]);
                 },
                 onErrorHandle: (error: any) => {
                     if (error?.name === "AbortError") return;
                     console.error(`${key} error`, error);
-
                 },
             });
         },
         [getSetter]
+    );
+
+    const createLocationEntity = React.useCallback(
+        (data: { name: string; managerUserId?: string | null; fieldManagerUserIds?: string[] }) => {
+            const A = actionsRef.current as any;
+            const key = API_KEYS.locations.ADD;
+            const start = safeStart(A, key);
+            if (!start) return;
+
+            start({
+                payload: {
+                    name: data.name,
+                    is_active: true,
+                    manager_user_id: data.managerUserId ?? null,
+                    field_manager_user_ids: data.fieldManagerUserIds ?? [],
+                },
+                onAfterHandle: (res: any) => {
+                    const createdRaw = extractArray(res)?.[0] ?? res?.data?.[0] ?? res?.data ?? res;
+                    const created = toLocationEntity(createdRaw);
+                    setLocations((prev) => [created, ...prev]);
+                },
+                onErrorHandle: (error: any) => {
+                    if (error?.name === "AbortError") return;
+                    console.error(`${key} error`, error);
+                },
+            });
+        },
+        []
     );
 
     const updateEntity = React.useCallback(
@@ -356,11 +403,43 @@ export default function Page() {
                 onErrorHandle: (error: any) => {
                     if (error?.name === "AbortError") return;
                     console.error(`${key} error`, error);
-
                 },
             });
         },
         [getSetter]
+    );
+
+    const updateLocationEntity = React.useCallback(
+        (id: string, data: { name: string; isActive: boolean; managerUserId?: string | null; fieldManagerUserIds?: string[] }) => {
+            const A = actionsRef.current as any;
+            const key = API_KEYS.locations.UPDATE;
+            const start = safeStart(A, key);
+            if (!start) return;
+
+            start({
+                payload: {
+                    _id: id,
+                    name: data.name,
+                    is_active: data.isActive,
+                    manager_user_id: data.managerUserId ?? null,
+                    field_manager_user_ids: data.fieldManagerUserIds ?? [],
+                },
+                onAfterHandle: () => {
+                    setLocations((prev) =>
+                        prev.map((x) =>
+                            x.id === id
+                                ? { ...x, name: data.name, isActive: data.isActive, managerUserId: data.managerUserId, fieldManagerUserIds: data.fieldManagerUserIds ?? [] }
+                                : x
+                        )
+                    );
+                },
+                onErrorHandle: (error: any) => {
+                    if (error?.name === "AbortError") return;
+                    console.error(`${key} error`, error);
+                },
+            });
+        },
+        []
     );
 
     const deleteEntity = React.useCallback(
@@ -420,7 +499,6 @@ export default function Page() {
     }, []);
 
     React.useEffect(() => {
-        if (tab !== "planning" && tab !== "teams") return;
         fetchUsers();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [tab]);
@@ -432,8 +510,36 @@ export default function Page() {
         fetchTeams();
     }, [tab, fetchPlans, fetchMaster, fetchTeams]);
 
+    const createParentPlan = React.useCallback(
+        (payload: { quarter: string; dateRangeStart: string; dateRangeEnd: string; title?: string }) => {
+            const A = actionsRef.current as any;
+            const key = PLAN_KEYS.ADD;
+            const start = safeStart(A, key);
+            if (!start) return;
+            start({
+                payload: {
+                    quarter: payload.quarter,
+                    date_range_start: payload.dateRangeStart,
+                    date_range_end: payload.dateRangeEnd,
+                    title: payload.title ?? null,
+                    status: "planned",
+                },
+                onAfterHandle: (res: any) => {
+                    const createdRaw = extractArray(res)?.[0] ?? res?.data?.[0] ?? res?.data ?? res;
+                    const created = planRowToAuditLike(createdRaw);
+                    setAuditPlans((prev) => [created, ...prev]);
+                },
+                onErrorHandle: (error: any) => {
+                    if (error?.name === "AbortError") return;
+                    console.error(`${key} error`, error);
+                },
+            });
+        },
+        []
+    );
+
     const createPlan = React.useCallback(
-        (payload: { planned_date: string; location_id: string; assigned_team_id: string }) => {
+        (payload: { planned_date: string; location_id: string; assigned_team_id: string; parent_plan_id?: string | null }) => {
             const A = actionsRef.current as any;
             const key = PLAN_KEYS.ADD;
             const start = safeStart(A, key);
@@ -455,6 +561,28 @@ export default function Page() {
         },
         []
     );
+
+    const updatePlanDate = React.useCallback((id: string, newDate: string, newCount: number) => {
+        const A = actionsRef.current as any;
+        const key = PLAN_KEYS.UPDATE;
+        const start = safeStart(A, key);
+        if (!start) return;
+
+        start({
+            payload: { _id: id, planned_date: newDate, date_change_count: newCount },
+            onAfterHandle: () => {
+                setAuditPlans((prev) =>
+                    prev.map((x) =>
+                        x.id === id ? { ...x, plannedDate: newDate, dateChangeCount: newCount } : x
+                    )
+                );
+            },
+            onErrorHandle: (error: any) => {
+                if (error?.name === "AbortError") return;
+                console.error(`${key} (date) error`, error);
+            },
+        });
+    }, []);
 
     const updatePlanStatus = React.useCallback((id: string, status: string) => {
         const A = actionsRef.current as any;
@@ -512,6 +640,7 @@ export default function Page() {
                                 { value: "master", label: "Veri Girişi" },
                                 { value: "planning", label: "Denetim Planlama" },
                                 { value: "teams", label: "Denetim Ekipleri" },
+                                { value: "questions", label: "Sorular" },
                             ]}
                         />
                     </div>
@@ -535,11 +664,12 @@ export default function Page() {
                             onDelete={(id) => deleteEntity("findingTypes", id)}
                         />
 
-                        <MasterDataPanel
-                            title="Lokasyonlar"
+                        <LocationsPanel
                             items={locations}
-                            onCreate={(d) => createEntity("locations", d)}
-                            onUpdate={(id, d) => updateEntity("locations", id, d)}
+                            users={users}
+                            usersLoading={usersLoading}
+                            onCreate={createLocationEntity}
+                            onUpdate={updateLocationEntity}
                             onDelete={(id) => deleteEntity("locations", id)}
                         />
                     </div>
@@ -548,23 +678,29 @@ export default function Page() {
                         locations={locations.filter((x) => x.isActive)}
                         teams={teams as any}
                         audits={auditPlans}
+                        users={users}
+                        onCreateParentPlan={createParentPlan}
                         onCreate={(data: any) => {
                             createPlan({
                                 planned_date: data.plannedDate,
                                 location_id: data.locationId,
                                 assigned_team_id: data.assignedTeamId,
+                                parent_plan_id: data.parentPlanId ?? null,
                             });
                         }}
                         onUpdateStatus={(id, status) => updatePlanStatus(id, status)}
+                        onUpdateDate={(id, date, count) => updatePlanDate(id, date, count)}
                         onDelete={(id) => deletePlan(id)}
                     />
-                ) : (
+                ) : tab === "teams" ? (
                     <TeamsTab
                         actionsRef={actionsRef}
                         users={users}
                         usersLoading={usersLoading}
                         fetchUsers={fetchUsers}
                     />
+                ) : (
+                    <QuestionsPanel />
                 )}
 
                 {tab !== "master" ? (

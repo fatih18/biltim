@@ -1,6 +1,7 @@
 import type { HybridSearchConfig } from "@monorepo/generics/SearchConfig";
 import { createHybridSearchConfigFromColumns } from "@monorepo/generics/SearchConfig";
 import type { InferSelectModel } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import {
     index,
     uniqueIndex,
@@ -9,6 +10,8 @@ import {
     pgTable,
     boolean,
     varchar,
+    uuid,
+    jsonb,
 } from "drizzle-orm/pg-core";
 import type {
     DefaultFilter,
@@ -33,14 +36,23 @@ export const columns = {
 
     name: varchar("name", { length: 255 }).notNull(),
     is_active: boolean("is_active").notNull().default(true),
+
+    manager_user_id: uuid("manager_user_id"),
+
+    field_manager_user_ids: jsonb("field_manager_user_ids")
+        .$type<string[]>()
+        .notNull()
+        .default(sql`'[]'::jsonb`),
 };
 
 export const indexes = (_table: {
     name: PgColumn;
     is_active: PgColumn;
     created_at: PgColumn;
+    manager_user_id: PgColumn;
 }) => [
         index().on(_table.is_active, _table.created_at),
+        index().on(_table.manager_user_id),
     ];
 
 export const T_FiveSLocations = pgTable(tablename, columns, indexes);
@@ -62,6 +74,7 @@ export type Read = {
     orderDirection?: OrderDirection;
     filters?: DefaultFilter & {
         is_active?: boolean;
+        manager_user_id?: string;
     };
 };
 

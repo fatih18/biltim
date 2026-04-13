@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useGenericApiActions } from "@/app/_hooks/UseGenericApiStore";
 import { useGetUserRole } from "@/app/_hooks/user/useGetUserRole";
 import { useUploadAnswerPhoto } from "./hooks/useUploadAnswersPhoto";
 import { DateInput } from "@/app/_components/DateInput";
+import { Camera, Eye, ImageIcon, Loader2, Upload, X, ChevronDown, ChevronUp } from "lucide-react";
 
 type FindingStatus = "open" | "in_progress" | "closed";
 
@@ -67,13 +68,8 @@ function statusBadgeClass(status: string) {
   }
 }
 
-const FILE_API_BASE_URL =
-  process.env.NEXT_PUBLIC_FILE_API_URL ??
-  process.env.NEXT_PUBLIC_AUTH_API_URL ??
-  "http://localhost:1001";
-
 function buildFileUrl(fileId: string) {
-  return `${FILE_API_BASE_URL.replace(/\/+$/, "")}/files/${fileId}`;
+  return `/api/view-file/${encodeURIComponent(fileId)}`;
 }
 
 function extractUuidMaybe(input: string): string | null {
@@ -93,7 +89,6 @@ function resolvePhotoUrl(p: PhotoItem) {
     if (uuid) return buildFileUrl(uuid);
 
     if (u.startsWith("http")) return u;
-    if (u.startsWith("/")) return `${FILE_API_BASE_URL.replace(/\/+$/, "")}${u}`;
     return u;
   }
 
@@ -146,6 +141,8 @@ export default function FiveSFindingsListPage() {
   const hasAuditor = userRoles.some((r) => r.name.toLowerCase() === "auditor");
   const hasOverrideRole = userRoles.some((r) => OVERRIDE_ROLES.includes(r.name.toLowerCase()));
   const isAuditor = hasAuditor && !hasOverrideRole;
+  const CLOSE_ALLOWED_ROLES = ["field manager", "super admin", "manager"];
+  const canCloseFinding = userRoles.some((r) => CLOSE_ALLOWED_ROLES.includes(r.name.toLowerCase()));
 
   const [findings, setFindings] = useState<FiveSFinding[]>([]);
   const [pagination, setPagination] = useState<PaginationInfo>({
@@ -155,17 +152,20 @@ export default function FiveSFindingsListPage() {
     pageCount: 1,
   });
 
-  // Filters (UI state)
+  // Filters
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<FindingStatus | "">("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
-  // Filters (applied state)
-  const [appliedSearch, setAppliedSearch] = useState("");
-  const [appliedStatus, setAppliedStatus] = useState<FindingStatus | "">("");
-  const [appliedDateFrom, setAppliedDateFrom] = useState("");
-  const [appliedDateTo, setAppliedDateTo] = useState("");
+  // Debounced search (300 ms) — status/date anında tetikler
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [search]);
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -199,14 +199,14 @@ export default function FiveSFindingsListPage() {
         limit: pagination.limit,
 
         // ✅ Kısmi arama: "dil" -> "Dilovası"
-        search: appliedSearch || undefined,
+        search: debouncedSearch || undefined,
 
-        orderBy: "detected_date",
+        orderBy: "finding_no",
         orderDirection: "desc",
         filters: {
-          status: appliedStatus || undefined,
-          detected_date_gte: appliedDateFrom || undefined,
-          detected_date_lte: appliedDateTo || undefined,
+          status: statusFilter || undefined,
+          detected_date_gte: dateFrom || undefined,
+          detected_date_lte: dateTo || undefined,
         },
       },
       onAfterHandle: (resp) => {
@@ -242,16 +242,12 @@ export default function FiveSFindingsListPage() {
   useEffect(() => {
     fetchFindings();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pagination.page, pagination.limit, appliedSearch, appliedStatus, appliedDateFrom, appliedDateTo]);
+  }, [pagination.page, pagination.limit, debouncedSearch, statusFilter, dateFrom, dateTo]);
 
   const handleApplyFilters = () => {
-    setAppliedSearch(search);
-    setAppliedStatus(statusFilter);
-    setAppliedDateFrom(dateFrom);
-    setAppliedDateTo(dateTo);
-
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setDebouncedSearch(search); // Debounce beklemeden anında commit
     setPagination((prev) => ({ ...prev, page: 1 }));
- 
   };
 
   const handleClearFilters = () => {
@@ -259,11 +255,8 @@ export default function FiveSFindingsListPage() {
     setStatusFilter("");
     setDateFrom("");
     setDateTo("");
-
-    setAppliedSearch("");
-    setAppliedStatus("");
-    setAppliedDateFrom("");
-    setAppliedDateTo("");
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setDebouncedSearch(""); // Anında sıfırla
     setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
@@ -295,9 +288,13 @@ export default function FiveSFindingsListPage() {
 
     const newStatus = (value as FindingStatus) || "open";
 
-    
+    if (newStatus === "closed" && !canCloseFinding) {
+      setErrorMsg("Bulgu kapatma işlemi yalnızca Saha Sorumlusu tarafından yapılabilir.");
+      return;
+    }
+
     if (newStatus === "closed" && !hasAfterPhoto(finding)) {
-      setErrorMsg("Bulgu kapatmak için “Sonrası Fotoğraf” yüklemek zorunludur.");
+      setErrorMsg("Bulgu kapatmak için \"Sonrası Fotoğraf\" yüklemek zorunludur.");
       return; // state değiştirme -> select eski halinde kalır
     }
 
@@ -658,9 +655,11 @@ export default function FiveSFindingsListPage() {
                             title={
                               isAuditor
                                 ? "Denetçi rolüyle bulgu durumu güncellenemez."
-                                : !canClose
-                                  ? "Kapatmak için “Sonrası Fotoğraf” yükleyin."
-                                  : undefined
+                                : !canCloseFinding
+                                  ? "Bulgu kapatma işlemi yalnızca Saha Sorumlusu tarafından yapılabilir."
+                                  : !canClose
+                                    ? "Kapatmak için \"Sonrası Fotoğraf\" yükleyin."
+                                    : undefined
                             }
                             className={`w-full rounded-md px-2 py-1 text-[11px] outline-none ring-sky-500/30 focus:ring-2 ${statusBadgeClass(
                               f.status
@@ -668,14 +667,19 @@ export default function FiveSFindingsListPage() {
                           >
                             <option value="open">Açık</option>
                             <option value="in_progress">Devam ediyor</option>
-                            <option value="closed" disabled={!canClose}>
+                            <option value="closed" disabled={!canClose || !canCloseFinding}>
                               Kapandı
                             </option>
                           </select>
 
-                          {!isAuditor && f.status !== "closed" && !canClose && (
+                          {!isAuditor && f.status !== "closed" && canCloseFinding && !canClose && (
                             <span className="text-[10px] text-rose-300/90">
-                              Kapatmak için “Sonrası Fotoğraf” zorunlu.
+                              Kapatmak için "Sonrası Fotoğraf" zorunlu.
+                            </span>
+                          )}
+                          {!isAuditor && f.status !== "closed" && !canCloseFinding && (
+                            <span className="text-[10px] text-slate-500">
+                              Yalnızca Saha Sorumlusu kapatabilir.
                             </span>
                           )}
 
@@ -704,114 +708,110 @@ export default function FiveSFindingsListPage() {
                       <td className="px-4 py-2 text-[11px]">{f.responsible_name || "-"}</td>
 
                       {/* Foto (Önce) */}
-                      <td className="px-4 py-2 text-[11px]">
-                        {beforeCount === 0 ? (
-                          <span className="text-slate-500 text-[10px]"> </span>
-                        ) : beforeCount === 1 ? (
-                          <a
-                            href={beforeSingleUrl ?? "#"}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="rounded-md border border-sky-500/60 bg-sky-500/10 px-2 py-1 text-[10px] text-sky-300 hover:bg-sky-500/20"
-                          >
-                            Görüntüle
-                          </a>
-                        ) : (
-                          <div className="flex flex-col gap-1">
-                            <button
-                              type="button"
-                              onClick={() => toggleExpanded("before", f.id)}
-                              className="rounded-md border border-sky-500/60 bg-sky-500/10 px-2 py-1 text-[10px] text-sky-300 hover:bg-sky-500/20 text-left"
-                            >
-                              Görüntüle ({beforeCount})
-                            </button>
-
-                            {isBeforeOpen && (
-                              <div className="mt-1 rounded-md border border-slate-800 bg-slate-950/40 p-2 space-y-1">
-                                {before.map((p, idx) => {
-                                  const url = resolvePhotoUrl(p);
-                                  return (
-                                    <div
-                                      key={`${p.file_id ?? p.url ?? "x"}-${idx}`}
-                                      className="flex items-center justify-between gap-2"
-                                    >
-                                      <a
-                                        href={url ?? "#"}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="truncate text-[10px] text-sky-300 hover:underline"
-                                      >
-                                        {idx + 1}. {p.file_id ?? extractUuidMaybe(p.url ?? "") ?? "foto"}
-                                      </a>
-                                      <button
-                                        type="button"
-                                        onClick={() => handleRemovePhoto(f, "before", idx)}
-                                        className="rounded-md border border-slate-700 px-2 py-0.5 text-[10px] text-slate-200 hover:bg-slate-800"
-                                      >
-                                        Sil
-                                      </button>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </td>
-
-                      {/* Foto (Sonra) + Upload */}
-                      <td className="px-4 py-2 text-[11px]">
-                        <div className="flex flex-col">
-                          {f.status === "closed" && afterCount === 0 && (
-                            <div className="mb-1 rounded-md border border-rose-600/50 bg-rose-950/30 px-2 py-1 text-[10px] text-rose-200">
-                              Kapalı bulgu için “Sonrası Fotoğraf” zorunludur.
-                            </div>
-                          )}
-
-                          {afterCount === 0 ? (
-                            <span className="text-slate-500 text-[10px]"> </span>
-                          ) : afterCount === 1 ? (
+                      <td className="px-3 py-2">
+                        <div className="flex flex-col gap-1.5 min-w-[96px]">
+                          {/* Mevcut fotoğraflar */}
+                          {beforeCount === 1 && (
                             <a
-                              href={afterSingleUrl ?? "#"}
+                              href={beforeSingleUrl ?? "#"}
                               target="_blank"
                               rel="noreferrer"
-                              className="rounded-md border border-emerald-500/60 bg-emerald-500/10 px-2 py-1 text-[10px] text-emerald-300 hover:bg-emerald-500/20"
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-sky-500/40 bg-sky-500/10 px-2.5 py-1 text-[11px] font-medium text-sky-300 hover:bg-sky-500/20 transition-colors"
                             >
+                              <Eye size={11} />
                               Görüntüle
                             </a>
-                          ) : (
+                          )}
+                          {beforeCount > 1 && (
                             <div className="flex flex-col gap-1">
                               <button
                                 type="button"
-                                onClick={() => toggleExpanded("after", f.id)}
-                                className="rounded-md border border-emerald-500/60 bg-emerald-500/10 px-2 py-1 text-[10px] text-emerald-300 hover:bg-emerald-500/20 text-left"
+                                onClick={() => toggleExpanded("before", f.id)}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-sky-500/40 bg-sky-500/10 px-2.5 py-1 text-[11px] font-medium text-sky-300 hover:bg-sky-500/20 transition-colors"
                               >
-                                Görüntüle ({afterCount})
+                                <Eye size={11} />
+                                {beforeCount} Foto
+                                {isBeforeOpen ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
                               </button>
-
-                              {isAfterOpen && (
-                                <div className="mt-1 rounded-md border border-slate-800 bg-slate-950/40 p-2 space-y-1">
-                                  {after.map((p, idx) => {
+                              {isBeforeOpen && (
+                                <div className="rounded-lg border border-slate-700 bg-slate-900/80 p-1.5 space-y-0.5">
+                                  {before.map((p, idx) => {
                                     const url = resolvePhotoUrl(p);
                                     return (
-                                      <div
-                                        key={`${p.file_id ?? p.url ?? "x"}-${idx}`}
-                                        className="flex items-center justify-between gap-2"
-                                      >
+                                      <div key={`${p.file_id ?? p.url ?? "x"}-${idx}`} className="flex items-center gap-1">
                                         <a
                                           href={url ?? "#"}
                                           target="_blank"
                                           rel="noreferrer"
-                                          className="truncate text-[10px] text-emerald-300 hover:underline"
+                                          className="flex flex-1 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-sky-300 hover:bg-slate-800"
                                         >
-                                          {idx + 1}. {p.file_id ?? extractUuidMaybe(p.url ?? "") ?? "foto"}
+                                          <ImageIcon size={9} />
+                                          Foto {idx + 1}
+                                        </a>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                        </div>
+                      </td>
+
+                      {/* Foto (Sonra) + Upload */}
+                      <td className="px-3 py-2">
+                        <div className="flex flex-col gap-1.5 min-w-[96px]">
+                          {f.status === "closed" && afterCount === 0 && (
+                            <div className="rounded-lg border border-rose-500/40 bg-rose-500/10 px-2 py-1 text-[10px] text-rose-300">
+                              Sonrası foto zorunlu
+                            </div>
+                          )}
+
+                          {/* Mevcut fotoğraflar */}
+                          {afterCount === 1 && (
+                            <a
+                              href={afterSingleUrl ?? "#"}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-300 hover:bg-emerald-500/20 transition-colors"
+                            >
+                              <Eye size={11} />
+                              Görüntüle
+                            </a>
+                          )}
+                          {afterCount > 1 && (
+                            <div className="flex flex-col gap-1">
+                              <button
+                                type="button"
+                                onClick={() => toggleExpanded("after", f.id)}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-300 hover:bg-emerald-500/20 transition-colors"
+                              >
+                                <Eye size={11} />
+                                {afterCount} Foto
+                                {isAfterOpen ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+                              </button>
+                              {isAfterOpen && (
+                                <div className="rounded-lg border border-slate-700 bg-slate-900/80 p-1.5 space-y-0.5">
+                                  {after.map((p, idx) => {
+                                    const url = resolvePhotoUrl(p);
+                                    return (
+                                      <div key={`${p.file_id ?? p.url ?? "x"}-${idx}`} className="flex items-center gap-1">
+                                        <a
+                                          href={url ?? "#"}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          className="flex flex-1 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-emerald-300 hover:bg-slate-800"
+                                        >
+                                          <ImageIcon size={9} />
+                                          Foto {idx + 1}
                                         </a>
                                         <button
                                           type="button"
                                           onClick={() => handleRemovePhoto(f, "after", idx)}
-                                          className="rounded-md border border-slate-700 px-2 py-0.5 text-[10px] text-slate-200 hover:bg-slate-800"
+                                          className="rounded p-0.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
                                         >
-                                          Sil
+                                          <X size={11} />
                                         </button>
                                       </div>
                                     );
@@ -821,39 +821,46 @@ export default function FiveSFindingsListPage() {
                             </div>
                           )}
 
-                          {/* MULTI UPLOAD */}
-                          <div className="mt-1 flex flex-col gap-1">
-                            <label className="inline-flex cursor-pointer items-center justify-center rounded-md border border-slate-600 bg-slate-950/70 px-2 py-1 text-[10px] hover:bg-slate-800">
-                              {uploadingFindingId === f.id ? "Yükleniyor..." : "Fotoğraf(lar) Seç"}
-                              <input
-                                type="file"
-                                accept="image/*"
-                                multiple
-                                className="hidden"
-                                onChange={(e) => {
-                                  handleAfterPhotosSelect(f.id, e.target.files);
-                                  e.currentTarget.value = "";
-                                }}
-                                disabled={uploadingFindingId === f.id}
-                              />
-                            </label>
-
-                            {(afterUploadQueue[f.id]?.length ?? 0) > 0 && (
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="text-[10px] text-slate-400">
-                                  Seçilen: {afterUploadQueue[f.id]!.length} dosya
-                                </span>
-                                <button
-                                  type="button"
-                                  disabled={uploadingFindingId === f.id}
-                                  onClick={() => handleAfterPhotosUpload(f)}
-                                  className="rounded-md bg-emerald-500 px-2 py-1 text-[10px] font-semibold text-slate-950 hover:bg-emerald-400 disabled:opacity-50"
-                                >
-                                  Yükle
-                                </button>
-                              </div>
+                          {/* Upload */}
+                          <label
+                            className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                              uploadingFindingId === f.id
+                                ? "border-slate-700 bg-slate-800/60 text-slate-500 cursor-not-allowed"
+                                : "border-slate-600 bg-slate-900/60 text-slate-300 hover:border-emerald-500/50 hover:text-emerald-300 hover:bg-emerald-500/10"
+                            }`}
+                          >
+                            {uploadingFindingId === f.id ? (
+                              <Loader2 size={11} className="animate-spin" />
+                            ) : (
+                              <Camera size={11} />
                             )}
-                          </div>
+                            {uploadingFindingId === f.id ? "Yükleniyor..." : "Ekle"}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              className="hidden"
+                              onChange={(e) => { handleAfterPhotosSelect(f.id, e.target.files); e.currentTarget.value = ""; }}
+                              disabled={uploadingFindingId === f.id}
+                            />
+                          </label>
+
+                          {(afterUploadQueue[f.id]?.length ?? 0) > 0 && (
+                            <div className="flex items-center gap-1.5">
+                              <span className="rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-medium text-emerald-300">
+                                {afterUploadQueue[f.id]!.length} seçildi
+                              </span>
+                              <button
+                                type="button"
+                                disabled={uploadingFindingId === f.id}
+                                onClick={() => handleAfterPhotosUpload(f)}
+                                className="inline-flex items-center gap-1 rounded-lg bg-emerald-500 px-2 py-0.5 text-[10px] font-semibold text-slate-950 hover:bg-emerald-400 disabled:opacity-50 transition-colors"
+                              >
+                                <Upload size={10} />
+                                Yükle
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </td>
                     </tr>
