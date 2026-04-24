@@ -65,8 +65,8 @@ export function LogsTable({ logs, onLogSelect }: LogsTableProps) {
       <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
         <div className="text-center py-12">
           <AlertCircle className="mx-auto text-gray-400 mb-4" size={48} />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No logs found</h3>
-          <p className="text-gray-500">Try adjusting your search criteria or filters.</p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Log kaydı bulunamadı</h3>
+          <p className="text-gray-500">Arama kriterlerinizi veya filtrelerinizi düzenleyin.</p>
         </div>
       </div>
     )
@@ -79,25 +79,25 @@ export function LogsTable({ logs, onLogSelect }: LogsTableProps) {
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Timestamp
+                Zaman Damgası
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Operation
+                İşlem
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Entity
+                Varlık
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                User
+                Kullanıcı
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Summary
+                Özet
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                IP Address
+                IP Adresi
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
+                İşlemler
               </th>
             </tr>
           </thead>
@@ -144,7 +144,7 @@ export function LogsTable({ logs, onLogSelect }: LogsTableProps) {
                   </div>
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-900">
-                  <div className="max-w-48 truncate" title={log.summary ?? 'No summary'}>
+                  <div className="max-w-48 truncate" title={log.summary ?? 'Özet yok'}>
                     {log.summary ?? '-'}
                   </div>
                 </td>

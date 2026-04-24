@@ -294,7 +294,7 @@ type DraftRow = {
 
 type OfflineFindingPayload = {
   questionId: string | 'SINGLE'
-  client_finding_id: string // Madde 22: idempotency
+  client_finding_id: string  
   detected_date: string // YYYY-MM-DD
   location_name: string
   finding_type: string
@@ -303,6 +303,7 @@ type OfflineFindingPayload = {
   due_date?: string
   responsible_name: string
   responsible_user_id?: string | null // Madde 26
+  auditor_name?: string
   // photo_before_files, primary vs syncte hesaplanacak
   // photo blobs eşleşmesi: submissionPhoto table
 }
@@ -812,6 +813,7 @@ export default function FiveSAuditFormPage() {
                 due_date: f.due_date || undefined,
                 responsible_name: f.responsible_name,
                 responsible_user_id: f.responsible_user_id || undefined,
+                auditor_name: f.auditor_name || s.auditPayload.auditor_name || undefined,
 
                 photo_before_files: beforeArr,
                 photo_before_file_id: primary?.fileId,
@@ -1269,18 +1271,6 @@ export default function FiveSAuditFormPage() {
         </div>
       </div>
 
-      {assignedPlan && (
-        <div className="mt-3">
-          <button
-            type="button"
-            onClick={openSingleFindingModal}
-            className="inline-flex items-center rounded-md bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-slate-950 hover:bg-emerald-400"
-          >
-            + Yeni Bulgu Ekle
-          </button>
-        </div>
-      )}
-
       {findingsLoading ? (
         <div className="mt-3 text-xs text-slate-400">Bulgular yükleniyor...</div>
       ) : findings.length === 0 ? (
@@ -1386,6 +1376,7 @@ export default function FiveSAuditFormPage() {
         due_date: ans.dueDate || undefined,
         responsible_name: responsible?.userName || header.auditorName,
         responsible_user_id: responsible?.userId || null,
+        auditor_name: header.auditorName.trim(),
       })
 
       for (const f of ans.photos ?? []) {
@@ -1556,6 +1547,7 @@ export default function FiveSAuditFormPage() {
                   due_date: ans.dueDate || undefined,
                   responsible_name: responsible2?.userName || header.auditorName,
                   responsible_user_id: responsible2?.userId || undefined,
+                  auditor_name: header.auditorName.trim(),
 
                   photo_before_files: beforeArr,
                   photo_before_file_id: primary?.fileId,
@@ -1774,6 +1766,7 @@ export default function FiveSAuditFormPage() {
                 responsible_user_id: singleLocResp?.userId || undefined,
                 action_to_take: singleFinding.actionToTake.trim(),
                 due_date: singleFinding.dueDate || undefined,
+                auditor_name: header.auditorName.trim(),
 
                 photo_before_files: beforeArr,
                 photo_before_file_id: primary?.fileId,

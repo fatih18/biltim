@@ -97,8 +97,16 @@ export function HomeAuditListPanel(props: {
     const [editingId, setEditingId] = React.useState<string | null>(null);
     const [editDate, setEditDate] = React.useState<string>("");
 
-    const upcoming = React.useMemo(() => plans.filter((p) => !!p.location_id && p.status !== "completed"), [plans]);
-    const completed = React.useMemo(() => plans.filter((p) => !!p.location_id && p.status === "completed"), [plans]);
+    const upcoming = React.useMemo(() =>
+        plans
+            .filter((p) => !!p.location_id && p.status !== "completed")
+            .sort((a, b) => (a.planned_date ?? "").localeCompare(b.planned_date ?? "")),
+        [plans]);
+    const completed = React.useMemo(() =>
+        plans
+            .filter((p) => !!p.location_id && p.status === "completed")
+            .sort((a, b) => (b.planned_date ?? "").localeCompare(a.planned_date ?? "")),
+        [plans]);
 
     const list = tab === "upcoming" ? upcoming : completed;
 
@@ -156,10 +164,10 @@ export function HomeAuditListPanel(props: {
                     <div className="grid grid-cols-12 bg-slate-900/60 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-slate-400">
                         <div className="col-span-2">Tarih</div>
                         <div className="col-span-2">Dönem</div>
-                        <div className="col-span-3">Lokasyon</div>
+                        <div className="col-span-2">Lokasyon</div>
+                        <div className="col-span-2">Müdür / Saha Sor.</div>
                         <div className="col-span-2">Ekip / Lider</div>
-                        <div className="col-span-1 text-center">Durum</div>
-                        <div className="col-span-2 text-right">İşlem</div>
+                        <div className="col-span-2 text-center">Durum</div>
                     </div>
 
                     {loading ? (
@@ -181,7 +189,7 @@ export function HomeAuditListPanel(props: {
                                 (editDate < parentRange.start || editDate > parentRange.end));
 
                             return (
-                                <div key={p.id} className="grid grid-cols-12 items-center gap-2 border-t border-slate-800/80 px-3 py-2">
+                                <div key={p.id} className="grid grid-cols-12 items-start gap-2 border-t border-slate-800/80 px-3 py-2">
                                     {/* Tarih */}
                                     <div className="col-span-2">
                                         {isEditing ? (
@@ -256,42 +264,33 @@ export function HomeAuditListPanel(props: {
                                         )}
                                     </div>
 
-                                    <div className="col-span-3 text-sm text-slate-100">{loc}</div>
+                                    <div className="col-span-2 text-sm text-slate-100">{loc}</div>
+
+                                    <div className="col-span-2 flex flex-col gap-0.5">
+                                        {managerName && (
+                                            <div className="flex items-center gap-1 text-[10px]">
+                                                <span className="font-medium text-slate-500">Müdür:</span>
+                                                <span className="text-slate-300">{managerName}</span>
+                                            </div>
+                                        )}
+                                        {fieldManagerNames.length > 0 && (
+                                            <div className="flex items-center gap-1 text-[10px]">
+                                                <span className="font-medium text-slate-500">Saha:</span>
+                                                <span className="text-slate-300">{fieldManagerNames.join(", ")}</span>
+                                            </div>
+                                        )}
+                                        {!managerName && fieldManagerNames.length === 0 && (
+                                            <span className="text-xs text-slate-600">—</span>
+                                        )}
+                                    </div>
 
                                     <div className="col-span-2">
                                         <TeamLeaderWithMembersTooltip teamId={p.assigned_team_id} teamInfoById={teamInfoById} />
                                     </div>
 
-                                    <div className="col-span-1 text-center">
+                                    <div className="col-span-2 text-center">
                                         <StatusPill status={p.status} />
                                     </div>
-
-                                    <div className="col-span-2 flex justify-end">
-                                        <StatusPill status={p.status} />
-                                    </div>
-
-                                    {(managerName || fieldManagerNames.length > 0) && (
-                                        <div className="col-span-12 mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-slate-800/50 pt-1.5 pb-0.5">
-                                            {managerName && (
-                                                <span className="flex items-center gap-1.5 text-[11px]">
-                                                    <span className="rounded bg-violet-950/60 border border-violet-800/40 px-1.5 py-0.5 text-[10px] font-medium text-violet-300">
-                                                        İlgili Müdür
-                                                    </span>
-                                                    <span className="text-slate-300">{managerName}</span>
-                                                </span>
-                                            )}
-                                            {fieldManagerNames.length > 0 && (
-                                                <span className="flex items-center gap-1.5 text-[11px]">
-                                                    <span className="rounded bg-sky-950/60 border border-sky-800/40 px-1.5 py-0.5 text-[10px] font-medium text-sky-300">
-                                                        Saha Sorumlusu
-                                                    </span>
-                                                    <span className="text-slate-300">
-                                                        {fieldManagerNames.join(", ")}
-                                                    </span>
-                                                </span>
-                                            )}
-                                        </div>
-                                    )}
                                 </div>
                             );
                         })

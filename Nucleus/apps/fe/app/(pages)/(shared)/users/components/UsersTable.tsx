@@ -27,7 +27,7 @@ export function UsersTable({ users, onSelectDetails, onValidateEmail, onDelete }
 
         <div className="relative flex items-center justify-center gap-3 py-12 text-slate-200">
           <span className="h-5 w-5 animate-spin rounded-full border-2 border-emerald-400 border-t-transparent" />
-          Loading users...
+          Kullanıcılar yükleniyor...
         </div>
       </div>
     )
@@ -42,8 +42,8 @@ export function UsersTable({ users, onSelectDetails, onValidateEmail, onDelete }
 
         <div className="relative py-12 text-center">
           <AlertCircle className="mx-auto mb-4 text-slate-500" size={48} />
-          <h3 className="mb-2 text-lg font-semibold text-white">No users found</h3>
-          <p className="text-slate-300">Adjust your search criteria or filters and try again.</p>
+          <h3 className="mb-2 text-lg font-semibold text-white">Kullanıcı bulunamadı</h3>
+          <p className="text-slate-300">Arama kriterlerini veya filtreleri düzenleyip tekrar deneyin.</p>
         </div>
       </div>
     )
@@ -60,22 +60,22 @@ export function UsersTable({ users, onSelectDetails, onValidateEmail, onDelete }
           <thead className="border-b border-white/10 bg-white/5">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                User
+                Kullanıcı
               </th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                Email
+                E-posta
               </th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                Verification
+                Doğrulama
               </th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                Access
+                Erişim
               </th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                Last Login
+                Son Giriş
               </th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                Actions
+                İşlemler
               </th>
             </tr>
           </thead>
@@ -94,21 +94,21 @@ export function UsersTable({ users, onSelectDetails, onValidateEmail, onDelete }
 
               const verificationBadge = user.verified_at ? (
                 <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/40 bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-300">
-                  <CheckCircle2 size={14} /> Verified
+                  <CheckCircle2 size={14} /> Doğrulandı
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-500/10 px-2 py-1 text-xs font-semibold text-amber-300">
-                  <MailCheck size={14} /> Pending
+                  <MailCheck size={14} /> Bekliyor
                 </span>
               )
 
               const accessBadge = user.is_locked ? (
                 <span className="inline-flex items-center gap-1 rounded-full border border-rose-400/40 bg-rose-500/10 px-2 py-1 text-xs font-semibold text-rose-300">
-                  <ShieldBan size={14} /> Locked
+                  <ShieldBan size={14} /> Kilitli
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/40 bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-300">
-                  <ShieldCheck size={14} /> Active
+                  <ShieldCheck size={14} /> Aktif
                 </span>
               )
 
@@ -147,7 +147,7 @@ export function UsersTable({ users, onSelectDetails, onValidateEmail, onDelete }
                         className="inline-flex items-center gap-1 text-sm font-semibold text-slate-200 hover:text-white transition-colors"
                         onClick={() => onSelectDetails(user.id)}
                       >
-                        <Info size={14} aria-hidden="true" /> Details
+                        <Info size={14} aria-hidden="true" /> Detay
                       </button>
 
                       {!user.verified_at ? (
@@ -156,7 +156,7 @@ export function UsersTable({ users, onSelectDetails, onValidateEmail, onDelete }
                           className="inline-flex items-center gap-1 text-sm font-semibold text-emerald-300 hover:text-emerald-200 transition-colors"
                           onClick={() => onValidateEmail(user.id)}
                         >
-                          <MailCheck size={14} aria-hidden="true" /> Verify Email
+                          <MailCheck size={14} aria-hidden="true" /> E-postasını Doğrula
                         </button>
                       ) : null}
 
@@ -165,7 +165,7 @@ export function UsersTable({ users, onSelectDetails, onValidateEmail, onDelete }
                         className="inline-flex items-center gap-1 text-sm font-semibold text-rose-300 hover:text-rose-200 transition-colors"
                         onClick={() => onDelete(user.id)}
                       >
-                        <Trash2 size={14} aria-hidden="true" /> Delete
+                        <Trash2 size={14} aria-hidden="true" /> Sil
                       </button>
                     </div>
                   </td>

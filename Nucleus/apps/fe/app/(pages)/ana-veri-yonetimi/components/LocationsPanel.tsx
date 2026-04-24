@@ -25,7 +25,7 @@ export function LocationsPanel(props: {
     const [name, setName] = React.useState("");
     const [isActive, setIsActive] = React.useState(true);
     const [managerUserId, setManagerUserId] = React.useState<string>("");
-    const [fieldManagerUserIds, setFieldManagerUserIds] = React.useState<string[]>([]);
+    const [fieldManagerUserId, setFieldManagerUserId] = React.useState<string>("");
     const [error, setError] = React.useState<string | null>(null);
 
     const filtered = React.useMemo(() => {
@@ -46,7 +46,7 @@ export function LocationsPanel(props: {
         setName("");
         setIsActive(true);
         setManagerUserId("");
-        setFieldManagerUserIds([]);
+        setFieldManagerUserId("");
         setError(null);
         setOpen(true);
     }
@@ -57,15 +57,9 @@ export function LocationsPanel(props: {
         setName(it.name);
         setIsActive(it.isActive);
         setManagerUserId(it.managerUserId ?? "");
-        setFieldManagerUserIds(it.fieldManagerUserIds ?? []);
+        setFieldManagerUserId(it.fieldManagerUserIds?.[0] ?? "");
         setError(null);
         setOpen(true);
-    }
-
-    function toggleFieldManager(userId: string) {
-        setFieldManagerUserIds((prev) =>
-            prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
-        );
     }
 
     function submit() {
@@ -75,7 +69,7 @@ export function LocationsPanel(props: {
         const payload = {
             name: n,
             managerUserId: managerUserId || null,
-            fieldManagerUserIds,
+            fieldManagerUserIds: fieldManagerUserId ? [fieldManagerUserId] : [],
         };
 
         if (mode === "create") {
@@ -196,7 +190,7 @@ export function LocationsPanel(props: {
             <Modal
                 open={open}
                 title={mode === "create" ? "Yeni Lokasyon" : "Lokasyonu Düzenle"}
-                description="Müdür tekil, saha sorumlusu birden fazla seçilebilir."
+                description="Müdür ve saha sorumlusu tekil seçilebilir."
                 onClose={() => setOpen(false)}
                 footer={
                     <>
@@ -233,46 +227,27 @@ export function LocationsPanel(props: {
                             onChange={(e) => setManagerUserId(e.target.value)}
                         >
                             <option value="">{usersLoading ? "Yükleniyor..." : "Seçiniz (opsiyonel)"}</option>
-                            {users.map((u) => (
-                                <option key={u.id} value={u.id}>{u.name}</option>
-                            ))}
+                            {users
+                                .filter((u) => u.roles?.some((r) => r.name === "Manager"))
+                                .map((u) => (
+                                    <option key={u.id} value={u.id}>{u.name}</option>
+                                ))}
                         </Select>
                     </div>
 
                     <div>
-                        <label className="mb-1 block font-medium text-slate-300">
-                            Saha Sorumluları <span className="text-slate-500">(birden fazla seçilebilir)</span>
-                        </label>
-                        {usersLoading ? (
-                            <p className="text-slate-500 text-[11px]">Kullanıcılar yükleniyor...</p>
-                        ) : users.length === 0 ? (
-                            <p className="text-slate-500 text-[11px]">Kullanıcı bulunamadı.</p>
-                        ) : (
-                            <div className="mt-1 max-h-40 space-y-1 overflow-y-auto rounded-lg border border-slate-800 bg-slate-950/40 p-2">
-                                {users.map((u) => {
-                                    const checked = fieldManagerUserIds.includes(u.id);
-                                    return (
-                                        <label
-                                            key={u.id}
-                                            className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 hover:bg-slate-900/60"
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                checked={checked}
-                                                onChange={() => toggleFieldManager(u.id)}
-                                                className="h-4 w-4 rounded border-slate-600 bg-slate-950/70 text-sky-400 focus:ring-sky-500/40"
-                                            />
-                                            <span className="text-xs text-slate-200">{u.name}</span>
-                                        </label>
-                                    );
-                                })}
-                            </div>
-                        )}
-                        {fieldManagerUserIds.length > 0 && (
-                            <p className="mt-1 text-[11px] text-slate-500">
-                                Seçili: {fieldManagerUserIds.map((id) => userById.get(id) ?? id).join(", ")}
-                            </p>
-                        )}
+                        <label className="mb-1 block font-medium text-slate-300">Saha Sorumlusu</label>
+                        <Select
+                            value={fieldManagerUserId}
+                            onChange={(e) => setFieldManagerUserId(e.target.value)}
+                        >
+                            <option value="">{usersLoading ? "Yükleniyor..." : "Seçiniz (opsiyonel)"}</option>
+                            {users
+                                .filter((u) => u.roles?.some((r) => r.name === "Field Manager"))
+                                .map((u) => (
+                                    <option key={u.id} value={u.id}>{u.name}</option>
+                                ))}
+                        </Select>
                     </div>
 
                     {error ? (

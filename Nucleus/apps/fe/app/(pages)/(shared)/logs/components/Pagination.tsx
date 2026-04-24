@@ -32,7 +32,7 @@ export function Pagination({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="text-sm text-slate-200">
-            Showing {displayStart} to {displayEnd} of {totalItems} results
+            {totalItems} kayıttan {displayStart}–{displayEnd} arası gösteriliyor
           </div>
 
           <select
@@ -41,16 +41,16 @@ export function Pagination({
             className="rounded-md border border-white/10 bg-white/5 px-3 py-1 text-sm text-white outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/60"
           >
             <option value={5} className="bg-slate-900 text-white">
-              5 per page
+              Sayfa başına 5
             </option>
             <option value={10} className="bg-slate-900 text-white">
-              10 per page
+              Sayfa başına 10
             </option>
             <option value={25} className="bg-slate-900 text-white">
-              25 per page
+              Sayfa başına 25
             </option>
             <option value={50} className="bg-slate-900 text-white">
-              50 per page
+              Sayfa başına 50
             </option>
           </select>
         </div>
@@ -66,7 +66,7 @@ export function Pagination({
           </button>
 
           <span className="px-3 py-1 text-sm text-slate-200">
-            Page {currentPage} of {displayTotalPages}
+            Sayfa {currentPage} / {displayTotalPages}
           </span>
 
           <button

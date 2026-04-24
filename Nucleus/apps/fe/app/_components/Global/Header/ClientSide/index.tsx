@@ -1139,20 +1139,20 @@ export function ClientSide({
                   <p className="text-white font-semibold text-center">{profileName}</p>
                 </div>
                 <div className="p-2">
-                  <Link
+                  {/* <Link
                     href="/profile"
                     className="w-full text-left px-4 py-2 text-gray-700 hover:bg-slate-50 rounded-lg transition-colors duration-200 flex items-center gap-3"
                   >
                     <Users size={16} />
                     <span>Profile</span>
-                  </Link>
-                  <button
+                  </Link> */}
+                  {/* <button
                     className="w-full text-left px-4 py-2 text-gray-700 hover:bg-slate-50 rounded-lg transition-colors duration-200 flex items-center gap-3"
                     type="button"
                   >
                     <Settings size={16} />
                     <span>Settings</span>
-                  </button>
+                  </button> */}
                   <hr className="my-2" />
                   <button
                     onClick={handleLogout}

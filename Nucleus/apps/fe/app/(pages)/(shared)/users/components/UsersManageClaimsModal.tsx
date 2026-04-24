@@ -184,7 +184,7 @@ export function UsersManageClaimsModal({
         {isLoadingInitial ? (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-slate-900/70 backdrop-blur-sm">
             <Loader2 className="animate-spin" size={28} />
-            <span className="text-sm text-slate-200">Processing, please wait...</span>
+            <span className="text-sm text-slate-200">İşleniyor, lütfen bekleyin...</span>
           </div>
         ) : null}
 
@@ -192,10 +192,9 @@ export function UsersManageClaimsModal({
           <header className="flex flex-col gap-6 border-b border-white/10 px-8 py-6">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-bold">Manage Claims</h2>
+                <h2 className="text-2xl font-bold">İzinleri Yönet</h2>
                 <p className="mt-2 text-sm text-slate-300">
-                  Assign or remove authorization claims for this user. Scroll to load additional
-                  entries.
+                  Bu kullanıcı için yetki izinleri atayın veya kaldırın.
                 </p>
               </div>
               <button
@@ -221,7 +220,7 @@ export function UsersManageClaimsModal({
                 type="search"
                 value={usersStore.claimModal.search}
                 onChange={handleSearchChange}
-                placeholder="Search claims by action or path..."
+                placeholder="Aksiyon veya yola göre izin ara..."
                 className="w-full rounded-2xl border border-white/10 bg-white/5 py-3 pl-12 pr-4 text-sm text-white placeholder:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/60 disabled:cursor-not-allowed disabled:opacity-60"
                 aria-label="Search claims"
                 disabled={isInteractionLocked}
@@ -233,11 +232,11 @@ export function UsersManageClaimsModal({
             {isLoadingInitial ? (
               <div className="flex flex-col items-center justify-center gap-3 py-16 text-slate-300">
                 <Loader2 className="animate-spin" size={28} />
-                <span>Loading claims...</span>
+                <span>İzinler yükleniyor...</span>
               </div>
             ) : claims.length === 0 ? (
               <div className="rounded-2xl border border-white/10 bg-white/5 p-10 text-center text-slate-300">
-                No claims found with the current filters.
+                Mevcut filtrelerle izin bulunamadı.
               </div>
             ) : (
               <div className="space-y-4">
@@ -257,7 +256,7 @@ export function UsersManageClaimsModal({
                         <div className="space-y-2">
                           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-300">
                             <ShieldCheck size={16} />
-                            {claim.mode === 'exact' ? 'Exact Match' : 'Starts With'}
+                            {claim.mode === 'exact' ? 'Tam Eşleşme' : 'Başlangıç'}
                           </div>
                           <h3 className="text-lg font-semibold text-white">{claim.action}</h3>
                           <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300">
@@ -286,7 +285,7 @@ export function UsersManageClaimsModal({
                 {usersStore.claimModal.isLoadingMore ? (
                   <div className="flex items-center justify-center gap-2 pb-4 text-sm text-slate-300">
                     <Loader2 className="animate-spin" size={16} />
-                    Loading more claims...
+                    Daha fazla izin yükleniyor...
                   </div>
                 ) : null}
               </div>
@@ -296,13 +295,13 @@ export function UsersManageClaimsModal({
           <footer className="flex flex-col gap-4 border-t border-white/10 bg-black/20 px-8 py-6">
             <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300">
               <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3 py-1">
-                <Check size={14} /> Assigned
+                <Check size={14} /> Atandı
               </span>
               <span className="inline-flex items-center gap-2 rounded-full border border-red-400/40 bg-red-500/10 px-3 py-1">
-                <X size={14} /> Unassigned
+                <X size={14} /> Atanmadı
               </span>
               <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1">
-                <Loader2 className="animate-spin" size={14} /> Pending
+                <Loader2 className="animate-spin" size={14} /> Bekliyor
               </span>
             </div>
 
@@ -316,7 +315,7 @@ export function UsersManageClaimsModal({
                 className="rounded-full border border-white/10 bg-white/5 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={isInteractionLocked}
               >
-                Close
+                Kapat
               </button>
             </div>
           </footer>

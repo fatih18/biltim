@@ -182,7 +182,7 @@ export default function LogsPage() {
           <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
             <div className="flex items-center justify-center gap-3 py-12 text-gray-600">
               <span className="animate-spin rounded-full h-5 w-5 border-2 border-blue-600 border-t-transparent" />
-              Loading logs...
+              Loglar yükleniyor...
             </div>
           </div>
         ) : (

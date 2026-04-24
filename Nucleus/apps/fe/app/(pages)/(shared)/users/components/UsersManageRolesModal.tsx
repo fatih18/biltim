@@ -178,7 +178,7 @@ export function UsersManageRolesModal({ isOpen, userId, onClose }: UsersManageRo
         {isLoadingInitial ? (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-slate-900/70 backdrop-blur-sm">
             <Loader2 className="animate-spin" size={28} />
-            <span className="text-sm text-slate-200">Processing, please wait...</span>
+            <span className="text-sm text-slate-200">İşleniyor, lütfen bekleyin...</span>
           </div>
         ) : null}
 
@@ -186,9 +186,9 @@ export function UsersManageRolesModal({ isOpen, userId, onClose }: UsersManageRo
           <header className="flex flex-col gap-6 border-b border-white/10 px-8 py-6">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-bold">Manage Roles</h2>
+                <h2 className="text-2xl font-bold">Rolleri Yönet</h2>
                 <p className="mt-2 text-sm text-slate-300">
-                  Assign or remove roles for this user. Role permissions come from their claims.
+                  Bu kullanıcı için rol atayın veya kaldırın. Rol izinleri claim'lerden gelir.
                 </p>
               </div>
               <button
@@ -211,7 +211,7 @@ export function UsersManageRolesModal({ isOpen, userId, onClose }: UsersManageRo
                 type="search"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search roles by name or description..."
+                placeholder="İsim veya açıklamaya göre rol ara..."
                 className="w-full rounded-2xl border border-white/10 bg-white/5 py-3 pl-12 pr-4 text-sm text-white placeholder:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/60 disabled:cursor-not-allowed disabled:opacity-60"
                 aria-label="Search roles"
                 disabled={isLoading}
@@ -223,11 +223,11 @@ export function UsersManageRolesModal({ isOpen, userId, onClose }: UsersManageRo
             {isLoadingInitial ? (
               <div className="flex flex-col items-center justify-center gap-3 py-16 text-slate-300">
                 <Loader2 className="animate-spin" size={28} />
-                <span>Loading roles...</span>
+                <span>Roller yükleniyor...</span>
               </div>
             ) : filteredRoles.length === 0 ? (
               <div className="rounded-2xl border border-white/10 bg-white/5 p-10 text-center text-slate-300">
-                No roles found with the current filters.
+                Mevcut filtrelerle rol bulunamadı.
               </div>
             ) : (
               <div className="space-y-4">
@@ -248,7 +248,7 @@ export function UsersManageRolesModal({ isOpen, userId, onClose }: UsersManageRo
                         <div className="space-y-2">
                           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-300">
                             <Shield size={16} />
-                            {role.is_system ? 'System Role' : 'Custom Role'}
+                            {role.is_system ? 'Sistem Rolü' : 'Özel Rol'}
                           </div>
                           <h3 className="text-lg font-semibold text-white">{role.name}</h3>
                           {role.description ? (
@@ -272,10 +272,10 @@ export function UsersManageRolesModal({ isOpen, userId, onClose }: UsersManageRo
                             ) : isAssigned ? (
                               <>
                                 <Check className="h-4 w-4" />
-                                <span>Assigned</span>
+                                <span>Atandı</span>
                               </>
                             ) : (
-                              <>Assign</>
+                              <>Ata</>
                             )}
                           </button>
                         </div>

@@ -14,8 +14,8 @@ export function LogsHeader({ onRefresh, isLoading = false }: LogsHeaderProps) {
             <Activity className="text-emerald-400" size={24} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Audit Logs</h1>
-            <p className="text-slate-200">Monitor system activities and changes</p>
+            <h1 className="text-2xl font-bold">Denetim Logları</h1>
+            <p className="text-slate-200">Sistem aktivitelerini ve değişiklikleri takip edin</p>
           </div>
         </div>
         <button
@@ -25,7 +25,7 @@ export function LogsHeader({ onRefresh, isLoading = false }: LogsHeaderProps) {
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-sm font-medium disabled:opacity-60"
         >
           <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
-          {isLoading ? 'Refreshing…' : 'Refresh'}
+          {isLoading ? 'Yenileniyor...' : 'Yenile'}
         </button>
       </div>
     </div>

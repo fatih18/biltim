@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useGenericApiActions } from "@/app/_hooks/UseGenericApiStore";
 import { useGetUserRole } from "@/app/_hooks/user/useGetUserRole";
 import { useUploadAnswerPhoto } from "./hooks/useUploadAnswersPhoto";
@@ -39,6 +39,7 @@ type FiveSFinding = {
 
   form_title?: string | null;
   created_at?: string;
+  auditor_name?: string | null;
 };
 
 type PaginationInfo = {
@@ -152,20 +153,34 @@ export default function FiveSFindingsListPage() {
     pageCount: 1,
   });
 
+  // Locations
+  const [locations, setLocations] = useState<{ id: string; name: string }[]>([]);
+
   // Filters
-  const [search, setSearch] = useState("");
+  const [locationFilter, setLocationFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<FindingStatus | "">("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
-  // Debounced search (300 ms) — status/date anında tetikler
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Lokasyonları mount'ta çek
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => setDebouncedSearch(search), 300);
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [search]);
+    const locAction = (actions as any).GET_FIVE_S_LOCATIONS;
+    if (!locAction?.start) return;
+    locAction.start({
+      payload: { page: 1, limit: 500, orderBy: "name", orderDirection: "asc" },
+      onAfterHandle: (res: any) => {
+        const arr: any[] =
+          res?.data?.data ?? (Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []);
+        setLocations(
+          arr
+            .map((l) => ({ id: String(l.id ?? l._id ?? ""), name: String(l.name ?? "").trim() }))
+            .filter((l) => l.name)
+        );
+      },
+      onErrorHandle: () => {},
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -198,8 +213,7 @@ export default function FiveSFindingsListPage() {
         page: pagination.page,
         limit: pagination.limit,
 
-        // ✅ Kısmi arama: "dil" -> "Dilovası"
-        search: debouncedSearch || undefined,
+        search: locationFilter || undefined,
 
         orderBy: "finding_no",
         orderDirection: "desc",
@@ -242,21 +256,17 @@ export default function FiveSFindingsListPage() {
   useEffect(() => {
     fetchFindings();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pagination.page, pagination.limit, debouncedSearch, statusFilter, dateFrom, dateTo]);
+  }, [pagination.page, pagination.limit, locationFilter, statusFilter, dateFrom, dateTo]);
 
   const handleApplyFilters = () => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    setDebouncedSearch(search); // Debounce beklemeden anında commit
     setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
   const handleClearFilters = () => {
-    setSearch("");
+    setLocationFilter("");
     setStatusFilter("");
     setDateFrom("");
     setDateTo("");
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    setDebouncedSearch(""); // Anında sıfırla
     setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
@@ -478,16 +488,17 @@ export default function FiveSFindingsListPage() {
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 flex-1">
               <div className="space-y-1">
-                <label className="block text-[11px] font-medium text-slate-300">
-                  Arama (Lokasyon / Açıklama)
-                </label>
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Örn: Bakım Atölyesi"
+                <label className="block text-[11px] font-medium text-slate-300">Lokasyon</label>
+                <select
+                  value={locationFilter}
+                  onChange={(e) => setLocationFilter(e.target.value)}
                   className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
-                />
+                >
+                  <option value="">Tümü</option>
+                  {locations.map((loc) => (
+                    <option key={loc.id} value={loc.name}>{loc.name}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="space-y-1">
@@ -600,6 +611,7 @@ export default function FiveSFindingsListPage() {
                   <th className="px-4 py-2">Faaliyet</th>
                   <th className="px-4 py-2">Termin</th>
                   <th className="px-4 py-2">Sorumlu</th>
+                  <th className="px-4 py-2">Denetçi</th>
                   <th className="px-4 py-2">Foto (Önce)</th>
                   <th className="px-4 py-2">Foto (Sonra)</th>
                 </tr>
@@ -608,7 +620,7 @@ export default function FiveSFindingsListPage() {
               <tbody>
                 {rows.length === 0 && !loading && (
                   <tr>
-                    <td colSpan={10} className="px-4 py-6 text-center text-xs text-slate-400">
+                    <td colSpan={11} className="px-4 py-6 text-center text-xs text-slate-400">
                       Gösterilecek bulgu bulunamadı.
                     </td>
                   </tr>
@@ -706,6 +718,8 @@ export default function FiveSFindingsListPage() {
                       </td>
 
                       <td className="px-4 py-2 text-[11px]">{f.responsible_name || "-"}</td>
+
+                      <td className="px-4 py-2 text-[11px] text-slate-300">{f.auditor_name || "-"}</td>
 
                       {/* Foto (Önce) */}
                       <td className="px-3 py-2">

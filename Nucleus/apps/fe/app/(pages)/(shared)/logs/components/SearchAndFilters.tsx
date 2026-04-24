@@ -36,7 +36,7 @@ export function SearchAndFilters({
             />
             <input
               type="text"
-              placeholder="Search logs by entity name, summary, IP address..."
+              placeholder="Varlık adı, özet veya IP adresiyle log ara..."
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -52,7 +52,7 @@ export function SearchAndFilters({
             }`}
           >
             <Filter size={16} />
-            Filters
+            Filtreler
           </button>
         </div>
 
@@ -64,12 +64,12 @@ export function SearchAndFilters({
                 htmlFor="entity-name-filter"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                Entity Name
+                Varlık Adı
               </label>
               <input
                 id="entity-name-filter"
                 type="text"
-                placeholder="Filter by entity"
+                placeholder="Varlığa göre filtrele"
                 value={filters.entity_name}
                 onChange={(e) => onFilterChange('entity_name', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -80,7 +80,7 @@ export function SearchAndFilters({
                 htmlFor="operation-type-filter"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                Operation Type
+                İşlem Türü
               </label>
               <select
                 id="operation-type-filter"
@@ -88,11 +88,11 @@ export function SearchAndFilters({
                 onChange={(e) => onFilterChange('operation_type', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="">All Operations</option>
-                <option value="INSERT">Create</option>
-                <option value="UPDATE">Update</option>
-                <option value="DELETE">Delete</option>
-                <option value="SOFT_DELETE">Soft Delete</option>
+                <option value="">Tüm İşlemler</option>
+                <option value="INSERT">Oluştur</option>
+                <option value="UPDATE">Güncelle</option>
+                <option value="DELETE">Sil</option>
+                <option value="SOFT_DELETE">Yumuşak Sil</option>
               </select>
             </div>
             <div>
@@ -100,12 +100,12 @@ export function SearchAndFilters({
                 htmlFor="user-id-filter"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                User ID
+                Kullanıcı ID
               </label>
               <input
                 id="user-id-filter"
                 type="text"
-                placeholder="Filter by user"
+                placeholder="Kullanıcıya göre filtrele"
                 value={filters.user_id}
                 onChange={(e) => onFilterChange('user_id', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -116,12 +116,12 @@ export function SearchAndFilters({
                 htmlFor="entity-id-filter"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                Entity ID
+                Varlık ID
               </label>
               <input
                 id="entity-id-filter"
                 type="text"
-                placeholder="Filter by entity ID"
+                placeholder="Varlık ID'ye göre filtrele"
                 value={filters.entity_id}
                 onChange={(e) => onFilterChange('entity_id', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
