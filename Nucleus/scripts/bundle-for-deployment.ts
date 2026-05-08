@@ -3,7 +3,7 @@
  * Bundle script for Windows deployment
  * Creates a self-contained deployment package
  *
- * Usage: bun run scripts/bundle-for-deployment.ts
+ * Usage: bun run scripts/bundle-for-deployment.ts [--api-url=http://SERVER_IP:1001]
  */
 
 import { $ } from 'bun'
@@ -15,8 +15,17 @@ const DIST = join(ROOT, 'dist-deployment')
 const REQUIRED_PACKAGES = join(ROOT, '../required_packages')
 const RESET_DB_SRC = join(ROOT, 'scripts/reset-db.ts')
 
+// --api-url=http://172.26.16.27:1001 argümanını oku
+const apiUrlArg = Bun.argv.find((a) => a.startsWith('--api-url='))
+const SERVER_API_URL = apiUrlArg ? apiUrlArg.split('=').slice(1).join('=') : null
+
 async function main() {
   console.log('🚀 Starting deployment bundle...\n')
+  if (SERVER_API_URL) {
+    console.log(`🌐 Server API URL: ${SERVER_API_URL}`)
+  } else {
+    console.warn('⚠️  --api-url not provided. NEXT_PUBLIC_API_URL will use value from apps/fe/.env')
+  }
 
   // Clean previous build
   if (existsSync(DIST)) {
@@ -27,7 +36,10 @@ async function main() {
 
   // Step 1: Build Frontend (Next.js standalone)
   console.log('\n📦 Building Frontend (Next.js standalone)...')
-  await $`bun run --cwd ${join(ROOT, 'apps/fe')} build`.quiet()
+  const buildEnv = SERVER_API_URL
+    ? { ...process.env, NEXT_PUBLIC_API_URL: SERVER_API_URL, NEXT_PUBLIC_AUTH_API_URL: SERVER_API_URL }
+    : process.env
+  await $`bun run --cwd ${join(ROOT, 'apps/fe')} build`.env(buildEnv).quiet()
 
   const standaloneDir = join(ROOT, 'apps/fe/.next/standalone')
   const staticDir = join(ROOT, 'apps/fe/.next/static')
@@ -173,12 +185,20 @@ async function main() {
 
   if (existsSync(feEnvSource)) {
     cpSync(feEnvSource, join(DIST, 'frontend/.env'))
+    if (SERVER_API_URL) {
+      const envContent = Bun.file(join(DIST, 'frontend/.env'))
+      let envText = await envContent.text()
+      envText = envText.replace(/^NEXT_PUBLIC_API_URL=.*$/m, `NEXT_PUBLIC_API_URL=${SERVER_API_URL}`)
+      envText = envText.replace(/^NEXT_PUBLIC_AUTH_API_URL=.*$/m, `NEXT_PUBLIC_AUTH_API_URL=${SERVER_API_URL}`)
+      writeFileSync(join(DIST, 'frontend/.env'), envText)
+    }
     console.log('   ✅ Frontend .env copied')
   } else {
     console.warn('   ⚠️  Frontend .env not found - creating template')
+    const publicUrl = SERVER_API_URL ?? 'http://localhost:1001'
     writeFileSync(
       join(DIST, 'frontend/.env'),
-      `NEXT_PUBLIC_API_URL=http://localhost:1001\nAUTH_API_URL=http://localhost:1001\n`
+      `NEXT_PUBLIC_API_URL=${publicUrl}\nNEXT_PUBLIC_AUTH_API_URL=${publicUrl}\nAUTH_API_URL=http://localhost:1001\n`
     )
   }
 
