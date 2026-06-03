@@ -1,5 +1,6 @@
 export * from './BuildPayloadTemplate'
 export * from './Cn'
 export * from './FormatJson'
+export * from './StatusLabels'
 export * from './UnwrapProxy'
 export * from './ValidateParsedMail'

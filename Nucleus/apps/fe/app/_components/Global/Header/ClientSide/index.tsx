@@ -1160,7 +1160,7 @@ export function ClientSide({
                     type="button"
                   >
                     <LogOut size={16} />
-                    <span>Logout</span>
+                    <span>Çıkış Yap</span>
                   </button>
                 </div>
               </div>

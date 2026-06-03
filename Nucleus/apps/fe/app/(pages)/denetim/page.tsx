@@ -8,6 +8,7 @@ import { useGetUserRole } from '@/app/_hooks/user/useGetUserRole'
 import { UploadedFileInfo, useUploadAnswerPhoto } from '../bulgular/hooks/useUploadAnswersPhoto'
 import { Question, questions as FALLBACK_QUESTIONS, StepCode, steps as FALLBACK_STEPS, Step } from './constants'
 import { DateInput } from '@/app/_components/DateInput'
+import { findingStatusLabelTr } from '@/app/_utils/StatusLabels'
 
 /* ───────────────────────────── Types ───────────────────────────── */
 type Rating = 'good' | 'medium' | 'bad'
@@ -275,6 +276,13 @@ function makeUid(prefix = 'local') {
   return `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`
 }
 
+function isUuid(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
+  )
+}
+
 /* ───────────────────────────── Offline Dexie ───────────────────────────── */
 /**
  * ✅ Tek dosyada “offline queue + draft”:
@@ -302,7 +310,7 @@ type OfflineFindingPayload = {
   action_to_take: string
   due_date?: string
   responsible_name: string
-  responsible_user_id?: string | null // Madde 26
+  responsible_user_id?: string | null
   auditor_name?: string
   // photo_before_files, primary vs syncte hesaplanacak
   // photo blobs eşleşmesi: submissionPhoto table
@@ -402,6 +410,7 @@ export default function FiveSAuditFormPage() {
   const [activeDetailQuestionId, setActiveDetailQuestionId] = useState<string | null>(null)
 
   const [singleFindingOpen, setSingleFindingOpen] = useState(false)
+  const [auditorMenuOpen, setAuditorMenuOpen] = useState(false)
   const [singleFinding, setSingleFinding] = useState<{
     findingType: FindingType | ''
     explanation: string
@@ -422,23 +431,23 @@ export default function FiveSAuditFormPage() {
   const [assignedPlan, setAssignedPlan] = useState<PlanRow | null>(null)
   const [currentUserId, setCurrentUserId] = useState<string>('')
 
-  // Madde 17: çoklu plan seçimi
   const [availablePlans, setAvailablePlans] = useState<PlanRow[]>([])
   const [planSelectionMode, setPlanSelectionMode] = useState(false)
   const [planMetaMap, setPlanMetaMap] = useState<Record<string, { locationName: string; teamName: string }>>({})
 
-  // Madde 15: eksik soru işaretleme
   const [missingQuestions, setMissingQuestions] = useState<Set<string>>(new Set())
 
-  // Madde 18: ekip üyesi dropdown
   const [teamMemberOptions, setTeamMemberOptions] = useState<Array<{ id: string; name: string }>>([])
+  const assignmentDataRef = useRef<{
+    members: TeamMemberRowLite[]
+    teams: TeamRow[]
+    usersById: Map<string, string>
+  }>({ members: [], teams: [], usersById: new Map() })
 
-  // Madde 26: lokasyon → sorumlu user eşlemesi (key: normLoc(name))
   const [locationResponsibleMap, setLocationResponsibleMap] = useState<
     Map<string, { userId: string; userName: string }>
   >(new Map())
 
-  // Madde 25: plan tamamlama
   const [planUpdateKey] = useState(() => PLAN_KEYS.UPDATE)
 
   const [findingsLoading, setFindingsLoading] = useState(false)
@@ -479,7 +488,7 @@ export default function FiveSAuditFormPage() {
     if (roleLoading) return false
     const norm = (v: string) => (v ?? '').trim().toLowerCase().replace(/\s+/g, ' ')
     const all = [roleName ?? '', ...(roles ?? []).map((r) => r.name ?? '')].map(norm)
-    return all.includes(norm('content manager core team')) || all.includes(norm('manager'))
+    return all.includes(norm('content manager core team')) || all.includes(norm('manager')) || all.includes(norm('auditor'))
   }, [roleName, roles, roleLoading])
 
   const stepScores = useMemo(() => {
@@ -546,6 +555,20 @@ export default function FiveSAuditFormPage() {
 
   const handleHeaderChange = (field: keyof AuditFormHeader, value: string) => {
     setHeader((prev) => ({ ...prev, [field]: value }))
+  }
+
+  // Denetime aktif katılan denetçiler (çoklu seçim) — header.auditorName virgülle ayrılmış isimler
+  const selectedAuditors = useMemo(
+    () =>
+      header.auditorName
+        ? header.auditorName.split(',').map((s) => s.trim()).filter(Boolean)
+        : [],
+    [header.auditorName]
+  )
+  const toggleAuditor = (name: string) => {
+    const exists = selectedAuditors.includes(name)
+    const next = exists ? selectedAuditors.filter((n) => n !== name) : [...selectedAuditors, name]
+    handleHeaderChange('auditorName', next.join(', '))
   }
 
   const handleRatingChange = (questionId: string, rating: Rating) => {
@@ -755,6 +778,7 @@ export default function FiveSAuditFormPage() {
         try {
           // 1) create audit
           const auditResp = await startAsPromise(startAudit, {
+            disableAutoRedirect: true,
             payload: {
               department_name: s.auditPayload.department_name,
               auditor_name: s.auditPayload.auditor_name,
@@ -802,9 +826,11 @@ export default function FiveSAuditFormPage() {
             const beforeArr = toPhotoArr(uploaded)
 
             await startAsPromise(startFinding, {
+              disableAutoRedirect: true,
               payload: {
                 audit_id: auditId,
-                client_finding_id: f.client_finding_id,
+                // Eski kuyruktaki geçersiz (UUID olmayan) id'leri temizle
+                client_finding_id: isUuid(f.client_finding_id) ? f.client_finding_id : crypto.randomUUID(),
                 detected_date: f.detected_date,
                 location_name: f.location_name,
                 finding_type: f.finding_type,
@@ -982,10 +1008,8 @@ export default function FiveSAuditFormPage() {
         .sort((a, b) => a.localeCompare(b, 'tr'))
       setLocationNameOptions(locNames)
 
-      // Madde 26: lokasyon → saha sorumlusu haritası (usersById aşağıda doluyor; buraya sonradan set ediyoruz)
       const pendingLocRespMap = new Map<string, { userId: string; userName: string }>()
 
-      // Madde 18: kullanıcı isim haritası
       const usersById = new Map<string, string>()
       for (const u of extractArray(usersResp)) {
         const id = String(u?.id ?? '')
@@ -997,7 +1021,6 @@ export default function FiveSAuditFormPage() {
       // Mevcut kullanıcıyı da ekle (fallback)
       if (uidVal && auditorFallback) usersById.set(uidVal, auditorFallback)
 
-      // Madde 26: lokasyon saha sorumlusu haritasını tamamla
       for (const l of locs) {
         if (!l?.is_active || !l?.name) continue
         const ids: string[] = Array.isArray((l as any).field_manager_user_ids)
@@ -1010,6 +1033,8 @@ export default function FiveSAuditFormPage() {
         }
       }
       setLocationResponsibleMap(new Map(pendingLocRespMap))
+
+      assignmentDataRef.current = { members, teams, usersById }
 
       const memberSetByTeam = new Map<string, Set<string>>()
       for (const m of members) {
@@ -1042,7 +1067,6 @@ export default function FiveSAuditFormPage() {
         return
       }
 
-      // Madde 17: plan meta haritası (lokasyon + ekip adı)
       const metaMap: Record<string, { locationName: string; teamName: string }> = {}
       for (const p of matched) {
         metaMap[p.id] = {
@@ -1052,7 +1076,6 @@ export default function FiveSAuditFormPage() {
       }
       setPlanMetaMap(metaMap)
 
-      // Madde 17: Birden fazla plan varsa seçim moduna geç
       if (matched.length > 1) {
         setAvailablePlans(matched)
         setPlanSelectionMode(true)
@@ -1066,7 +1089,6 @@ export default function FiveSAuditFormPage() {
       const teamName = metaMap[chosen.id]?.teamName ?? ''
       const locName = metaMap[chosen.id]?.locationName ?? ''
 
-      // Madde 18: seçili ekibin üyelerini doldur
       const memberOpts = buildTeamMemberOptions(chosen.assigned_team_id, members, teams, usersById)
       setTeamMemberOptions(memberOpts)
 
@@ -1089,7 +1111,6 @@ export default function FiveSAuditFormPage() {
     }
   }
 
-  // Madde 17: Kullanıcı bir plan seçince çağrılır
   const selectPlan = async (plan: PlanRow) => {
     setPlanSelectionMode(false)
     setAssignedPlan(plan)
@@ -1102,6 +1123,11 @@ export default function FiveSAuditFormPage() {
       auditorName: header.auditorName,
     }
     setHeader(nextHeader)
+
+    const { members, teams, usersById } = assignmentDataRef.current
+    const memberOpts = buildTeamMemberOptions(plan.assigned_team_id, members, teams, usersById)
+    setTeamMemberOptions(memberOpts)
+
     await tryRestoreDraft(plan.id, nextHeader)
   }
 
@@ -1295,7 +1321,7 @@ export default function FiveSAuditFormPage() {
                   <td className="px-3 py-2 text-[11px] text-slate-400">{f.finding_no ?? idx + 1}</td>
                   <td className="px-3 py-2 text-[11px] text-slate-300">{String(f.detected_date ?? '-')}</td>
                   <td className="px-3 py-2">{String(f.finding_type ?? '-')}</td>
-                  <td className="px-3 py-2 text-[11px] text-slate-300">{String(f.status ?? '-')}</td>
+                  <td className="px-3 py-2 text-[11px] text-slate-300">{findingStatusLabelTr(f.status)}</td>
                   <td className="px-3 py-2 text-[11px] text-slate-300">{String(f.due_date ?? '-')}</td>
                   <td className="px-3 py-2 text-[11px] text-slate-300">{String(f.responsible_name ?? '-')}</td>
                   <td className="px-3 py-2">
@@ -1367,7 +1393,7 @@ export default function FiveSAuditFormPage() {
 
       findingsPayload.push({
         questionId: ans.questionId,
-        client_finding_id: makeUid('fid'),
+        client_finding_id: crypto.randomUUID(),
         detected_date: detectedDate,
         location_name: effectiveLocationName,
         finding_type: ans.findingType,
@@ -1411,6 +1437,8 @@ export default function FiveSAuditFormPage() {
   }
 
   const markPlanCompleted = async (planId: string, auditId: string) => {
+    // Tamamlanan planı yerel listeden çıkar; tekrar görünüp seçilememeli
+    setAvailablePlans((prev) => prev.filter((p) => p.id !== planId))
     try {
       const A = actions as any
       const startUpdate = safeStart(A, planUpdateKey)
@@ -1503,6 +1531,15 @@ export default function FiveSAuditFormPage() {
           if (nonGoodAnswers.length === 0) {
             setSubmitted(true)
             await clearDraft(assignedPlan?.id ?? null, header)
+
+            if (assignedPlan?.id && auditId) {
+              await markPlanCompleted(assignedPlan.id, auditId)
+            }
+
+            // Kayıt tamamlandıktan sonra denetim sayfasını yenile
+            if (typeof window !== 'undefined') {
+              window.location.reload()
+            }
             return
           }
 
@@ -1563,13 +1600,17 @@ export default function FiveSAuditFormPage() {
           setSubmitted(true)
           await clearDraft(assignedPlan?.id ?? null, header)
 
-          // Madde 25: planı "completed" olarak işaretle
           if (assignedPlan?.id && auditId) {
             await markPlanCompleted(assignedPlan.id, auditId)
           }
 
           fetchFindings(header.department)
           console.log('Audit + findings (+ photos) başarıyla kaydedildi.')
+
+          // Kayıt tamamlandıktan sonra denetim sayfasını yenile
+          if (typeof window !== 'undefined') {
+            window.location.reload()
+          }
         },
       })
     } catch (err) {
@@ -1656,7 +1697,7 @@ export default function FiveSAuditFormPage() {
         findings: [
           {
             questionId: 'SINGLE',
-            client_finding_id: makeUid('fid'),
+            client_finding_id: crypto.randomUUID(),
             detected_date: header.date,
             location_name: loc || 'Bilinmeyen Lokasyon',
             finding_type: singleFinding.findingType,
@@ -1790,6 +1831,254 @@ export default function FiveSAuditFormPage() {
     }
   }
 
+  const singleFindingModal = singleFindingOpen && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+      <div className="w-full max-w-lg rounded-xl border border-slate-700 bg-slate-900 p-4 shadow-2xl md:p-6 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-100">Tekil Bulgu Girişi</h3>
+            <p className="mt-1 text-[11px] text-slate-400">
+              {assignedPlan
+                ? 'Denetim sırasında ek tekil bulgu kaydedebilirsiniz. Bir soruya bağlamak opsiyoneldir.'
+                : 'Denetim planı olmasa bile (sadece yetkili rol) tekil bir 5S bulgusunu burada kaydedebilirsiniz.'}
+            </p>
+            <p className="mt-1 text-[11px] text-slate-500">
+              Durum:{' '}
+              <span className={isOnline ? 'text-emerald-300' : 'text-amber-300'}>
+                {isOnline ? 'Online' : 'Offline'}
+              </span>
+              {queuedCount > 0 ? <span className="ml-2">• Kuyruk: {queuedCount}</span> : null}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={closeSingleFindingModal}
+            className="text-sm text-slate-400 hover:text-slate-200"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="mt-4 space-y-4 text-xs">
+          <div>
+            <label className="mb-1 block font-medium text-slate-300">
+              Denetimi Yapan <span className="text-rose-400">(zorunlu)</span>
+            </label>
+            <input
+              type="text"
+              value={header.auditorName}
+              onChange={(e) => handleHeaderChange('auditorName', e.target.value)}
+              className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+              placeholder="İsim Soyisim"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block font-medium text-slate-300">Ekip</label>
+            <input
+              type="text"
+              value={header.teamName || 'Content Manager Core Team'}
+              readOnly
+              className="w-full rounded-md border border-slate-700 bg-slate-950/40 px-2 py-1.5 text-xs text-slate-200 opacity-90"
+            />
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block font-medium text-slate-300">
+                Lokasyon <span className="text-rose-400">(zorunlu)</span>
+              </label>
+
+              <select
+                value={header.department}
+                onChange={(e) => handleHeaderChange('department', e.target.value)}
+                className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+              >
+                <option value="">Seçiniz</option>
+                {locationNameOptions.length === 0 ? (
+                  <option value="" disabled>
+                    Yükleniyor...
+                  </option>
+                ) : (
+                  locationNameOptions.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1 block font-medium text-slate-300">
+                Tarih <span className="text-rose-400">(zorunlu)</span>
+              </label>
+              <DateInput
+                value={header.date}
+                onChange={(value) => handleHeaderChange('date', value)}
+                className="date-dark w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1 block font-medium text-slate-300">
+              Bulgu Tipi <span className="text-rose-400">(zorunlu)</span>
+            </label>
+            <select
+              value={singleFinding.findingType}
+              onChange={(e) => handleSingleFindingFieldChange('findingType', e.target.value as FindingType | '')}
+              className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+            >
+              <option value="">Seçiniz</option>
+              {findingTypeOptions.length === 0 ? (
+                <option value="" disabled>
+                  Yükleniyor...
+                </option>
+              ) : (
+                findingTypeOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))
+              )}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-1 block font-medium text-slate-300">
+              Bağlı Soru <span className="text-slate-500">(opsiyonel)</span>
+            </label>
+            <select
+              value={singleFinding.linkedQuestionId}
+              onChange={(e) => handleSingleFindingFieldChange('linkedQuestionId', e.target.value)}
+              className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+            >
+              <option value="">Seçiniz (bağlamak istemiyorsanız boş bırakın)</option>
+              {questions.map((q) => (
+                <option key={q.id} value={q.id}>
+                  {q.id} — {q.text.length > 80 ? q.text.slice(0, 80) + '…' : q.text}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-1 block font-medium text-slate-300">
+              Açıklama <span className="text-rose-400">(zorunlu)</span>
+            </label>
+            <textarea
+              rows={3}
+              value={singleFinding.explanation}
+              onChange={(e) => handleSingleFindingFieldChange('explanation', e.target.value)}
+              className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+              placeholder="Kısa açıklama girin..."
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block font-medium text-slate-300">Fotoğraflar</label>
+
+            <div className="flex items-center gap-2">
+              <label className="inline-flex flex-1 cursor-pointer items-center justify-center rounded-md border border-slate-600 bg-slate-950/70 px-3 py-1.5 text-[11px] hover:bg-slate-800">
+                Fotoğraf(lar) Ekle
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    handleSingleFindingPhotosAdd(e.target.files)
+                    e.currentTarget.value = ''
+                  }}
+                />
+              </label>
+            </div>
+
+            {(singleFinding.photos?.length ?? 0) > 0 ? (
+              <ul className="mt-2 space-y-1">
+                {singleFinding.photos.map((f, i) => (
+                  <li
+                    key={`${f.name}-${f.size}-${f.lastModified}-${i}`}
+                    className="flex items-center justify-between gap-2 rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1"
+                  >
+                    <span className="truncate text-[11px] text-slate-300">
+                      {i + 1}. {f.name}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleSingleFindingPhotoRemove(i)}
+                      className="rounded-md border border-slate-700 px-2 py-0.5 text-[10px] text-slate-200 hover:bg-slate-800"
+                    >
+                      Sil
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2 text-[11px] text-slate-500">Henüz fotoğraf eklenmedi.</p>
+            )}
+          </div>
+
+          <div>
+            <label className="mb-1 block font-medium text-slate-300">
+              Alınacak Faaliyet <span className="text-rose-400">(zorunlu)</span>
+            </label>
+            <select
+              value={singleFinding.actionToTake}
+              onChange={(e) =>
+                handleSingleFindingFieldChange('actionToTake', e.target.value as ActionToTake | '')
+              }
+              className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+            >
+              <option value="">Seçiniz</option>
+              {actionToTakeOptions.length === 0 ? (
+                <option value="" disabled>
+                  Yükleniyor...
+                </option>
+              ) : (
+                actionToTakeOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))
+              )}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-1 block font-medium text-slate-300">
+              Termin Tarihi <span className="text-rose-400">(zorunlu)</span>
+            </label>
+            <DateInput
+              value={singleFinding.dueDate || header.date}
+              onChange={(value) => handleSingleFindingFieldChange('dueDate', value)}
+              className="date-dark w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+            />
+          </div>
+        </div>
+
+        <div className="mt-5 flex justify-end gap-2 text-xs">
+          <button
+            type="button"
+            onClick={closeSingleFindingModal}
+            className="rounded-md border border-slate-600 px-4 py-1.5 text-slate-200 hover:bg-slate-800"
+          >
+            İptal
+          </button>
+          <button
+            type="button"
+            onClick={handleSingleFindingSave}
+            className="rounded-md bg-emerald-500 px-4 py-1.5 font-semibold text-slate-950 hover:bg-emerald-400"
+          >
+            Kaydet
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+
   /* ───────────────────────────── Render ───────────────────────────── */
   if (assignmentLoading) {
     return (
@@ -1801,7 +2090,6 @@ export default function FiveSAuditFormPage() {
     )
   }
 
-  // Madde 17: Çoklu plan seçim ekranı
   if (planSelectionMode && availablePlans.length > 1) {
     return (
       <div className="min-h-screen bg-slate-950 text-slate-50 px-4 py-10 md:px-8">
@@ -1901,256 +2189,7 @@ export default function FiveSAuditFormPage() {
           {header.department?.trim() ? FindingsPanel : null}
         </div>
 
-        {/* Tekil Bulgu Modal */}
-        {singleFindingOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-            <div className="w-full max-w-lg rounded-xl border border-slate-700 bg-slate-900 p-4 shadow-2xl md:p-6">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h3 className="text-sm font-semibold text-slate-100">Tekil Bulgu Girişi</h3>
-                  <p className="mt-1 text-[11px] text-slate-400">
-                    {assignedPlan
-                      ? 'Denetim sırasında ek tekil bulgu kaydedebilirsiniz. Bir soruya bağlamak opsiyoneldir.'
-                      : 'Denetim planı olmasa bile (sadece yetkili rol) tekil bir 5S bulgusunu burada kaydedebilirsiniz.'}
-                  </p>
-                  <p className="mt-1 text-[11px] text-slate-500">
-                    Durum:{' '}
-                    <span className={isOnline ? 'text-emerald-300' : 'text-amber-300'}>
-                      {isOnline ? 'Online' : 'Offline'}
-                    </span>
-                    {queuedCount > 0 ? <span className="ml-2">• Kuyruk: {queuedCount}</span> : null}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={closeSingleFindingModal}
-                  className="text-sm text-slate-400 hover:text-slate-200"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="mt-4 space-y-4 text-xs">
-                <div>
-                  <label className="mb-1 block font-medium text-slate-300">
-                    Denetimi Yapan <span className="text-rose-400">(zorunlu)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={header.auditorName}
-                    onChange={(e) => handleHeaderChange('auditorName', e.target.value)}
-                    className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
-                    placeholder="İsim Soyisim"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1 block font-medium text-slate-300">Ekip</label>
-                  <input
-                    type="text"
-                    value={header.teamName || 'Content Manager Core Team'}
-                    readOnly
-                    className="w-full rounded-md border border-slate-700 bg-slate-950/40 px-2 py-1.5 text-xs text-slate-200 opacity-90"
-                  />
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-1 block font-medium text-slate-300">
-                      Lokasyon <span className="text-rose-400">(zorunlu)</span>
-                    </label>
-
-                    <select
-                      value={header.department}
-                      onChange={(e) => handleHeaderChange('department', e.target.value)}
-                      className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
-                    >
-                      <option value="">Seçiniz</option>
-                      {locationNameOptions.length === 0 ? (
-                        <option value="" disabled>
-                          Yükleniyor...
-                        </option>
-                      ) : (
-                        locationNameOptions.map((name) => (
-                          <option key={name} value={name}>
-                            {name}
-                          </option>
-                        ))
-                      )}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="mb-1 block font-medium text-slate-300">
-                      Tarih <span className="text-rose-400">(zorunlu)</span>
-                    </label>
-                    <DateInput
-                   
-                      value={header.date}
-                      onChange={(value) => handleHeaderChange('date',  value)}
-                      className="date-dark w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
-/>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="mb-1 block font-medium text-slate-300">
-                    Bulgu Tipi <span className="text-rose-400">(zorunlu)</span>
-                  </label>
-                  <select
-                    value={singleFinding.findingType}
-                    onChange={(e) => handleSingleFindingFieldChange('findingType', e.target.value as FindingType | '')}
-                    className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
-                  >
-                    <option value="">Seçiniz</option>
-                    {findingTypeOptions.length === 0 ? (
-                      <option value="" disabled>
-                        Yükleniyor...
-                      </option>
-                    ) : (
-                      findingTypeOptions.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))
-                    )}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="mb-1 block font-medium text-slate-300">
-                    Bağlı Soru <span className="text-slate-500">(opsiyonel)</span>
-                  </label>
-                  <select
-                    value={singleFinding.linkedQuestionId}
-                    onChange={(e) => handleSingleFindingFieldChange('linkedQuestionId', e.target.value)}
-                    className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
-                  >
-                    <option value="">Seçiniz (bağlamak istemiyorsanız boş bırakın)</option>
-                    {questions.map((q) => (
-                      <option key={q.id} value={q.id}>
-                        {q.id} — {q.text.length > 80 ? q.text.slice(0, 80) + '…' : q.text}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="mb-1 block font-medium text-slate-300">
-                    Açıklama <span className="text-rose-400">(zorunlu)</span>
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={singleFinding.explanation}
-                    onChange={(e) => handleSingleFindingFieldChange('explanation', e.target.value)}
-                    className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
-                    placeholder="Kısa açıklama girin..."
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1 block font-medium text-slate-300">Fotoğraflar</label>
-
-                  <div className="flex items-center gap-2">
-                    <label className="inline-flex flex-1 cursor-pointer items-center justify-center rounded-md border border-slate-600 bg-slate-950/70 px-3 py-1.5 text-[11px] hover:bg-slate-800">
-                      Fotoğraf(lar) Ekle
-                      <input
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        multiple
-                        className="hidden"
-                        onChange={(e) => {
-                          handleSingleFindingPhotosAdd(e.target.files)
-                          e.currentTarget.value = ''
-                        }}
-                      />
-                    </label>
-                  </div>
-
-                  {(singleFinding.photos?.length ?? 0) > 0 ? (
-                    <ul className="mt-2 space-y-1">
-                      {singleFinding.photos.map((f, i) => (
-                        <li
-                          key={`${f.name}-${f.size}-${f.lastModified}-${i}`}
-                          className="flex items-center justify-between gap-2 rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1"
-                        >
-                          <span className="truncate text-[11px] text-slate-300">
-                            {i + 1}. {f.name}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleSingleFindingPhotoRemove(i)}
-                            className="rounded-md border border-slate-700 px-2 py-0.5 text-[10px] text-slate-200 hover:bg-slate-800"
-                          >
-                            Sil
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-2 text-[11px] text-slate-500">Henüz fotoğraf eklenmedi.</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="mb-1 block font-medium text-slate-300">
-                    Alınacak Faaliyet <span className="text-rose-400">(zorunlu)</span>
-                  </label>
-                  <select
-                    value={singleFinding.actionToTake}
-                    onChange={(e) =>
-                      handleSingleFindingFieldChange('actionToTake', e.target.value as ActionToTake | '')
-                    }
-                    className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
-                  >
-                    <option value="">Seçiniz</option>
-                    {actionToTakeOptions.length === 0 ? (
-                      <option value="" disabled>
-                        Yükleniyor...
-                      </option>
-                    ) : (
-                      actionToTakeOptions.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))
-                    )}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="mb-1 block font-medium text-slate-300">
-                    Termin Tarihi <span className="text-rose-400">(zorunlu)</span>
-                  </label>
-                  <DateInput
-                    value={singleFinding.dueDate || header.date}
-                    onChange={(value) => handleSingleFindingFieldChange('dueDate',  value)}
-                    className="date-dark w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
-/>
-                </div>
-              </div>
-
-              <div className="mt-5 flex justify-end gap-2 text-xs">
-                <button
-                  type="button"
-                  onClick={closeSingleFindingModal}
-                  className="rounded-md border border-slate-600 px-4 py-1.5 text-slate-200 hover:bg-slate-800"
-                >
-                  İptal
-                </button>
-                <button
-                  type="button"
-                   disabled={(singleFinding.photos?.length ?? 0) === 0}
-                  onClick={handleSingleFindingSave}
-                  className="rounded-md bg-emerald-500 px-4 py-1.5 font-semibold text-slate-950 hover:bg-emerald-400"
-                >
-                  Kaydet
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {singleFindingModal}
 
         {/* Bulgu Detay Modal */}
         {activeFinding && (
@@ -2299,6 +2338,15 @@ export default function FiveSAuditFormPage() {
             </div>
 
             <div className="flex flex-col gap-2 items-stretch md:items-end">
+              {canCreateSingleFinding && (
+                <button
+                  type="button"
+                  onClick={openSingleFindingModal}
+                  className="inline-flex items-center justify-center rounded-md bg-emerald-500 px-3 py-2 text-xs font-semibold text-slate-950 hover:bg-emerald-400"
+                >
+                  Tekil Bulgu +
+                </button>
+              )}
               <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end">
                 <div className="flex flex-col items-start gap-1 rounded-xl bg-slate-900/70 px-4 py-3 text-sm sm:items-end">
                   <span className="text-slate-400">Toplam Puan</span>
@@ -2350,16 +2398,39 @@ export default function FiveSAuditFormPage() {
               <div className="space-y-1">
                 <label className="block text-xs font-medium text-slate-300">Denetimi Yapan</label>
                 {teamMemberOptions.length > 0 ? (
-                  <select
-                    value={header.auditorName}
-                    onChange={(e) => handleHeaderChange('auditorName', e.target.value)}
-                    className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
-                  >
-                    <option value="">Seçiniz</option>
-                    {teamMemberOptions.map((m) => (
-                      <option key={m.id} value={m.name}>{m.name}</option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setAuditorMenuOpen((o) => !o)}
+                      className="flex w-full items-center justify-between rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-left text-sm outline-none focus:border-sky-400"
+                    >
+                      <span className={selectedAuditors.length ? 'text-slate-100' : 'text-slate-500'}>
+                        {selectedAuditors.length ? selectedAuditors.join(', ') : 'Seçiniz'}
+                      </span>
+                      <span className="ml-2 text-slate-500">▾</span>
+                    </button>
+                    {auditorMenuOpen && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setAuditorMenuOpen(false)} />
+                        <div className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-md border border-slate-700 bg-slate-900 shadow-xl">
+                          {teamMemberOptions.map((m) => (
+                            <label
+                              key={m.id}
+                              className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-slate-800"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedAuditors.includes(m.name)}
+                                onChange={() => toggleAuditor(m.name)}
+                                className="accent-emerald-500"
+                              />
+                              <span>{m.name}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
                 ) : (
                   <input
                     type="text"
@@ -2369,6 +2440,7 @@ export default function FiveSAuditFormPage() {
                     placeholder="İsim Soyisim"
                   />
                 )}
+                <p className="text-[10px] text-slate-500">Denetime aktif katılan denetçileri seçin (birden fazla seçilebilir).</p>
               </div>
 
               <div className="space-y-1">
@@ -3003,6 +3075,8 @@ export default function FiveSAuditFormPage() {
             </div>
           </div>
         )}
+
+        {singleFindingModal}
       </div>
     </div>
   )

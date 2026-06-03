@@ -25,8 +25,20 @@ export function LocationsPanel(props: {
     const [name, setName] = React.useState("");
     const [isActive, setIsActive] = React.useState(true);
     const [managerUserId, setManagerUserId] = React.useState<string>("");
-    const [fieldManagerUserId, setFieldManagerUserId] = React.useState<string>("");
+    const [fieldManagerUserIds, setFieldManagerUserIds] = React.useState<string[]>([]);
+    const [fmDropdownOpen, setFmDropdownOpen] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
+    const fmDropdownRef = React.useRef<HTMLDivElement>(null);
+
+    React.useEffect(() => {
+        function handleClickOutside(e: MouseEvent) {
+            if (fmDropdownRef.current && !fmDropdownRef.current.contains(e.target as Node)) {
+                setFmDropdownOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     const filtered = React.useMemo(() => {
         const query = normalizeName(q).toLowerCase();
@@ -46,7 +58,8 @@ export function LocationsPanel(props: {
         setName("");
         setIsActive(true);
         setManagerUserId("");
-        setFieldManagerUserId("");
+        setFieldManagerUserIds([]);
+        setFmDropdownOpen(false);
         setError(null);
         setOpen(true);
     }
@@ -57,9 +70,16 @@ export function LocationsPanel(props: {
         setName(it.name);
         setIsActive(it.isActive);
         setManagerUserId(it.managerUserId ?? "");
-        setFieldManagerUserId(it.fieldManagerUserIds?.[0] ?? "");
+        setFieldManagerUserIds(it.fieldManagerUserIds ?? []);
+        setFmDropdownOpen(false);
         setError(null);
         setOpen(true);
+    }
+
+    function toggleFieldManager(userId: string) {
+        setFieldManagerUserIds((prev) =>
+            prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+        );
     }
 
     function submit() {
@@ -69,7 +89,7 @@ export function LocationsPanel(props: {
         const payload = {
             name: n,
             managerUserId: managerUserId || null,
-            fieldManagerUserIds: fieldManagerUserId ? [fieldManagerUserId] : [],
+            fieldManagerUserIds,
         };
 
         if (mode === "create") {
@@ -190,7 +210,7 @@ export function LocationsPanel(props: {
             <Modal
                 open={open}
                 title={mode === "create" ? "Yeni Lokasyon" : "Lokasyonu Düzenle"}
-                description="Müdür ve saha sorumlusu tekil seçilebilir."
+                description="Müdür tekil, saha sorumlusu birden fazla seçilebilir."
                 onClose={() => setOpen(false)}
                 footer={
                     <>
@@ -235,19 +255,68 @@ export function LocationsPanel(props: {
                         </Select>
                     </div>
 
-                    <div>
+                    <div ref={fmDropdownRef} className="relative">
                         <label className="mb-1 block font-medium text-slate-300">Saha Sorumlusu</label>
-                        <Select
-                            value={fieldManagerUserId}
-                            onChange={(e) => setFieldManagerUserId(e.target.value)}
+                        <button
+                            type="button"
+                            onClick={() => setFmDropdownOpen((v) => !v)}
+                            className="w-full flex items-center justify-between gap-2 rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-left text-xs text-slate-200 hover:border-slate-500 focus:outline-none"
                         >
-                            <option value="">{usersLoading ? "Yükleniyor..." : "Seçiniz (opsiyonel)"}</option>
-                            {users
-                                .filter((u) => u.roles?.some((r) => r.name === "Field Manager"))
-                                .map((u) => (
-                                    <option key={u.id} value={u.id}>{u.name}</option>
+                            <span className="truncate">
+                                {usersLoading
+                                    ? "Yükleniyor..."
+                                    : fieldManagerUserIds.length === 0
+                                    ? "Seçiniz (opsiyonel)"
+                                    : fieldManagerUserIds
+                                        .map((id) => userById.get(id) ?? id)
+                                        .join(", ")}
+                            </span>
+                            <svg className={`h-3 w-3 flex-shrink-0 text-slate-400 transition-transform ${fmDropdownOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                        </button>
+
+                        {fmDropdownOpen && (
+                            <div className="absolute z-50 mt-1 w-full rounded-md border border-slate-700 bg-slate-800 shadow-xl max-h-48 overflow-y-auto">
+                                {users.filter((u) => u.roles?.some((r) => r.name === "Field Manager")).length === 0 ? (
+                                    <div className="px-3 py-2 text-xs text-slate-400">Field Manager rolünde kullanıcı yok.</div>
+                                ) : (
+                                    users
+                                        .filter((u) => u.roles?.some((r) => r.name === "Field Manager"))
+                                        .map((u) => {
+                                            const checked = fieldManagerUserIds.includes(u.id);
+                                            return (
+                                                <button
+                                                    key={u.id}
+                                                    type="button"
+                                                    onClick={() => toggleFieldManager(u.id)}
+                                                    className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-slate-700 ${
+                                                        checked ? "text-emerald-300" : "text-slate-200"
+                                                    }`}
+                                                >
+                                                    <span className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border ${
+                                                        checked ? "border-emerald-500 bg-emerald-500" : "border-slate-600 bg-transparent"
+                                                    }`}>
+                                                        {checked && (
+                                                            <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                                                        )}
+                                                    </span>
+                                                    {u.name}
+                                                </button>
+                                            );
+                                        })
+                                )}
+                            </div>
+                        )}
+
+                        {fieldManagerUserIds.length > 0 && (
+                            <div className="mt-1.5 flex flex-wrap gap-1">
+                                {fieldManagerUserIds.map((id) => (
+                                    <span key={id} className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] text-emerald-300">
+                                        {userById.get(id) ?? id}
+                                        <button type="button" onClick={() => toggleFieldManager(id)} className="text-emerald-400 hover:text-emerald-200">×</button>
+                                    </span>
                                 ))}
-                        </Select>
+                            </div>
+                        )}
                     </div>
 
                     {error ? (

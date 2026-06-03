@@ -65,8 +65,10 @@ export async function ReadFile(req: ElysiaRequest<{ params: { id: string } }>) {
 
       const fileInfo = await fileManager.getFileInfo(filePath)
       const range = req.request.headers.get('range')
-      const lastModified = new Date(fileInfo.modifiedAt || Date.now()).toUTCString()
-      const etag = `"${fileInfo.size}-${fileInfo.modifiedAt}"`
+      const modifiedAtMs = new Date(fileInfo.modifiedAt || Date.now()).getTime()
+      const safeModifiedAtMs = Number.isFinite(modifiedAtMs) ? modifiedAtMs : 0
+      const lastModified = new Date(safeModifiedAtMs).toUTCString()
+      const etag = `"${fileInfo.size}-${safeModifiedAtMs}"`
       const cacheHeaders = {
         ETag: etag,
         'Last-Modified': lastModified,

@@ -144,7 +144,6 @@ export default function FiveSFindingsListPage() {
   const isAuditor = hasAuditor && !hasOverrideRole;
   const CLOSE_ALLOWED_ROLES = ["field manager", "super admin", "manager"];
   const canCloseFinding = userRoles.some((r) => CLOSE_ALLOWED_ROLES.includes(r.name.toLowerCase()));
-
   const [findings, setFindings] = useState<FiveSFinding[]>([]);
   const [pagination, setPagination] = useState<PaginationInfo>({
     page: 1,
@@ -929,6 +928,7 @@ export default function FiveSFindingsListPage() {
           </div>
         </section>
       </div>
+
     </div>
   );
 }

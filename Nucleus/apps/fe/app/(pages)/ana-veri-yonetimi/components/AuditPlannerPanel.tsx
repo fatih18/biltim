@@ -6,8 +6,9 @@ import { normalizeName } from "./utils";
 import { Badge, DangerButton, Input, PrimaryButton, Select } from "./ui";
 import { ChevronRight } from "lucide-react";
 import { DateInput } from "@/app/_components/DateInput";
+import { auditStatusLabelTr } from "@/app/_utils/StatusLabels";
 
-type AuditTeam = { id: string; name: string };
+type AuditTeam = { id: string; name: string; leaderUserId?: string | null };
 
 export function AuditPlannerPanel(props: {
   locations: LocationEntity[];
@@ -88,11 +89,26 @@ export function AuditPlannerPanel(props: {
     const same = subPlans.filter((a) => a.plannedDate === date && a.id !== excludeId && a.status !== "cancelled");
     const warns: string[] = [];
 
+    const selTeam = teams.find((t) => t.id === teamId);
+
     const teamConflict = same.find((a) => a.assignedTeamId === teamId);
     if (teamConflict) {
-      const tName = teams.find((t) => t.id === teamId)?.name ?? teamId;
+      const tName = selTeam?.name ?? teamId;
       const cLoc = locations.find((l) => l.id === teamConflict.locationId)?.name ?? "-";
       warns.push(`"${tName}" ekibi bu tarihte "${cLoc}" denetiminde görevli.`);
+    }
+
+    const leaderId = selTeam?.leaderUserId;
+    if (leaderId) {
+      const leaderConflict = same.find(
+        (a) => a.assignedTeamId !== teamId && teams.find((t) => t.id === a.assignedTeamId)?.leaderUserId === leaderId
+      );
+      if (leaderConflict) {
+        const leaderName = users.find((u) => u.id === leaderId)?.name ?? leaderId;
+        const cLoc = locations.find((l) => l.id === leaderConflict.locationId)?.name ?? "-";
+        const cTeam = teams.find((t) => t.id === leaderConflict.assignedTeamId)?.name ?? "-";
+        warns.push(`Ekip lideri (${leaderName}) bu tarihte "${cLoc}" denetiminde (${cTeam}) görevli.`);
+      }
     }
 
     const selLoc = locations.find((l) => l.id === locId);
@@ -219,8 +235,9 @@ export function AuditPlannerPanel(props: {
 
                 return (
                   <div key={pp.id}>
-                    <button
-                      type="button"
+                    <div
+                      role="button"
+                      tabIndex={0}
                       onClick={() =>
                         setExpandedParentIds((prev) => {
                           const next = new Set(prev);
@@ -228,7 +245,17 @@ export function AuditPlannerPanel(props: {
                           return next;
                         })
                       }
-                      className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left transition-colors hover:bg-slate-800/40"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setExpandedParentIds((prev) => {
+                            const next = new Set(prev);
+                            next.has(pp.id) ? next.delete(pp.id) : next.add(pp.id);
+                            return next;
+                          });
+                        }
+                      }}
+                      className="flex w-full cursor-pointer items-center justify-between gap-4 px-4 py-3 text-left transition-colors hover:bg-slate-800/40"
                     >
                       <div className="flex items-center gap-3">
                         <ChevronRight
@@ -247,7 +274,7 @@ export function AuditPlannerPanel(props: {
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="text-[11px] text-slate-500">{childCount} denetim planı</span>
-                        <Badge>{pp.status}</Badge>
+                        <Badge>{auditStatusLabelTr(pp.status)}</Badge>
                         <DangerButton
                           className="py-1"
                           onClick={(e) => {
@@ -258,7 +285,7 @@ export function AuditPlannerPanel(props: {
                           Sil
                         </DangerButton>
                       </div>
-                    </button>
+                    </div>
 
                     {isExpanded && (
                       <div className="border-t border-slate-800/60 bg-slate-950/20">
@@ -280,8 +307,8 @@ export function AuditPlannerPanel(props: {
                               const locObj = locations.find((x) => x.id === a.locationId);
                               const loc = locObj?.name ?? "-";
                               const team = teams.find((x) => x.id === a.assignedTeamId)?.name ?? "-";
-                              const sahaSort = locObj?.managerUserId
-                                ? (users.find((u) => u.id === locObj.managerUserId)?.name ?? "-")
+                              const sahaSort = (locObj?.fieldManagerUserIds ?? []).length > 0
+                                ? (locObj!.fieldManagerUserIds!.map((id) => users.find((u) => u.id === id)?.name ?? id).join(", "))
                                 : "-";
                               const changeCount = a.dateChangeCount ?? 0;
                               const canChangeDate = changeCount < 2;
@@ -343,7 +370,7 @@ export function AuditPlannerPanel(props: {
                                   <div className="col-span-2 text-sm text-slate-300">{team}</div>
                                   <div className="col-span-2 text-sm text-slate-300">{sahaSort}</div>
                                   <div className="col-span-1 text-center">
-                                    <Badge>{a.status}</Badge>
+                                    <Badge>{auditStatusLabelTr(a.status)}</Badge>
                                   </div>
                                   <div className="col-span-2 flex justify-end gap-2">
                                     <Select
@@ -351,9 +378,9 @@ export function AuditPlannerPanel(props: {
                                       value={a.status}
                                       onChange={(e) => onUpdateStatus(a.id, e.target.value as AuditStatus)}
                                     >
-                                      <option value="planned">planned</option>
-                                      <option value="completed">completed</option>
-                                      <option value="cancelled">cancelled</option>
+                                      <option value="planned">Planlandı</option>
+                                      <option value="completed">Tamamlandı</option>
+                                      <option value="cancelled">İptal edildi</option>
                                     </Select>
                                     <DangerButton className="py-1.5" onClick={() => onDelete(a.id)}>Sil</DangerButton>
                                   </div>
@@ -485,8 +512,8 @@ export function AuditPlannerPanel(props: {
                 const locObj = locations.find((x) => x.id === a.locationId);
                 const loc = locObj?.name ?? "-";
                 const team = teams.find((x) => x.id === a.assignedTeamId)?.name ?? "-";
-                const sahaSort = locObj?.managerUserId
-                  ? (users.find((u) => u.id === locObj.managerUserId)?.name ?? "-")
+                const sahaSort = (locObj?.fieldManagerUserIds ?? []).length > 0
+                  ? (locObj!.fieldManagerUserIds!.map((id) => users.find((u) => u.id === id)?.name ?? id).join(", "))
                   : "-";
                 const changeCount = a.dateChangeCount ?? 0;
                 const canChangeDate = changeCount < 2;
@@ -547,7 +574,7 @@ export function AuditPlannerPanel(props: {
                     <div className="col-span-2 text-sm text-slate-300">{team}</div>
                     <div className="col-span-2 text-sm text-slate-300">{sahaSort}</div>
                     <div className="col-span-1 text-center">
-                      <Badge>{a.status}</Badge>
+                      <Badge>{auditStatusLabelTr(a.status)}</Badge>
                     </div>
                     <div className="col-span-2 flex justify-end gap-2">
                       <Select
@@ -555,9 +582,9 @@ export function AuditPlannerPanel(props: {
                         value={a.status}
                         onChange={(e) => onUpdateStatus(a.id, e.target.value as AuditStatus)}
                       >
-                        <option value="planned">planned</option>
-                        <option value="completed">completed</option>
-                        <option value="cancelled">cancelled</option>
+                        <option value="planned">Planlandı</option>
+                        <option value="completed">Tamamlandı</option>
+                        <option value="cancelled">İptal edildi</option>
                       </Select>
                       <DangerButton className="py-1.5" onClick={() => onDelete(a.id)}>Sil</DangerButton>
                     </div>

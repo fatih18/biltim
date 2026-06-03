@@ -374,6 +374,71 @@ export default function Page() {
     });
   }, []);
 
+  // Aynı tarihte çakışan denetim uyarıları (ekip / ekip lideri / saha sorumlusu)
+  const getDateConflicts = React.useCallback(
+    (planId: string, newDate: string): string[] => {
+      if (!newDate) return [];
+      const plan = plans.find((p) => p.id === planId);
+      if (!plan) return [];
+
+      const teamId = plan.assigned_team_id;
+      const locId = plan.location_id;
+      const same = plans.filter(
+        (a) =>
+          a.id !== planId &&
+          a.status !== "cancelled" &&
+          normalizeDateYYYYMMDD(a.planned_date) === newDate
+      );
+      if (same.length === 0) return [];
+
+      const userNameById = new Map(users.map((u) => [u.id, u.name]));
+      const locName = (id: string) => locations.find((l) => l.id === id)?.name ?? "-";
+      const warns: string[] = [];
+
+      const selTeam = teams.find((t) => t.id === teamId);
+
+      // 1) Aynı ekip aynı tarihte başka denetimde
+      const teamConflict = same.find((a) => a.assigned_team_id === teamId);
+      if (teamConflict) {
+        const tName = selTeam?.name ?? teamId;
+        warns.push(`"${tName}" ekibi bu tarihte "${locName(teamConflict.location_id)}" denetiminde görevli.`);
+      }
+
+      // 2) Aynı ekip lideri farklı bir ekibin denetiminde
+      const leaderId = selTeam?.leaderUserId;
+      if (leaderId) {
+        const leaderConflict = same.find(
+          (a) =>
+            a.assigned_team_id !== teamId &&
+            String(teams.find((t) => t.id === a.assigned_team_id)?.leaderUserId ?? "") === String(leaderId)
+        );
+        if (leaderConflict) {
+          const leaderName = userNameById.get(String(leaderId)) ?? String(leaderId);
+          const cTeam = teams.find((t) => t.id === leaderConflict.assigned_team_id)?.name ?? "-";
+          warns.push(`Ekip lideri (${leaderName}) bu tarihte "${locName(leaderConflict.location_id)}" denetiminde (${cTeam}) görevli.`);
+        }
+      }
+
+      // 3) Saha sorumlusu başka bir lokasyonun denetiminde
+      const selFM = locations.find((l) => l.id === locId)?.fieldManagerUserIds ?? [];
+      if (selFM.length > 0) {
+        for (const a of same) {
+          if (a.location_id === locId) continue;
+          const pLoc = locations.find((l) => l.id === a.location_id);
+          const pFM = pLoc?.fieldManagerUserIds ?? [];
+          const overlap = selFM.filter((id) => pFM.includes(id));
+          if (overlap.length > 0) {
+            const names = overlap.map((uid) => userNameById.get(uid) ?? uid).join(", ");
+            warns.push(`Saha sorumlusu (${names}) bu tarihte "${pLoc?.name ?? "-"}" denetiminde görevli.`);
+          }
+        }
+      }
+
+      return warns;
+    },
+    [plans, teams, locations, users]
+  );
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50 px-4 py-6 md:px-8">
       <div className="mx-auto max-w-7xl space-y-6">
@@ -388,6 +453,7 @@ export default function Page() {
 
           canEditPlan={canEditPlan}
           onUpdatePlanDate={updatePlanDate}
+          getDateConflicts={getDateConflicts}
         />
       </div>
     </div>

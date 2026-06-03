@@ -16,10 +16,8 @@ import {
 } from "./components";
 import { useGenericApiActions } from "@/app/_hooks/UseGenericApiStore";
 import { TeamsTab } from "./components/TeamsTab";
+import { toast } from "sonner";
 
-/** ---------------------------
- * MASTER API KEYS
- * -------------------------- */
 type MasterKind = "actions" | "findingTypes" | "locations";
 
 const API_KEYS: Record<
@@ -46,9 +44,6 @@ const API_KEYS: Record<
     },
 };
 
-/** ---------------------------
- * PLANNING API KEYS
- * -------------------------- */
 const PLAN_KEYS = {
     GET: "GET_FIVE_S_AUDIT_PLANS",
     ADD: "ADD_FIVE_S_AUDIT_PLAN",
@@ -71,9 +66,6 @@ function safeStart(A: any, key: string) {
     return entry.start as (args: any) => void;
 }
 
-/** ---------------------------
- * Helpers
- * -------------------------- */
 function toMasterEntity(row: any): MasterEntity {
     const id = row?.id ?? row?._id ?? row?.data?.id;
     const name = row?.name ?? row?.title ?? "";
@@ -189,14 +181,8 @@ export default function Page() {
         actionsRef.current = actions;
     }, [actions]);
 
-    /** ---------------------------
-     * TAB
-     * -------------------------- */
     const [tab, setTab] = React.useState<"master" | "planning" | "teams" | "questions">("master");
 
-    /** ---------------------------
-     * USERS
-     * -------------------------- */
     const [users, setUsers] = React.useState<User[]>([]);
     const [usersLoading, setUsersLoading] = React.useState(false);
 
@@ -231,9 +217,6 @@ export default function Page() {
         });
     }, []);
 
-    /** ---------------------------
-     * TEAMS (planning dropdown)
-     * -------------------------- */
     const [teams, setTeams] = React.useState<AuditTeamLite[]>([]);
     const [teamsLoading, setTeamsLoading] = React.useState(false);
 
@@ -268,9 +251,6 @@ export default function Page() {
         });
     }, []);
 
-    /** ---------------------------
-     * MASTER LISTS
-     * -------------------------- */
     const [actionsList, setActionsList] = React.useState<MasterEntity[]>([]);
     const [findingTypes, setFindingTypes] = React.useState<MasterEntity[]>([]);
     const [locations, setLocations] = React.useState<LocationEntity[]>([]);
@@ -464,9 +444,6 @@ export default function Page() {
         [getSetter]
     );
 
-    /** ---------------------------
-     * PLANS
-     * -------------------------- */
     const [auditPlans, setAuditPlans] = React.useState<Audit[]>([]);
     const [plansLoading, setPlansLoading] = React.useState(false);
 
@@ -528,10 +505,12 @@ export default function Page() {
                     const createdRaw = extractArray(res)?.[0] ?? res?.data?.[0] ?? res?.data ?? res;
                     const created = planRowToAuditLike(createdRaw);
                     setAuditPlans((prev) => [created, ...prev]);
+                    toast.success("Denetim planı başarıyla oluşturuldu.");
                 },
                 onErrorHandle: (error: any) => {
                     if (error?.name === "AbortError") return;
                     console.error(`${key} error`, error);
+                    toast.error("Denetim planı oluşturulamadı.");
                 },
             });
         },
@@ -551,11 +530,12 @@ export default function Page() {
                     const createdRaw = extractArray(res)?.[0] ?? res?.data?.[0] ?? res?.data ?? res;
                     const created = planRowToAuditLike(createdRaw);
                     setAuditPlans((prev) => [created, ...prev]);
+                    toast.success("Denetim planı başarıyla oluşturuldu.");
                 },
                 onErrorHandle: (error: any) => {
                     if (error?.name === "AbortError") return;
                     console.error(`${key} error`, error);
-
+                    toast.error("Denetim planı oluşturulamadı.");
                 },
             });
         },
@@ -620,9 +600,6 @@ export default function Page() {
         });
     }, []);
 
-    /** ---------------------------
-     * Render
-     * -------------------------- */
     return (
         <div className="min-h-screen bg-slate-950 text-slate-50 px-4 py-6 md:px-8">
             <div className="mx-auto max-w-7xl space-y-6">

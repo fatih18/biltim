@@ -4,6 +4,7 @@ import React from "react";
 import type { TeamInfo, AuditPlanRow, LocInfo } from "../page";
 import { TeamLeaderWithMembersTooltip } from "./TeamLeaderWithMembersTooltip";
 import { DateInput } from "@/app/_components/DateInput";
+import { auditStatusLabelTr } from "@/app/_utils/StatusLabels";
 
 type AuditTeamLite = { id: string; name?: string | null; isActive: boolean };
 
@@ -18,12 +19,12 @@ function Badge({ children }: { children: React.ReactNode }) {
 function StatusPill({ status }: { status: string }) {
     const base = "inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-medium";
     if (status === "planned")
-        return <span className={`${base} border-amber-800/60 bg-amber-950/30 text-amber-200`}>planned</span>;
+        return <span className={`${base} border-amber-800/60 bg-amber-950/30 text-amber-200`}>{auditStatusLabelTr(status)}</span>;
     if (status === "completed")
-        return <span className={`${base} border-emerald-800/60 bg-emerald-950/25 text-emerald-200`}>completed</span>;
+        return <span className={`${base} border-emerald-800/60 bg-emerald-950/25 text-emerald-200`}>{auditStatusLabelTr(status)}</span>;
     if (status === "cancelled")
-        return <span className={`${base} border-rose-900/60 bg-rose-950/25 text-rose-200`}>cancelled</span>;
-    return <span className={`${base} border-slate-700 bg-slate-950/50 text-slate-200`}>{status}</span>;
+        return <span className={`${base} border-rose-900/60 bg-rose-950/25 text-rose-200`}>{auditStatusLabelTr(status)}</span>;
+    return <span className={`${base} border-slate-700 bg-slate-950/50 text-slate-200`}>{auditStatusLabelTr(status)}</span>;
 }
 
 function SegTabs({
@@ -78,6 +79,7 @@ export function HomeAuditListPanel(props: {
     onOpenPlan?: (id: string) => void;
     canEditPlan: (plan: AuditPlanRow) => boolean;
     onUpdatePlanDate: (planId: string, dateYYYYMMDD: string, newCount: number) => void;
+    getDateConflicts?: (planId: string, newDate: string) => string[];
 }) {
     const {
         plans,
@@ -89,6 +91,7 @@ export function HomeAuditListPanel(props: {
         onOpenPlan,
         canEditPlan,
         onUpdatePlanDate,
+        getDateConflicts,
     } = props;
 
     const [tab, setTab] = React.useState<"upcoming" | "completed">("upcoming");
@@ -214,6 +217,9 @@ export function HomeAuditListPanel(props: {
                                                         ⚠ Seçilen tarih ana plan aralığı dışında
                                                     </p>
                                                 )}
+                                                {editDate && getDateConflicts?.(p.id, editDate).map((w, i) => (
+                                                    <p key={i} className="text-[10px] text-amber-300">⚠ {w}</p>
+                                                ))}
                                                 <div className="flex gap-1">
                                                     <button
                                                         className="rounded-md border border-emerald-800/60 bg-emerald-950/30 px-3 py-1 text-xs text-emerald-200 hover:bg-emerald-950/50 disabled:opacity-50"
