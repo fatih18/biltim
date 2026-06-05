@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     const file = incoming.get('files')
     const type = incoming.get('type') ?? 'image'
 
-    if (!file || !(file instanceof File)) {
+    if (!file || !(file instanceof Blob)) {
       return NextResponse.json({ isSuccess: false, message: 'No file provided' }, { status: 400 })
     }
 

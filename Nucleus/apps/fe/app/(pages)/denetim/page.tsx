@@ -97,6 +97,18 @@ type FiveSFindingLite = {
 
 type PhotoItem = { file_id?: string | null; url?: string | null }
 
+function genUUID(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  // Manual v4-like fallback for non-secure contexts
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0
+    const v = c === 'x' ? r : (r & 0x3) | 0x8
+    return v.toString(16)
+  })
+}
+
 /* ───────────────────────────── Consts ───────────────────────────── */
 const ratingFactor: Record<Rating, number> = {
   good: 1,
@@ -830,7 +842,7 @@ export default function FiveSAuditFormPage() {
               payload: {
                 audit_id: auditId,
                 // Eski kuyruktaki geçersiz (UUID olmayan) id'leri temizle
-                client_finding_id: isUuid(f.client_finding_id) ? f.client_finding_id : crypto.randomUUID(),
+                client_finding_id: isUuid(f.client_finding_id) ? f.client_finding_id : genUUID(),
                 detected_date: f.detected_date,
                 location_name: f.location_name,
                 finding_type: f.finding_type,
@@ -1393,7 +1405,7 @@ export default function FiveSAuditFormPage() {
 
       findingsPayload.push({
         questionId: ans.questionId,
-        client_finding_id: crypto.randomUUID(),
+        client_finding_id: genUUID(),
         detected_date: detectedDate,
         location_name: effectiveLocationName,
         finding_type: ans.findingType,
@@ -1575,7 +1587,7 @@ export default function FiveSAuditFormPage() {
                 disableAutoRedirect: true,
                 payload: {
                   audit_id: auditId,
-                  client_finding_id: crypto.randomUUID(),
+                  client_finding_id: genUUID(),
                   detected_date: detectedDate,
                   location_name: effectiveLocationName,
                   finding_type: ans.findingType!,
@@ -1697,7 +1709,7 @@ export default function FiveSAuditFormPage() {
         findings: [
           {
             questionId: 'SINGLE',
-            client_finding_id: crypto.randomUUID(),
+            client_finding_id: genUUID(),
             detected_date: header.date,
             location_name: loc || 'Bilinmeyen Lokasyon',
             finding_type: singleFinding.findingType,
@@ -1798,7 +1810,7 @@ export default function FiveSAuditFormPage() {
               disableAutoRedirect: true,
               payload: {
                 audit_id: auditId,
-                client_finding_id: crypto.randomUUID(),
+                client_finding_id: genUUID(),
                 detected_date: header.date,
                 location_name: loc || 'Bilinmeyen Lokasyon',
                 finding_type: singleFinding.findingType,
