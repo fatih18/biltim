@@ -30,5 +30,6 @@ export * as T_FiveSActions from "./default/five_s_actions";
 export * as T_FiveSLocations from "./default/five_s_locations";
 export * as T_FiveSFindingTypes from "./default/five_s_finding_types";
 export * as T_FiveSAuditPlans from "./default/five_s_audit_plans";
+export * as T_FiveSAuditDrafts from "./default/five_s_audit_drafts";
 export * as T_FiveSAuditTeamMembers from "./default/five_s_audit_team_members";
 export * as T_FiveSAuditTeams from "./default/five_s_audit_teams";

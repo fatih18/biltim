@@ -10,8 +10,10 @@ import {
   ChevronRight,
   LogOut,
   Menu,
+  Moon,
   Search,
   Settings,
+  Sun,
   Users,
   X,
 } from 'lucide-react'
@@ -334,6 +336,53 @@ function UserAvatar({
 
 const pathsWithoutHeader = ['/login', '/register', '/not-found']
 
+const THEME_STORAGE_KEY = 'nucleus-theme'
+
+function applyThemeClass(isLight: boolean) {
+  if (typeof document === 'undefined') return
+  document.documentElement.classList.toggle('theme-light', isLight)
+}
+
+// Madde 11: Dark/Light tema toggle
+function ThemeToggle(): React.JSX.Element {
+  const [isLight, setIsLight] = useState(false)
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(THEME_STORAGE_KEY)
+      const light = stored === 'light'
+      setIsLight(light)
+      applyThemeClass(light)
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  const toggle = () => {
+    setIsLight((prev) => {
+      const next = !prev
+      try {
+        localStorage.setItem(THEME_STORAGE_KEY, next ? 'light' : 'dark')
+      } catch {
+        // ignore
+      }
+      applyThemeClass(next)
+      return next
+    })
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      className="p-2 hover:bg-white/10 rounded-lg transition-all duration-300 hover:scale-110"
+      title={isLight ? 'Koyu temaya geç' : 'Açık temaya geç'}
+    >
+      {isLight ? <Moon size={20} /> : <Sun size={20} />}
+    </button>
+  )
+}
+
 export function ClientSide({
   logo,
   notifications = 3,
@@ -376,6 +425,22 @@ export function ClientSide({
     })
   }, [allRoleNames, isRoleLoading])
 
+  // Madde 4: Sadece Denetçi rolüne sahip kullanıcılar Bulgular sayfasını göremez
+  const isAuditorOnly = useMemo(() => {
+    if (isRoleLoading) return false
+    if (allRoleNames.length === 0) return false
+    const hasAuditor = allRoleNames.some((n) => n === 'auditor' || n === 'denetçi')
+    if (!hasAuditor) return false
+    const hasOtherPrivileged = allRoleNames.some(
+      (n) =>
+        n === 'super admin' ||
+        n === 'manager' ||
+        n === 'field manager' ||
+        (n.includes('content manager') && n.includes('core team'))
+    )
+    return !hasOtherPrivileged
+  }, [allRoleNames, isRoleLoading])
+
   const isUsersHref = (href?: string) => {
     if (!href) return false
     return (
@@ -410,7 +475,13 @@ export function ClientSide({
   }, [path, roleName, roles, allRoleNames, canSeeUsersPage, canSeeMasterMenus])
 
   const visibleNavCategories = useMemo(() => {
-    return navCategories.map((cat) => {
+    return navCategories
+      .filter((cat) => {
+        // Madde 4: sadece Denetçi → Bulgular menüsü gizli
+        if (isAuditorOnly && (cat.id === 'bulgular' || cat.href === '/bulgular')) return false
+        return true
+      })
+      .map((cat) => {
       if (!cat.items?.length) return cat
 
       const nextItems = cat.items.filter((it) => {
@@ -426,7 +497,7 @@ export function ClientSide({
 
       return { ...cat, items: nextItems }
     })
-  }, [navCategories, canSeeMasterMenus, canSeeUsersPage, restrictedIds])
+  }, [navCategories, canSeeMasterMenus, canSeeUsersPage, restrictedIds, isAuditorOnly])
 
   const visibleNavItems = useMemo(() => {
     return (navItems ?? []).filter((it) => {
@@ -464,8 +535,15 @@ export function ClientSide({
 
     if (isMasterRoute && !canSeeMasterMenus) {
       router.replace('/')
+      return
     }
-  }, [canSeeMasterMenus, canSeeUsersPage, isRoleLoading, path, router])
+
+    // Madde 4: sadece Denetçi → /bulgular erişimi engelli
+    const isBulgularRoute = path === '/bulgular' || path.startsWith('/bulgular/')
+    if (isBulgularRoute && isAuditorOnly) {
+      router.replace('/')
+    }
+  }, [canSeeMasterMenus, canSeeUsersPage, isAuditorOnly, isRoleLoading, path, router])
 
   const [openCategory, setOpenCategory] = useState<string | null>(null)
   const [mobileExpandedCategory, setMobileExpandedCategory] = useState<string | null>(null)
@@ -1069,11 +1147,7 @@ export function ClientSide({
             </button>
 
             <div ref={logoRef} className="flex items-center gap-3">
-              {logo || (
-                <div className="rounded-lg flex items-center justify-center shadow-lg p-1 size-16">
-                  {/* logo */}
-                </div>
-              )}
+              <></>
             </div>
           </div>
 
@@ -1100,6 +1174,8 @@ export function ClientSide({
                 <Search size={20} />
               </button>
             </div>
+
+            <ThemeToggle />
 
             <NotificationDropdown notifications={notifications} />
 

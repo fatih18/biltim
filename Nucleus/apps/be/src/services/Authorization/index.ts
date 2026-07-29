@@ -120,6 +120,33 @@ export function hasClaimForEndpoint(params: {
 }
 
 /**
+ * Get active role names for a user (lowercased)
+ */
+export async function getUserRoleNames(params: {
+  userId: string
+  schemaName: string
+}): Promise<string[]> {
+  const { userId, schemaName } = params
+  if (!userId) return []
+  const db = await getTenantDB(schemaName)
+
+  const rows = await db
+    .select({ name: roles.name })
+    .from(userRoles)
+    .innerJoin(roles, eq(userRoles.role_id, roles.id))
+    .where(and(eq(userRoles.user_id, userId), eq(userRoles.is_active, true)))
+
+  return rows.map((r) => String(r.name ?? '').trim().toLowerCase()).filter(Boolean)
+}
+
+/** Rol yardımcıları — 5S yetki kuralları */
+export const PRIVILEGED_ROLES = ['super admin', 'manager', 'content manager core team']
+
+export function hasAnyRole(roleNames: string[], targets: string[]): boolean {
+  return roleNames.some((n) => targets.includes(n))
+}
+
+/**
  * Check if user is god admin
  */
 export async function isGodAdmin(params: { userId: string; schemaName: string }): Promise<boolean> {

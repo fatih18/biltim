@@ -3,8 +3,11 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { useGenericApiActions } from "@/app/_hooks/UseGenericApiStore";
+import { useGetUserRole } from "@/app/_hooks/user/useGetUserRole";
 
 import { HomeAuditListPanel } from "./components/HomeAuditListPanel";
+import { EditAuditModal, type EditableAudit } from "./components/EditAuditModal";
+import { ReportsDashboard } from "@/app/_components/ReportsDashboard";
 import { uid } from "../ana-veri-yonetimi/components";
 
 /** Keys */
@@ -14,6 +17,7 @@ const PLAN_KEYS = {
 } as const;
 
 const LOC_KEYS = { GET: "GET_FIVE_S_LOCATIONS" } as const;
+const AUDIT_KEYS = { GET: "GET_FIVE_S_AUDITS", UPDATE: "UPDATE_FIVE_S_AUDIT" } as const;
 const TEAM_KEYS = { GET: "GET_FIVE_S_AUDIT_TEAMS" } as const;
 const TEAM_MEMBER_KEYS = { GET: "GET_FIVE_S_AUDIT_TEAM_MEMBERS" } as const;
 const GET_USERS_KEY = "GET_USERS";
@@ -218,7 +222,13 @@ export default function Page() {
     };
 
     run(startPlans, {
-      payload: { page: 1, limit: 500, orderBy: "planned_date", orderDirection: "desc" },
+      payload: {
+        page: 1,
+        limit: 500,
+        orderBy: "planned_date",
+        orderDirection: "desc",
+        filters: { is_active: true },
+      },
       onAfterHandle: (res: any) => {
         const arr = extractArray(res) as any[];
         const mapped = (arr ?? []).map((p: any) => ({
@@ -330,6 +340,133 @@ export default function Page() {
     }
     return map;
   }, [users, teamMembers, teams]);
+
+  // Madde 6: Denetçi / Saha Sorumlusu ana sayfada sadece kendi denetimlerini görsün
+  const { roleName, roles, isLoading: isRoleLoading } = useGetUserRole();
+
+  const isPrivilegedUser = React.useMemo(() => {
+    const names = [roleName ?? "", ...(roles ?? []).map((r: any) => r?.name ?? "")]
+      .filter(Boolean)
+      .map((x) => String(x).trim().toLowerCase().replace(/\s+/g, " "));
+    return names.some(
+      (n) =>
+        n === "super admin" ||
+        n === "manager" ||
+        (n.includes("content manager") && n.includes("core team"))
+    );
+  }, [roleName, roles]);
+
+  const visiblePlans = React.useMemo(() => {
+    if (isRoleLoading) return [];
+    if (isPrivilegedUser) return plans;
+    if (!currentUserId) return plans;
+
+    // Kullanıcının dahil olduğu ekipler (üye veya lider)
+    const myTeamIds = new Set<string>();
+    for (const m of teamMembers) {
+      if (m.is_active && String(m.user_id) === String(currentUserId)) myTeamIds.add(m.team_id);
+    }
+    for (const t of teams) {
+      if (t.leaderUserId && String(t.leaderUserId) === String(currentUserId)) myTeamIds.add(t.id);
+    }
+
+    // Kullanıcının sorumlu olduğu lokasyonlar (müdür veya saha sorumlusu)
+    const myLocationIds = new Set<string>();
+    for (const l of locations) {
+      if (
+        (l.managerUserId && String(l.managerUserId) === String(currentUserId)) ||
+        l.fieldManagerUserIds.some((id) => String(id) === String(currentUserId))
+      ) {
+        myLocationIds.add(l.id);
+      }
+    }
+
+    return plans.filter(
+      (p) =>
+        !p.location_id || // ana planlar (quarter) görünür kalsın (dönem bilgisi için)
+        myTeamIds.has(p.assigned_team_id) ||
+        myLocationIds.has(p.location_id)
+    );
+  }, [plans, teams, teamMembers, locations, currentUserId, isPrivilegedUser, isRoleLoading]);
+
+  // Madde 7: Ana sayfadan denetim başlatma
+  const startAudit = React.useCallback(
+    (planId: string) => {
+      router.push(`/denetim?planId=${encodeURIComponent(planId)}`);
+    },
+    [router]
+  );
+
+  // Madde 8: Tamamlanmış denetimi Merkez Ekip güncelleyebilsin
+  const [editingAudit, setEditingAudit] = React.useState<EditableAudit | null>(null);
+  const [auditSaving, setAuditSaving] = React.useState(false);
+
+  const openAuditEdit = React.useCallback((plan: AuditPlanRow) => {
+    if (!plan.audit_id) return;
+    const A = actionsRef.current as any;
+    const startGet = safeStart(A, AUDIT_KEYS.GET);
+    if (!startGet) return;
+
+    startGet({
+      payload: { page: 1, limit: 1, filters: { id: plan.audit_id } },
+      onAfterHandle: (res: any) => {
+        const arr = extractArray(res);
+        const a = arr?.[0];
+        if (!a) {
+          alert("Denetim kaydı bulunamadı.");
+          return;
+        }
+        setEditingAudit({
+          id: String(a.id),
+          department_name: String(a.department_name ?? ""),
+          auditor_name: String(a.auditor_name ?? ""),
+          audit_date: normalizeDateYYYYMMDD(String(a.audit_date ?? "")),
+          total_score: String(a.total_score ?? "0"),
+          target_score: String(a.target_score ?? "75"),
+          score_s1: String(a.score_s1 ?? "0"),
+          score_s2: String(a.score_s2 ?? "0"),
+          score_s3: String(a.score_s3 ?? "0"),
+          score_s4: String(a.score_s4 ?? "0"),
+          score_s5: String(a.score_s5 ?? "0"),
+        });
+      },
+      onErrorHandle: (e: any) => {
+        console.error(`${AUDIT_KEYS.GET} error`, e);
+        alert("Denetim kaydı yüklenemedi.");
+      },
+    });
+  }, []);
+
+  const saveAuditEdit = React.useCallback((next: EditableAudit) => {
+    const A = actionsRef.current as any;
+    const startUpdate = safeStart(A, AUDIT_KEYS.UPDATE);
+    if (!startUpdate) return;
+
+    setAuditSaving(true);
+    startUpdate({
+      payload: {
+        _id: next.id,
+        auditor_name: next.auditor_name.trim(),
+        audit_date: new Date(`${next.audit_date}T00:00:00`),
+        total_score: Number(next.total_score).toFixed(2),
+        score_s1: Number(next.score_s1).toFixed(2),
+        score_s2: Number(next.score_s2).toFixed(2),
+        score_s3: Number(next.score_s3).toFixed(2),
+        score_s4: Number(next.score_s4).toFixed(2),
+        score_s5: Number(next.score_s5).toFixed(2),
+      },
+      onAfterHandle: () => {
+        setAuditSaving(false);
+        setEditingAudit(null);
+        alert("Denetim kaydı güncellendi.");
+      },
+      onErrorHandle: (e: any) => {
+        console.error(`${AUDIT_KEYS.UPDATE} error`, e);
+        setAuditSaving(false);
+        alert("Denetim güncellenemedi. Yetkinizi kontrol edin (sadece Merkez Ekip).");
+      },
+    });
+  }, []);
 
   const MAX_DATE_CHANGES = 2;
 
@@ -443,7 +580,9 @@ export default function Page() {
     <div className="min-h-screen bg-slate-950 text-slate-50 px-4 py-6 md:px-8">
       <div className="mx-auto max-w-7xl space-y-6">
         <HomeAuditListPanel
-          plans={plans}
+          plans={visiblePlans}
+          onStartAudit={startAudit}
+          currentUserId={currentUserId}
           locInfoById={locInfoById}
           parentPlanRangeById={parentPlanRangeById}
           teams={teams.filter((t) => t.isActive)}
@@ -454,8 +593,30 @@ export default function Page() {
           canEditPlan={canEditPlan}
           onUpdatePlanDate={updatePlanDate}
           getDateConflicts={getDateConflicts}
+          onEditCompletedAudit={isPrivilegedUser ? openAuditEdit : undefined}
         />
+
+        {isPrivilegedUser && (
+          <section className="mt-8">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-base font-semibold text-slate-100">5S Rapor Özeti</h2>
+              <a href="/raporlar" className="text-xs text-sky-300 hover:text-sky-200 underline">
+                Tüm raporlar →
+              </a>
+            </div>
+            <ReportsDashboard compact />
+          </section>
+        )}
       </div>
+
+      {editingAudit && (
+        <EditAuditModal
+          audit={editingAudit}
+          saving={auditSaving}
+          onSave={saveAuditEdit}
+          onClose={() => setEditingAudit(null)}
+        />
+      )}
     </div>
   );
 }

@@ -60,6 +60,12 @@ export function Header() {
       icon: <FileQuestionIcon size={16} />,
       href: '/bulgular',
     },
+    {
+      id: 'raporlar',
+      label: 'Raporlar',
+      icon: <BarChart3 size={16} />,
+      href: '/raporlar',
+    },
   ]
 
   if (process.env.IS_MULTI_TENANT === 'true') {

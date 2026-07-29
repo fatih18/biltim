@@ -20,6 +20,7 @@ import {
 	FilesRoute,
 	GenericRoutes,
 	InitiateRoute,
+	ReportsRoute,
 	SubscriptionRoute,
 } from "./routes";
 import {
@@ -235,6 +236,7 @@ const server = appSettings
 	.use(AuthV2Routes)
 	.use(FilesRoute)
 	.use(DownloadsRoute)
+	.use(ReportsRoute)
 	.use(SubscriptionRoute)
 	.ws("/api/remote/agent", {
 		open(ws) {

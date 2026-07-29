@@ -680,3 +680,298 @@ select:-webkit-autofill:focus {
 .date-dark::-webkit-calendar-picker-indicator:hover {
   opacity: 1;
 }
+
+/* =========================================================
+   LIGHT THEME (madde 11)
+   html.theme-light sınıfı ile koyu slate utility'leri
+   açık tema karşılıklarına çevrilir (sayfalar refactor
+   edilmeden global geçiş sağlar).
+   ========================================================= */
+
+html.theme-light body {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+/* Arka planlar */
+html.theme-light .bg-slate-950 { background-color: #f1f5f9 !important; }
+html.theme-light .bg-slate-950\/40 { background-color: #ffffff !important; }
+html.theme-light .bg-slate-950\/50 { background-color: #ffffff !important; }
+html.theme-light .bg-slate-950\/60 { background-color: #ffffff !important; }
+html.theme-light .bg-slate-950\/70 { background-color: #ffffff !important; }
+html.theme-light .bg-slate-950\/80 { background-color: #f8fafc !important; }
+html.theme-light .bg-slate-900 { background-color: #ffffff !important; }
+html.theme-light .bg-slate-900\/40 { background-color: #ffffff !important; }
+html.theme-light .bg-slate-900\/50 { background-color: #ffffff !important; }
+html.theme-light .bg-slate-900\/60 { background-color: #ffffff !important; }
+html.theme-light .bg-slate-900\/70 { background-color: #ffffff !important; }
+html.theme-light .bg-slate-900\/80 { background-color: #f8fafc !important; }
+html.theme-light .bg-slate-900\/90 { background-color: #f8fafc !important; }
+html.theme-light .bg-slate-800 { background-color: #e2e8f0 !important; }
+html.theme-light .bg-slate-800\/60 { background-color: #e2e8f0 !important; }
+html.theme-light .bg-slate-800\/80 { background-color: #e2e8f0 !important; }
+html.theme-light .bg-slate-700\/50 { background-color: #e2e8f0 !important; }
+
+/* Hover arka planlar */
+html.theme-light .hover\:bg-slate-950:hover { background-color: #e2e8f0 !important; }
+html.theme-light .hover\:bg-slate-800:hover { background-color: #e2e8f0 !important; }
+html.theme-light .hover\:bg-slate-900\/80:hover { background-color: #f1f5f9 !important; }
+html.theme-light .hover\:bg-slate-950\/50:hover { background-color: #f1f5f9 !important; }
+html.theme-light .hover\:bg-slate-600\/30:hover { background-color: #e2e8f0 !important; }
+html.theme-light .hover\:bg-white\/10:hover { background-color: rgba(15, 23, 42, 0.08) !important; }
+
+/* Metinler */
+html.theme-light .text-slate-50 { color: #0f172a !important; }
+html.theme-light .text-slate-100 { color: #0f172a !important; }
+html.theme-light .text-slate-200 { color: #1e293b !important; }
+html.theme-light .text-slate-300 { color: #334155 !important; }
+html.theme-light .text-slate-400 { color: #475569 !important; }
+html.theme-light .text-slate-500 { color: #64748b !important; }
+html.theme-light .text-slate-600 { color: #94a3b8 !important; }
+html.theme-light .text-white { color: #0f172a !important; }
+
+/* Kenarlıklar */
+html.theme-light .border-slate-800 { border-color: #cbd5e1 !important; }
+html.theme-light .border-slate-800\/80 { border-color: #cbd5e1 !important; }
+html.theme-light .border-slate-700 { border-color: #cbd5e1 !important; }
+html.theme-light .border-slate-600 { border-color: #94a3b8 !important; }
+html.theme-light .border-slate-500\/50 { border-color: #94a3b8 !important; }
+html.theme-light .divide-slate-800 > * + * { border-color: #cbd5e1 !important; }
+
+/* Vurgulu renkli kutular açık temada daha okunur olsun */
+html.theme-light .bg-sky-950\/30 { background-color: #e0f2fe !important; }
+html.theme-light .bg-sky-950\/60 { background-color: #bae6fd !important; }
+html.theme-light .text-sky-200 { color: #0369a1 !important; }
+html.theme-light .text-sky-300 { color: #0284c7 !important; }
+html.theme-light .text-sky-400 { color: #0284c7 !important; }
+html.theme-light .bg-emerald-950\/25,
+html.theme-light .bg-emerald-950\/30 { background-color: #d1fae5 !important; }
+html.theme-light .bg-emerald-950\/50,
+html.theme-light .bg-emerald-950\/60 { background-color: #a7f3d0 !important; }
+html.theme-light .text-emerald-200 { color: #047857 !important; }
+html.theme-light .text-emerald-300 { color: #059669 !important; }
+html.theme-light .bg-amber-950\/30 { background-color: #fef3c7 !important; }
+html.theme-light .text-amber-200 { color: #b45309 !important; }
+html.theme-light .text-amber-300 { color: #d97706 !important; }
+html.theme-light .bg-rose-950\/20,
+html.theme-light .bg-rose-950\/25,
+html.theme-light .bg-rose-950\/30 { background-color: #ffe4e6 !important; }
+html.theme-light .bg-rose-950\/40 { background-color: #fecdd3 !important; }
+html.theme-light .bg-rose-950\/50,
+html.theme-light .bg-rose-950\/60 { background-color: #fda4af !important; }
+html.theme-light .text-rose-200 { color: #be123c !important; }
+html.theme-light .text-rose-300 { color: #e11d48 !important; }
+html.theme-light .bg-indigo-950\/30 { background-color: #e0e7ff !important; }
+html.theme-light .bg-indigo-950\/40 { background-color: #e0e7ff !important; }
+html.theme-light .bg-indigo-950\/60 { background-color: #c7d2fe !important; }
+html.theme-light .text-indigo-200 { color: #4338ca !important; }
+html.theme-light .text-indigo-300 { color: #4f46e5 !important; }
+
+/* Gölgeler yumuşatılır */
+html.theme-light .shadow-slate-950\/50,
+html.theme-light .shadow-slate-950\/60 {
+  --tw-shadow-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+/* Tarih inputu ikonu açık temada normal görünsün */
+html.theme-light .date-dark::-webkit-calendar-picker-indicator {
+  filter: none;
+}
+
+/* ─── Sayfa bileşenleri: gradient tablo/kart kapları ─────────────────────── */
+
+/* from-slate-900 via-slate-800 gradient kaplar → beyaz kart */
+html.theme-light .bg-gradient-to-br.from-slate-900,
+html.theme-light .bg-gradient-to-r.from-slate-900 {
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+
+/* Gradient kap içindeki metinler */
+html.theme-light .bg-gradient-to-br.from-slate-900 .text-white,
+html.theme-light .bg-gradient-to-br.from-slate-900 .text-slate-100,
+html.theme-light .bg-gradient-to-br.from-slate-900 .text-slate-200,
+html.theme-light .bg-gradient-to-br.from-slate-900 .text-slate-300 {
+  color: #1e293b !important;
+}
+html.theme-light .bg-gradient-to-br.from-slate-900 .text-slate-400,
+html.theme-light .bg-gradient-to-br.from-slate-900 .text-slate-500 {
+  color: #64748b !important;
+}
+
+/* Tablo thead: bg-white/5 → hafif slate */
+html.theme-light .bg-white\/5 { background-color: #f1f5f9 !important; }
+html.theme-light .bg-white\/10 { background-color: #e2e8f0 !important; }
+html.theme-light .bg-white\/20 { background-color: #cbd5e1 !important; }
+
+/* Hover satırları */
+html.theme-light .hover\:bg-white\/5:hover { background-color: #f8fafc !important; }
+html.theme-light .hover\:bg-white\/10:hover { background-color: #f1f5f9 !important; }
+
+/* Beyaz yarı saydam kenarlıklar */
+html.theme-light .border-white\/10 { border-color: #cbd5e1 !important; }
+html.theme-light .border-white\/20 { border-color: #cbd5e1 !important; }
+
+/* Tablo satır ayırıcıları */
+html.theme-light .divide-white\/10 > * + * { border-color: #e2e8f0 !important; }
+html.theme-light .divide-y.divide-white\/10 > * + * { border-color: #e2e8f0 !important; }
+
+/* Ek bg-slate varyantları */
+html.theme-light .bg-slate-700 { background-color: #e2e8f0 !important; }
+html.theme-light .bg-slate-700\/30 { background-color: #e2e8f0 !important; }
+html.theme-light .bg-slate-800\/40 { background-color: #f1f5f9 !important; }
+html.theme-light .bg-slate-900\/40 { background-color: #ffffff !important; }
+html.theme-light .bg-slate-900\/60 { background-color: #f8fafc !important; }
+
+/* UsersHeader: emerald-500/10 amber-500/10 badge'ler açık temada da iyi görünür */
+html.theme-light .bg-emerald-500\/10 { background-color: #d1fae5 !important; }
+html.theme-light .bg-amber-500\/10   { background-color: #fef3c7 !important; }
+html.theme-light .bg-rose-500\/10   { background-color: #ffe4e6 !important; }
+html.theme-light .border-emerald-400\/40 { border-color: #34d399 !important; }
+html.theme-light .border-amber-400\/40   { border-color: #fbbf24 !important; }
+html.theme-light .border-rose-400\/40   { border-color: #fb7185 !important; }
+html.theme-light .text-emerald-300 { color: #059669 !important; }
+html.theme-light .text-amber-300   { color: #d97706 !important; }
+html.theme-light .text-rose-300    { color: #e11d48 !important; }
+
+/* ─── Header light theme ─────────────────────────────────────────────────── */
+
+/* Ana header gövdesi: koyu gradient → açık mavi/gri */
+html.theme-light header {
+  background: linear-gradient(to right, #e2e8f0, #f1f5f9, #e2e8f0) !important;
+  border-bottom-color: #cbd5e1 !important;
+  color: #0f172a !important;
+  box-shadow: 0 1px 8px rgba(15, 23, 42, 0.08) !important;
+}
+
+/* Tüm header içindeki text → koyu */
+html.theme-light header span,
+html.theme-light header a,
+html.theme-light header button {
+  color: #1e293b;
+}
+
+/* Aktif nav item */
+html.theme-light header .bg-gradient-to-r {
+  background: linear-gradient(to right, #dbeafe, #ede9fe) !important;
+  border-color: #a5b4fc !important;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.12) !important;
+}
+
+/* Aktif nav alt çizgisi */
+html.theme-light header .bg-gradient-to-r span[class*="bg-gradient"] {
+  background: linear-gradient(to right, #6366f1, #8b5cf6) !important;
+}
+
+/* Aktif nav metin */
+html.theme-light header .text-indigo-200 { color: #4338ca !important; }
+html.theme-light header .text-indigo-300 { color: #4f46e5 !important; }
+
+/* Hover bg'ler */
+html.theme-light header .hover\:bg-white\/10:hover,
+html.theme-light header .hover\:bg-slate-600\/30:hover {
+  background-color: rgba(99, 102, 241, 0.1) !important;
+}
+
+/* Nav item inactive hover */
+html.theme-light header .hover\:bg-slate-600\/30 {
+  background-color: transparent !important;
+}
+
+/* Search input */
+html.theme-light header input[type="text"] {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+}
+html.theme-light header input[type="text"]::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* İkon butonları */
+html.theme-light header button svg,
+html.theme-light header a svg {
+  color: #475569;
+  stroke: #475569;
+}
+
+/* Açık/kapanır dropdown (kategori menüsü) zaten bg-white/95 — iyi görünür */
+
+/* Profil avatar border */
+html.theme-light header .border-slate-300 {
+  border-color: #94a3b8 !important;
+}
+
+/* Profil dropdown */
+html.theme-light header [class*="absolute"][class*="bg-slate-800"],
+html.theme-light header [class*="absolute"][class*="bg-slate-900"] {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+/* Mobile menü paneli */
+html.theme-light header .bg-slate-800\/95,
+html.theme-light header .bg-slate-800 {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Profil dropdown başlığı (from-slate-600 to-slate-700) → açık indigo */
+html.theme-light header .bg-gradient-to-r.from-slate-600 {
+  background: linear-gradient(to right, #e0e7ff, #ede9fe) !important;
+}
+html.theme-light header .bg-gradient-to-r.from-slate-600 p {
+  color: #312e81 !important;
+}
+
+/* Mobile separator çizgisi */
+html.theme-light header .border-white\/20 {
+  border-color: #cbd5e1 !important;
+}
+
+/* Kullanıcı adı metin (sm:block) */
+html.theme-light header p.text-sm {
+  color: #1e293b !important;
+}
+
+/* Avatar fallback: koyu slate → indigo */
+html.theme-light header .from-slate-500.to-slate-600,
+html.theme-light header .bg-gradient-to-br.from-slate-500 {
+  background: linear-gradient(to bottom right, #6366f1, #8b5cf6) !important;
+}
+
+/* Profil butonu: focus outline ve hover arka planı */
+html.theme-light header button.flex.items-center.gap-3 {
+  outline: none !important;
+  box-shadow: none !important;
+}
+html.theme-light header button.flex.items-center.gap-3:focus-visible {
+  outline: 2px solid #6366f1 !important;
+  outline-offset: 2px !important;
+}
+html.theme-light header button.flex.items-center.gap-3:hover {
+  background-color: rgba(99, 102, 241, 0.1) !important;
+}
+
+/* Dropdown profil başlığı (from-slate-600) metin */
+html.theme-light header .from-slate-600.to-slate-700,
+html.theme-light header .bg-gradient-to-r.from-slate-600 {
+  background: linear-gradient(to right, #e0e7ff, #ede9fe) !important;
+}
+html.theme-light header .from-slate-600 p,
+html.theme-light header .from-slate-600.to-slate-700 p {
+  color: #312e81 !important;
+}
+
+/* Autofill açık temada */
+html.theme-light input:-webkit-autofill,
+html.theme-light input:-webkit-autofill:hover,
+html.theme-light input:-webkit-autofill:focus,
+html.theme-light textarea:-webkit-autofill,
+html.theme-light select:-webkit-autofill {
+  -webkit-text-fill-color: #0f172a !important;
+  -webkit-box-shadow: 0 0 0px 1000px #ffffff inset !important;
+  box-shadow: 0 0 0px 1000px #ffffff inset !important;
+  caret-color: #0f172a !important;
+}

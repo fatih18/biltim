@@ -11,6 +11,7 @@ import {
   date,
   text,
   integer,
+  boolean,
 } from "drizzle-orm/pg-core";
 import type {
   DefaultFilter,
@@ -82,6 +83,10 @@ export const columns = {
 
   // Tarih kaç kez değiştirildi (max 2)
   date_change_count: integer("date_change_count").notNull().default(0),
+
+  // Denetim planına uyum raporu: katılım bilgisi (denetim tamamlanınca set edilir)
+  auditor_attended: boolean("auditor_attended"),
+  field_manager_attended: boolean("field_manager_attended"),
 };
 
 export const indexes = (_table: {
@@ -171,6 +176,8 @@ export const SearchConfig: HybridSearchConfig =
         date_range_start: { type: "date", searchable: false, filterable: true, sortable: true, operators: ["gte", "lte", "gt", "lt"] },
         date_range_end: { type: "date", searchable: false, filterable: true, sortable: true, operators: ["gte", "lte", "gt", "lt"] },
         title: { type: "string", searchable: true, filterable: false, sortable: false },
+        auditor_attended: { type: "boolean", searchable: false, filterable: true, sortable: false, operators: ["eq"] },
+        field_manager_attended: { type: "boolean", searchable: false, filterable: true, sortable: false, operators: ["eq"] },
       },
     },
   });

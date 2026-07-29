@@ -77,6 +77,9 @@ export function HomeAuditListPanel(props: {
     loading: boolean;
     onRefresh?: () => void;
     onOpenPlan?: (id: string) => void;
+    onStartAudit?: (planId: string) => void;
+    onEditCompletedAudit?: (plan: AuditPlanRow) => void;
+    currentUserId?: string;
     canEditPlan: (plan: AuditPlanRow) => boolean;
     onUpdatePlanDate: (planId: string, dateYYYYMMDD: string, newCount: number) => void;
     getDateConflicts?: (planId: string, newDate: string) => string[];
@@ -89,6 +92,8 @@ export function HomeAuditListPanel(props: {
         loading,
         onRefresh,
         onOpenPlan,
+        onStartAudit,
+        onEditCompletedAudit,
         canEditPlan,
         onUpdatePlanDate,
         getDateConflicts,
@@ -294,8 +299,27 @@ export function HomeAuditListPanel(props: {
                                         <TeamLeaderWithMembersTooltip teamId={p.assigned_team_id} teamInfoById={teamInfoById} />
                                     </div>
 
-                                    <div className="col-span-2 text-center">
+                                    <div className="col-span-2 flex flex-col items-center gap-1 text-center">
                                         <StatusPill status={p.status} />
+                                        {onStartAudit && tab === "upcoming" && p.status === "planned" && (
+                                            <button
+                                                type="button"
+                                                onClick={() => onStartAudit(p.id)}
+                                                className="rounded-md border border-sky-800/60 bg-sky-950/30 px-2 py-1 text-[11px] font-semibold text-sky-200 hover:bg-sky-950/60"
+                                            >
+                                                Denetimi Başlat
+                                            </button>
+                                        )}
+                                        {onEditCompletedAudit && tab === "completed" && p.status === "completed" && p.audit_id && (
+                                            <button
+                                                type="button"
+                                                onClick={() => onEditCompletedAudit(p)}
+                                                className="rounded-md border border-indigo-800/60 bg-indigo-950/30 px-2 py-1 text-[11px] font-semibold text-indigo-200 hover:bg-indigo-950/60"
+                                                title="Tamamlanmış denetimi düzenle (Merkez Ekip)"
+                                            >
+                                                Düzenle
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             );

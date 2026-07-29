@@ -5,7 +5,13 @@ import { resolveSchemaEntityKey, withChecks } from '@/controllers/utils'
 import type { CompanyInfo } from '@/middlewares'
 import type { TokenPayload } from '@/middlewares/Identity/types'
 import type { ElysiaRequestWOBody } from '@/server'
-import { getUserEffectiveClaims } from '@/services/Authorization'
+import {
+  getUserEffectiveClaims,
+  getUserRoleNames,
+  hasAnyRole,
+  isGodAdmin,
+  PRIVILEGED_ROLES,
+} from '@/services/Authorization'
 import { generateResponse } from '@/utils'
 import { convertDates } from '@/utils/ConvertDates'
 
@@ -42,6 +48,25 @@ export async function GenericUpdateEntity<T extends keyof typeof tables>(
           return generateResponse({
             isSuccess: false,
             message: 'Bulgu durumunu güncelleme yetkiniz yok.',
+            data: null,
+            status: 403,
+            request,
+          })
+        }
+      }
+
+      // Denetim kayıtlarını sadece Merkez Ekip / Manager / Super Admin güncelleyebilir (madde 8)
+      if (schema.tablename === 'five_s_audits') {
+        const schemaName = companyInfo.schema_name || 'main'
+        const [roleNames, isGod] = await Promise.all([
+          getUserRoleNames({ userId: user_id ?? '', schemaName }),
+          user_id ? isGodAdmin({ userId: user_id, schemaName }) : Promise.resolve(false),
+        ])
+
+        if (!isGod && !hasAnyRole(roleNames, PRIVILEGED_ROLES)) {
+          return generateResponse({
+            isSuccess: false,
+            message: 'Denetim kaydını güncelleme yetkiniz yok. Sadece Merkez Ekip güncelleyebilir.',
             data: null,
             status: 403,
             request,

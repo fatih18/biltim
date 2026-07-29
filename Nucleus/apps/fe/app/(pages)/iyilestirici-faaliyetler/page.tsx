@@ -210,8 +210,8 @@ export default function BoardMeetingDecisionsPage() {
         <div className="min-h-screen bg-slate-950 text-slate-50 px-4 py-6 md:px-8">
             <div className="mx-auto max-w-5xl space-y-6">
                 {/* Header */}
-                <header className="border-b border-slate-800 pb-4">
-                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <header className="border-b border-slate-800 rounded-2xl pb-4">
+                    <div className="flex flex-col gap-3 p-4   md:flex-row md:items-start md:justify-between">
                         <div>
                             <h1 className="text-xl font-semibold md:text-2xl">Kurul Toplantı Kararları</h1>
                             <p className="mt-1 text-sm text-slate-400">

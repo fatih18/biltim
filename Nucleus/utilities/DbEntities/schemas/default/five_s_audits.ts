@@ -61,6 +61,9 @@ export const columns = {
 
 	location_id: uuid("location_id"), // saha / bölge FK
 	period_id: uuid("period_id"), // denetim dönemi FK (Q1 2025 vb.)
+
+	// Denetim planı referansı (five_s_audit_plans)
+	plan_id: uuid("plan_id"),
 };
 
 export const indexes = (_table: {
@@ -111,6 +114,8 @@ export type Read = {
 		audit_date_lte?: string;
 		location_id?: string | string[];
 		period_id?: string | string[];
+		plan_id?: string | string[];
+		auditor_id?: string | string[];
 
 		// ✅ Opsiyonel: offline debug/filtre
 		client_submission_id?: string | string[];
@@ -271,6 +276,22 @@ export const SearchConfig: HybridSearchConfig = {
 		},
 		period_id: {
 			column: "period_id",
+			type: "string",
+			searchable: false,
+			filterable: true,
+			sortable: false,
+			operators: ["eq", "in"],
+		},
+		plan_id: {
+			column: "plan_id",
+			type: "string",
+			searchable: false,
+			filterable: true,
+			sortable: false,
+			operators: ["eq", "in"],
+		},
+		auditor_id: {
+			column: "auditor_id",
 			type: "string",
 			searchable: false,
 			filterable: true,

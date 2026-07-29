@@ -3,4 +3,5 @@ export * from "./Downloads";
 export * from "./Files";
 export * from "./Generic";
 export * from "./Initiate";
+export * from "./Reports";
 export * from "./Subscription";

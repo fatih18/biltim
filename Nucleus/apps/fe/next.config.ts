@@ -6,6 +6,10 @@ const nextConfig: NextConfig = {
   // Turbopack is enabled by default in Next.js 16
   // No webpack config needed - using native PWA support
   allowedDevOrigins: ['*'],
+  experimental: {
+    ...(baseConfig as any).experimental,
+    useTypeScriptCli: true,
+  },
 }
 
 export default nextConfig

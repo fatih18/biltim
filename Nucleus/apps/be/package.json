@@ -23,6 +23,7 @@
     "@monorepo/redis-manager": "workspace:*",
     "argon2": "latest",
     "dotenv": "latest",
+    "exceljs": "^4.4.0",
     "drizzle-orm": "0.44.7",
     "elysia": "latest",
     "nanoid": "latest",

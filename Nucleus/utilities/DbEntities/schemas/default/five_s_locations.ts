@@ -12,6 +12,7 @@ import {
     varchar,
     uuid,
     jsonb,
+    integer,
 } from "drizzle-orm/pg-core";
 import type {
     DefaultFilter,
@@ -43,6 +44,13 @@ export const columns = {
         .$type<string[]>()
         .notNull()
         .default(sql`'[]'::jsonb`),
+
+    // Müdürlük (raporlarda müdürlük kırılımı için, opsiyonel)
+    department_name: varchar("department_name", { length: 255 }),
+
+    // Fabrika krokisi üzerindeki konum (0-100 yüzdesel koordinat, opsiyonel)
+    map_x: integer("map_x"),
+    map_y: integer("map_y"),
 };
 
 export const indexes = (_table: {
@@ -75,6 +83,7 @@ export type Read = {
     filters?: DefaultFilter & {
         is_active?: boolean;
         manager_user_id?: string;
+        department_name?: string | string[];
     };
 };
 

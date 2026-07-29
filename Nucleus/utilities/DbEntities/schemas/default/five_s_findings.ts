@@ -50,6 +50,12 @@ export const columns = {
 
 	client_submission_id: uuid("client_submission_id"),
 
+	// Denetim sorusu referansı (örn. "S1-3") — mükerrer bulgu tespiti için
+	question_id: text("question_id"),
+
+	// 5S adım kodu (S1..S5) — raporlama için
+	step_code: text("step_code"),
+
 	finding_no: integer("finding_no").generatedByDefaultAsIdentity().notNull(),
 
 	detected_date: date("detected_date"),
@@ -151,6 +157,10 @@ export type Read = {
 		detected_date_lte?: string;
 		responsible_user_id?: string | string[];
 		auditor_user_id?: string | string[];
+		question_id?: string | string[];
+		step_code?: string | string[];
+		due_date_gte?: string;
+		due_date_lte?: string;
 
 		// ✅ Opsiyonel: offline debug/filtre
 		client_submission_id?: string | string[];
@@ -230,6 +240,62 @@ export const SearchConfig: HybridSearchConfig = {
 			operators: ["eq", "in"],
 		},
 
+		question_id: {
+			column: "question_id",
+			type: "string",
+			searchable: false,
+			filterable: true,
+			sortable: false,
+			operators: ["eq", "in"],
+		},
+		step_code: {
+			column: "step_code",
+			type: "string",
+			searchable: false,
+			filterable: true,
+			sortable: false,
+			operators: ["eq", "in"],
+		},
+		responsible_user_id: {
+			column: "responsible_user_id",
+			type: "string",
+			searchable: false,
+			filterable: true,
+			sortable: false,
+			operators: ["eq", "in"],
+		},
+		auditor_user_id: {
+			column: "auditor_user_id",
+			type: "string",
+			searchable: false,
+			filterable: true,
+			sortable: false,
+			operators: ["eq", "in"],
+		},
+		due_date: {
+			column: "due_date",
+			type: "date",
+			searchable: false,
+			filterable: true,
+			sortable: true,
+			operators: ["gte", "lte", "gt", "lt"],
+		},
+		due_date_gte: {
+			column: "due_date",
+			type: "date",
+			searchable: false,
+			filterable: true,
+			sortable: false,
+			operators: ["gte"],
+		},
+		due_date_lte: {
+			column: "due_date",
+			type: "date",
+			searchable: false,
+			filterable: true,
+			sortable: false,
+			operators: ["lte"],
+		},
 		finding_no: {
 			column: "finding_no",
 			type: "number",

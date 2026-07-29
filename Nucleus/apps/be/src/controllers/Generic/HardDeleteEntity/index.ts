@@ -10,6 +10,12 @@ import { resolveSchemaEntityKey, withChecks } from '@/controllers/utils'
 import type { CompanyInfo } from '@/middlewares'
 import type { TokenPayload } from '@/middlewares/Identity/types'
 import type { ElysiaRequestWOBody } from '@/server'
+import {
+  getUserRoleNames,
+  hasAnyRole,
+  isGodAdmin,
+  PRIVILEGED_ROLES,
+} from '@/services/Authorization'
 import { generateResponse } from '@/utils'
 
 export async function GenericHardDeleteEntity<T extends keyof typeof tables>(
@@ -33,6 +39,25 @@ export async function GenericHardDeleteEntity<T extends keyof typeof tables>(
       }
 
       const entityKey = resolveSchemaEntityKey(schema)
+
+      // 5S bulgularını sadece Merkez Ekip / Manager / Super Admin silebilir (madde 5)
+      if (schema.tablename === 'five_s_findings') {
+        const schemaName = companyInfo.schema_name || 'main'
+        const [roleNames, isGod] = await Promise.all([
+          getUserRoleNames({ userId: user_id ?? '', schemaName }),
+          user_id ? isGodAdmin({ userId: user_id, schemaName }) : Promise.resolve(false),
+        ])
+
+        if (!isGod && !hasAnyRole(roleNames, PRIVILEGED_ROLES)) {
+          return generateResponse({
+            isSuccess: false,
+            message: 'Bulgu silme yetkiniz yok. Sadece Merkez Ekip bulgu silebilir.',
+            data: null,
+            status: 403,
+            request,
+          })
+        }
+      }
 
       if (!request.params?.id) {
         return generateResponse({

@@ -1,12 +1,11 @@
 {
   "extends": "@monorepo/configs/tsconfig/nextjs",
   "compilerOptions": {
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
       "@components": ["./app/_components/index.ts"],
       "@store/*": ["./app/_store/*"],
-      "@lib/*": ["lib/*"],
+      "@lib/*": ["./lib/*"],
       "@monorepo/db-entities/*": ["../../utilities/DbEntities/*"],
       "@monorepo/db-entities": ["../../utilities/DbEntities/index.ts"],
       "@monorepo/generics": ["../../utilities/Generics/index.ts"],

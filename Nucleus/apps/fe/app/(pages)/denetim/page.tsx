@@ -81,6 +81,8 @@ type MasterRow = {
 type FiveSFindingLite = {
   id: string
   finding_no?: number | null
+  question_id?: string | null
+  step_code?: string | null
   detected_date?: string
   location_name?: string
   finding_type?: string
@@ -131,6 +133,14 @@ const STEP_KEYS = { GET: 'GET_FIVE_S_STEPS' } as const
 const QUESTION_KEYS = { GET: 'GET_FIVE_S_QUESTIONS' } as const
 
 const ME_KEY = 'GET_ME_V2' as const
+
+// Madde 13: sunucu taraflı taslak (tablet devri için)
+const DRAFT_KEYS = {
+  GET: 'GET_FIVE_S_AUDIT_DRAFTS',
+  ADD: 'ADD_FIVE_S_AUDIT_DRAFT',
+  UPDATE: 'UPDATE_FIVE_S_AUDIT_DRAFT',
+  DELETE: 'DELETE_FIVE_S_AUDIT_DRAFT',
+} as const
 
 
 /* ───────────────────────────── Helpers ───────────────────────────── */
@@ -314,6 +324,9 @@ type DraftRow = {
 
 type OfflineFindingPayload = {
   questionId: string | 'SINGLE'
+  question_id?: string | null
+  step_code?: string | null
+  auditor_user_id?: string | null
   client_finding_id: string  
   detected_date: string // YYYY-MM-DD
   location_name: string
@@ -468,11 +481,32 @@ export default function FiveSAuditFormPage() {
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
+  // Madde 1: Açık bulgusu olan sorular (soru satırı uyarısı için)
+  const openFindingsByQuestion = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const f of findings) {
+      if (String(f.status ?? '') !== 'open') continue
+      const fromField = (f.question_id ?? '').toString().trim()
+      const fromDesc =
+        f.description?.match(/Soru ID:\s*(\S+)/)?.[1] ??
+        f.description?.match(/Bağlı Soru:\s*(\S+)/)?.[1] ??
+        ''
+      const qid = fromField || fromDesc
+      if (!qid) continue
+      map.set(qid, (map.get(qid) ?? 0) + 1)
+    }
+    return map
+  }, [findings])
+
   // Offline / Sync UI
   const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true)
   const [syncing, setSyncing] = useState(false)
   const [queuedCount, setQueuedCount] = useState<number>(0)
   const draftSaveTimer = useRef<number | null>(null)
+
+  // Madde 13: plan başına sunucu taslak kaydının id'si
+  const serverDraftIdRef = useRef<string | null>(null)
+  const serverDraftSavingRef = useRef(false)
 
   const openDetailModal = (questionId: string) => {
     setAnswers((prev) => {
@@ -690,21 +724,65 @@ export default function FiveSAuditFormPage() {
     }
   }
 
+  const saveServerDraft = async (planId: string, nextHeader: AuditFormHeader, answersLite: any[]) => {
+    if (serverDraftSavingRef.current) return
+    if (typeof navigator !== 'undefined' && !navigator.onLine) return
+    const A = actions as any
+    const answersMap = Object.fromEntries(answersLite.map((a: any) => [String(a.questionId), a]))
+    try {
+      serverDraftSavingRef.current = true
+      if (serverDraftIdRef.current) {
+        const startUpdate = safeStart(A, DRAFT_KEYS.UPDATE)
+        if (!startUpdate) return
+        await startAsPromise(startUpdate, {
+          disableAutoRedirect: true,
+          payload: {
+            _id: serverDraftIdRef.current,
+            header: nextHeader as any,
+            answers: answersMap,
+            updated_by_user_id: currentUserId || undefined,
+            updated_by_name: nextHeader.auditorName || undefined,
+          },
+        })
+      } else {
+        const startAdd = safeStart(A, DRAFT_KEYS.ADD)
+        if (!startAdd) return
+        const resp = await startAsPromise(startAdd, {
+          disableAutoRedirect: true,
+          payload: {
+            plan_id: planId,
+            header: nextHeader as any,
+            answers: answersMap,
+            updated_by_user_id: currentUserId || undefined,
+            updated_by_name: nextHeader.auditorName || undefined,
+          },
+        })
+        const newId = resp?.data?.id ?? resp?.id ?? resp?.data?.[0]?.id ?? null
+        if (newId) serverDraftIdRef.current = String(newId)
+      }
+    } catch (e) {
+      console.warn('server draft save error', e)
+    } finally {
+      serverDraftSavingRef.current = false
+    }
+  }
+
   const saveDraftDebounced = (planId: string | null, nextHeader: AuditFormHeader, nextAnswers: AnswersState) => {
     if (!db) return
     if (draftSaveTimer.current) window.clearTimeout(draftSaveTimer.current)
     draftSaveTimer.current = window.setTimeout(async () => {
+      const answersLite = Object.values(nextAnswers).map((a) => ({
+        questionId: a.questionId,
+        rating: a.rating,
+        explanation: a.explanation,
+        findingType: a.findingType,
+        actionToTake: a.actionToTake ?? null,
+        dueDate: a.dueDate ?? '',
+        locationName: a.locationName ?? '',
+      }))
+
       try {
         const draftKey = makeDraftKey(planId, nextHeader)
-        const answersLite = Object.values(nextAnswers).map((a) => ({
-          questionId: a.questionId,
-          rating: a.rating,
-          explanation: a.explanation,
-          findingType: a.findingType,
-          actionToTake: a.actionToTake ?? null,
-          dueDate: a.dueDate ?? '',
-          locationName: a.locationName ?? '',
-        }))
         await db.drafts.put({
           id: draftKey,
           updatedAt: Date.now(),
@@ -715,10 +793,84 @@ export default function FiveSAuditFormPage() {
       } catch (e) {
         console.warn('draft save error', e)
       }
-    }, 350)
+
+      // Madde 13: plan bazlı taslaklar sunucuya da yazılır — aynı ekipteki
+      // başka bir kullanıcı başka cihazdan devam edebilsin.
+      if (planId) {
+        await saveServerDraft(planId, nextHeader, answersLite)
+      }
+    }, 800)
+  }
+
+  const applyDraftAnswers = (arr: any[]) => {
+    setAnswers((prev) => {
+      const base = { ...prev }
+      for (const a of arr) {
+        const qid = String(a.questionId)
+        base[qid] = {
+          questionId: qid,
+          rating: a.rating ?? null,
+          explanation: a.explanation ?? '',
+          photos: prev[qid]?.photos ?? [],
+          findingType: a.findingType ?? null,
+          actionToTake: a.actionToTake ?? null,
+          dueDate: a.dueDate ?? '',
+          locationName: a.locationName ?? '',
+        }
+      }
+      return base
+    })
+  }
+
+  // Madde 13: önce sunucu taslağı dene (başka kullanıcı/cihaz devri), yoksa lokal
+  const tryRestoreServerDraft = async (planId: string): Promise<boolean> => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) return false
+    try {
+      const A = actions as any
+      const startGet = safeStart(A, DRAFT_KEYS.GET)
+      if (!startGet) return false
+
+      const resp = await startAsPromise(startGet, {
+        disableAutoRedirect: true,
+        payload: { page: 1, limit: 1, filters: { plan_id: planId } },
+      })
+      const arr = extractArray(resp)
+      const draft = arr?.[0]
+      if (!draft) return false
+
+      serverDraftIdRef.current = String(draft.id)
+
+      const h = draft.header as Partial<AuditFormHeader> | null
+      if (h && typeof h === 'object') {
+        setHeader((prev) => ({
+          teamName: String(h.teamName ?? prev.teamName),
+          department: String(h.department ?? prev.department),
+          date: String(h.date ?? prev.date),
+          auditorName: String(h.auditorName ?? prev.auditorName),
+        }))
+      }
+
+      const answersObj = draft.answers && typeof draft.answers === 'object' ? draft.answers : {}
+      const answersArr = Array.isArray(answersObj) ? answersObj : Object.values(answersObj)
+      if (answersArr.length > 0) applyDraftAnswers(answersArr as any[])
+
+      if (draft.updated_by_name) {
+        console.log(`Sunucu taslağı yüklendi (son güncelleyen: ${draft.updated_by_name})`)
+      }
+      return true
+    } catch (e) {
+      console.warn('server draft restore error', e)
+      return false
+    }
   }
 
   const tryRestoreDraft = async (planId: string | null, h: AuditFormHeader) => {
+    // Önce sunucu taslağı (plan bazlı)
+    if (planId) {
+      const restored = await tryRestoreServerDraft(planId)
+      if (restored) return
+    }
+
     try {
       if (!db) return
       const draftKey = makeDraftKey(planId, h)
@@ -758,6 +910,24 @@ export default function FiveSAuditFormPage() {
       await db.drafts.delete(draftKey)
     } catch {
       // ignore
+    }
+
+    // Madde 13: sunucu taslağını da sil
+    if (serverDraftIdRef.current) {
+      try {
+        const A = actions as any
+        const startDelete = safeStart(A, DRAFT_KEYS.DELETE)
+        if (startDelete) {
+          await startAsPromise(startDelete, {
+            disableAutoRedirect: true,
+            payload: { _id: serverDraftIdRef.current },
+          })
+        }
+      } catch (e) {
+        console.warn('server draft delete error', e)
+      } finally {
+        serverDraftIdRef.current = null
+      }
     }
   }
 
@@ -841,6 +1011,11 @@ export default function FiveSAuditFormPage() {
               disableAutoRedirect: true,
               payload: {
                 audit_id: auditId,
+                question_id: f.question_id ?? (f.questionId !== 'SINGLE' ? f.questionId : undefined),
+                step_code:
+                  f.step_code ??
+                  (f.questionId !== 'SINGLE' ? String(f.questionId).split('-')[0] : undefined),
+                auditor_user_id: f.auditor_user_id ?? undefined,
                 // Eski kuyruktaki geçersiz (UUID olmayan) id'leri temizle
                 client_finding_id: isUuid(f.client_finding_id) ? f.client_finding_id : genUUID(),
                 detected_date: f.detected_date,
@@ -1069,6 +1244,39 @@ export default function FiveSAuditFormPage() {
         const s = memberSetByTeam.get(p.assigned_team_id)
         return !!s && !!uidVal && s.has(String(uidVal))
       })
+
+      // Madde 7: Ana sayfadan planId ile gelindiyse o planı direkt seç
+      const urlPlanId =
+        typeof window !== 'undefined'
+          ? new URLSearchParams(window.location.search).get('planId')
+          : null
+      if (urlPlanId) {
+        const target = matched.find((p) => String(p.id) === String(urlPlanId))
+        if (target) {
+          const metaMapUrl: Record<string, { locationName: string; teamName: string }> = {
+            [target.id]: {
+              locationName: locs.find((l) => l.id === target.location_id)?.name ?? '',
+              teamName: teams.find((t) => t.id === target.assigned_team_id)?.name ?? '',
+            },
+          }
+          setPlanMetaMap(metaMapUrl)
+          setAssignedPlan(target)
+
+          const memberOptsUrl = buildTeamMemberOptions(target.assigned_team_id, members, teams, usersById)
+          setTeamMemberOptions(memberOptsUrl)
+
+          const nextHeaderUrl = {
+            teamName: metaMapUrl[target.id]?.teamName ?? '',
+            department: metaMapUrl[target.id]?.locationName ?? '',
+            date: target.planned_date || header.date,
+            auditorName: header.auditorName || auditorFallback,
+          } satisfies AuditFormHeader
+          setHeader(nextHeaderUrl)
+
+          await tryRestoreDraft(target.id, nextHeaderUrl)
+          return
+        }
+      }
 
       if (matched.length === 0) {
         setAssignedPlan(null)
@@ -1405,6 +1613,9 @@ export default function FiveSAuditFormPage() {
 
       findingsPayload.push({
         questionId: ans.questionId,
+        question_id: ans.questionId,
+        step_code: q.stepCode,
+        auditor_user_id: currentUserId || null,
         client_finding_id: genUUID(),
         detected_date: detectedDate,
         location_name: effectiveLocationName,
@@ -1455,9 +1666,24 @@ export default function FiveSAuditFormPage() {
       const A = actions as any
       const startUpdate = safeStart(A, planUpdateKey)
       if (!startUpdate) return
+
+      // Denetim planına uyum raporu için katılım bilgisi:
+      // Denetçi(ler) formu gönderdiğine göre katıldı sayılır; saha sorumlusu ise
+      // "Denetimi Yapan" listesinde adı geçiyorsa katılmış kabul edilir.
+      const responsible = locationResponsibleMap.get(normLoc(header.department)) ?? null
+      const fieldManagerAttended = responsible
+        ? selectedAuditors.includes(responsible.userName)
+        : null
+
       await startAsPromise(startUpdate, {
         disableAutoRedirect: true,
-        payload: { _id: planId, status: 'completed', audit_id: auditId },
+        payload: {
+          _id: planId,
+          status: 'completed',
+          audit_id: auditId,
+          auditor_attended: true,
+          ...(fieldManagerAttended === null ? {} : { field_manager_attended: fieldManagerAttended }),
+        },
       })
     } catch (err) {
       console.warn('Plan completed işaretlenemedi (kritik değil):', err)
@@ -1504,6 +1730,18 @@ export default function FiveSAuditFormPage() {
 
     setMissingQuestions(new Set())
 
+    // Madde 1: Açık bulgusu olan sorular "İyi" işaretlendiyse denetçiyi uyar
+    const goodButOpen = questions.filter(
+      (q) => openFindingsByQuestion.has(q.id) && answers[q.id]?.rating === 'good'
+    )
+    if (goodButOpen.length > 0) {
+      const listTxt = goodButOpen.map((q) => `• ${q.id}: ${q.text.slice(0, 60)}`).join('\n')
+      const ok = window.confirm(
+        `Aşağıdaki sorularda henüz KAPANMAMIŞ bulgular varken "İyi" seçtiniz:\n\n${listTxt}\n\nYine de devam etmek istiyor musunuz?`
+      )
+      if (!ok) return
+    }
+
     // offline ise direkt queue
     if (!isOnline) {
       await enqueueAuditAndFindingsFromForm()
@@ -1528,6 +1766,10 @@ export default function FiveSAuditFormPage() {
           score_s3: (S3 ?? 0).toFixed(2),
           score_s4: (S4 ?? 0).toFixed(2),
           score_s5: (S5 ?? 0).toFixed(2),
+
+          plan_id: assignedPlan?.id ?? undefined,
+          location_id: assignedPlan?.location_id ?? undefined,
+          auditor_id: currentUserId || undefined,
         },
 
         onAfterHandle: async (data: any) => {
@@ -1548,9 +1790,10 @@ export default function FiveSAuditFormPage() {
               await markPlanCompleted(assignedPlan.id, auditId)
             }
 
-            // Kayıt tamamlandıktan sonra denetim sayfasını yenile
+            // Madde 9: otomatik yeni denetime geçiş yok — ana sayfaya dön
             if (typeof window !== 'undefined') {
-              window.location.reload()
+              alert('Denetim başarıyla kaydedildi.')
+              window.location.href = '/'
             }
             return
           }
@@ -1587,6 +1830,9 @@ export default function FiveSAuditFormPage() {
                 disableAutoRedirect: true,
                 payload: {
                   audit_id: auditId,
+                  question_id: ans.questionId,
+                  step_code: q.stepCode,
+                  auditor_user_id: currentUserId || undefined,
                   client_finding_id: genUUID(),
                   detected_date: detectedDate,
                   location_name: effectiveLocationName,
@@ -1616,12 +1862,12 @@ export default function FiveSAuditFormPage() {
             await markPlanCompleted(assignedPlan.id, auditId)
           }
 
-          fetchFindings(header.department)
           console.log('Audit + findings (+ photos) başarıyla kaydedildi.')
 
-          // Kayıt tamamlandıktan sonra denetim sayfasını yenile
+          // Madde 9: otomatik yeni denetime geçiş yok — ana sayfaya dön
           if (typeof window !== 'undefined') {
-            window.location.reload()
+            alert('Denetim başarıyla kaydedildi.')
+            window.location.href = '/'
           }
         },
       })
@@ -1709,6 +1955,11 @@ export default function FiveSAuditFormPage() {
         findings: [
           {
             questionId: 'SINGLE',
+            question_id: singleFinding.linkedQuestionId || null,
+            step_code: singleFinding.linkedQuestionId
+              ? singleFinding.linkedQuestionId.split('-')[0]
+              : null,
+            auditor_user_id: currentUserId || null,
             client_finding_id: genUUID(),
             detected_date: header.date,
             location_name: loc || 'Bilinmeyen Lokasyon',
@@ -1810,6 +2061,11 @@ export default function FiveSAuditFormPage() {
               disableAutoRedirect: true,
               payload: {
                 audit_id: auditId,
+                question_id: singleFinding.linkedQuestionId || undefined,
+                step_code: singleFinding.linkedQuestionId
+                  ? singleFinding.linkedQuestionId.split('-')[0]
+                  : undefined,
+                auditor_user_id: currentUserId || undefined,
                 client_finding_id: genUUID(),
                 detected_date: header.date,
                 location_name: loc || 'Bilinmeyen Lokasyon',
@@ -2539,6 +2795,14 @@ export default function FiveSAuditFormPage() {
                                     ⚠ Yanıt Gerekli
                                   </span>
                                 )}
+                                {openFindingsByQuestion.has(q.id) && (
+                                  <span
+                                    className="ml-2 inline-flex items-center rounded-sm bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300 ring-1 ring-amber-500/40"
+                                    title="Bu soruya bağlı henüz kapanmamış bulgu var"
+                                  >
+                                    ⚠ Açık bulgu ({openFindingsByQuestion.get(q.id)})
+                                  </span>
+                                )}
                               </td>
 
                               {hasAnyDetails && (
@@ -2635,6 +2899,11 @@ export default function FiveSAuditFormPage() {
                               <span className={isMissingMobile ? 'font-semibold text-rose-200' : 'text-slate-100'}>{q.text}</span>
                               {isMissingMobile && (
                                 <span className="ml-1 inline-flex items-center rounded-sm bg-rose-500/20 px-1 py-0.5 text-[10px] font-semibold text-rose-400">⚠</span>
+                              )}
+                              {openFindingsByQuestion.has(q.id) && (
+                                <span className="ml-1 inline-flex items-center rounded-sm bg-amber-500/20 px-1 py-0.5 text-[10px] font-semibold text-amber-300">
+                                  ⚠ Açık bulgu ({openFindingsByQuestion.get(q.id)})
+                                </span>
                               )}
                             </div>
                             <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-400">

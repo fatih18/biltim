@@ -2,7 +2,6 @@
 
 import { useStore } from '@store/globalStore'
 import Image from 'next/image'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { FormEvent } from 'react'
 import { FiEye, FiLock, FiMail } from 'react-icons/fi'
@@ -162,7 +161,7 @@ export default function Login() {
                     'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400',
                   ].join(' ')}
                 >
-                  {isPending ? 'Logging in...' : 'Sign In'}
+                  {isPending ? 'Giriş yapılıyor...' : 'Giriş Yap'}
                 </button>
 
                 <div className="flex items-center justify-between text-xs">
@@ -174,13 +173,6 @@ export default function Login() {
                     />
                     Beni Hatırla
                   </label>
-
-                  <Link
-                    href="/forgot-password"
-                    className="font-semibold text-sky-300 hover:text-sky-200"
-                  >
-                    Şifremi Unuttum ?
-                  </Link>
                 </div>
               </form>
 
@@ -188,7 +180,7 @@ export default function Login() {
             </div>
 
             <p className="mt-6 text-center text-[11px] text-slate-600">
-              © {new Date().getFullYear()} Biltim • Secure sign-in
+              © {new Date().getFullYear()} Biltim • Güvenli giriş
             </p>
           </div>
         </div>

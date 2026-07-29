@@ -9,7 +9,6 @@
 		"resolveJsonModule": true,
 		"isolatedModules": true,
 		"incremental": true,
-		"baseUrl": ".",
 		"forceConsistentCasingInFileNames": true,
 		"noUncheckedIndexedAccess": true,
 		"noImplicitReturns": true,

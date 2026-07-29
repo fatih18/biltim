@@ -173,6 +173,15 @@ const INITIAL_CLAIMS: ClaimData[] = [
     description: 'Update status of five_s_findings (not available to Auditor-only users)',
   },
 
+  // Reports (dashboard aggregates + excel download)
+  {
+    action: 'reports.read',
+    method: 'GET',
+    path: '/api/reports',
+    mode: 'startsWith',
+    description: 'View 5S reports and download excel exports',
+  },
+
   // User-role assignments (only Super Admin should normally get these via roles)
   {
     action: 'user_roles.read',

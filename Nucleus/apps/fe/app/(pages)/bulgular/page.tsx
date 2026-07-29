@@ -5,7 +5,7 @@ import { useGenericApiActions } from "@/app/_hooks/UseGenericApiStore";
 import { useGetUserRole } from "@/app/_hooks/user/useGetUserRole";
 import { useUploadAnswerPhoto } from "./hooks/useUploadAnswersPhoto";
 import { DateInput } from "@/app/_components/DateInput";
-import { Camera, Eye, ImageIcon, Loader2, Upload, X, ChevronDown, ChevronUp } from "lucide-react";
+import { Camera, Eye, FileSpreadsheet, ImageIcon, Loader2, Trash2, Upload, X, ChevronDown, ChevronUp } from "lucide-react";
 
 type FindingStatus = "open" | "in_progress" | "closed";
 
@@ -18,6 +18,8 @@ type FiveSFinding = {
   id: string;
   audit_id: string;
   finding_no: number;
+  question_id?: string | null;
+  step_code?: string | null;
   detected_date: string; // ISO / YYYY-MM-DD
   location_name: string;
   finding_type: string;
@@ -144,6 +146,11 @@ export default function FiveSFindingsListPage() {
   const isAuditor = hasAuditor && !hasOverrideRole;
   const CLOSE_ALLOWED_ROLES = ["field manager", "super admin", "manager"];
   const canCloseFinding = userRoles.some((r) => CLOSE_ALLOWED_ROLES.includes(r.name.toLowerCase()));
+  // Madde 5: Sadece Merkez Ekip / Manager / Super Admin bulgu silebilir
+  const DELETE_ALLOWED_ROLES = ["super admin", "manager", "content manager core team"];
+  const canDeleteFinding = userRoles.some((r) => DELETE_ALLOWED_ROLES.includes(r.name.toLowerCase()));
+  const [deletingFindingId, setDeletingFindingId] = useState<string | null>(null);
+  const [downloadingExcel, setDownloadingExcel] = useState(false);
   const [findings, setFindings] = useState<FiveSFinding[]>([]);
   const [pagination, setPagination] = useState<PaginationInfo>({
     page: 1,
@@ -399,6 +406,98 @@ export default function FiveSFindingsListPage() {
     }
   };
 
+  // Madde 5: bulgu silme (sadece Merkez Ekip)
+  const handleDeleteFinding = (finding: FiveSFinding) => {
+    if (!canDeleteFinding) return;
+    const del = (actions as any).DELETE_FIVE_S_FINDING;
+    if (!del?.start) return;
+
+    const ok = window.confirm(
+      `#${finding.finding_no} numaralı bulguyu silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`
+    );
+    if (!ok) return;
+
+    setDeletingFindingId(finding.id);
+    del.start({
+      payload: { _id: finding.id },
+      onAfterHandle: () => {
+        setDeletingFindingId(null);
+        setFindings((prev) => prev.filter((f) => f.id !== finding.id));
+        setPagination((prev) => ({ ...prev, totalCount: Math.max(0, prev.totalCount - 1) }));
+      },
+      onErrorHandle: (err: any) => {
+        console.error("DELETE_FIVE_S_FINDING error", err);
+        setDeletingFindingId(null);
+        setErrorMsg("Bulgu silinemedi. Yetkinizi kontrol edin.");
+      },
+    });
+  };
+
+  // Madde 15: Açık bulgu Excel raporu indir
+  const handleDownloadExcel = async () => {
+    try {
+      setDownloadingExcel(true);
+      const params = new URLSearchParams();
+      if (locationFilter) params.set("location_name", locationFilter);
+      if (dateFrom) params.set("date_from", dateFrom);
+      if (dateTo) params.set("date_to", dateTo);
+      const qs = params.toString();
+      const res = await fetch(`/api/reports/open-findings${qs ? `?${qs}` : ""}`);
+      if (!res.ok) throw new Error(`Excel indirme hatası (${res.status})`);
+      const blob = await res.blob();
+      const cd = res.headers.get("Content-Disposition") ?? "";
+      const nameMatch = cd.match(/filename="?([^";]+)"?/);
+      const filename = nameMatch?.[1] ?? `5s-acik-bulgu-raporu-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Excel download error", err);
+      setErrorMsg("Excel raporu indirilemedi.");
+    } finally {
+      setDownloadingExcel(false);
+    }
+  };
+
+  // Madde 2: tüm sonrası fotoğrafları sil
+  const handleRemoveAllAfterPhotos = (finding: FiveSFinding) => {
+    if (!actions.UPDATE_FIVE_S_FINDING) return;
+    const ok = window.confirm("Tüm 'Sonrası' fotoğrafları silinecek. Emin misiniz?");
+    if (!ok) return;
+
+    setFindings((prev) =>
+      prev.map((f) =>
+        f.id === finding.id
+          ? {
+              ...f,
+              photo_after_files: [],
+              photo_after_file_id: null,
+              photo_after_url: null,
+            }
+          : f
+      )
+    );
+
+    actions.UPDATE_FIVE_S_FINDING.start({
+      payload: {
+        _id: finding.id,
+        photo_after_files: [],
+        photo_after_file_id: null,
+        photo_after_url: null,
+      },
+      onAfterHandle: () => {},
+      onErrorHandle: (err) => {
+        console.error("UPDATE_FIVE_S_FINDING (remove all after photos) error", err);
+        fetchFindings();
+      },
+    });
+  };
+
   // remove photo
   const handleRemovePhoto = async (finding: FiveSFinding, kind: "before" | "after", index: number) => {
     if (!actions.UPDATE_FIVE_S_FINDING) return;
@@ -449,11 +548,47 @@ export default function FiveSFindingsListPage() {
     });
   };
 
+  // Madde 1: Aynı soruya + lokasyona ait mükerrer AÇIK bulguları tek satırda göster
   const rows = useMemo(() => {
-    return findings.map((f) => {
+    const questionIdOf = (f: FiveSFinding) => {
+      const fromField = (f.question_id ?? "").toString().trim();
+      if (fromField) return fromField;
+      const desc = f.description ?? "";
+      return (
+        desc.match(/Soru ID:\s*(\S+)/)?.[1] ??
+        desc.match(/Bağlı Soru:\s*(\S+)/)?.[1] ??
+        ""
+      );
+    };
+
+    const seen = new Map<string, number>(); // dedupe key -> ilk satırın indexi
+    const result: Array<{
+      f: FiveSFinding;
+      before: PhotoItem[];
+      after: PhotoItem[];
+      duplicateCount: number;
+    }> = [];
+
+    for (const f of findings) {
+      const qid = questionIdOf(f);
+      const isOpen = f.status === "open";
+      const key =
+        isOpen && qid
+          ? `${qid}__${(f.location_name ?? "").trim().toLocaleLowerCase("tr")}`
+          : "";
+
+      if (key && seen.has(key)) {
+        const idx = seen.get(key)!;
+        result[idx]!.duplicateCount += 1;
+        continue;
+      }
+
       const { before, after } = normalizePhotos(f);
-      return { f, before, after };
-    });
+      if (key) seen.set(key, result.length);
+      result.push({ f, before, after, duplicateCount: 0 });
+    }
+
+    return result;
   }, [findings]);
 
   const toggleExpanded = (kind: "before" | "after", findingId: string) => {
@@ -466,7 +601,7 @@ export default function FiveSFindingsListPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50 px-4 py-6 md:px-8">
       <div className="mx-auto max-w-6xl space-y-6">
-        <header className="flex flex-col gap-3 border-b border-slate-800 pb-4 md:flex-row md:items-center md:justify-between">
+        <header className="flex flex-col gap-3 rounded-2xl p-4 border-b border-slate-800 pb-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-xl font-semibold md:text-2xl">5S Bulguları</h1>
             <p className="mt-1 text-sm text-slate-400">
@@ -474,7 +609,20 @@ export default function FiveSFindingsListPage() {
             </p>
           </div>
 
-          <div className="flex flex-col items-start gap-1 text-xs text-slate-400 md:items-end">
+          <div className="flex flex-col items-start gap-2 text-xs text-slate-400 md:items-end">
+            <button
+              type="button"
+              onClick={handleDownloadExcel}
+              disabled={downloadingExcel}
+              className="inline-flex items-center gap-1.5 rounded-md border border-emerald-600/60 bg-emerald-950/30 px-3 py-2 text-xs font-semibold text-emerald-200 hover:bg-emerald-950/60 disabled:opacity-50"
+            >
+              {downloadingExcel ? (
+                <Loader2 size={13} className="animate-spin" />
+              ) : (
+                <FileSpreadsheet size={13} />
+              )}
+              {downloadingExcel ? "Hazırlanıyor..." : "Açık Bulgu Raporu (Excel)"}
+            </button>
             <span>Toplam Bulgu: {pagination.totalCount}</span>
             <span>
               Sayfa {pagination.page} / {pagination.pageCount}
@@ -613,19 +761,20 @@ export default function FiveSFindingsListPage() {
                   <th className="px-4 py-2">Denetçi</th>
                   <th className="px-4 py-2">Foto (Önce)</th>
                   <th className="px-4 py-2">Foto (Sonra)</th>
+                  {canDeleteFinding && <th className="px-4 py-2">Sil</th>}
                 </tr>
               </thead>
 
               <tbody>
                 {rows.length === 0 && !loading && (
                   <tr>
-                    <td colSpan={11} className="px-4 py-6 text-center text-xs text-slate-400">
+                    <td colSpan={canDeleteFinding ? 12 : 11} className="px-4 py-6 text-center text-xs text-slate-400">
                       Gösterilecek bulgu bulunamadı.
                     </td>
                   </tr>
                 )}
 
-                {rows.map(({ f, before, after }) => {
+                {rows.map(({ f, before, after, duplicateCount }) => {
                   const beforeCount = before.length;
                   const afterCount = after.length;
 
@@ -654,7 +803,17 @@ export default function FiveSFindingsListPage() {
                         )}
                       </td>
 
-                      <td className="px-4 py-2 text-[11px] text-sky-300">{f.finding_type}</td>
+                      <td className="px-4 py-2 text-[11px] text-sky-300">
+                        {f.finding_type}
+                        {duplicateCount > 0 && (
+                          <span
+                            className="ml-1 inline-flex items-center rounded-sm bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300"
+                            title="Aynı soru ve lokasyon için tekrar eden açık bulgular tekilleştirildi"
+                          >
+                            +{duplicateCount} tekrar
+                          </span>
+                        )}
+                      </td>
 
                       {/* Durum */}
                       <td className="px-4 py-2">
@@ -874,8 +1033,39 @@ export default function FiveSFindingsListPage() {
                               </button>
                             </div>
                           )}
+
+                          {afterCount > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveAllAfterPhotos(f)}
+                              className="inline-flex items-center gap-1 rounded-lg border border-rose-600/40 bg-rose-950/20 px-2 py-0.5 text-[10px] font-medium text-rose-300 hover:bg-rose-950/50 transition-colors"
+                              title="Tüm sonrası fotoğrafları sil"
+                            >
+                              <X size={10} />
+                              Tümünü Sil
+                            </button>
+                          )}
                         </div>
                       </td>
+
+                      {canDeleteFinding && (
+                        <td className="px-3 py-2">
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteFinding(f)}
+                            disabled={deletingFindingId === f.id}
+                            className="inline-flex items-center gap-1 rounded-lg border border-rose-600/50 bg-rose-950/30 px-2.5 py-1 text-[11px] font-medium text-rose-300 hover:bg-rose-950/60 disabled:opacity-50 transition-colors"
+                            title="Bulguyu sil (Merkez Ekip)"
+                          >
+                            {deletingFindingId === f.id ? (
+                              <Loader2 size={11} className="animate-spin" />
+                            ) : (
+                              <Trash2 size={11} />
+                            )}
+                            Sil
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   );
                 })}
