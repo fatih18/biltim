@@ -1,4 +1,5 @@
-import { createNucleusServer } from 'nucleus-core-ts/server'
+import { Elysia } from 'elysia'
+import { NucleusElysiaPlugin } from 'nucleus-core-ts'
 import { closePool } from './db'
 import { ReportsRoutes } from './routes/reports'
 
@@ -11,26 +12,28 @@ import { ReportsRoutes } from './routes/reports'
  * framework genuinely cannot express: the dashboard aggregates and the Excel
  * export, both raw SQL over the 5S tables.
  *
- * The reports are handed to the server as a route GROUP rather than mounted
- * after a plugin, and the guarantee is the same one the old comment claimed:
- * nucleus's onRequest chain — header stripping, tenant resolution, auth — runs
- * before every route it serves, a host's included, so /reports is still behind
- * it. Those paths are deliberately absent from the public-route list.
+ * The plugin is mounted BEFORE the custom routes so its onRequest chain
+ * (header stripping, tenant resolution, auth) also guards /reports — those
+ * paths are deliberately absent from the public-route list.
  */
 async function main() {
-  const port = Number(process.env.PORT) || 1002
+  const app = new Elysia()
+    .use(
+      await NucleusElysiaPlugin({
+        options: './config.json',
+        schema: './src/drizzle/schema.ts',
+        relations: './src/drizzle/relations.ts',
+        swagger: { path: '/docs' },
+      })
+    )
+    .use(ReportsRoutes)
 
-  await createNucleusServer({
-    config: {
-      options: './config.json',
-      schema: './src/drizzle/schema.ts',
-      relations: './src/drizzle/relations.ts',
-      swagger: { path: '/docs' },
-    } as never,
-    port,
-    routes: [ReportsRoutes],
-    onStop: [async () => { await closePool() }],
+  app.onStop(async () => {
+    await closePool()
   })
+
+  const port = Number(process.env.PORT) || 1002
+  app.listen(port)
   console.log(`\n✅ Biltim API listening on http://localhost:${port}`)
   console.log(`📘 Docs: http://localhost:${port}/docs`)
   console.log(`💚 Health: http://localhost:${port}/health\n`)

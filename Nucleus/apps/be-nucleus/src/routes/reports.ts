@@ -1,4 +1,4 @@
-import { defineRoute } from 'nucleus-core-ts/server'
+import { Elysia } from 'elysia'
 import { type Row, query } from '../db'
 
 /** Only YYYY-MM-DD reaches SQL; anything else becomes "no filter". */
@@ -26,18 +26,8 @@ function dateRange(column: string, from: string | null, to: string | null, start
   return { sql: parts.join(''), params, next: i }
 }
 
-/**
- * The two reports, as route declarations rather than as an Elysia instance.
- *
- * nucleus-core serves itself on `Bun.serve` now and takes a host's own routes
- * as groups, so these are described the same way the framework's own routes
- * are. The handlers are untouched: both only ever read `query`, which the
- * router hands them under the same name.
- */
-const dashboard = defineRoute({
-  method: 'GET',
-  path: '/dashboard',
-  handler: async ({ query: q }: { query: Record<string, unknown> }) => {
+export const ReportsRoutes = new Elysia({ prefix: '/reports' })
+  .get('/dashboard', async ({ query: q }) => {
     const from = parseDate(q?.date_from)
     const to = parseDate(q?.date_to)
 
@@ -188,12 +178,7 @@ const dashboard = defineRoute({
     }
   })
 
-})
-
-const openFindings = defineRoute({
-  method: 'GET',
-  path: '/open-findings.xlsx',
-  handler: async ({ query: q }: { query: Record<string, unknown> }) => {
+  .get('/open-findings.xlsx', async ({ query: q }) => {
     const locationName = String(q?.location_name ?? '').trim()
     const from = parseDate(q?.date_from)
     const to = parseDate(q?.date_to)
@@ -268,8 +253,4 @@ const openFindings = defineRoute({
         'Cache-Control': 'no-store',
       },
     })
-  },
-})
-
-/** Mounted under `/reports`, behind nucleus's guard chain as before. */
-export const ReportsRoutes = { prefix: '/reports', routes: [dashboard, openFindings] }
+  })

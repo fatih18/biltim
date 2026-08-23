@@ -12,6 +12,7 @@
   "dependencies": {
     "nucleus-core-ts": "latest",
     "drizzle-orm": "0.44.7",
+    "elysia": "latest",
     "drizzle-kit": "0.31.5",
     "ioredis": "latest",
     "pg": "latest",
