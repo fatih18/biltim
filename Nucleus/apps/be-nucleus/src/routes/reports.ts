@@ -1,4 +1,5 @@
-import { Elysia } from 'elysia'
+import { Type as t } from '@sinclair/typebox'
+import { type AnyRoute, defineRoute, type RouteGroup } from 'nucleus-core-ts/server'
 import { type Row, query } from '../db'
 
 /** Only YYYY-MM-DD reaches SQL; anything else becomes "no filter". */
@@ -26,8 +27,28 @@ function dateRange(column: string, from: string | null, to: string | null, start
   return { sql: parts.join(''), params, next: i }
 }
 
-export const ReportsRoutes = new Elysia({ prefix: '/reports' })
-  .get('/dashboard', async ({ query: q }) => {
+/**
+ * Both reports take the same optional date window, and `location_name` narrows
+ * the Excel export to one place.
+ *
+ * Declared rather than read raw so the two show up in /docs with their
+ * parameters — the router drops anything not named here before the handler
+ * sees it, which is what the handlers already assumed. Every field is an
+ * optional string: a query value always IS a string, so this can only ever
+ * refuse a request that omits nothing, and `parseDate` still decides what
+ * reaches SQL.
+ */
+const dateWindow = {
+  date_from: t.Optional(t.String()),
+  date_to: t.Optional(t.String()),
+}
+
+const dashboard = defineRoute({
+  method: 'GET',
+  path: '/dashboard',
+  query: t.Object(dateWindow),
+  detail: { tags: ['Reports'], summary: '5S dashboard aggregates' },
+  handler: async ({ query: q }) => {
     const from = parseDate(q?.date_from)
     const to = parseDate(q?.date_to)
 
@@ -176,9 +197,15 @@ export const ReportsRoutes = new Elysia({ prefix: '/reports' })
         filters: { date_from: from, date_to: to },
       },
     }
-  })
+  },
+})
 
-  .get('/open-findings.xlsx', async ({ query: q }) => {
+const openFindings = defineRoute({
+  method: 'GET',
+  path: '/open-findings.xlsx',
+  query: t.Object({ ...dateWindow, location_name: t.Optional(t.String()) }),
+  detail: { tags: ['Reports'], summary: 'Open findings as an Excel workbook' },
+  handler: async ({ query: q }) => {
     const locationName = String(q?.location_name ?? '').trim()
     const from = parseDate(q?.date_from)
     const to = parseDate(q?.date_to)
@@ -253,4 +280,15 @@ export const ReportsRoutes = new Elysia({ prefix: '/reports' })
         'Cache-Control': 'no-store',
       },
     })
-  })
+  },
+})
+
+/**
+ * Mounted under `/reports`, behind nucleus's guard chain as before.
+ *
+ * `AnyRoute[]` is load-bearing: `defineRoute` keeps `path` as a literal
+ * type, so two routes with different paths are different types and cannot
+ * share an array without it.
+ */
+const routes: AnyRoute[] = [dashboard, openFindings]
+export const ReportsRoutes: RouteGroup = { prefix: '/reports', routes }

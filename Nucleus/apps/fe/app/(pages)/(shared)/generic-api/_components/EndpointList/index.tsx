@@ -13,7 +13,7 @@ import {
   Zap,
 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
-import type { GenericActionMeta } from '@/app/_hooks/UseGenericApiStore'
+import type { GenericActionMeta } from '@/app/_hooks/UseNucleusApi'
 import type { GenericEndpointKeys } from '@/lib/api'
 
 const PINNED_STORAGE_KEY = 'api-sandbox-pinned-endpoints'

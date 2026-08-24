@@ -6,7 +6,7 @@ import { flushSync } from 'react-dom'
 import {
   useGenericApiStore as useGenericApiActions,
   useGenericApiMetadata,
-} from '@/app/_hooks/UseGenericApiStore'
+} from '@/app/_hooks/UseNucleusApi'
 import { buildPayloadTemplate, formatJson } from '@/app/_utils'
 import {
   type GenericEndpointKeys,

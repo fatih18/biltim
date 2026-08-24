@@ -1,0 +1,973 @@
+[
+  {
+    "table_name": "board_meeting_decisions",
+    "add_base_columns": false,
+    "group_name": "core",
+    "columns": [
+      {
+        "name": "id",
+        "type": "uuid",
+        "primaryKey": true,
+        "notNull": true,
+        "defaultRaw": "gen_random_uuid()"
+      },
+      {
+        "name": "is_active",
+        "type": "boolean",
+        "notNull": true,
+        "default": true
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp",
+        "notNull": true,
+        "defaultRaw": "now()"
+      },
+      {
+        "name": "updated_at",
+        "type": "timestamp",
+        "defaultRaw": "now()"
+      },
+      {
+        "name": "meeting_date",
+        "type": "timestamp",
+        "notNull": true
+      },
+      {
+        "name": "item_no",
+        "type": "integer",
+        "notNull": true
+      },
+      {
+        "name": "item_description",
+        "type": "varchar",
+        "length": 1000,
+        "notNull": true
+      },
+      {
+        "name": "status",
+        "type": "varchar",
+        "length": 50,
+        "notNull": true,
+        "default": "open"
+      },
+      {
+        "name": "assigned_user_id",
+        "type": "uuid"
+      }
+    ]
+  },
+  {
+    "table_name": "companies",
+    "add_base_columns": false,
+    "group_name": "core",
+    "columns": [
+      {
+        "name": "id",
+        "type": "uuid",
+        "primaryKey": true,
+        "notNull": true,
+        "defaultRaw": "gen_random_uuid()"
+      },
+      {
+        "name": "is_active",
+        "type": "boolean",
+        "notNull": true,
+        "default": true
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp",
+        "notNull": true,
+        "defaultRaw": "now()"
+      },
+      {
+        "name": "updated_at",
+        "type": "timestamp",
+        "defaultRaw": "now()"
+      },
+      {
+        "name": "owner_id",
+        "type": "uuid",
+        "notNull": true
+      },
+      {
+        "name": "name",
+        "type": "varchar",
+        "length": 255,
+        "notNull": true
+      },
+      {
+        "name": "tax_id",
+        "type": "varchar",
+        "length": 50
+      },
+      {
+        "name": "w9",
+        "type": "uuid"
+      }
+    ]
+  },
+  {
+    "table_name": "five_s_actions",
+    "add_base_columns": false,
+    "group_name": "5s",
+    "columns": [
+      {
+        "name": "id",
+        "type": "uuid",
+        "primaryKey": true,
+        "notNull": true,
+        "defaultRaw": "gen_random_uuid()"
+      },
+      {
+        "name": "is_active",
+        "type": "boolean",
+        "notNull": true,
+        "default": true
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp",
+        "notNull": true,
+        "defaultRaw": "now()"
+      },
+      {
+        "name": "updated_at",
+        "type": "timestamp",
+        "defaultRaw": "now()"
+      },
+      {
+        "name": "name",
+        "type": "varchar",
+        "length": 255,
+        "notNull": true
+      }
+    ]
+  },
+  {
+    "table_name": "five_s_audit_answers",
+    "add_base_columns": false,
+    "group_name": "5s",
+    "columns": [
+      {
+        "name": "id",
+        "type": "uuid",
+        "primaryKey": true,
+        "notNull": true,
+        "defaultRaw": "gen_random_uuid()"
+      },
+      {
+        "name": "is_active",
+        "type": "boolean",
+        "notNull": true,
+        "default": true
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp",
+        "notNull": true,
+        "defaultRaw": "now()"
+      },
+      {
+        "name": "updated_at",
+        "type": "timestamp",
+        "defaultRaw": "now()"
+      },
+      {
+        "name": "audit_id",
+        "type": "uuid",
+        "notNull": true
+      },
+      {
+        "name": "question_id",
+        "type": "text",
+        "notNull": true
+      },
+      {
+        "name": "step_code",
+        "type": "text",
+        "notNull": true
+      },
+      {
+        "name": "rating",
+        "type": "text",
+        "notNull": true
+      },
+      {
+        "name": "explanation",
+        "type": "text"
+      },
+      {
+        "name": "finding_type",
+        "type": "text"
+      },
+      {
+        "name": "photo_before_url",
+        "type": "text"
+      },
+      {
+        "name": "has_open_finding",
+        "type": "boolean",
+        "notNull": true,
+        "default": false
+      },
+      {
+        "name": "answered_at",
+        "type": "timestamp",
+        "notNull": true,
+        "defaultRaw": "now()"
+      }
+    ]
+  },
+  {
+    "table_name": "five_s_audit_drafts",
+    "add_base_columns": false,
+    "group_name": "5s",
+    "columns": [
+      {
+        "name": "id",
+        "type": "uuid",
+        "primaryKey": true,
+        "notNull": true,
+        "defaultRaw": "gen_random_uuid()"
+      },
+      {
+        "name": "is_active",
+        "type": "boolean",
+        "notNull": true,
+        "default": true
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp",
+        "notNull": true,
+        "defaultRaw": "now()"
+      },
+      {
+        "name": "updated_at",
+        "type": "timestamp",
+        "defaultRaw": "now()"
+      },
+      {
+        "name": "plan_id",
+        "type": "uuid"
+      },
+      {
+        "name": "header",
+        "type": "jsonb",
+        "notNull": true,
+        "default": "{}"
+      },
+      {
+        "name": "answers",
+        "type": "jsonb",
+        "notNull": true,
+        "default": "{}"
+      },
+      {
+        "name": "updated_by_user_id",
+        "type": "uuid"
+      },
+      {
+        "name": "updated_by_name",
+        "type": "text"
+      }
+    ]
+  },
+  {
+    "table_name": "five_s_audit_plans",
+    "add_base_columns": false,
+    "group_name": "5s",
+    "columns": [
+      {
+        "name": "id",
+        "type": "uuid",
+        "primaryKey": true,
+        "notNull": true,
+        "defaultRaw": "gen_random_uuid()"
+      },
+      {
+        "name": "is_active",
+        "type": "boolean",
+        "notNull": true,
+        "default": true
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp",
+        "notNull": true,
+        "defaultRaw": "now()"
+      },
+      {
+        "name": "updated_at",
+        "type": "timestamp",
+        "defaultRaw": "now()"
+      },
+      {
+        "name": "parent_plan_id",
+        "type": "uuid"
+      },
+      {
+        "name": "quarter",
+        "type": "varchar",
+        "length": 16
+      },
+      {
+        "name": "date_range_start",
+        "type": "date"
+      },
+      {
+        "name": "date_range_end",
+        "type": "date"
+      },
+      {
+        "name": "planned_date",
+        "type": "date"
+      },
+      {
+        "name": "location_id",
+        "type": "uuid"
+      },
+      {
+        "name": "assigned_team_id",
+        "type": "uuid"
+      },
+      {
+        "name": "status",
+        "type": "varchar",
+        "length": 32,
+        "notNull": true,
+        "default": "planned"
+      },
+      {
+        "name": "audit_id",
+        "type": "uuid"
+      },
+      {
+        "name": "title",
+        "type": "text"
+      },
+      {
+        "name": "date_change_count",
+        "type": "integer",
+        "notNull": true,
+        "default": 0
+      },
+      {
+        "name": "auditor_attended",
+        "type": "boolean"
+      },
+      {
+        "name": "field_manager_attended",
+        "type": "boolean"
+      }
+    ]
+  },
+  {
+    "table_name": "five_s_audit_team_members",
+    "add_base_columns": false,
+    "group_name": "5s",
+    "columns": [
+      {
+        "name": "id",
+        "type": "uuid",
+        "primaryKey": true,
+        "notNull": true,
+        "defaultRaw": "gen_random_uuid()"
+      },
+      {
+        "name": "is_active",
+        "type": "boolean",
+        "notNull": true,
+        "default": true
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp",
+        "notNull": true,
+        "defaultRaw": "now()"
+      },
+      {
+        "name": "updated_at",
+        "type": "timestamp",
+        "defaultRaw": "now()"
+      },
+      {
+        "name": "team_id",
+        "type": "uuid",
+        "notNull": true
+      },
+      {
+        "name": "user_id",
+        "type": "uuid",
+        "notNull": true
+      }
+    ]
+  },
+  {
+    "table_name": "five_s_audit_teams",
+    "add_base_columns": false,
+    "group_name": "5s",
+    "columns": [
+      {
+        "name": "id",
+        "type": "uuid",
+        "primaryKey": true,
+        "notNull": true,
+        "defaultRaw": "gen_random_uuid()"
+      },
+      {
+        "name": "is_active",
+        "type": "boolean",
+        "notNull": true,
+        "default": true
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp",
+        "notNull": true,
+        "defaultRaw": "now()"
+      },
+      {
+        "name": "updated_at",
+        "type": "timestamp",
+        "defaultRaw": "now()"
+      },
+      {
+        "name": "name",
+        "type": "text"
+      },
+      {
+        "name": "leader_user_id",
+        "type": "uuid",
+        "notNull": true
+      }
+    ]
+  },
+  {
+    "table_name": "five_s_audits",
+    "add_base_columns": false,
+    "group_name": "5s",
+    "columns": [
+      {
+        "name": "id",
+        "type": "uuid",
+        "primaryKey": true,
+        "notNull": true,
+        "defaultRaw": "gen_random_uuid()"
+      },
+      {
+        "name": "is_active",
+        "type": "boolean",
+        "notNull": true,
+        "default": true
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp",
+        "notNull": true,
+        "defaultRaw": "now()"
+      },
+      {
+        "name": "updated_at",
+        "type": "timestamp",
+        "defaultRaw": "now()"
+      },
+      {
+        "name": "department_name",
+        "type": "text",
+        "notNull": true
+      },
+      {
+        "name": "auditor_name",
+        "type": "text",
+        "notNull": true
+      },
+      {
+        "name": "auditor_id",
+        "type": "uuid"
+      },
+      {
+        "name": "client_submission_id",
+        "type": "uuid"
+      },
+      {
+        "name": "source",
+        "type": "text"
+      },
+      {
+        "name": "audit_date",
+        "type": "timestamp",
+        "notNull": true
+      },
+      {
+        "name": "total_score",
+        "type": "numeric",
+        "precision": 5,
+        "scale": 2,
+        "notNull": true
+      },
+      {
+        "name": "target_score",
+        "type": "numeric",
+        "precision": 5,
+        "scale": 2,
+        "notNull": true,
+        "default": 75.0
+      },
+      {
+        "name": "score_s1",
+        "type": "numeric",
+        "precision": 5,
+        "scale": 2,
+        "notNull": true
+      },
+      {
+        "name": "score_s2",
+        "type": "numeric",
+        "precision": 5,
+        "scale": 2,
+        "notNull": true
+      },
+      {
+        "name": "score_s3",
+        "type": "numeric",
+        "precision": 5,
+        "scale": 2,
+        "notNull": true
+      },
+      {
+        "name": "score_s4",
+        "type": "numeric",
+        "precision": 5,
+        "scale": 2,
+        "notNull": true
+      },
+      {
+        "name": "score_s5",
+        "type": "numeric",
+        "precision": 5,
+        "scale": 2,
+        "notNull": true
+      },
+      {
+        "name": "location_id",
+        "type": "uuid"
+      },
+      {
+        "name": "period_id",
+        "type": "uuid"
+      },
+      {
+        "name": "plan_id",
+        "type": "uuid"
+      }
+    ]
+  },
+  {
+    "table_name": "five_s_finding_types",
+    "add_base_columns": false,
+    "group_name": "5s",
+    "columns": [
+      {
+        "name": "id",
+        "type": "uuid",
+        "primaryKey": true,
+        "notNull": true,
+        "defaultRaw": "gen_random_uuid()"
+      },
+      {
+        "name": "is_active",
+        "type": "boolean",
+        "notNull": true,
+        "default": true
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp",
+        "notNull": true,
+        "defaultRaw": "now()"
+      },
+      {
+        "name": "updated_at",
+        "type": "timestamp",
+        "defaultRaw": "now()"
+      },
+      {
+        "name": "name",
+        "type": "varchar",
+        "length": 255,
+        "notNull": true
+      }
+    ]
+  },
+  {
+    "table_name": "five_s_findings",
+    "add_base_columns": false,
+    "group_name": "5s",
+    "columns": [
+      {
+        "name": "id",
+        "type": "uuid",
+        "primaryKey": true,
+        "notNull": true,
+        "defaultRaw": "gen_random_uuid()"
+      },
+      {
+        "name": "is_active",
+        "type": "boolean",
+        "notNull": true,
+        "default": true
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp",
+        "notNull": true,
+        "defaultRaw": "now()"
+      },
+      {
+        "name": "updated_at",
+        "type": "timestamp",
+        "defaultRaw": "now()"
+      },
+      {
+        "name": "audit_id",
+        "type": "uuid"
+      },
+      {
+        "name": "answer_id",
+        "type": "uuid"
+      },
+      {
+        "name": "client_finding_id",
+        "type": "uuid"
+      },
+      {
+        "name": "client_submission_id",
+        "type": "uuid"
+      },
+      {
+        "name": "question_id",
+        "type": "text"
+      },
+      {
+        "name": "step_code",
+        "type": "text"
+      },
+      {
+        "name": "finding_no",
+        "type": "integer",
+        "notNull": true
+      },
+      {
+        "name": "detected_date",
+        "type": "date"
+      },
+      {
+        "name": "location_name",
+        "type": "text"
+      },
+      {
+        "name": "finding_type",
+        "type": "text"
+      },
+      {
+        "name": "description",
+        "type": "text"
+      },
+      {
+        "name": "photo_before_file_id",
+        "type": "uuid"
+      },
+      {
+        "name": "photo_before_url",
+        "type": "text"
+      },
+      {
+        "name": "photo_before_files",
+        "type": "jsonb",
+        "notNull": true,
+        "default": "[]"
+      },
+      {
+        "name": "photo_after_file_id",
+        "type": "uuid"
+      },
+      {
+        "name": "photo_after_url",
+        "type": "text"
+      },
+      {
+        "name": "photo_after_files",
+        "type": "jsonb",
+        "notNull": true,
+        "default": "[]"
+      },
+      {
+        "name": "action_to_take",
+        "type": "text"
+      },
+      {
+        "name": "due_date",
+        "type": "date"
+      },
+      {
+        "name": "completed_at",
+        "type": "date"
+      },
+      {
+        "name": "responsible_name",
+        "type": "text"
+      },
+      {
+        "name": "responsible_user_id",
+        "type": "uuid"
+      },
+      {
+        "name": "auditor_name",
+        "type": "text"
+      },
+      {
+        "name": "auditor_user_id",
+        "type": "uuid"
+      },
+      {
+        "name": "status",
+        "type": "text",
+        "notNull": true,
+        "default": "open"
+      },
+      {
+        "name": "form_title",
+        "type": "text"
+      }
+    ]
+  },
+  {
+    "table_name": "five_s_locations",
+    "add_base_columns": false,
+    "group_name": "5s",
+    "columns": [
+      {
+        "name": "id",
+        "type": "uuid",
+        "primaryKey": true,
+        "notNull": true,
+        "defaultRaw": "gen_random_uuid()"
+      },
+      {
+        "name": "is_active",
+        "type": "boolean",
+        "notNull": true,
+        "default": true
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp",
+        "notNull": true,
+        "defaultRaw": "now()"
+      },
+      {
+        "name": "updated_at",
+        "type": "timestamp",
+        "defaultRaw": "now()"
+      },
+      {
+        "name": "name",
+        "type": "varchar",
+        "length": 255,
+        "notNull": true
+      },
+      {
+        "name": "manager_user_id",
+        "type": "uuid"
+      },
+      {
+        "name": "field_manager_user_ids",
+        "type": "jsonb",
+        "notNull": true,
+        "default": "[]"
+      },
+      {
+        "name": "department_name",
+        "type": "varchar",
+        "length": 255
+      },
+      {
+        "name": "map_x",
+        "type": "integer"
+      },
+      {
+        "name": "map_y",
+        "type": "integer"
+      }
+    ]
+  },
+  {
+    "table_name": "five_s_questions",
+    "add_base_columns": false,
+    "group_name": "5s",
+    "columns": [
+      {
+        "name": "id",
+        "type": "uuid",
+        "primaryKey": true,
+        "notNull": true,
+        "defaultRaw": "gen_random_uuid()"
+      },
+      {
+        "name": "is_active",
+        "type": "boolean",
+        "notNull": true,
+        "default": true
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp",
+        "notNull": true,
+        "defaultRaw": "now()"
+      },
+      {
+        "name": "updated_at",
+        "type": "timestamp",
+        "defaultRaw": "now()"
+      },
+      {
+        "name": "step_id",
+        "type": "uuid",
+        "notNull": true
+      },
+      {
+        "name": "external_id",
+        "type": "text",
+        "notNull": true
+      },
+      {
+        "name": "order",
+        "type": "integer",
+        "notNull": true
+      },
+      {
+        "name": "text",
+        "type": "text",
+        "notNull": true
+      },
+      {
+        "name": "max_score",
+        "type": "numeric",
+        "precision": 5,
+        "scale": 2,
+        "notNull": true
+      },
+      {
+        "name": "require_explanation",
+        "type": "boolean",
+        "notNull": true,
+        "default": true
+      }
+    ]
+  },
+  {
+    "table_name": "five_s_steps",
+    "add_base_columns": false,
+    "group_name": "5s",
+    "columns": [
+      {
+        "name": "id",
+        "type": "uuid",
+        "primaryKey": true,
+        "notNull": true,
+        "defaultRaw": "gen_random_uuid()"
+      },
+      {
+        "name": "is_active",
+        "type": "boolean",
+        "notNull": true,
+        "default": true
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp",
+        "notNull": true,
+        "defaultRaw": "now()"
+      },
+      {
+        "name": "updated_at",
+        "type": "timestamp",
+        "defaultRaw": "now()"
+      },
+      {
+        "name": "code",
+        "type": "text",
+        "notNull": true
+      },
+      {
+        "name": "title",
+        "type": "text",
+        "notNull": true
+      },
+      {
+        "name": "max_score",
+        "type": "numeric",
+        "precision": 5,
+        "scale": 2,
+        "notNull": true
+      },
+      {
+        "name": "order",
+        "type": "integer",
+        "notNull": true
+      }
+    ]
+  },
+  {
+    "table_name": "userClaims",
+    "add_base_columns": false,
+    "group_name": "core",
+    "columns": [
+      {
+        "name": "id",
+        "type": "uuid",
+        "primaryKey": true,
+        "notNull": true,
+        "defaultRaw": "gen_random_uuid()"
+      },
+      {
+        "name": "is_active",
+        "type": "boolean",
+        "notNull": true,
+        "default": true
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp",
+        "notNull": true,
+        "defaultRaw": "now()"
+      },
+      {
+        "name": "updated_at",
+        "type": "timestamp",
+        "defaultRaw": "now()"
+      },
+      {
+        "name": "user_id",
+        "type": "uuid",
+        "notNull": true
+      },
+      {
+        "name": "claim_id",
+        "type": "uuid",
+        "notNull": true
+      },
+      {
+        "name": "granted_by",
+        "type": "uuid"
+      },
+      {
+        "name": "expires_at",
+        "type": "timestamp"
+      }
+    ]
+  }
+]

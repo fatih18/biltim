@@ -6,7 +6,7 @@ import type { RoleClaimJSON } from '@monorepo/db-entities/schemas/default/role_c
 import { Check, Loader2, Search, X } from 'lucide-react'
 import type React from 'react'
 import { useEffect, useMemo, useState } from 'react'
-import { useGenericApiActions } from '@/app/_hooks/UseGenericApiStore'
+import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
 import type { PaginationInfo } from '../../types'
 
 type RoleClaimsModalProps = {

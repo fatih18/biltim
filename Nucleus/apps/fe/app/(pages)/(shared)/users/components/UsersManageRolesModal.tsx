@@ -4,7 +4,7 @@ import type { RoleJSON } from '@monorepo/db-entities/schemas/default/role'
 import type { UserRoleJSON } from '@monorepo/db-entities/schemas/default/user_role'
 import { Check, Loader2, Search, Shield, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { useGenericApiActions } from '@/app/_hooks/UseGenericApiStore'
+import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
 
 interface UsersManageRolesModalProps {
   isOpen: boolean
@@ -39,7 +39,6 @@ export function UsersManageRolesModal({ isOpen, userId, onClose }: UsersManageRo
         limit: 100,
         filters: { user_id: userId },
       },
-      disableAutoRedirect: true,
       onAfterHandle: (userRolesData) => {
         const list = (userRolesData?.data ?? []) as UserRoleJSON[]
         const nextAssignedIds: string[] = []
@@ -57,7 +56,6 @@ export function UsersManageRolesModal({ isOpen, userId, onClose }: UsersManageRo
             page: 1,
             limit: 100,
           },
-          disableAutoRedirect: true,
           onAfterHandle: (rolesData) => {
             setIsLoading(false)
             if (!rolesData) {
@@ -117,7 +115,6 @@ export function UsersManageRolesModal({ isOpen, userId, onClose }: UsersManageRo
 
       actions.DELETE_USER_ROLE?.start({
         payload: { _id: relationId },
-        disableAutoRedirect: true,
         onAfterHandle: () => {
           setAssignedRoleIds((prev) => prev.filter((id) => id !== roleId))
           setAssignmentMap((prev) => {
@@ -138,7 +135,6 @@ export function UsersManageRolesModal({ isOpen, userId, onClose }: UsersManageRo
           user_id: userId,
           role_id: roleId,
         },
-        disableAutoRedirect: true,
         onAfterHandle: (created) => {
           if (!created) {
             setPendingRoleIds((prev) => prev.filter((id) => id !== roleId))

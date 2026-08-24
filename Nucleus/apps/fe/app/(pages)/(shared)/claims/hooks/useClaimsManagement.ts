@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react'
 import type { ClaimFormState, ClaimsFiltersState, PaginationInfo } from '../types'
 
 type GenericApiActions = ReturnType<
-  typeof import('@/app/_hooks/UseGenericApiStore').useGenericApiActions
+  typeof import('@/app/_hooks/UseNucleusApi').useGenericApiActions
 >
 
 function buildReadPayload(params: {

@@ -55,7 +55,7 @@ const customSettings = {
       'Content-Type': 'application/json',
     },
     payload_mode: 'body',
-    path: '/v2/auth/login',
+    path: '/auth/login',
   },
   [CustomEndpoints.REGISTER_V2]: {
     method: 'POST',
@@ -64,7 +64,7 @@ const customSettings = {
       'Content-Type': 'application/json',
     },
     payload_mode: 'body',
-    path: '/v2/auth/register',
+    path: '/auth/register',
   },
   [CustomEndpoints.REFRESH_V2]: {
     method: 'POST',
@@ -73,7 +73,7 @@ const customSettings = {
       'Content-Type': 'application/json',
     },
     payload_mode: 'none',
-    path: '/v2/auth/refresh',
+    path: '/auth/refresh',
   },
   [CustomEndpoints.LOGOUT_V2]: {
     method: 'POST',
@@ -82,7 +82,7 @@ const customSettings = {
       'Content-Type': 'application/json',
     },
     payload_mode: 'none',
-    path: '/v2/auth/logout',
+    path: '/auth/logout',
   },
   [CustomEndpoints.GET_ME_V2]: {
     method: 'GET',
@@ -91,7 +91,7 @@ const customSettings = {
       'Content-Type': 'application/json',
     },
     payload_mode: 'none',
-    path: '/v2/auth/me',
+    path: '/auth/me',
   },
   [CustomEndpoints.GENERATE_TENANT_SCHEMAS]: {
     method: 'POST',

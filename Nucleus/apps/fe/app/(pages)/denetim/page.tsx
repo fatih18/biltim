@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import Dexie, { type Table } from 'dexie'
 
-import { useGenericApiActions } from '@/app/_hooks/UseGenericApiStore'
+import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
 import { useGetUserRole } from '@/app/_hooks/user/useGetUserRole'
 import { UploadedFileInfo, useUploadAnswerPhoto } from '../bulgular/hooks/useUploadAnswersPhoto'
 import { Question, questions as FALLBACK_QUESTIONS, StepCode, steps as FALLBACK_STEPS, Step } from './constants'
@@ -735,7 +735,6 @@ export default function FiveSAuditFormPage() {
         const startUpdate = safeStart(A, DRAFT_KEYS.UPDATE)
         if (!startUpdate) return
         await startAsPromise(startUpdate, {
-          disableAutoRedirect: true,
           payload: {
             _id: serverDraftIdRef.current,
             header: nextHeader as any,
@@ -748,7 +747,6 @@ export default function FiveSAuditFormPage() {
         const startAdd = safeStart(A, DRAFT_KEYS.ADD)
         if (!startAdd) return
         const resp = await startAsPromise(startAdd, {
-          disableAutoRedirect: true,
           payload: {
             plan_id: planId,
             header: nextHeader as any,
@@ -831,7 +829,6 @@ export default function FiveSAuditFormPage() {
       if (!startGet) return false
 
       const resp = await startAsPromise(startGet, {
-        disableAutoRedirect: true,
         payload: { page: 1, limit: 1, filters: { plan_id: planId } },
       })
       const arr = extractArray(resp)
@@ -919,7 +916,6 @@ export default function FiveSAuditFormPage() {
         const startDelete = safeStart(A, DRAFT_KEYS.DELETE)
         if (startDelete) {
           await startAsPromise(startDelete, {
-            disableAutoRedirect: true,
             payload: { _id: serverDraftIdRef.current },
           })
         }
@@ -960,7 +956,6 @@ export default function FiveSAuditFormPage() {
         try {
           // 1) create audit
           const auditResp = await startAsPromise(startAudit, {
-            disableAutoRedirect: true,
             payload: {
               department_name: s.auditPayload.department_name,
               auditor_name: s.auditPayload.auditor_name,
@@ -1008,7 +1003,6 @@ export default function FiveSAuditFormPage() {
             const beforeArr = toPhotoArr(uploaded)
 
             await startAsPromise(startFinding, {
-              disableAutoRedirect: true,
               payload: {
                 audit_id: auditId,
                 question_id: f.question_id ?? (f.questionId !== 'SINGLE' ? f.questionId : undefined),
@@ -1118,7 +1112,6 @@ export default function FiveSAuditFormPage() {
 
       const meResp = startMe
         ? await startAsPromise(startMe, {
-          disableAutoRedirect: true,
           payload: {},
         })
         : null
@@ -1676,7 +1669,6 @@ export default function FiveSAuditFormPage() {
         : null
 
       await startAsPromise(startUpdate, {
-        disableAutoRedirect: true,
         payload: {
           _id: planId,
           status: 'completed',
@@ -1752,7 +1744,6 @@ export default function FiveSAuditFormPage() {
 
     try {
       await startAsPromise((actions as any).ADD_FIVE_S_AUDIT?.start, {
-        disableAutoRedirect: true,
         payload: {
           department_name: header.department.trim(),
           auditor_name: header.auditorName.trim(),
@@ -1827,7 +1818,6 @@ export default function FiveSAuditFormPage() {
 
             try {
               await startAsPromise((actions as any).ADD_FIVE_S_FINDING?.start, {
-                disableAutoRedirect: true,
                 payload: {
                   audit_id: auditId,
                   question_id: ans.questionId,
@@ -2006,7 +1996,6 @@ export default function FiveSAuditFormPage() {
     // online: mevcut akış
     try {
       await startAsPromise((actions as any).ADD_FIVE_S_AUDIT?.start, {
-        disableAutoRedirect: true,
         payload: {
           department_name: header.department.trim(),
           auditor_name: header.auditorName.trim(),
@@ -2058,7 +2047,6 @@ export default function FiveSAuditFormPage() {
 
           try {
             await startAsPromise((actions as any).ADD_FIVE_S_FINDING?.start, {
-              disableAutoRedirect: true,
               payload: {
                 audit_id: auditId,
                 question_id: singleFinding.linkedQuestionId || undefined,

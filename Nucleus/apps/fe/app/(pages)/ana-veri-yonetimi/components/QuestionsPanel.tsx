@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
-import { useGenericApiActions } from "@/app/_hooks/UseGenericApiStore";
+import { useGenericApiActions } from "@/app/_hooks/UseNucleusApi";
 import { useGetUserRole } from "@/app/_hooks/user/useGetUserRole";
 import {
   questions as SEED_QUESTIONS,

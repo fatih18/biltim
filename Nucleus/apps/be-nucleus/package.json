@@ -10,12 +10,15 @@
     "validate": "bunx nucleus-core-ts validate config.json"
   },
   "dependencies": {
-    "nucleus-core-ts": "latest",
+    "nucleus-core-ts": "0.10.8",
+    "@sinclair/typebox": "0.34.47",
     "drizzle-orm": "0.44.7",
-    "elysia": "latest",
     "drizzle-kit": "0.31.5",
     "ioredis": "latest",
     "pg": "latest",
     "exceljs": "^4.4.0"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.23.1"
   }
 }

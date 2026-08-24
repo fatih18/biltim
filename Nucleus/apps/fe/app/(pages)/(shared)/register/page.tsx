@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import type { FormEvent } from 'react'
 import { FiEyeOff, FiLock, FiMail } from 'react-icons/fi'
 import { AbstractAnimatedBackground, SocialLoginButton } from '@/app/_components'
-import { useGenericApiActions } from '@/app/_hooks/UseGenericApiStore'
+import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
 import { useStore } from '@/app/_store'
 export default function Register() {
   const actions = useGenericApiActions()

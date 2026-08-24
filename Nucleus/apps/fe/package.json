@@ -45,7 +45,8 @@
     "tailwindcss": "latest",
     "three": "latest",
     "xlsx": "latest",
-    "zustand": "latest"
+    "zustand": "latest",
+    "nucleus-core-ts": "0.10.8"
   },
   "devDependencies": {
     "@biomejs/biome": "latest",

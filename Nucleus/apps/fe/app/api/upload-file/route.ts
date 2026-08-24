@@ -1,12 +1,11 @@
-import { cookies } from 'next/headers'
+import { authCookieHeader } from '@/lib/api/forwardAuth'
 import { type NextRequest, NextResponse } from 'next/server'
 
 const BACKEND_URL = process.env.AUTH_API_URL || ''
 
 export async function POST(req: NextRequest) {
   try {
-    const cookieStore = await cookies()
-    const accessToken = cookieStore.get('nucleus_access_token')?.value
+    const authCookie = await authCookieHeader()
 
     const incoming = await req.formData()
     const file = incoming.get('files')
@@ -21,8 +20,8 @@ export async function POST(req: NextRequest) {
     outgoing.append('type', String(type))
 
     const backendHeaders: HeadersInit = {}
-    if (accessToken) {
-      backendHeaders['Cookie'] = `nucleus_access_token=${accessToken}`
+    if (authCookie) {
+      backendHeaders['Cookie'] = authCookie
     }
 
     const beRes = await fetch(`${BACKEND_URL}/files/`, {

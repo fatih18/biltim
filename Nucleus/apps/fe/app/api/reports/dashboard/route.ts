@@ -1,20 +1,19 @@
-import { cookies } from 'next/headers'
+import { authCookieHeader } from '@/lib/api/forwardAuth'
 import { type NextRequest, NextResponse } from 'next/server'
 
 const BACKEND_URL = process.env.AUTH_API_URL || ''
 
 export async function GET(req: NextRequest) {
-  const cookieStore = await cookies()
-  const accessToken = cookieStore.get('nucleus_access_token')?.value
+  const authCookie = await authCookieHeader()
 
-  if (!accessToken) {
+  if (!authCookie) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
   }
 
   const search = req.nextUrl.search || ''
   const beRes = await fetch(`${BACKEND_URL}/reports/dashboard${search}`, {
     headers: {
-      Cookie: `nucleus_access_token=${accessToken}`,
+      Cookie: authCookie,
     },
     cache: 'no-store',
   })

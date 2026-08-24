@@ -2,7 +2,7 @@
 
 import { AlertTriangle, Shield } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { useGenericApiActions } from '@/app/_hooks/UseGenericApiStore'
+import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
 import { useStore } from '../../../_store'
 import { ClaimsTab } from './components/ClaimsTab'
 import { RolesTab } from './components/RolesTab'

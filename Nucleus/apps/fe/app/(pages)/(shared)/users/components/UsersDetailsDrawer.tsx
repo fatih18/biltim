@@ -22,7 +22,7 @@ import {
 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
-import { useGenericApiActions } from '@/app/_hooks/UseGenericApiStore'
+import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
 import { useUsersStore } from '@/app/_store/usersStore'
 import { UsersManageRolesModal } from './UsersManageRolesModal'
 
@@ -95,7 +95,6 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
         limit: 100,
         filters: { user_id: user.id },
       },
-      disableAutoRedirect: true,
       onAfterHandle: (userRolesData) => {
         const list = (userRolesData?.data ?? []) as UserRoleJSON[]
         if (list.length === 0) {
@@ -110,7 +109,6 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
             limit: 100,
             relations: ['claims'],
           } as never,
-          disableAutoRedirect: true,
           onAfterHandle: (rolesData) => {
             setIsLoadingRoles(false)
             if (!rolesData) {

@@ -1,0 +1,66 @@
+# ---------------------------------------------------------------------------
+# Postgres and Redis, for an install that has neither.
+#
+# An OVERLAY, not a replacement — it only ever adds:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.db.yml up -d --build
+#
+# Kept out of the base file rather than switched off with a profile, because the
+# base file's `be` must not name these services at all: `depends_on` on a
+# service that was never started is an error on older Compose, and the customer
+# server's Docker version is not ours to choose.
+#
+# When you use this file, apps/be-nucleus/.env.docker must point at these two by
+# their service names:
+#     DATABASE_URL=postgresql://<user>:<pass>@postgres:5432/<db>
+#     REDIS_HOST=redis
+# ---------------------------------------------------------------------------
+
+name: biltim
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: biltim-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB}
+    # Deliberately not published to the host. Nothing outside this network needs
+    # it, and an open 5432 on a customer server is exposure with no upside.
+    expose:
+      - "5432"
+    volumes:
+      - biltim_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: biltim-redis
+    restart: unless-stopped
+    expose:
+      - "6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - biltim_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  be:
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  biltim_postgres_data:
+  biltim_redis_data:

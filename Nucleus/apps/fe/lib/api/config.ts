@@ -28,7 +28,15 @@ export const apiConfig: NucleusApiConfig = {
   settings,
   authCookieName: 'nucleus_access_token',
   refreshCookieName: 'nucleus_refresh_token',
-  refreshEndpoint: '/v2/auth/refresh',
+  /*
+   * `/auth/refresh`, not `/v2/auth/refresh`. The `/v2` prefix belonged to the
+   * hand-written backend that nucleus replaced; the framework serves this at
+   * `/auth/refresh` (routes/auth/logout/index.ts and its neighbours default the
+   * route, and be-nucleus's config.json sets no override). Checked against the
+   * running server's own route table: /docs/json lists no path beginning /v2 at
+   * all, so every call here was reaching the 401 that an unknown path answers.
+   */
+  refreshEndpoint: '/auth/refresh',
   refreshExcludedEndpoints: REFRESH_EXCLUDED,
   authCreationEndpoints: LOGIN_ENDPOINTS,
   cookieSettingEndpoints: LOGIN_ENDPOINTS,

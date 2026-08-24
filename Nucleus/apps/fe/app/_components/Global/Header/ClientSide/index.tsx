@@ -31,7 +31,7 @@ import type {
   HeaderViewStateUpdates,
 } from '../types'
 import { useGetUserRole } from '@/app/_hooks/user/useGetUserRole'
-import { useGenericApiActions } from '@/app/_hooks/UseGenericApiStore' // ✅ sadece NotificationDropdown’da kullanılıyor
+import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi' // ✅ sadece NotificationDropdown’da kullanılıyor
 
 gsap.registerPlugin(useGSAP)
 

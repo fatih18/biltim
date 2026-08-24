@@ -16,7 +16,7 @@ import {
 } from 'recharts'
 import { Loader2, RefreshCw } from 'lucide-react'
 import { DateInput } from '@/app/_components/DateInput'
-import { useGenericApiActions } from '@/app/_hooks/UseGenericApiStore'
+import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
 
 /* ───────────── Types ───────────── */
 
@@ -280,26 +280,47 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
   const [dateFrom, setDateFrom] = React.useState('')
   const [dateTo, setDateTo] = React.useState('')
 
-  const fetchData = React.useCallback(async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      const params = new URLSearchParams()
-      if (dateFrom) params.set('date_from', dateFrom)
-      if (dateTo) params.set('date_to', dateTo)
-      const qs = params.toString()
-      const res = await fetch(`/api/reports/dashboard${qs ? `?${qs}` : ''}`)
-      if (!res.ok) throw new Error(`Rapor verisi alınamadı (${res.status})`)
-      const json = await res.json()
-      const d = json?.data ?? json
-      setData(d as DashboardData)
-    } catch (e: any) {
-      console.error('dashboard report error', e)
-      setError(String(e?.message ?? 'Rapor verisi alınamadı'))
-    } finally {
-      setLoading(false)
-    }
-  }, [dateFrom, dateTo])
+  const actions = useGenericApiActions()
+
+  /**
+   * Doğrudan backend'e, nucleus endpoint'i üzerinden.
+   *
+   * Eskiden tarayıcıdan `fetch('/api/reports/dashboard')` ile Next route
+   * handler'ına gidiliyor, o da cookie'yi elle backend'e taşıyordu. Bu ara
+   * katman hem gereksizdi hem de oturum çerezine tarayıcı tarafından
+   * erişilmesini gerektiriyordu; artık çağrı diğer tüm uç noktalarla aynı
+   * yoldan (server action) gidiyor.
+   */
+  const fetchData = React.useCallback(() => {
+    setLoading(true)
+    setError(null)
+
+    const payload: Record<string, string> = {}
+    if (dateFrom) payload.date_from = dateFrom
+    if (dateTo) payload.date_to = dateTo
+
+    /*
+     * The semicolon is load-bearing. Without it JavaScript joins this line to
+     * the one above — `payload.date_to = dateTo(actions as any)...` — so the
+     * whole call became the body of `if (dateTo)`. With no date set the report
+     * never fetched at all; with one set it threw "dateTo is not a function".
+     * The dashboard was dead either way, and only the type check found it.
+     */
+    ;(actions as any).GET_REPORTS_DASHBOARD?.start({
+      payload,
+      onAfterHandle: (res: unknown) => {
+        const body = res as { data?: unknown } | undefined
+        setData((body?.data ?? res) as DashboardData)
+        setLoading(false)
+      },
+      onErrorHandle: (err: unknown) => {
+        console.error('dashboard report error', err)
+        const message = (err as { message?: string })?.message
+        setError(message || 'Rapor verisi alınamadı')
+        setLoading(false)
+      },
+    })
+  }, [dateFrom, dateTo, actions])
 
   React.useEffect(() => {
     fetchData()

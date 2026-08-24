@@ -14,7 +14,7 @@ import {
     type MasterEntity,
     type User,
 } from "./components";
-import { useGenericApiActions } from "@/app/_hooks/UseGenericApiStore";
+import { useGenericApiActions } from "@/app/_hooks/UseNucleusApi";
 import { TeamsTab } from "./components/TeamsTab";
 import { toast } from "sonner";
 

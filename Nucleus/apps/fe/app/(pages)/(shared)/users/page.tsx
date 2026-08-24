@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import type { Create as CreateUserPayload } from '@monorepo/db-entities/schemas/default/user'
 import { useStore } from '@store/globalStore'
-import { useGenericApiActions } from '@/app/_hooks/UseGenericApiStore'
+import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
 import { useUsersStore } from '@/app/_store/usersStore'
 import type { StoreProps } from '@/app/_store/usersStore/types'
 import { Pagination } from '../logs/components/Pagination'

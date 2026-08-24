@@ -1,76 +1,54 @@
-version: "3.9"
+# ---------------------------------------------------------------------------
+# Biltim — the product itself. Two containers, nothing else.
+#
+# This replaces scripts/bundle-for-deployment.ts. That script built a folder you
+# copied onto a Windows box, which installed Node from a bundled MSI and started
+# two background jobs from a PowerShell script. Nothing supervised those jobs,
+# nothing restarted them, and "is it up?" had no answer except looking.
+#
+# THIS FILE ASSUMES POSTGRES AND REDIS ALREADY EXIST — the customer's own, named
+# in apps/be-nucleus/.env.docker. That is the normal case and it is the default
+# on purpose: the customer's database is the one thing this deployment must not
+# invent.
+#
+#   customer already runs Postgres/Redis   docker compose up -d --build
+#   nothing exists yet, bring our own      add -f docker-compose.db.yml
+#
+# The frontend image is not tied to any URL. Every call the browser makes is
+# same-origin — the screens call Next server actions, and the few handlers under
+# app/api proxy onward — so only AUTH_API_URL points at the backend and it is
+# read at RUNTIME. A hostname change is a restart, never a rebuild.
+# ---------------------------------------------------------------------------
+
+name: biltim
 
 services:
-  postgres:
-    image: postgres:16
-    container_name: biltim-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: root
-      POSTGRES_PASSWORD: biltim
-      POSTGRES_DB: biltim
-    ports:
-      - "5432:5432"
-    volumes:
-      - biltim_postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U root -d biltim"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-
-  redis:
-    image: redis:7-alpine
-    container_name: biltim-redis
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    command: redis-server --appendonly yes
-    volumes:
-      - biltim_redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-
   be:
     build:
       context: .
-      dockerfile: apps/be/Dockerfile
+      dockerfile: apps/be-nucleus/Dockerfile
+    image: biltim-be:latest
     container_name: biltim-be
     restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     env_file:
-      - apps/be/.env.docker
+      - apps/be-nucleus/.env.docker
     ports:
-      - "1001:1001"
-    volumes:
-      - .:/app
-      - /app/node_modules
-    working_dir: /app
+      - "${BE_PORT:-1001}:1001"
 
   fe:
     build:
       context: .
       dockerfile: apps/fe/Dockerfile
+    image: biltim-fe:latest
     container_name: biltim-fe
     restart: unless-stopped
+    # service_healthy, not service_started. The backend spends its first boot
+    # pushing schema and seeding ~2,700 claims; a frontend that starts talking
+    # during that window renders errors to whoever is watching the deploy.
     depends_on:
-      - be
+      be:
+        condition: service_healthy
     env_file:
       - apps/fe/.env.docker
     ports:
-      - "3000:3000"
-    volumes:
-      - .:/app
-      - /app/node_modules
-    working_dir: /app
-
-volumes:
-  biltim_postgres_data:
-  biltim_redis_data:
+      - "${FE_PORT:-3000}:3000"

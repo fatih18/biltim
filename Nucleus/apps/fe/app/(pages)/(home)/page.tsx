@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
-import { useGenericApiActions } from "@/app/_hooks/UseGenericApiStore";
+import { useGenericApiActions } from "@/app/_hooks/UseNucleusApi";
 import { useGetUserRole } from "@/app/_hooks/user/useGetUserRole";
 
 import { HomeAuditListPanel } from "./components/HomeAuditListPanel";
@@ -173,7 +173,6 @@ export default function Page() {
     if (!startMe) return;
 
     startMe({
-      disableAutoRedirect: true,
       payload: {},
       onAfterHandle: (resp: any) => {
         const data = resp?.data ?? resp?.response?.data ?? resp;

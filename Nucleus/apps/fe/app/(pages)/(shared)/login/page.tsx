@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import type { FormEvent } from 'react'
 import { FiEye, FiLock, FiMail } from 'react-icons/fi'
 import { AbstractAnimatedBackground, SocialLoginButton } from '@/app/_components'
-import { useGenericApiActions } from '@/app/_hooks/UseGenericApiStore'
+import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
 
 export default function Login() {
   const router = useRouter()
@@ -43,7 +43,8 @@ export default function Login() {
       },
       onAfterHandle: () => {
         actions.GET_ME_V2?.start({
-          disableAutoRedirect: true,
+          // /auth/me takes nothing; 0.10 still requires the field to be present.
+          payload: {},
           onAfterHandle: (meData) => {
             if (meData) {
               store.user = meData

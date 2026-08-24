@@ -88,7 +88,6 @@ async function startAsPromise(startFn: any, args: any) {
 async function syncAuditCreate(item: OutboxRow, actions: any) {
     const resp = await startAsPromise(actions.ADD_FIVE_S_AUDIT?.start, {
         payload: item.payload,
-        disableAutoRedirect: true,
     })
 
     const auditId = resp?.data?.id ?? resp?.id ?? resp?.data?.[0]?.id ?? null
@@ -130,7 +129,6 @@ async function syncFindingCreate(
 
     const resp = await startAsPromise(actions.ADD_FIVE_S_FINDING?.start, {
         payload,
-        disableAutoRedirect: true,
     })
 
     const findingId = resp?.data?.id ?? resp?.id ?? resp?.data?.[0]?.id ?? null

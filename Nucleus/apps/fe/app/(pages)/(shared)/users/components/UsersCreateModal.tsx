@@ -2,7 +2,7 @@
 
 import type { RoleJSON } from '@monorepo/db-entities/schemas/default/role'
 import React, { useEffect, useMemo, useState } from 'react'
-import { useGenericApiActions } from '@/app/_hooks/UseGenericApiStore'
+import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
 
 interface UsersCreateModalProps {
   isOpen: boolean

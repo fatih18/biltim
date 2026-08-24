@@ -3,7 +3,7 @@
 import type { ClaimJSON } from '@monorepo/db-entities/schemas/default/claim'
 import { Check, ChevronDown, Loader2, Search, ShieldCheck, X } from 'lucide-react'
 import { useEffect, useMemo, useRef } from 'react'
-import { useGenericApiActions } from '@/app/_hooks/UseGenericApiStore'
+import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
 import { useUsersStore } from '@/app/_store/usersStore'
 
 interface UsersManageClaimsModalProps {

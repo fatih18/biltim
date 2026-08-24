@@ -3,7 +3,7 @@
 import React, { useEffect, useRef } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useStore } from '@store/globalStore'
-import { useGenericApiActions } from '@/app/_hooks/UseGenericApiStore'
+import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
 import { Loader } from '../Loader'
 
 const unauthPaths = ['/login', '/register']
@@ -37,8 +37,8 @@ export function LoginChecker({ children }: { children: React.ReactNode }) {
     isCheckingRef.current = true
 
     actions.GET_ME_V2?.start({
-      disableAutoRedirect: true,
-
+      // /auth/me takes nothing; 0.10 still requires the field to be present.
+      payload: {},
       onAfterHandle: (data) => {
         store.user = data
         store.isLoginChecked = true

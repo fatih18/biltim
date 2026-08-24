@@ -2,7 +2,7 @@
 
 import type { AuditJSON, Read } from '@monorepo/db-entities/schemas/default/audit'
 import { useEffect, useState } from 'react'
-import { useGenericApiActions } from '@/app/_hooks/UseGenericApiStore'
+import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
 import { useAuditStore } from '@/app/_store'
 import { LogDetailModal } from './components/LogDetailModal'
 import { LogsHeader } from './components/LogsHeader'
@@ -155,7 +155,7 @@ export default function LogsPage() {
     })
   }
 
-  const errorMessage = actions.GET_AUDIT_LOGS?.state?.errors
+  const errorMessage = actions.GET_AUDIT_LOGS?.state?.error?.message
   const showInitialLoader = actions.GET_AUDIT_LOGS?.state?.isPending
 
   return (

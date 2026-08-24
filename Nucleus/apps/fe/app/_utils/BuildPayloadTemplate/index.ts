@@ -1,15 +1,27 @@
 import { faker } from '@faker-js/faker'
 import { GenericMethods } from '@monorepo/db-entities/types/shared'
-import type { GenericActionMeta } from '@/app/_hooks/UseGenericApiStore'
+import type { GenericActionMeta } from '@/app/_hooks/UseNucleusApi'
+
+/**
+ * Sample payloads for the API sandbox screen.
+ *
+ * This used to read `meta.schema` — a per-table column map produced by scanning
+ * @monorepo/db-entities — and invent one value per column. That source is gone:
+ * since the move to nucleus the endpoint catalogue comes from the backend's own
+ * config, and `GenericActionMeta.schema` is permanently `undefined`. Every
+ * column-driven line here was therefore already dead, and the compiler said so
+ * by narrowing the parameter to `never`.
+ *
+ * `columns` is optional now. Given none, the sandbox still offers a correctly
+ * SHAPED payload for the method — page/limit/filters for a read, an id for an
+ * update or delete — which is what the screen is actually for. Hand it a column
+ * map again some day and the old behaviour comes back unchanged.
+ */
+type ColumnMap = Record<string, unknown> | undefined
 
 export function buildPayloadTemplate(meta: GenericActionMeta | undefined) {
   if (!meta) {
     return {}
-  }
-
-  // Vorion endpoint'leri için özel payload template
-  if (meta.kind === 'vorion') {
-    return buildVorionPayloadTemplate(meta.endpointKey)
   }
 
   // Custom endpoint'ler için payload template yok
@@ -36,9 +48,9 @@ export function buildPayloadTemplate(meta: GenericActionMeta | undefined) {
   }
 }
 
-function getDefaultReadPayload(schema: Extract<GenericActionMeta, { kind: 'generic' }>['schema']) {
+function getDefaultReadPayload(columns: ColumnMap) {
   const filters: Record<string, unknown> = {}
-  const filterCandidates = Object.keys(schema.columns ?? {}).filter(
+  const filterCandidates = Object.keys(columns ?? {}).filter(
     (column) =>
       column.endsWith('_id') ||
       column === 'is_active' ||
@@ -60,14 +72,11 @@ function getDefaultReadPayload(schema: Extract<GenericActionMeta, { kind: 'gener
   }
 }
 
-function buildCreatePayload(
-  schema: Extract<GenericActionMeta, { kind: 'generic' }>['schema'],
-  options: { partial?: boolean } = {}
-) {
+function buildCreatePayload(columns: ColumnMap, options: { partial?: boolean } = {}) {
   const payload: Record<string, unknown> = {}
   const skipFields = new Set(['id', 'created_at', 'updated_at', 'is_active', 'version'])
 
-  for (const column of Object.keys(schema.columns ?? {})) {
+  for (const column of Object.keys(columns ?? {})) {
     if (skipFields.has(column)) {
       continue
     }

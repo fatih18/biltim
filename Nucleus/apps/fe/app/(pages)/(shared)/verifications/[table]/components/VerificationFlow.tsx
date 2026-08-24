@@ -20,7 +20,7 @@ import React, { useRef, useState } from 'react'
 import '@xyflow/react/dist/style.css'
 import { ArrowLeft, CheckCircle, Loader2, Save, Workflow, X } from 'lucide-react'
 import Link from 'next/link'
-import { useGenericApiActions } from '@/app/_hooks/UseGenericApiStore'
+import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
 import { NodeDetailPanel } from './NodeDetailPanel'
 import { NodePalette } from './NodePalette'
 import {

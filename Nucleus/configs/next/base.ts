@@ -31,18 +31,47 @@ export const baseConfig: NextConfig = {
 	outputFileTracingRoot: path.join(__dirname, "../../"),
 	outputFileTracingIncludes: {
 		"/**": [
-			// Workspace packages
-			"./packages/**/*",
+			/*
+			 * Workspace packages the SERVER actually loads at runtime.
+			 *
+			 * `./packages/**` and `./hooks/**` were here and neither directory
+			 * exists in this repo. `./configs/**` was here too and does not
+			 * belong: @monorepo/configs ships tsconfig JSON, biome JSON and this
+			 * very next config — all build-time. Including it is what broke the
+			 * build, because the glob descends into configs/node_modules, where
+			 * `@types/node` is a symlink TO A DIRECTORY, and the tracer opens
+			 * every path it collects as a file:
+			 *     Is a directory (os error 21)
+			 * The compile itself had already succeeded; it died writing the trace
+			 * manifest, which is why the error names no source file.
+			 */
 			"./utilities/**/*",
 			"./managers/**/*",
-			"./hooks/**/*",
-			"./configs/**/*",
 			// Next.js kritik dependencies (standalone bazılarını atlıyor)
 			"./node_modules/styled-jsx/**/*",
 			"./apps/fe/node_modules/styled-jsx/**/*",
 			// Diğer kritik paketler
 			"./node_modules/@next/**/*",
 			"./node_modules/next/**/*",
+		],
+	},
+	/*
+	 * The workspace globs above end in `**\/*`, which walks into each
+	 * workspace's own node_modules — and `configs/node_modules/@types/node` is a
+	 * SYMLINK TO A DIRECTORY. The tracer opens every path it collects as a file,
+	 * so the build died with `Is a directory (os error 21)` while emitting the
+	 * trace manifest, after compiling successfully. Nothing under a workspace's
+	 * node_modules belongs in the trace anyway: those are resolved copies of
+	 * packages the tracer already follows through the import graph.
+	 */
+	outputFileTracingExcludes: {
+		"/**": [
+			"./configs/node_modules/**/*",
+			"./utilities/*/node_modules/**/*",
+			"./managers/*/node_modules/**/*",
+			// The same directory reached the other way: apps/fe/node_modules
+			// symlinks @monorepo/configs back at the workspace root.
+			"./apps/*/node_modules/@monorepo/*/node_modules/**/*",
 		],
 	},
 	// Strict mode
@@ -61,10 +90,18 @@ export const baseConfig: NextConfig = {
 				source: "/oauth/:path*",
 				destination: `${authApiUrl}/oauth/:path*`,
 			},
-			// File proxy
+			/*
+			 * File proxy -> the CDN route, not the files TABLE.
+			 *
+			 * `${authApiUrl}/files/:id` is the generated CRUD read and answers the
+			 * row as JSON; `${authApiUrl}/cdn/:id` is the storage route and answers
+			 * the bytes with a real Content-Type. The header's avatar
+			 * (`file-proxy/<id>`) was therefore being handed a JSON body to render
+			 * as an image. Same mistake as app/api/view-file, same fix.
+			 */
 			{
 				source: "/file-proxy/:path*",
-				destination: `${authApiUrl}/files/:path*`,
+				destination: `${authApiUrl}/cdn/:path*`,
 				has: [
 					{
 						type: "header",

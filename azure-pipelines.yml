@@ -156,7 +156,7 @@ stages:
         fi
         echo "============================================"
 
-        if [ -d "apps/be/src" ]; then
+        if [ -d "apps/be-nucleus/src" ]; then
           echo "✅ BE: Source found"
           echo "##vso[task.setvariable variable=beBuilt;isOutput=true]true"
         else

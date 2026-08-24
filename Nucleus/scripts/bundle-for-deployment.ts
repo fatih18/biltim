@@ -122,10 +122,10 @@ async function main() {
   const backendOutDir = join(DIST, 'backend')
   mkdirSync(backendOutDir, { recursive: true })
 
-  await $`bun build --minify --target bun --outdir ${backendOutDir} ${join(ROOT, 'apps/be/src/index.ts')}`.quiet()
+  await $`bun build --minify --target bun --outdir ${backendOutDir} ${join(ROOT, 'apps/be-nucleus/src/index.ts')}`.quiet()
 
   // Copy backend public folder if exists
-  const bePublicDir = join(ROOT, 'apps/be/public')
+  const bePublicDir = join(ROOT, 'apps/be-nucleus/public')
   if (existsSync(bePublicDir)) {
     cpSync(bePublicDir, join(backendOutDir, 'public'), { recursive: true })
   }
@@ -181,7 +181,7 @@ async function main() {
   // Step 3: Copy environment files
   console.log('\n📝 Copying environment files...')
   const feEnvSource = join(ROOT, 'apps/fe/.env')
-  const beEnvSource = join(ROOT, 'apps/be/.env')
+  const beEnvSource = join(ROOT, 'apps/be-nucleus/.env')
 
   if (existsSync(feEnvSource)) {
     cpSync(feEnvSource, join(DIST, 'frontend/.env'))
