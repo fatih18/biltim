@@ -1301,10 +1301,24 @@ export const boardMeetingDecisionsColumns = {
 	assignedUserId: uuid('assigned_user_id'),
 };
 
-export const boardMeetingDecisions = pgTable('board_meeting_decisions', boardMeetingDecisionsColumns);
+export const boardMeetingDecisionsIndexes = (t: { meetingDate: PgColumn; createdAt: PgColumn; status: PgColumn; assignedUserId: PgColumn }) => [
+	index('board_meeting_decisions_meeting_date_created_at_idx').on(t.meetingDate, t.createdAt),
+	index('board_meeting_decisions_status_idx').on(t.status),
+	index('board_meeting_decisions_assigned_user_id_idx').on(t.assignedUserId),
+];
+
+export const boardMeetingDecisions = pgTable('board_meeting_decisions', boardMeetingDecisionsColumns, (t) => [
+	index('board_meeting_decisions_meeting_date_created_at_idx').on(t.meetingDate, t.createdAt),
+	index('board_meeting_decisions_status_idx').on(t.status),
+	index('board_meeting_decisions_assigned_user_id_idx').on(t.assignedUserId),
+]);
 
 export function createBoardMeetingDecisionsForSchema(schema: ReturnType<typeof pgSchema>) {
-	return schema.table('board_meeting_decisions', boardMeetingDecisionsColumns);
+	return schema.table('board_meeting_decisions', boardMeetingDecisionsColumns, (t) => [
+		index('board_meeting_decisions_meeting_date_created_at_idx').on(t.meetingDate, t.createdAt),
+		index('board_meeting_decisions_status_idx').on(t.status),
+		index('board_meeting_decisions_assigned_user_id_idx').on(t.assignedUserId),
+	]);
 }
 
 export const companiesColumns = {
@@ -1318,10 +1332,24 @@ export const companiesColumns = {
 	w9: uuid('w9'),
 };
 
-export const companies = pgTable('companies', companiesColumns);
+export const companiesIndexes = (t: { ownerId: PgColumn; name: PgColumn; taxId: PgColumn }) => [
+	index('companies_owner_id_idx').on(t.ownerId),
+	index('companies_name_idx').on(t.name),
+	index('companies_tax_id_idx').on(t.taxId),
+];
+
+export const companies = pgTable('companies', companiesColumns, (t) => [
+	index('companies_owner_id_idx').on(t.ownerId),
+	index('companies_name_idx').on(t.name),
+	index('companies_tax_id_idx').on(t.taxId),
+]);
 
 export function createCompaniesForSchema(schema: ReturnType<typeof pgSchema>) {
-	return schema.table('companies', companiesColumns);
+	return schema.table('companies', companiesColumns, (t) => [
+		index('companies_owner_id_idx').on(t.ownerId),
+		index('companies_name_idx').on(t.name),
+		index('companies_tax_id_idx').on(t.taxId),
+	]);
 }
 
 export const fiveSActionsColumns = {
@@ -1332,10 +1360,18 @@ export const fiveSActionsColumns = {
 	name: varchar('name', { length: 255 }).notNull(),
 };
 
-export const fiveSActions = pgTable('five_s_actions', fiveSActionsColumns);
+export const fiveSActionsIndexes = (t: { isActive: PgColumn; createdAt: PgColumn }) => [
+	index('five_s_actions_is_active_created_at_idx').on(t.isActive, t.createdAt),
+];
+
+export const fiveSActions = pgTable('five_s_actions', fiveSActionsColumns, (t) => [
+	index('five_s_actions_is_active_created_at_idx').on(t.isActive, t.createdAt),
+]);
 
 export function createFiveSActionsForSchema(schema: ReturnType<typeof pgSchema>) {
-	return schema.table('five_s_actions', fiveSActionsColumns);
+	return schema.table('five_s_actions', fiveSActionsColumns, (t) => [
+		index('five_s_actions_is_active_created_at_idx').on(t.isActive, t.createdAt),
+	]);
 }
 
 export const fiveSAuditAnswersColumns = {
@@ -1372,10 +1408,18 @@ export const fiveSAuditDraftsColumns = {
 	updatedByName: text('updated_by_name'),
 };
 
-export const fiveSAuditDrafts = pgTable('five_s_audit_drafts', fiveSAuditDraftsColumns);
+export const fiveSAuditDraftsIndexes = (t: { updatedByUserId: PgColumn }) => [
+	index('five_s_audit_drafts_updated_by_user_id_idx').on(t.updatedByUserId),
+];
+
+export const fiveSAuditDrafts = pgTable('five_s_audit_drafts', fiveSAuditDraftsColumns, (t) => [
+	index('five_s_audit_drafts_updated_by_user_id_idx').on(t.updatedByUserId),
+]);
 
 export function createFiveSAuditDraftsForSchema(schema: ReturnType<typeof pgSchema>) {
-	return schema.table('five_s_audit_drafts', fiveSAuditDraftsColumns);
+	return schema.table('five_s_audit_drafts', fiveSAuditDraftsColumns, (t) => [
+		index('five_s_audit_drafts_updated_by_user_id_idx').on(t.updatedByUserId),
+	]);
 }
 
 export const fiveSAuditPlansColumns = {
@@ -1398,10 +1442,36 @@ export const fiveSAuditPlansColumns = {
 	fieldManagerAttended: boolean('field_manager_attended'),
 };
 
-export const fiveSAuditPlans = pgTable('five_s_audit_plans', fiveSAuditPlansColumns);
+export const fiveSAuditPlansIndexes = (t: { plannedDate: PgColumn; createdAt: PgColumn; locationId: PgColumn; assignedTeamId: PgColumn; status: PgColumn; auditId: PgColumn; parentPlanId: PgColumn; quarter: PgColumn }) => [
+	index('five_s_audit_plans_planned_date_created_at_idx').on(t.plannedDate, t.createdAt),
+	index('five_s_audit_plans_location_id_idx').on(t.locationId),
+	index('five_s_audit_plans_assigned_team_id_idx').on(t.assignedTeamId),
+	index('five_s_audit_plans_status_idx').on(t.status),
+	index('five_s_audit_plans_audit_id_idx').on(t.auditId),
+	index('five_s_audit_plans_parent_plan_id_idx').on(t.parentPlanId),
+	index('five_s_audit_plans_quarter_idx').on(t.quarter),
+];
+
+export const fiveSAuditPlans = pgTable('five_s_audit_plans', fiveSAuditPlansColumns, (t) => [
+	index('five_s_audit_plans_planned_date_created_at_idx').on(t.plannedDate, t.createdAt),
+	index('five_s_audit_plans_location_id_idx').on(t.locationId),
+	index('five_s_audit_plans_assigned_team_id_idx').on(t.assignedTeamId),
+	index('five_s_audit_plans_status_idx').on(t.status),
+	index('five_s_audit_plans_audit_id_idx').on(t.auditId),
+	index('five_s_audit_plans_parent_plan_id_idx').on(t.parentPlanId),
+	index('five_s_audit_plans_quarter_idx').on(t.quarter),
+]);
 
 export function createFiveSAuditPlansForSchema(schema: ReturnType<typeof pgSchema>) {
-	return schema.table('five_s_audit_plans', fiveSAuditPlansColumns);
+	return schema.table('five_s_audit_plans', fiveSAuditPlansColumns, (t) => [
+		index('five_s_audit_plans_planned_date_created_at_idx').on(t.plannedDate, t.createdAt),
+		index('five_s_audit_plans_location_id_idx').on(t.locationId),
+		index('five_s_audit_plans_assigned_team_id_idx').on(t.assignedTeamId),
+		index('five_s_audit_plans_status_idx').on(t.status),
+		index('five_s_audit_plans_audit_id_idx').on(t.auditId),
+		index('five_s_audit_plans_parent_plan_id_idx').on(t.parentPlanId),
+		index('five_s_audit_plans_quarter_idx').on(t.quarter),
+	]);
 }
 
 export const fiveSAuditTeamMembersColumns = {
@@ -1413,10 +1483,21 @@ export const fiveSAuditTeamMembersColumns = {
 	userId: uuid('user_id').notNull(),
 };
 
-export const fiveSAuditTeamMembers = pgTable('five_s_audit_team_members', fiveSAuditTeamMembersColumns);
+export const fiveSAuditTeamMembersIndexes = (t: { teamId: PgColumn; userId: PgColumn }) => [
+	index('five_s_audit_team_members_team_id_idx').on(t.teamId),
+	index('five_s_audit_team_members_user_id_idx').on(t.userId),
+];
+
+export const fiveSAuditTeamMembers = pgTable('five_s_audit_team_members', fiveSAuditTeamMembersColumns, (t) => [
+	index('five_s_audit_team_members_team_id_idx').on(t.teamId),
+	index('five_s_audit_team_members_user_id_idx').on(t.userId),
+]);
 
 export function createFiveSAuditTeamMembersForSchema(schema: ReturnType<typeof pgSchema>) {
-	return schema.table('five_s_audit_team_members', fiveSAuditTeamMembersColumns);
+	return schema.table('five_s_audit_team_members', fiveSAuditTeamMembersColumns, (t) => [
+		index('five_s_audit_team_members_team_id_idx').on(t.teamId),
+		index('five_s_audit_team_members_user_id_idx').on(t.userId),
+	]);
 }
 
 export const fiveSAuditTeamsColumns = {
@@ -1428,10 +1509,21 @@ export const fiveSAuditTeamsColumns = {
 	leaderUserId: uuid('leader_user_id').notNull(),
 };
 
-export const fiveSAuditTeams = pgTable('five_s_audit_teams', fiveSAuditTeamsColumns);
+export const fiveSAuditTeamsIndexes = (t: { leaderUserId: PgColumn; createdAt: PgColumn }) => [
+	index('five_s_audit_teams_leader_user_id_idx').on(t.leaderUserId),
+	index('five_s_audit_teams_created_at_idx').on(t.createdAt),
+];
+
+export const fiveSAuditTeams = pgTable('five_s_audit_teams', fiveSAuditTeamsColumns, (t) => [
+	index('five_s_audit_teams_leader_user_id_idx').on(t.leaderUserId),
+	index('five_s_audit_teams_created_at_idx').on(t.createdAt),
+]);
 
 export function createFiveSAuditTeamsForSchema(schema: ReturnType<typeof pgSchema>) {
-	return schema.table('five_s_audit_teams', fiveSAuditTeamsColumns);
+	return schema.table('five_s_audit_teams', fiveSAuditTeamsColumns, (t) => [
+		index('five_s_audit_teams_leader_user_id_idx').on(t.leaderUserId),
+		index('five_s_audit_teams_created_at_idx').on(t.createdAt),
+	]);
 }
 
 export const fiveSAuditsColumns = {
@@ -1471,10 +1563,18 @@ export const fiveSFindingTypesColumns = {
 	name: varchar('name', { length: 255 }).notNull(),
 };
 
-export const fiveSFindingTypes = pgTable('five_s_finding_types', fiveSFindingTypesColumns);
+export const fiveSFindingTypesIndexes = (t: { isActive: PgColumn; createdAt: PgColumn }) => [
+	index('five_s_finding_types_is_active_created_at_idx').on(t.isActive, t.createdAt),
+];
+
+export const fiveSFindingTypes = pgTable('five_s_finding_types', fiveSFindingTypesColumns, (t) => [
+	index('five_s_finding_types_is_active_created_at_idx').on(t.isActive, t.createdAt),
+]);
 
 export function createFiveSFindingTypesForSchema(schema: ReturnType<typeof pgSchema>) {
-	return schema.table('five_s_finding_types', fiveSFindingTypesColumns);
+	return schema.table('five_s_finding_types', fiveSFindingTypesColumns, (t) => [
+		index('five_s_finding_types_is_active_created_at_idx').on(t.isActive, t.createdAt),
+	]);
 }
 
 export const fiveSFindingsColumns = {
@@ -1529,10 +1629,21 @@ export const fiveSLocationsColumns = {
 	mapY: integer('map_y'),
 };
 
-export const fiveSLocations = pgTable('five_s_locations', fiveSLocationsColumns);
+export const fiveSLocationsIndexes = (t: { isActive: PgColumn; createdAt: PgColumn; managerUserId: PgColumn }) => [
+	index('five_s_locations_is_active_created_at_idx').on(t.isActive, t.createdAt),
+	index('five_s_locations_manager_user_id_idx').on(t.managerUserId),
+];
+
+export const fiveSLocations = pgTable('five_s_locations', fiveSLocationsColumns, (t) => [
+	index('five_s_locations_is_active_created_at_idx').on(t.isActive, t.createdAt),
+	index('five_s_locations_manager_user_id_idx').on(t.managerUserId),
+]);
 
 export function createFiveSLocationsForSchema(schema: ReturnType<typeof pgSchema>) {
-	return schema.table('five_s_locations', fiveSLocationsColumns);
+	return schema.table('five_s_locations', fiveSLocationsColumns, (t) => [
+		index('five_s_locations_is_active_created_at_idx').on(t.isActive, t.createdAt),
+		index('five_s_locations_manager_user_id_idx').on(t.managerUserId),
+	]);
 }
 
 export const fiveSQuestionsColumns = {
@@ -1582,10 +1693,24 @@ export const userClaimsColumns = {
 	expiresAt: timestamp('expires_at'),
 };
 
-export const userClaims = pgTable('userClaims', userClaimsColumns);
+export const userClaimsIndexes = (t: { userId: PgColumn; claimId: PgColumn; expiresAt: PgColumn }) => [
+	index('userClaims_user_id_idx').on(t.userId),
+	index('userClaims_claim_id_idx').on(t.claimId),
+	index('userClaims_expires_at_idx').on(t.expiresAt),
+];
+
+export const userClaims = pgTable('userClaims', userClaimsColumns, (t) => [
+	index('userClaims_user_id_idx').on(t.userId),
+	index('userClaims_claim_id_idx').on(t.claimId),
+	index('userClaims_expires_at_idx').on(t.expiresAt),
+]);
 
 export function createUserClaimsForSchema(schema: ReturnType<typeof pgSchema>) {
-	return schema.table('userClaims', userClaimsColumns);
+	return schema.table('userClaims', userClaimsColumns, (t) => [
+		index('userClaims_user_id_idx').on(t.userId),
+		index('userClaims_claim_id_idx').on(t.claimId),
+		index('userClaims_expires_at_idx').on(t.expiresAt),
+	]);
 }
 
 export function createAllTablesForSchema(schema: ReturnType<typeof pgSchema>) {
