@@ -46,7 +46,7 @@
     "three": "latest",
     "xlsx": "latest",
     "zustand": "latest",
-    "nucleus-core-ts": "0.10.8"
+    "nucleus-core-ts": "0.10.12"
   },
   "devDependencies": {
     "@biomejs/biome": "latest",
