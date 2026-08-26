@@ -79,6 +79,7 @@
   },
   "storage": {
     "enabled": true,
+    "basePath": "./storage",
     "maxFileSizeBytes": 52428800,
     "cdn": {
       "enabled": true,
