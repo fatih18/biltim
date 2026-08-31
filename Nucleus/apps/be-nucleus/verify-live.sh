@@ -107,8 +107,14 @@ if [ "$c" = 200 ] && head -c2 "$TMP" | grep -q PK; then ok "open-findings.xlsx i
 else no "open-findings.xlsx" "code $c, first bytes $(head -c2 "$TMP" | od -c | head -1)"; fi
 
 echo "=== 8. the paths that were pointing at nothing ==="
-[ "$(sc -b "$JAR" -X POST "$BE/v2/auth/logout")" = 401 ] && ok "/v2/auth/logout is NOT served (confirms the old FE path was dead)" \
-  || warn "/v2/auth/logout" "unexpectedly answered"
+# Sent WITH a session on purpose. An authenticated caller reaching a path that
+# does not exist gets 404, and that is the proof the old FE route is dead. This
+# check used to expect 401 while still sending the cookie jar, so it warned about
+# the correct answer. (401 is what an ANONYMOUS caller gets for any unknown path
+# — the server declines to tell a stranger which paths exist, which is why the
+# two codes differ here.)
+[ "$(sc -b "$JAR" -X POST "$BE/v2/auth/logout")" = 404 ] && ok "/v2/auth/logout is NOT served (confirms the old FE path was dead)" \
+  || warn "/v2/auth/logout" "answered something other than 404 for a signed-in caller"
 fid=$(q "select id from main.files where is_active is not false limit 1")
 if [ -n "${fid:-}" ]; then
   ct1=$(curl -s -b "$JAR" -o /dev/null -w '%{content_type}' "$BE/files/$fid")
