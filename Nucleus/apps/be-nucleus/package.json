@@ -10,7 +10,7 @@
     "validate": "bunx nucleus-core-ts validate config.json"
   },
   "dependencies": {
-    "nucleus-core-ts": "0.10.28",
+    "nucleus-core-ts": "0.10.36",
     "@sinclair/typebox": "0.34.47",
     "drizzle-orm": "0.44.7",
     "drizzle-kit": "0.31.5",
