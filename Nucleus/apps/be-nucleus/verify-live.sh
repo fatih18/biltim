@@ -135,8 +135,14 @@ t=$(q "select data_type from information_schema.columns where table_schema='main
 # The stamps must not have moved. Anything created before tonight should still
 # read in working hours, not shifted by three.
 echo "        oldest user created_at: $(q 'select min(created_at) from main.users')"
-[ -n "$(q "select to_regclass('main.tenants')")" ] && ok "main.tenants survived (drizzle offered to rename it away)" \
-  || no "main.tenants" "GONE -- the rename prompt was answered wrong"
+# main.tenants is NOT expected here. It carries feature_set ['multi-tenant'] in
+# system.tables.json and this install runs isMultiTenant:false, so nucleus never
+# creates it. This check used to assert the opposite and reported a data loss
+# that never happened — the same result appears on a clean local install that has
+# never been touched. What matters is that the tables this install DOES declare
+# are present.
+[ -z "$(q "select to_regclass('main.tenants')")" ] && ok "main.tenants absent, as a single-tenant install expects" \
+  || warn "main.tenants" "present although isMultiTenant is false"
 [ -n "$(q "select to_regclass('main.user_cohorts')")" ] && ok "main.user_cohorts created" || no "user_cohorts" "missing"
 
 echo "=== 10. frontend talks to backend ==="
