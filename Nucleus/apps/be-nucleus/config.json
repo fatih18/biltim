@@ -1,15 +1,8 @@
 {
   "appId": "biltim",
   "rateLimit": {
-    "privateRoutes": { "window": "1m", "max": 3000 },
-    "publicRoutes": { "window": "1m", "max": 3000 },
     "authRoutes": {
-      "window": "1m",
-      "max": 300,
-      "login": { "window": "15m", "max": 300, "blockDuration": "1m" },
-      "register": { "window": "1h", "max": 100, "blockDuration": "1m" },
-      "passwordReset": { "window": "1h", "max": 100, "blockDuration": "1m" },
-      "magicLink": { "window": "1h", "max": 100, "blockDuration": "1m" }
+      "login": { "window": "15m", "max": 5, "perAddressMax": 300, "blockDuration": "1m" }
     }
   },
   "mode": "development",
