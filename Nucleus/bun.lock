@@ -70,7 +70,7 @@
         "drizzle-orm": "0.44.7",
         "exceljs": "^4.4.0",
         "ioredis": "latest",
-        "nucleus-core-ts": "0.10.18",
+        "nucleus-core-ts": "0.10.19",
         "pg": "latest",
       },
       "devDependencies": {
@@ -1605,7 +1605,7 @@
 
     "ntlm": ["ntlm@0.1.3", "", {}, "sha512-pPlHxhAegZP4QAaOYd51vRd6VXTGfF7VLKJwuwN0iEB1aIi3SnqXYuS/bH/6wWBOq+Ehdil49mHm1Nseon085w=="],
 
-    "nucleus-core-ts": ["nucleus-core-ts@0.10.18", "", { "dependencies": { "@gsap/react": "latest", "@simplewebauthn/server": "^13.3.0", "@sinclair/typebox": "0.34.47", "@xyflow/react": "latest", "drizzle-orm": "latest", "gsap": "latest", "h-state": "latest", "ioredis": "latest", "reflect-metadata": "^0.2.2" }, "optionalDependencies": { "@azure/communication-email": "latest", "@marsaud/smb2": "^0.18.0", "sharp": "^0.33.0", "stripe": "latest" }, "peerDependencies": { "@dapr/dapr": "latest", "clsx": "latest", "googleapis": "*", "pg": "latest", "react": "latest", "react-dom": "latest", "tailwind-merge": "latest", "tailwindcss": "latest", "typescript": "latest" }, "optionalPeers": ["googleapis"], "bin": { "nucleus-core-ts": "bin/cli.ts", "nucleus": "bin/cli.ts", "nucleus-generate": "bin/cli.ts" } }, "sha512-s7+h5V4SOaJQj6s3VS0MgKlB6ekTMC1vhuv/tJv1gPkQqSaxN5cVrSrQhk5DZXzSR+u3LRA7VnaNgO8s2CPJgA=="],
+    "nucleus-core-ts": ["nucleus-core-ts@0.10.19", "", { "dependencies": { "@gsap/react": "latest", "@simplewebauthn/server": "^13.3.0", "@sinclair/typebox": "0.34.47", "@xyflow/react": "latest", "drizzle-orm": "latest", "gsap": "latest", "h-state": "latest", "ioredis": "latest", "reflect-metadata": "^0.2.2" }, "optionalDependencies": { "@azure/communication-email": "latest", "@marsaud/smb2": "^0.18.0", "sharp": "^0.33.0", "stripe": "latest" }, "peerDependencies": { "@dapr/dapr": "latest", "clsx": "latest", "googleapis": "*", "pg": "latest", "react": "latest", "react-dom": "latest", "tailwind-merge": "latest", "tailwindcss": "latest", "typescript": "latest" }, "optionalPeers": ["googleapis"], "bin": { "nucleus-core-ts": "bin/cli.ts", "nucleus": "bin/cli.ts", "nucleus-generate": "bin/cli.ts" } }, "sha512-ud0kMaFlvlWgkgBhEYsz0GnVQ5rYsW7vt3gzMqr4dP68emzLIU3KO2IYDyYWgrM5gqlpiIvlIGy+QL+h3d2e1w=="],
 
     "object-inspect": ["object-inspect@1.13.4", "", {}, "sha512-W67iLl4J2EXEGTbfeHCffrjDfitvLANg0UlX3wFUUSTx92KXRFegMHUVgSqE+wvhAbi4WqjGg9czysTV2Epbew=="],
 
