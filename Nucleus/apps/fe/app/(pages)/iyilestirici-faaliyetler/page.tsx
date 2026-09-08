@@ -1,4 +1,6 @@
 "use client";
+import { useServerList } from '@/app/_hooks/UseServerList'
+import { InfiniteScroll } from '@/app/_components/Global/InfiniteScroll'
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useGenericApiActions } from "@/app/_hooks/UseNucleusApi";
@@ -121,25 +123,36 @@ export default function BoardMeetingDecisionsPage() {
         });
     };
 
-    const fetchDecisions = () => {
-        setListLoading(true);
+    /*
+     * The decisions list is read a page at a time, newest meeting first.
+     * It used to ask for limit: 1000 in one go and hold the lot in memory,
+     * which is both the whole table across the wire and a ceiling nobody would
+     * notice passing.
+     */
+    const decisionSort = useMemo(
+        () => [{ field: "meeting_date", direction: "desc" as const }],
+        []
+    );
 
-        actions.GET_BOARD_MEETING_DECISIONS?.start({
-            payload: {
-                orderBy: [{ column: "meeting_date", direction: "desc" }],
-            },
-            onAfterHandle: (data: any) => {
-                const rows: BoardMeetingDecision[] = data?.data ?? data ?? [];
-                setDecisions(rows);
-                setListLoading(false);
-            },
-            onErrorHandle: (err: any) => {
-                console.error("GET_BOARD_MEETING_DECISIONS error", err);
-                setListLoading(false);
-                toast.error("Toplantı kararları listelenirken bir hata oluştu.");
-            },
-        });
-    };
+    const decisionList = useServerList<BoardMeetingDecision>({
+        action: actions.GET_BOARD_MEETING_DECISIONS,
+        pageSize: 25,
+        sort: decisionSort,
+    });
+
+    useEffect(() => {
+        setDecisions(decisionList.rows);
+    }, [decisionList.rows]);
+
+    useEffect(() => {
+        setListLoading(decisionList.isLoading);
+    }, [decisionList.isLoading]);
+
+    useEffect(() => {
+        if (decisionList.error) toast.error("Toplantı kararları listelenirken bir hata oluştu.");
+    }, [decisionList.error]);
+
+    const fetchDecisions = () => decisionList.reload();
 
     const openCreateModal = () => {
         setForm(emptyForm());
@@ -303,6 +316,13 @@ export default function BoardMeetingDecisionsPage() {
                                     })}
                                 </tbody>
                             </table>
+
+                            <InfiniteScroll
+                                hasMore={decisionList.hasMore}
+                                isLoadingMore={decisionList.isLoadingMore}
+                                onLoadMore={decisionList.loadMore}
+                                endLabel={`${decisions.length} kararın tamamı gösteriliyor`}
+                            />
                         </div>
                     )}
                 </section>

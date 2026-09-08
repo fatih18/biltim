@@ -1,4 +1,5 @@
 'use client'
+import { InfiniteScroll } from '@/app/_components/Global/InfiniteScroll'
 
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import type { Create as CreateUserPayload } from '@monorepo/db-entities/schemas/default/user'
@@ -50,7 +51,28 @@ export default function UsersPage() {
     actions.GET_USERS?.start({
       payload,
       onAfterHandle: (data) => {
-        if (data) usersStore.users = data
+        if (data) {
+          /*
+           * Page 2 and beyond EXTEND the list rather than replacing it: the
+           * screen scrolls now, so a new page is more rows, not a new screenful.
+           * Page 1 always replaces — that is what a changed filter produces.
+           */
+          const incoming = data as NonNullable<typeof usersStore.users>
+          const isFirstPage = (incoming.pagination?.page ?? 1) <= 1
+          const previous = usersStore.users
+          usersStore.users =
+            isFirstPage || !previous
+              ? incoming
+              : {
+                  ...incoming,
+                  data: [
+                    ...previous.data,
+                    ...incoming.data.filter(
+                      (row) => !previous.data.some((held) => held.id === row.id)
+                    ),
+                  ],
+                }
+        }
         usersStore.setNeedsRefresh(false)
         isFetchingRef.current = false
       },
@@ -58,7 +80,7 @@ export default function UsersPage() {
         console.error('Get users failed:', error)
         usersStore.setNeedsRefresh(false)
         isFetchingRef.current = false
-        window.alert(getErrorMessage(error) || 'Kullanıcı listesi getirilemedi.')
+        toast.error(getErrorMessage(error) || 'Kullanıcı listesi getirilemedi.')
       },
     })
 
@@ -253,24 +275,12 @@ export default function UsersPage() {
             />
 
             {hasUsers ? (
-              <div className="rounded-xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/40 p-3">
-                <Pagination
-                  currentPage={usersStore.users?.pagination.page ?? usersStore.page}
-                  totalPages={usersStore.users?.pagination.totalPages ?? 1}
-                  itemsPerPage={usersStore.limit}
-                  totalItems={usersStore.users?.pagination.total ?? 0}
-                  startIndex={
-                    ((usersStore.users?.pagination.page ?? usersStore.page) - 1) *
-                    usersStore.limit
-                  }
-                  hasPrevious={
-                    usersStore.users?.pagination.hasPrev ?? usersStore.page > 1
-                  }
-                  hasNext={usersStore.users?.pagination.hasNext ?? false}
-                  onPageChange={(page) => usersStore.setPage(page)}
-                  onItemsPerPageChange={(limit) => usersStore.setLimit(limit)}
-                />
-              </div>
+              <InfiniteScroll
+                hasMore={Boolean(usersStore.users?.pagination.hasNext)}
+                isLoadingMore={Boolean(actions.GET_USERS?.state?.isPending)}
+                onLoadMore={() => usersStore.setPage(usersStore.page + 1)}
+                endLabel={`${usersStore.users?.data.length ?? 0} kullanıcının tamamı gösteriliyor`}
+              />
             ) : null}
           </div>
         </div>
