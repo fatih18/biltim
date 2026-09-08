@@ -20,6 +20,29 @@
 
 BEGIN;
 
+-- ── Önce beklediğimiz rollerin gerçekten orada olduğunu kanıtla ─────────────
+--
+-- Aşağıdaki her şey rol ADINA bağlı. Kurulumda roller başka adla duruyorsa
+-- DELETE de INSERT de hiçbir satır eşlemez ve betik SESSİZCE hiçbir şey
+-- yapmadan biter: ekranda "COMMIT" görürsünüz, roller ise düzeltilmemiş
+-- hâlde kalır — beşi de aynı yetki kümesiyle. Gece yarısı bir kurulumda fark
+-- edilmesi en zor sonuç bu, o yüzden eksik rol varsa işlem geri sarılır ve
+-- hangisinin eksik olduğu yazılır.
+DO $$
+DECLARE eksik text;
+BEGIN
+  SELECT string_agg(x.ad, ', ')
+    INTO eksik
+  FROM unnest(ARRAY['Auditor','Field Manager','Manager',
+                    'Content Manager Core Team','Super Admin']) AS x(ad)
+  WHERE NOT EXISTS (SELECT 1 FROM main.roles r WHERE r.name = x.ad);
+
+  IF eksik IS NOT NULL THEN
+    RAISE EXCEPTION
+      'Bu kurulumda şu roller yok: %. Betik rol ADINA göre çalışıyor; adlar farklıysa hiçbir şey yapmadan biterdi. Rol adlarını kontrol edin.', eksik;
+  END IF;
+END $$;
+
 -- Nucleus sözlüğündeki mevcut atamaları sıfırla; aşağıdaki küme tek kaynaktır.
 DELETE FROM main.role_claims rc
 USING main.claims c, main.roles r
