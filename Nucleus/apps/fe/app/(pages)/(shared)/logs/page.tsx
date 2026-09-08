@@ -1,9 +1,10 @@
 'use client'
+import { type ActorLookup, SYSTEM_ACTOR_ID } from './labels'
 import { InfiniteScroll } from '@/app/_components/Global/InfiniteScroll'
 import { toast } from 'sonner'
 
 import type { AuditJSON, Read } from '@monorepo/db-entities/schemas/default/audit'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
 import { useAuditStore } from '@/app/_store'
 import { LogDetailModal } from './components/LogDetailModal'
@@ -130,6 +131,62 @@ export default function LogsPage() {
   ])
 
   const logs = auditStore.audits?.data ?? []
+
+  /*
+   * The log records an actor id and nothing else — no name, no email, and
+   * user_id carries no foreign key to users, so the server cannot expand it.
+   * Roughly three rows in four name no person at all (the zero uuid), so only
+   * the real ids are worth asking about: they are collected from the rows on
+   * screen and fetched once, not one request per row.
+   */
+  const actorIds = useMemo(() => {
+    const ids = new Set<string>()
+    for (const log of logs) {
+      const id = log.user_id
+      if (id && id !== SYSTEM_ACTOR_ID) ids.add(String(id))
+    }
+    return [...ids].sort()
+  }, [logs])
+
+  const actorKey = actorIds.join(',')
+  const [actors, setActors] = useState<ActorLookup>(new Map())
+
+  useEffect(() => {
+    if (!actorKey) return
+    const wanted = actorKey.split(',')
+    const missing = wanted.filter((id: string) => !actors.has(id))
+    if (missing.length === 0) return
+
+    actions.GET_USERS?.start({
+      payload: { page: 1, limit: missing.length, filters: { id: missing } },
+      onAfterHandle: (data) => {
+        const rows = ((data as { data?: unknown })?.data ?? []) as Array<{
+          id?: string
+          email?: string
+          profile?: { first_name?: string | null; last_name?: string | null } | null
+        }>
+        setActors((prev) => {
+          const next = new Map(prev)
+          for (const row of rows) {
+            if (!row?.id) continue
+            const name = [row.profile?.first_name, row.profile?.last_name]
+              .filter(Boolean)
+              .join(' ')
+              .trim()
+            next.set(String(row.id), { name, email: row.email ?? null })
+          }
+          // Anything still unanswered is an id whose user is gone; remembering
+          // that stops this asking again on every page of results.
+          for (const id of missing) if (!next.has(id)) next.set(id, {})
+          return next
+        })
+      },
+      onErrorHandle: (error) => {
+        console.error('audit actor lookup failed', error)
+      },
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actorKey])
   const paginationInfo = auditStore.audits?.pagination
 
   const currentPage = paginationInfo?.page ?? auditStore.page
@@ -248,7 +305,7 @@ export default function LogsPage() {
             </div>
           </div>
         ) : (
-          <LogsTable logs={logs} onLogSelect={setSelectedLog} />
+          <LogsTable logs={logs} onLogSelect={setSelectedLog} users={actors} />
         )}
 
         {auditStore.audits && totalItems > 0 && (
