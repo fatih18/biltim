@@ -170,7 +170,7 @@ export default function UsersPage() {
             return
           }
 
-          window.alert(getErrorMessage(error) || 'Kullanıcı oluşturulamadı.')
+          toast.error(getErrorMessage(error) || 'Kullanıcı oluşturulamadı.')
           resolve()
         },
       })
@@ -221,7 +221,7 @@ export default function UsersPage() {
           usersStore.setModalVisibility('delete', false)
           usersStore.setSelectedUserId(null)
 
-          window.alert(msg || 'Kullanıcı silinemedi.')
+          toast.error(msg || 'Kullanıcı silinemedi.')
         },
       })
     }

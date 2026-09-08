@@ -504,9 +504,12 @@ export default function Page() {
                     setPlansLoading(false);
                     return;
                 }
+                // Swallowing this left the planning board looking empty when
+                // the read had actually failed — the two are indistinguishable
+                // to whoever is looking at it.
                 console.error(`${key} error`, error);
+                toast.error("Denetim planları yüklenirken bir hata oluştu.");
                 setPlansLoading(false);
-
             },
         });
     }, []);

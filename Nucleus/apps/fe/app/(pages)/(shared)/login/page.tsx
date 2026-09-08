@@ -3,15 +3,58 @@
 import { useStore } from '@store/globalStore'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import type { FormEvent } from 'react'
+import { type FormEvent, useState } from 'react'
 import { FiEye, FiLock, FiMail } from 'react-icons/fi'
 import { AbstractAnimatedBackground, SocialLoginButton } from '@/app/_components'
 import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
+
+/** Turns a refusal into something the person at the keyboard can act on. */
+function loginErrorText(error: unknown, code?: number | null): string {
+  const raw =
+    typeof error === 'string'
+      ? error
+      : typeof error === 'object' && error !== null
+        ? String((error as { message?: unknown }).message ?? '')
+        : ''
+
+  // 429 is the one people hit without doing anything wrong: five attempts in
+  // fifteen minutes locks the account's own bucket, and saying "wrong password"
+  // there would send them off to reset a password that is fine. The server
+  // says how long the block lasts (retryAfter, in seconds) — so say it.
+  if (code === 429 || /too many|rate limit/i.test(raw)) {
+    const retryAfter =
+      typeof error === 'object' && error !== null
+        ? Number((error as { retryAfter?: unknown }).retryAfter)
+        : Number.NaN
+    const wait = Number.isFinite(retryAfter) && retryAfter > 0
+      ? retryAfter >= 60
+        ? `${Math.ceil(retryAfter / 60)} dakika`
+        : `${Math.ceil(retryAfter)} saniye`
+      : null
+    return wait
+      ? `Çok fazla giriş denemesi yapıldı. ${wait} sonra tekrar deneyin.`
+      : 'Çok fazla giriş denemesi yapıldı. Lütfen birkaç dakika bekleyip tekrar deneyin.'
+  }
+  if (/invalid email or password|invalid credentials/i.test(raw)) {
+    return 'E-posta veya şifre hatalı.'
+  }
+  if (/locked/i.test(raw)) {
+    return 'Hesabınız kilitli. Lütfen yöneticinizle iletişime geçin.'
+  }
+  if (/not verified|verify/i.test(raw)) {
+    return 'E-posta adresiniz henüz doğrulanmamış.'
+  }
+  if (/failed to fetch|network/i.test(raw)) {
+    return 'Sunucuya ulaşılamadı. Bağlantınızı kontrol edip tekrar deneyin.'
+  }
+  return raw || 'Giriş yapılamadı. Lütfen tekrar deneyin.'
+}
 
 export default function Login() {
   const router = useRouter()
   const actions = useGenericApiActions()
   const store = useStore()
+  const [formError, setFormError] = useState<string | null>(null)
 
   const handleSocialLogin = (providerId: string) => {
     if (providerId === 'github') {
@@ -35,6 +78,7 @@ export default function Login() {
 
   function handleSubmit(event: FormEvent<HTMLFormElement>): undefined {
     event.preventDefault()
+    setFormError(null)
 
     actions.LOGIN_V2?.start({
       payload: {
@@ -53,15 +97,29 @@ export default function Login() {
             router.push('/')
           },
           onErrorHandle: (error) => {
-            console.log('getMe after login error', error)
+            /*
+             * The password was accepted and the session read then failed, so
+             * bouncing back to /login silently looks like the password was
+             * wrong — and typing it again produces the same bounce.
+             */
+            console.error('getMe after login error', error)
             store.user = undefined
             store.isLoginChecked = false
-            router.push('/login')
+            setFormError(
+              'Giriş yapıldı ancak oturum bilgileri alınamadı. Lütfen tekrar deneyin.'
+            )
           },
         })
       },
-      onErrorHandle: (error) => {
-        console.log('error', error)
+      onErrorHandle: (error, code) => {
+        /*
+         * This swallowed every refusal into console.log, so a wrong password, a
+         * locked account and a rate-limit block all produced the same thing on
+         * screen: nothing. The form just sat there. The server does say why —
+         * "Invalid email or password" — and it was being thrown away.
+         */
+        console.error('login error', error)
+        setFormError(loginErrorText(error, code))
       },
     })
 
@@ -152,6 +210,16 @@ export default function Login() {
                     </span>
                   </div>
                 </fieldset>
+
+                {formError ? (
+                  <p
+                    role="alert"
+                    aria-live="assertive"
+                    className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/50 dark:text-rose-200"
+                  >
+                    {formError}
+                  </p>
+                ) : null}
 
                 <button
                   type="submit"

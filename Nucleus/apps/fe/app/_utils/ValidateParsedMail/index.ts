@@ -156,13 +156,16 @@ function validateParsedMail(parsed: any, showDebug: boolean = true): ValidationR
     }
   }
 
-  // Eksik alan varsa alert göster
+  // Eksik alan varsa çağırana bildir
   if (missingFields.length > 0) {
     const errorMessage = `⚠️ Mail'den şu bilgiler çıkarılamadı:\n\n${missingFields
       .map((field, index) => `${index + 1}. ${field}`)
       .join('\n')}\n\nLütfen mail içeriğini kontrol edin veya eksik bilgileri manuel olarak girin.`
 
-    alert(errorMessage)
+    // A utility does not own the screen. This popped a native dialog from deep
+    // inside a pure function; the caller gets `missingFields` back and can say
+    // whatever it likes. (Nothing imports this module today — it belongs to a
+    // different product: it validates financing terms, not 5S audits.)
     console.error('❌ Eksik alanlar:', missingFields)
   } else {
     console.log('✅ Tüm alanlar doğrulandı!')
