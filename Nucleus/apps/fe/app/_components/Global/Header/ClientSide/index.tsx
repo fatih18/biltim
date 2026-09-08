@@ -13,7 +13,6 @@ import {
   LogOut,
   Menu,
   Moon,
-  Search,
   Settings,
   Sun,
   Users,
@@ -1134,24 +1133,14 @@ export function ClientSide({
           </nav>
 
           <div className="flex items-center gap-3">
-            <div className="flex items-center">
-              <div ref={searchRef} className="hidden">
-                <input
-                  type="text"
-                  placeholder="Ara..."
-                  className="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-700/50 backdrop-blur-sm text-slate-900 dark:text-white placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-400"
-                />
-              </div>
-              <button
-                onClick={toggleSearch}
-                className="p-2 hover:bg-slate-200 hover:dark:bg-white/10 rounded-lg transition-all duration-300 hover:scale-110"
-                type="button"
-                aria-label="Ara"
-                title="Ara"
-              >
-                <Search size={20} />
-              </button>
-            </div>
+            {/*
+              The magnifier used to open a text box with no onChange, no state
+              and no handler: it accepted typing and did nothing at all — the
+              findings list behind it never moved. A control that answers to
+              nothing teaches people the app is broken, so it is gone until
+              there is a search to put behind it. Filtering lives on each
+              screen, and those boxes do reach the server.
+            */}
 
             <ThemeToggle />
 
