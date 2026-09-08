@@ -202,8 +202,61 @@ export default function Page() {
                 const rows = extractArray(res);
                 const mapped = rows.map(toUserFromGetUsersRow);
 
-                setUsers(mapped);
-                setUsersLoading(false);
+                /*
+                 * /users does not return roles — not even with `with=roles`,
+                 * which answers null. The teams screen needs them: it offers
+                 * only auditors as team members, and its own check reads
+                 * "roles yoksa FE doğrulama yapamayız" and returns true, so
+                 * with roles absent the rule passed ANYONE. It showed a warning
+                 * saying so and listed every user.
+                 *
+                 * The mapping lives in its own table, so it is read from there
+                 * and attached here, once, for every screen taking `users`.
+                 */
+                const attachRoles = (withRoles: Map<string, string[]>) => {
+                    setUsers(
+                        mapped.map((u: any) => ({ ...u, roles: (withRoles.get(String(u.id)) ?? []).map((name) => ({ name })) }))
+                    );
+                    setUsersLoading(false);
+                };
+
+                const startRoles = safeStart(A, "GET_ROLES");
+                const startUserRoles = safeStart(A, "GET_USER_ROLES");
+                if (!startRoles || !startUserRoles) {
+                    setUsers(mapped);
+                    setUsersLoading(false);
+                    return;
+                }
+
+                const asPromise = (start: any, payload: any) =>
+                    new Promise<any[]>((resolve) => {
+                        start({
+                            payload,
+                            onAfterHandle: (r: any) => resolve(extractArray(r)),
+                            onErrorHandle: () => resolve([]),
+                        });
+                    });
+
+                Promise.all([
+                    asPromise(startRoles, { page: 1, limit: 200 }),
+                    asPromise(startUserRoles, { page: 1, limit: 2000 }),
+                ]).then(([roleRows, userRoleRows]) => {
+                    const roleName = new Map<string, string>();
+                    for (const r of roleRows) {
+                        const id = String((r as any)?.id ?? "");
+                        const name = String((r as any)?.name ?? "");
+                        if (id && name) roleName.set(id, name);
+                    }
+                    const byUser = new Map<string, string[]>();
+                    for (const ur of userRoleRows) {
+                        const uid = String((ur as any)?.userId ?? (ur as any)?.user_id ?? "");
+                        const rid = String((ur as any)?.roleId ?? (ur as any)?.role_id ?? "");
+                        const name = roleName.get(rid);
+                        if (!uid || !name) continue;
+                        byUser.set(uid, [...(byUser.get(uid) ?? []), name]);
+                    }
+                    attachRoles(byUser);
+                });
             },
             onErrorHandle: (error: any) => {
                 if (error?.name === "AbortError") {
