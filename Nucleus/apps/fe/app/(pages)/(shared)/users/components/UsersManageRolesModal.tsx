@@ -3,6 +3,7 @@
 import type { RoleJSON } from '@monorepo/db-entities/schemas/default/role'
 import type { UserRoleJSON } from '@monorepo/db-entities/schemas/default/user_role'
 import { Check, Loader2, Search, Shield, X } from 'lucide-react'
+import { confirmDialog } from '@/app/_components/Global/ConfirmDialog'
 import { useEffect, useState } from 'react'
 import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
 
@@ -96,13 +97,35 @@ export function UsersManageRolesModal({ isOpen, userId, onClose }: UsersManageRo
     return pendingRoleIds.includes(roleId)
   }
 
-  function handleToggle(role: RoleJSON) {
+  async function handleToggle(role: RoleJSON) {
     if (!userId) {
       return
     }
 
     const roleId = role.id
     const currentlyAssigned = assignedSet.has(roleId)
+
+    /*
+     * Taking a role away is destructive and silent: the person keeps their
+     * account but loses the screens that role opened, and nothing else on this
+     * modal says it happened. Deleting a location asks first; removing the only
+     * role a user has must ask too.
+     */
+    if (currentlyAssigned) {
+      const isLastRole = assignedRoleIds.length === 1
+      const confirmed = await confirmDialog({
+        title: 'Rol kaldırılsın mı?',
+        message: isLastRole
+          ? `"${role.name}" bu kullanıcının tek rolü. Kaldırılırsa uygulamada hiçbir ekranı açamaz.`
+          : `"${role.name}" rolünün açtığı ekranlar ve yetkiler bu kullanıcıdan alınır.`,
+        confirmLabel: 'Rolü kaldır',
+        cancelLabel: 'Vazgeç',
+        tone: 'danger',
+      })
+      if (!confirmed) {
+        return
+      }
+    }
 
     setPendingRoleIds((prev) => (prev.includes(roleId) ? prev : [...prev, roleId]))
 
@@ -255,16 +278,37 @@ export function UsersManageRolesModal({ isOpen, userId, onClose }: UsersManageRo
                             type="button"
                             onClick={() => handleToggle(role)}
                             disabled={isBusy}
-                            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${ isAssigned ?'bg-emerald-500 text-slate-900 dark:text-white hover:bg-emerald-600'
-                                : 'border border-slate-300 dark:border-white/20 bg-slate-200 dark:bg-white/10 text-slate-900 dark:text-white hover:bg-slate-300 hover:dark:bg-white/20'
+                            aria-label={
+                              isAssigned
+                                ? `${role.name} rolünü kaldır`
+                                : `${role.name} rolünü ata`
+                            }
+                            title={
+                              isAssigned
+                                ? `${role.name} rolünü kaldır`
+                                : `${role.name} rolünü ata`
+                            }
+                            className={`group inline-flex w-32 cursor-pointer items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                              isAssigned
+                                ? 'bg-emerald-500 text-white hover:bg-rose-600'
+                                : 'border border-slate-300 bg-slate-200 text-slate-900 hover:bg-slate-300 dark:border-white/20 dark:bg-white/10 dark:text-white hover:dark:bg-white/20'
                             }`}
                           >
                             {isBusy ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : isAssigned ? (
                               <>
-                                <Check className="h-4 w-4" />
-                                <span>Atandı</span>
+                                {/*
+                                 * The assigned pill is the only way to take a
+                                 * role back, but "Atandı" reads as a status, so
+                                 * it was removing roles on a click nobody
+                                 * expected to be one. On hover it now says what
+                                 * the click does.
+                                 */}
+                                <Check className="h-4 w-4 group-hover:hidden" />
+                                <X className="hidden h-4 w-4 group-hover:block" />
+                                <span className="group-hover:hidden">Atandı</span>
+                                <span className="hidden group-hover:inline">Kaldır</span>
                               </>
                             ) : (
                               <>Ata</>

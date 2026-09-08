@@ -77,11 +77,22 @@ WHERE c.action ~ '^(put|patch)\.five_s_findings\.'
   AND c.action !~ '\.status$';
 
 -- ── Saha sorumlusu: bulguyu kapatan roldür ──────────────────────────────────
+-- Denetçideki ile aynı gerekçe, ters yönü: TABLO yetkisi verilmez.
+--
+-- Ölçüldü: 'put/patch.five_s_findings' tablo yetkisi verildiğinde kolon
+-- süzgeci hiç çalışmıyor ve saha sorumlusu denetçinin yazdığı tespiti
+-- değiştirebiliyordu — PATCH {"description":"..."} 200 döndü ve metin
+-- gerçekten değişti. Yanındaki '.status' kolon yetkisi bu yüzden bir şey
+-- kısıtlamıyordu. Saha sorumlusu bulguyu ÇÖZER: durumunu ilerletir, sonrası
+-- fotoğrafını yükler, tamamlanma anını damgalar. Tespitin kendisi (açıklama,
+-- tür, konum, tarih, sorumlu, termin) denetçiye ve müdüre aittir.
 INSERT INTO wanted
-SELECT 'Field Manager', a FROM unnest(ARRAY[
-  'post.files','post.notifications',
-  'put.five_s_findings','patch.five_s_findings','put.five_s_findings.status','patch.five_s_findings.status'
-]) a;
+SELECT 'Field Manager', a FROM unnest(ARRAY['post.files','post.notifications']) a;
+
+INSERT INTO wanted
+SELECT 'Field Manager', c.action
+FROM main.claims c
+WHERE c.action ~ '^(put|patch)\.five_s_findings\.(status|completed_at|photo_after_url|photo_after_file_id|photo_after_files)$';
 
 -- ── Müdür ve Merkez Ekip: ana veri, planlama, ekipler, sorular ──────────────
 -- routeAccess "master-data" ikisini de içeri alıyor; Sorular sekmesi de.

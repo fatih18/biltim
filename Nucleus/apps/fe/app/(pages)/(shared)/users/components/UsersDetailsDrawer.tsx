@@ -403,16 +403,17 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
           <InfoSection title="Roller" icon={<Key size={16} className="text-slate-700 dark:text-slate-300" />}>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm text-slate-700 dark:text-slate-300">
-                Bu kullanıcıya atanan rolleri ve sağladıkları izinleri görüntüleyin.
+                Bu kullanıcıya rol atayın veya kaldırın. Yetkiler role bağlıdır;
+                rol değişince kullanıcının açabildiği ekranlar da değişir.
               </p>
 
               <button
                 type="button"
                 className="inline-flex items-center gap-2 rounded-full border border-emerald-500/40 bg-emerald-100 dark:bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-700 dark:text-emerald-200 transition hover:bg-emerald-500/20"
                 onClick={() => usersStore.setModalVisibility('manageClaims', true)}
-                aria-label="Manage user roles and claims"
+                aria-label="Kullanıcının rollerini yönet"
               >
-                Rolleri ve İzinleri Yönet
+                Rolleri Yönet
               </button>
             </div>
 
