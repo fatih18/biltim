@@ -21,7 +21,7 @@ export function ClaimModal({
           <div>
             <h2 className="text-lg font-semibold">{editingClaim ? 'Edit Claim' : 'New Claim'}</h2>
             <p className="text-xs text-slate-700 dark:text-slate-300">
-              Configure a claim that maps to a backend endpoint.
+              Bir arka uç ucuna karşılık gelen yetkiyi tanımlayın.
             </p>
           </div>
         </header>
@@ -29,7 +29,7 @@ export function ClaimModal({
         <form onSubmit={onSubmit} className="space-y-4 px-6 py-5">
           <div className="space-y-1">
             <label htmlFor="claim-action" className="text-xs font-medium text-slate-800 dark:text-slate-200">
-              Action
+              Eylem
             </label>
             <input
               id="claim-action"
@@ -44,7 +44,7 @@ export function ClaimModal({
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1">
               <label htmlFor="claim-method" className="text-xs font-medium text-slate-800 dark:text-slate-200">
-                Method
+                Metot
               </label>
               <select
                 id="claim-method"
@@ -62,7 +62,7 @@ export function ClaimModal({
 
             <div className="space-y-1">
               <label htmlFor="claim-mode" className="text-xs font-medium text-slate-800 dark:text-slate-200">
-                Mode
+                Mod
               </label>
               <select
                 id="claim-mode"
@@ -81,7 +81,7 @@ export function ClaimModal({
 
           <div className="space-y-1">
             <label htmlFor="claim-path" className="text-xs font-medium text-slate-800 dark:text-slate-200">
-              Path
+              Yol
             </label>
             <input
               id="claim-path"
@@ -95,14 +95,14 @@ export function ClaimModal({
 
           <div className="space-y-1">
             <label htmlFor="claim-description" className="text-xs font-medium text-slate-800 dark:text-slate-200">
-              Description
+              Açıklama
             </label>
             <textarea
               id="claim-description"
               value={formState.description}
               onChange={(e) => onFormChange({ description: e.target.value })}
               rows={3}
-              placeholder="Optional description..."
+              placeholder="Açıklama (isteğe bağlı)..."
               className="w-full rounded-lg border border-slate-400 dark:border-slate-600 bg-slate-200 dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 placeholder:text-slate-600 placeholder:dark:text-slate-400"
             />
           </div>
@@ -114,7 +114,7 @@ export function ClaimModal({
               className="rounded-full border border-slate-400 dark:border-slate-600 bg-slate-200 dark:bg-slate-800 px-4 py-1.5 text-xs font-medium text-slate-900 dark:text-slate-100 hover:bg-slate-200 hover:dark:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
               disabled={isSubmitting}
             >
-              Cancel
+              Vazgeç
             </button>
             <button
               type="submit"

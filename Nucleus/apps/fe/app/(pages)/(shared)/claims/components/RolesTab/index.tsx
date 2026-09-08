@@ -54,7 +54,7 @@ export function RolesTab({ management }: RolesTabProps) {
         <div className="border-b border-slate-200 dark:border-slate-800 px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Roles</h2>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Roller</h2>
               <p className="text-sm text-slate-600 dark:text-slate-400">
                 Group claims into reusable roles for efficient permission management
               </p>
@@ -67,7 +67,7 @@ export function RolesTab({ management }: RolesTabProps) {
                 disabled={isInitialLoading || isRefreshing}
               >
                 {isRefreshing && <Loader2 className="h-4 w-4 animate-spin inline mr-2" />}
-                Refresh
+                Yenile
               </button>
               <button
                 type="button"
@@ -75,7 +75,7 @@ export function RolesTab({ management }: RolesTabProps) {
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 transition-colors text-sm font-semibold text-white shadow"
               >
                 <Plus size={18} />
-                New Role
+                Yeni Rol
               </button>
             </div>
           </div>

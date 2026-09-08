@@ -40,9 +40,9 @@ export function ClaimsTab({ management, methods, modes }: ClaimsTabProps) {
         <div className="border-b border-slate-200 dark:border-slate-800 px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Claims</h2>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Yetkiler</h2>
               <p className="text-sm text-slate-600 dark:text-slate-400">
-                Low-level permissions that map to specific API endpoints
+                Belirli API uçlarına karşılık gelen ayrıntılı izinler
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -53,7 +53,7 @@ export function ClaimsTab({ management, methods, modes }: ClaimsTabProps) {
                 disabled={isInitialLoading || isRefreshing}
               >
                 {isRefreshing && <Loader2 className="h-4 w-4 animate-spin inline mr-2" />}
-                Refresh
+                Yenile
               </button>
               <button
                 type="button"
@@ -61,7 +61,7 @@ export function ClaimsTab({ management, methods, modes }: ClaimsTabProps) {
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 transition-colors text-sm font-semibold text-white shadow"
               >
                 <Plus size={18} />
-                New Claim
+                Yeni Yetki
               </button>
             </div>
           </div>

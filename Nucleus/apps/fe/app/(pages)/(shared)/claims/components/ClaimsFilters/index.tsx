@@ -28,7 +28,7 @@ export function ClaimsFilters({
                 onChange({ search: e.target.value })
                 onPageChange(1)
               }}
-              placeholder="Search by action, path, description..."
+              placeholder="Eylem, yol veya açıklamayla ara..."
               className="w-full rounded-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 py-2 pl-9 pr-3 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-600 placeholder:dark:text-slate-400 focus:border-emerald-500 focus:bg-white focus:dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
             />
           </div>
@@ -43,7 +43,7 @@ export function ClaimsFilters({
             }}
             className="rounded-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 px-3 py-2 text-xs text-slate-800 dark:text-slate-200"
           >
-            <option value="">All methods</option>
+            <option value="">Tüm metotlar</option>
             {methods.map((m) => (
               <option key={m} value={m}>
                 {m}
@@ -59,7 +59,7 @@ export function ClaimsFilters({
             }}
             className="rounded-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 px-3 py-2 text-xs text-slate-800 dark:text-slate-200"
           >
-            <option value="">All modes</option>
+            <option value="">Tüm modlar</option>
             {modes.map((m) => (
               <option key={m} value={m}>
                 {m}
@@ -75,9 +75,9 @@ export function ClaimsFilters({
             }}
             className="rounded-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 px-3 py-2 text-xs text-slate-800 dark:text-slate-200"
           >
-            <option value={10}>10 / page</option>
-            <option value={20}>20 / page</option>
-            <option value={50}>50 / page</option>
+            <option value={10}>10 / sayfa</option>
+            <option value={20}>20 / sayfa</option>
+            <option value={50}>50 / sayfa</option>
           </select>
         </div>
       </div>

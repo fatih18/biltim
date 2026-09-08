@@ -24,16 +24,16 @@ export function RolesTable({
         <thead className="bg-slate-50 dark:bg-slate-900">
           <tr>
             <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Name
+              Ad
             </th>
             <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Description
+              Açıklama
             </th>
             <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Type
+              Tür
             </th>
             <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Actions
+              İşlemler
             </th>
           </tr>
         </thead>
@@ -43,14 +43,14 @@ export function RolesTable({
               <td colSpan={4} className="px-4 py-12 text-center">
                 <div className="flex items-center justify-center gap-2 text-slate-600 dark:text-slate-400">
                   <Loader2 className="h-5 w-5 animate-spin" />
-                  <span>Loading roles...</span>
+                  <span>Roller yükleniyor...</span>
                 </div>
               </td>
             </tr>
           ) : !hasData ? (
             <tr>
               <td colSpan={4} className="px-4 py-12 text-center text-sm text-slate-500 dark:text-slate-400">
-                No roles found.
+                Rol bulunamadı.
               </td>
             </tr>
           ) : (
@@ -64,11 +64,11 @@ export function RolesTable({
                   {role.is_system ? (
                     <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">
                       <Shield className="h-3 w-3" />
-                      System
+                      Sistem
                     </span>
                   ) : (
                     <span className="inline-flex rounded-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 px-2 py-0.5 text-xs text-slate-700 dark:text-slate-300">
-                      Custom
+                      Özel
                     </span>
                   )}
                 </td>
@@ -79,7 +79,7 @@ export function RolesTable({
                       onClick={() => onManageClaims(role)}
                       className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-100"
                     >
-                      <span>Manage Claims</span>
+                      <span>Yetkileri Yönet</span>
                     </button>
                     <button
                       type="button"
@@ -87,7 +87,7 @@ export function RolesTable({
                       className="inline-flex items-center gap-1 rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 hover:dark:bg-slate-800/60"
                     >
                       <Edit3 className="h-3 w-3" />
-                      <span>Edit</span>
+                      <span>Düzenle</span>
                     </button>
                     {!role.is_system && (
                       <button
@@ -96,7 +96,7 @@ export function RolesTable({
                         className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-medium text-red-700 hover:bg-red-100"
                       >
                         <Trash2 className="h-3 w-3" />
-                        <span>Delete</span>
+                        <span>Sil</span>
                       </button>
                     )}
                   </div>

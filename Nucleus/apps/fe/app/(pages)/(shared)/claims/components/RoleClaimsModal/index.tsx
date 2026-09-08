@@ -238,10 +238,10 @@ export function RoleClaimsModal({ isOpen, role, onClose }: RoleClaimsModalProps)
               ) : isAssigned ? (
                 <>
                   <Check className="h-4 w-4" />
-                  <span>Assigned</span>
+                  <span>Atandı</span>
                 </>
               ) : (
-                <span>Assign</span>
+                <span>Ata</span>
               )}
             </button>
           </div>
@@ -262,7 +262,7 @@ export function RoleClaimsModal({ isOpen, role, onClose }: RoleClaimsModalProps)
         {isLoadingInitial ? (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-white dark:bg-slate-900/70 backdrop-blur-sm">
             <Loader2 className="animate-spin" size={28} />
-            <span className="text-sm text-slate-800 dark:text-slate-200">Loading claims...</span>
+            <span className="text-sm text-slate-800 dark:text-slate-200">Yetkiler yükleniyor...</span>
           </div>
         ) : null}
 
@@ -279,14 +279,14 @@ export function RoleClaimsModal({ isOpen, role, onClose }: RoleClaimsModalProps)
                 type="button"
                 onClick={onClose}
                 className="rounded-full border border-slate-300 dark:border-white/10 bg-slate-100 dark:bg-white/5 p-2 text-slate-900 dark:text-white transition hover:bg-slate-300 hover:dark:bg-white/20"
-                aria-label="Close role claims management"
+                aria-label="Rol yetkileri penceresini kapat"
               >
                 <X size={18} />
               </button>
             </div>
 
             <div className="text-xs text-slate-700 dark:text-slate-300">
-              Assigned <span className="font-semibold">{assignedClaimIds.length}</span> of{' '}
+              Atandı <span className="font-semibold">{assignedClaimIds.length}</span> of{' '}
               <span className="font-semibold">{claims.length}</span> claims
             </div>
 
@@ -299,9 +299,9 @@ export function RoleClaimsModal({ isOpen, role, onClose }: RoleClaimsModalProps)
                 type="search"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search claims by action, path or method..."
+                placeholder="Eylem, yol veya metotla yetki ara..."
                 className="w-full rounded-2xl border border-slate-300 dark:border-white/10 bg-slate-100 dark:bg-white/5 py-3 pl-12 pr-4 text-sm text-slate-900 dark:text-white placeholder:text-slate-600 placeholder:dark:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/60"
-                aria-label="Search claims"
+                aria-label="Yetki ara"
               />
             </div>
           </header>
@@ -322,11 +322,11 @@ export function RoleClaimsModal({ isOpen, role, onClose }: RoleClaimsModalProps)
             {isLoadingInitial ? (
               <div className="flex flex-col items-center justify-center gap-3 py-16 text-slate-700 dark:text-slate-300">
                 <Loader2 className="animate-spin" size={28} />
-                <span>Loading claims...</span>
+                <span>Yetkiler yükleniyor...</span>
               </div>
             ) : filteredClaims.length === 0 ? (
               <div className="rounded-2xl border border-slate-300 dark:border-white/10 bg-slate-100 dark:bg-white/5 p-10 text-center text-slate-700 dark:text-slate-300">
-                No claims found with the current filters.
+                Bu filtrelerle yetki bulunamadı.
               </div>
             ) : (
               <div className="space-y-3">
@@ -335,7 +335,7 @@ export function RoleClaimsModal({ isOpen, role, onClose }: RoleClaimsModalProps)
                 {isLoadingMore && (
                   <div className="flex items-center justify-center gap-2 py-4 text-xs text-slate-700 dark:text-slate-300">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Loading more claims...</span>
+                    <span>Daha fazla yetki yükleniyor...</span>
                   </div>
                 )}
               </div>

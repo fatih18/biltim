@@ -14,7 +14,7 @@ export function RolesPagination({ pagination, currentCount, onPageChange }: Role
   return (
     <div className="mt-4 flex items-center justify-between border-t border-slate-200 dark:border-slate-800 pt-4">
       <div className="text-sm text-slate-600 dark:text-slate-400">
-        Showing <span className="font-medium">{currentCount}</span> of{' '}
+        Gösterilen <span className="font-medium">{currentCount}</span> of{' '}
         <span className="font-medium">{totalItems}</span> roles
       </div>
       <div className="flex items-center gap-2">
@@ -24,10 +24,10 @@ export function RolesPagination({ pagination, currentCount, onPageChange }: Role
           className="rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-1 text-xs font-medium text-slate-700 dark:text-slate-300 disabled:cursor-not-allowed disabled:opacity-50"
           disabled={!hasPrev}
         >
-          Previous
+          Önceki
         </button>
         <span className="text-xs text-slate-600 dark:text-slate-400">
-          Page <span className="font-semibold">{currentPage}</span> of{' '}
+          Sayfa <span className="font-semibold">{currentPage}</span> of{' '}
           <span className="font-semibold">{totalPages}</span>
         </span>
         <button
@@ -36,7 +36,7 @@ export function RolesPagination({ pagination, currentCount, onPageChange }: Role
           className="rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-1 text-xs font-medium text-slate-700 dark:text-slate-300 disabled:cursor-not-allowed disabled:opacity-50"
           disabled={!hasNext}
         >
-          Next
+          Sonraki
         </button>
       </div>
     </div>

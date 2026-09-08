@@ -30,8 +30,8 @@ export default function ClaimsManagementPage() {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 dark:from-slate-900 to-slate-100 dark:to-slate-900 p-6">
         <div className="mx-auto max-w-7xl">
           <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 text-center shadow-lg">
-            <h1 className="mb-2 text-2xl font-semibold text-slate-800 dark:text-slate-200">Authorization Management</h1>
-            <p className="text-sm text-slate-600 dark:text-slate-400">Please log in to manage claims and roles.</p>
+            <h1 className="mb-2 text-2xl font-semibold text-slate-800 dark:text-slate-200">Yetkilendirme Yönetimi</h1>
+            <p className="text-sm text-slate-600 dark:text-slate-400">Yetki ve rolleri yönetmek için giriş yapın.</p>
           </div>
         </div>
       </div>
@@ -45,7 +45,7 @@ export default function ClaimsManagementPage() {
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-200 bg-white dark:bg-slate-900 p-8 text-center shadow-lg">
             <AlertTriangle className="text-red-500" size={32} />
-            <h1 className="text-2xl font-semibold text-slate-800 dark:text-slate-200">Access denied</h1>
+            <h1 className="text-2xl font-semibold text-slate-800 dark:text-slate-200">Erişim reddedildi</h1>
             <p className="text-sm text-slate-600 dark:text-slate-400">
               Only god administrators can manage claims and authorization settings.
             </p>
@@ -66,9 +66,9 @@ export default function ClaimsManagementPage() {
               <Shield size={28} className="text-emerald-400" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">Authorization Management</h1>
+              <h1 className="text-2xl font-bold">Yetkilendirme Yönetimi</h1>
               <p className="text-slate-800 dark:text-slate-200">
-                Define claims and roles that control access to endpoints and resources.
+                Uçlara ve kaynaklara erişimi belirleyen yetkileri ve rolleri tanımlayın.
               </p>
             </div>
           </div>
@@ -84,7 +84,7 @@ export default function ClaimsManagementPage() {
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
             }`}
           >
-            Claims
+            Yetkiler
           </button>
           <button
             type="button"
@@ -94,7 +94,7 @@ export default function ClaimsManagementPage() {
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
             }`}
           >
-            Roles
+            Roller
           </button>
         </div>
 

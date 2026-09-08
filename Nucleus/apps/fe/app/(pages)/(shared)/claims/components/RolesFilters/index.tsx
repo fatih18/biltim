@@ -28,7 +28,7 @@ export function RolesFilters({ filters, errorMessage, onChange, onPageChange }: 
                 onChange({ search: e.target.value })
                 onPageChange(1)
               }}
-              placeholder="Search roles by name or description..."
+              placeholder="Ad veya açıklamayla rol ara..."
               className="w-full rounded-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 py-2 pl-9 pr-3 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-600 placeholder:dark:text-slate-400 focus:border-emerald-500 focus:bg-white focus:dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
             />
           </div>
@@ -43,9 +43,9 @@ export function RolesFilters({ filters, errorMessage, onChange, onPageChange }: 
             }}
             className="rounded-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 px-3 py-2 text-xs text-slate-800 dark:text-slate-200"
           >
-            <option value="">All roles</option>
-            <option value="system">System roles</option>
-            <option value="custom">Custom roles</option>
+            <option value="">Tüm roller</option>
+            <option value="system">Sistem rolleri</option>
+            <option value="custom">Özel roller</option>
           </select>
 
           <select
@@ -56,9 +56,9 @@ export function RolesFilters({ filters, errorMessage, onChange, onPageChange }: 
             }}
             className="rounded-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 px-3 py-2 text-xs text-slate-800 dark:text-slate-200"
           >
-            <option value={10}>10 / page</option>
-            <option value={20}>20 / page</option>
-            <option value={50}>50 / page</option>
+            <option value={10}>10 / sayfa</option>
+            <option value={20}>20 / sayfa</option>
+            <option value={50}>50 / sayfa</option>
           </select>
         </div>
       </div>

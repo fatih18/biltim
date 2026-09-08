@@ -10,22 +10,22 @@ export function ClaimsTable({ claims, isLoading, onEdit, onDelete }: ClaimsTable
         <thead className="bg-slate-50 dark:bg-slate-900">
           <tr>
             <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Action
+              Eylem
             </th>
             <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Method
+              Metot
             </th>
             <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Path
+              Yol
             </th>
             <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Mode
+              Mod
             </th>
             <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Description
+              Açıklama
             </th>
             <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Actions
+              İşlemler
             </th>
           </tr>
         </thead>
@@ -35,14 +35,14 @@ export function ClaimsTable({ claims, isLoading, onEdit, onDelete }: ClaimsTable
               <td colSpan={6} className="px-4 py-12 text-center">
                 <div className="flex items-center justify-center gap-2 text-slate-600 dark:text-slate-400">
                   <Loader2 className="h-5 w-5 animate-spin" />
-                  <span>Loading claims...</span>
+                  <span>Yetkiler yükleniyor...</span>
                 </div>
               </td>
             </tr>
           ) : !hasData ? (
             <tr>
               <td colSpan={6} className="px-4 py-12 text-center text-sm text-slate-500 dark:text-slate-400">
-                No claims found.
+                Yetki bulunamadı.
               </td>
             </tr>
           ) : (
@@ -71,7 +71,7 @@ export function ClaimsTable({ claims, isLoading, onEdit, onDelete }: ClaimsTable
                       className="inline-flex items-center gap-1 rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 hover:dark:bg-slate-800/60"
                     >
                       <Edit3 className="h-3 w-3" />
-                      <span>Edit</span>
+                      <span>Düzenle</span>
                     </button>
                     <button
                       type="button"
@@ -79,7 +79,7 @@ export function ClaimsTable({ claims, isLoading, onEdit, onDelete }: ClaimsTable
                       className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-medium text-red-700 hover:bg-red-100"
                     >
                       <Trash2 className="h-3 w-3" />
-                      <span>Delete</span>
+                      <span>Sil</span>
                     </button>
                   </div>
                 </td>
