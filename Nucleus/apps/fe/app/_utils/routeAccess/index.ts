@@ -18,7 +18,15 @@ export function normalizeRoleName(value: string): string {
   return (value ?? "").trim().toLowerCase().replace(/\s+/g, " ");
 }
 
-const isSuperAdmin = (roles: string[]) => roles.includes("super admin");
+/**
+ * godmin is the install's own root account and the backend lets it past every
+ * claim check. A gate in front of the screens that did NOT would lock the one
+ * account that exists to fix things out of the tools for fixing them — which is
+ * what happened the first time this shipped: a godmin asking for /generic-api
+ * was sent back to the home page.
+ */
+const isSuperAdmin = (roles: string[]) =>
+  roles.includes("super admin") || roles.includes("godmin");
 
 const isContentManagerCoreTeam = (roles: string[]) =>
   roles.some((n) => n.includes("content manager") && n.includes("core team"));
@@ -75,7 +83,14 @@ export function requirementFor(path: string): RouteRequirement | undefined {
  * signed-in user — the gate restricts, it does not become a second allow-list
  * that silently hides ordinary screens.
  */
-export function canAccessRoute(path: string, roleNames: readonly string[]): boolean {
+export function canAccessRoute(
+  path: string,
+  roleNames: readonly string[],
+  isGod = false,
+): boolean {
+  // Mirrors the backend, where the god flag bypasses the claim check outright.
+  if (isGod) return true;
+
   const requirement = requirementFor(path);
   if (!requirement) return true;
   return requirement.allows(roleNames.map(normalizeRoleName).filter(Boolean));

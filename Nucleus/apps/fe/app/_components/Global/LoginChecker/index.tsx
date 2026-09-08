@@ -80,8 +80,10 @@ export function LoginChecker({ children }: { children: React.ReactNode }) {
    * requests — which should never have painted at all.
    */
   const roleNames = [roleName ?? '', ...(roles ?? []).map((r) => r?.name ?? '')].filter(Boolean)
+  const me = store.user as { data?: { isGod?: boolean }; isGod?: boolean } | undefined
+  const isGod = Boolean(me?.data?.isGod ?? me?.isGod)
   const isRestricted = requiresAuth && Boolean(requirementFor(path))
-  const isAllowed = !isRestricted || (Boolean(store.user) && canAccessRoute(path, roleNames))
+  const isAllowed = !isRestricted || (Boolean(store.user) && canAccessRoute(path, roleNames, isGod))
 
   useEffect(() => {
     if (!isRestricted || isAllowed) {

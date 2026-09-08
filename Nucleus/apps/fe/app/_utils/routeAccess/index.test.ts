@@ -68,3 +68,24 @@ describe("the gate restricts and does not become a second allow-list", () => {
     expect(canAccessRoute("/bulgular", [])).toBe(true);
   });
 });
+
+describe("the root account is never locked out of the tools for fixing things", () => {
+  // Shipped wrong the first time: the rule looked for the role name "super
+  // admin", and a godmin — whose role is named godmin, and who the backend lets
+  // past every claim check — was sent back to the home page from /generic-api.
+  it("lets the godmin ROLE through", () => {
+    expect(canAccessRoute("/generic-api", ["godmin"])).toBe(true);
+    expect(canAccessRoute("/drizzle-tables", ["godmin"])).toBe(true);
+    expect(canAccessRoute("/users", ["godmin"])).toBe(true);
+  });
+
+  it("lets the god FLAG through whatever the role is called", () => {
+    expect(canAccessRoute("/generic-api", ["basic"], true)).toBe(true);
+    expect(canAccessRoute("/claims", [], true)).toBe(true);
+  });
+
+  it("still refuses the same paths without it", () => {
+    expect(canAccessRoute("/generic-api", ["basic"], false)).toBe(false);
+    expect(canAccessRoute("/generic-api", ["auditor"])).toBe(false);
+  });
+});
