@@ -7,6 +7,16 @@
  */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/*
+ * The 480px step the principles require (§2.2). Tailwind ships sm/md/lg/xl but
+ * no xs, so until this existed every `xs:` anyone wrote compiled to nothing at
+ * all — a breakpoint that silently did not apply, on the phones this app is
+ * actually used on.
+ */
+@theme {
+  --breakpoint-xs: 30rem;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #0f172a;

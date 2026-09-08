@@ -6,6 +6,7 @@ import { useGetUserRole } from "@/app/_hooks/user/useGetUserRole";
 import { useUploadAnswerPhoto } from "./hooks/useUploadAnswersPhoto";
 import { DateInput } from "@/app/_components/DateInput";
 import { Camera, Eye, FileSpreadsheet, ImageIcon, Loader2, Trash2, Upload, X, ChevronDown, ChevronUp } from "lucide-react";
+import { Skeleton } from "@/app/_components/Global/Skeleton";
 
 type FindingStatus = "open" | "in_progress" | "closed";
 
@@ -766,6 +767,24 @@ export default function FiveSFindingsListPage() {
               </thead>
 
               <tbody>
+                {/*
+                  While the list is on its way the table used to render nothing
+                  at all: `rows.length === 0 && !loading` is false during the
+                  fetch, so the body was empty and the screen read as "there are
+                  no findings" until the answer arrived (§8.1).
+                */}
+                {loading &&
+                  rows.length === 0 &&
+                  Array.from({ length: 6 }, (_, r) => (
+                    <tr key={`skeleton-${r}`} className="border-b border-slate-100 dark:border-slate-800/60">
+                      {Array.from({ length: canDeleteFinding ? 12 : 11 }, (_, c) => (
+                        <td key={`skeleton-${r}-${c}`} className="px-4 py-3">
+                          <Skeleton shape="text" className="h-3 w-full" />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+
                 {rows.length === 0 && !loading && (
                   <tr>
                     <td colSpan={canDeleteFinding ? 12 : 11} className="px-4 py-6 text-center text-xs text-slate-600 dark:text-slate-400">

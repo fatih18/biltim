@@ -9,6 +9,7 @@ export * from "./Loader";
 export * from "./LoginChecker";
 export * from "./Modal";
 export * from "./SelectBox";
+export * from "./Skeleton";
 export * from "./SocialLoginButton";
 export * from "./Table";
 export * from "./Tabs";
