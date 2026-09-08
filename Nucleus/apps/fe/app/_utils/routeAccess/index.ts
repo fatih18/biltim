@@ -71,7 +71,8 @@ export const ROUTE_REQUIREMENTS: RouteRequirement[] = [
      * screen a plant auditor has any use for.
      */
     id: "developer-tools",
-    match: (p) => startsWithAny(p, ["/generic-api", "/drizzle-tables", "/logs"]),
+    match: (p) =>
+      startsWithAny(p, ["/generic-api", "/drizzle-tables", "/logs", "/sistem-durumu"]),
     allows: isSuperAdmin,
   },
   {

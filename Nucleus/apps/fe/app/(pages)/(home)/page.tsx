@@ -221,6 +221,21 @@ export default function Page() {
       });
     };
 
+    /*
+     * Five reads populate this screen. Each one used to swallow its failure
+     * into console.error, so a dashboard that could not be READ looked exactly
+     * like a dashboard with nothing IN it. They report through one shared
+     * notice rather than five toasts, because when the backend is unreachable
+     * every one of them fails at once.
+     */
+    let readFailed = false
+    const reportReadFailure = (key: string, e: unknown) => {
+      console.error(`${key} error`, e)
+      if (readFailed) return
+      readFailed = true
+      toast.error('Ana sayfa verileri yüklenemedi. Sayfayı yenilemeyi deneyin.')
+    }
+
     run(startPlans, {
       payload: {
         page: 1,
@@ -242,31 +257,31 @@ export default function Page() {
         }));
         setPlans(mapped as AuditPlanRow[]);
       },
-      onErrorHandle: (e: any) => console.error(`${PLAN_KEYS.GET} error`, e),
+      onErrorHandle: (e: any) => reportReadFailure(`${PLAN_KEYS.GET}`, e),
     });
 
     run(startLocs, {
       payload: { page: 1, limit: 200, orderBy: "created_at", orderDirection: "desc" },
       onAfterHandle: (res: any) => setLocations(extractArray(res).map(toLocationLite)),
-      onErrorHandle: (e: any) => console.error(`${LOC_KEYS.GET} error`, e),
+      onErrorHandle: (e: any) => reportReadFailure(`${LOC_KEYS.GET}`, e),
     });
 
     run(startTeams, {
       payload: { page: 1, limit: 1000, orderBy: "created_at", orderDirection: "desc" },
       onAfterHandle: (res: any) => setTeams(extractArray(res).map(toTeamLite)),
-      onErrorHandle: (e: any) => console.error(`${TEAM_KEYS.GET} error`, e),
+      onErrorHandle: (e: any) => reportReadFailure(`${TEAM_KEYS.GET}`, e),
     });
 
     run(startMembers, {
       payload: { page: 1, limit: 5000, orderBy: "created_at", orderDirection: "desc" },
       onAfterHandle: (res: any) => setTeamMembers(extractArray(res).map(toTeamMemberLite)),
-      onErrorHandle: (e: any) => console.error(`${TEAM_MEMBER_KEYS.GET} error`, e),
+      onErrorHandle: (e: any) => reportReadFailure(`${TEAM_MEMBER_KEYS.GET}`, e),
     });
 
     run(startUsers, {
       payload: { page: 1, limit: 2000 },
       onAfterHandle: (res: any) => setUsers(extractArray(res).map(toUserLite)),
-      onErrorHandle: (e: any) => console.error(`${GET_USERS_KEY} error`, e),
+      onErrorHandle: (e: any) => reportReadFailure(`${GET_USERS_KEY}`, e),
     });
 
     if (!startPlans && !startLocs && !startTeams && !startMembers && !startUsers) {

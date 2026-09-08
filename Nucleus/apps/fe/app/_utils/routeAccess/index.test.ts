@@ -142,3 +142,28 @@ describe("hasPrivilege", () => {
     expect(hasPrivilege(["manager"], [])).toBe(false);
   });
 });
+
+describe("sistem durumu", () => {
+  // The operations screen shows security anomalies, failed logins and live
+  // session counts. It belongs with the other system tooling, not with the
+  // audit screens a plant auditor uses.
+  it("is reachable by the root account", () => {
+    expect(canAccessRoute("/sistem-durumu", [], true)).toBe(true);
+  });
+
+  it("is closed to an auditor", () => {
+    expect(canAccessRoute("/sistem-durumu", ["auditor"], false)).toBe(false);
+  });
+
+  it("is closed to a manager", () => {
+    expect(canAccessRoute("/sistem-durumu", ["manager"], false)).toBe(false);
+  });
+
+  it("is guarded by the same rule as the other system screens", () => {
+    for (const roles of [["auditor"], ["manager"], []]) {
+      expect(canAccessRoute("/sistem-durumu", roles, false)).toBe(
+        canAccessRoute("/logs", roles, false),
+      );
+    }
+  });
+});

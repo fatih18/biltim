@@ -25,7 +25,8 @@
     "level": "info",
     "requests": {
       "excludePaths": [
-        "/health"
+        "/health",
+        "/health/ready"
       ]
     }
   },
@@ -564,7 +565,15 @@
             "quarter"
           ]
         }
-      ]
+      ],
+      "constraints": {
+        "check": [
+          {
+            "name": "five_s_audit_plans_date_change_count_check",
+            "expression": "date_change_count >= 0 and date_change_count <= 2"
+          }
+        ]
+      }
     },
     {
       "table_name": "five_s_audit_team_members",
@@ -1277,5 +1286,39 @@
         }
       ]
     }
-  ]
+  ],
+  "monitoring": {
+    "enabled": true,
+    "system": {
+      "enabled": true
+    },
+    "application": {
+      "enabled": true
+    },
+    "database": {
+      "enabled": true
+    },
+    "redis": {
+      "enabled": true
+    },
+    "endpoints": {
+      "enabled": true,
+      "snapshot": {
+        "enabled": true
+      },
+      "history": {
+        "enabled": true
+      },
+      "alerts": {
+        "enabled": true
+      },
+      "stream": {
+        "enabled": true
+      }
+    },
+    "serverLogs": {
+      "enabled": true,
+      "capacity": 2000
+    }
+  }
 }

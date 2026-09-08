@@ -56,6 +56,20 @@ const systemTables = generateSystemTableEndpoints() as Record<string, Translated
  * Yollar backend'in canlı /docs çıktısıyla doğrulandı; uydurma yol yok.
  */
 const custom = {
+  /*
+   * 2 — işletim/izleme.
+   *
+   * nucleus ships these; they answered 404 here only because config.json
+   * declared no `monitoring` key and each group sits behind an `enabled` gate.
+   * /health/ready is the one route that reports live database and Redis
+   * reachability — /health only says the process is up.
+   */
+  GET_HEALTH_READY: { method: 'GET', path: '/health/ready' },
+  GET_MONITORING_SNAPSHOT: { method: 'GET', path: '/monitoring/snapshot' },
+  GET_MONITORING_HISTORY: { method: 'GET', path: '/monitoring/history' },
+  GET_MONITORING_ALERTS: { method: 'GET', path: '/monitoring/alerts' },
+  GET_SERVER_LOGS: { method: 'GET', path: '/monitoring/server-logs' },
+
   // 1 + 3 — kimlik
   GET_ME: { method: 'GET', path: '/auth/me' },
   GET_ME_V2: { method: 'GET', path: '/auth/me' },

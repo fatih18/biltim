@@ -1,16 +1,4 @@
-import {
-  BarChart3,
-  Beaker,
-  Building,
-  Cpu,
-  Home,
-
-  Signature,
-  Table,
-  Users,
-  InspectIcon,
-  FileQuestionIcon
-} from 'lucide-react'
+import { Activity, BarChart3, Beaker, Building, Cpu, FileQuestionIcon, Home, InspectIcon, Signature, Table, Users } from 'lucide-react'
 import { ClientSide } from './ClientSide'
 import type { HeaderNavCategory } from './types'
 
@@ -31,7 +19,18 @@ export function Header() {
       label: 'Sistem',
       icon: <Cpu size={16} />,
       items: [
-        { id: 'logs', label: 'Logs', icon: <BarChart3 size={16} />, href: '/logs' },
+        {
+          id: 'sistem-durumu',
+          label: 'Sistem Durumu',
+          icon: <Activity size={16} />,
+          href: '/sistem-durumu',
+        },
+        {
+          id: 'logs',
+          label: 'Denetim Kayıtları',
+          icon: <BarChart3 size={16} />,
+          href: '/logs',
+        },
         { id: 'users', label: 'Kullanıcılar', icon: <Users size={16} />, href: '/users' },
         {
           id: 'ana-veri-yonetimi',
