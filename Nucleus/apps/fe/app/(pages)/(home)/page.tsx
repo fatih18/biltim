@@ -9,6 +9,7 @@ import { HomeAuditListPanel } from "./components/HomeAuditListPanel";
 import { EditAuditModal, type EditableAudit } from "./components/EditAuditModal";
 import { ReportsDashboard } from "@/app/_components/ReportsDashboard";
 import { uid } from "../ana-veri-yonetimi/components";
+import { toast } from "sonner";
 
 /** Keys */
 const PLAN_KEYS = {
@@ -415,7 +416,7 @@ export default function Page() {
         const arr = extractArray(res);
         const a = arr?.[0];
         if (!a) {
-          alert("Denetim kaydı bulunamadı.");
+          toast.error("Denetim kaydı bulunamadı.");
           return;
         }
         setEditingAudit({
@@ -434,7 +435,7 @@ export default function Page() {
       },
       onErrorHandle: (e: any) => {
         console.error(`${AUDIT_KEYS.GET} error`, e);
-        alert("Denetim kaydı yüklenemedi.");
+        toast.error("Denetim kaydı yüklenemedi.");
       },
     });
   }, []);
@@ -460,12 +461,12 @@ export default function Page() {
       onAfterHandle: () => {
         setAuditSaving(false);
         setEditingAudit(null);
-        alert("Denetim kaydı güncellendi.");
+        toast.success("Denetim kaydı güncellendi.");
       },
       onErrorHandle: (e: any) => {
         console.error(`${AUDIT_KEYS.UPDATE} error`, e);
         setAuditSaving(false);
-        alert("Denetim güncellenemedi. Yetkinizi kontrol edin (sadece Merkez Ekip).");
+        toast.error("Denetim güncellenemedi. Yetkinizi kontrol edin (sadece Merkez Ekip).");
       },
     });
   }, []);

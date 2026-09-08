@@ -18,6 +18,7 @@ import {
   resolvePhotoUrl,
   toPhotoArr,
 } from '@/app/_utils/photos'
+import { toast } from "sonner";
 import {
   computeStepScores,
   computeTotalScore,
@@ -1562,7 +1563,7 @@ export default function FiveSAuditFormPage() {
     await clearDraft(planId, header)
 
     setSubmitted(true)
-    alert('İnternet yok veya kayıt hatası oluştu. Form offline kuyruğa eklendi. İnternet gelince otomatik senkronlanır.')
+    toast.success('İnternet yok veya kayıt hatası oluştu. Form offline kuyruğa eklendi. İnternet gelince otomatik senkronlanır.')
   }
 
   const markPlanCompleted = async (planId: string, auditId: string) => {
@@ -1602,11 +1603,11 @@ export default function FiveSAuditFormPage() {
     const missing = new Set<string>()
 
     if (!header.teamName || !header.department || !header.date) {
-      alert('Ekip, Lokasyon ve Tarih alanları plan üzerinden otomatik gelmelidir.')
+      toast.error('Ekip, Lokasyon ve Tarih alanları plan üzerinden otomatik gelmelidir.')
       return
     }
     if (!header.auditorName) {
-      alert('Denetimi Yapan alanı zorunludur.')
+      toast.error('Denetimi Yapan alanı zorunludur.')
       return
     }
 
@@ -1696,7 +1697,7 @@ export default function FiveSAuditFormPage() {
 
             // Madde 9: otomatik yeni denetime geçiş yok — ana sayfaya dön
             if (typeof window !== 'undefined') {
-              alert('Denetim başarıyla kaydedildi.')
+              toast.success('Denetim başarıyla kaydedildi.')
               window.location.href = '/'
             }
             return
@@ -1769,7 +1770,7 @@ export default function FiveSAuditFormPage() {
 
           // Madde 9: otomatik yeni denetime geçiş yok — ana sayfaya dön
           if (typeof window !== 'undefined') {
-            alert('Denetim başarıyla kaydedildi.')
+            toast.success('Denetim başarıyla kaydedildi.')
             window.location.href = '/'
           }
         },
@@ -1807,31 +1808,31 @@ export default function FiveSAuditFormPage() {
     const isNoPlanFlow = !assignedPlan
 
     if (isNoPlanFlow && !canCreateSingleFinding) {
-      alert('Tekil bulgu girişi için yetkiniz yok.')
+      toast.error('Tekil bulgu girişi için yetkiniz yok.')
       return
     }
 
     if (!isNoPlanFlow) {
       if (!header.teamName || !header.department || !header.date) {
-        alert('Tekil bulgu kaydı için ekibinize planlanan bir denetim olmalıdır.')
+        toast.error('Tekil bulgu kaydı için ekibinize planlanan bir denetim olmalıdır.')
         return
       }
     }
 
     if (isNoPlanFlow) {
-      if (!header.department?.trim()) return alert('Lokasyon alanı zorunludur.')
-      if (!header.date) return alert('Tarih alanı zorunludur.')
+      if (!header.department?.trim()) { toast.error('Lokasyon alanı zorunludur.'); return }
+      if (!header.date) { toast.error('Tarih alanı zorunludur.'); return }
       if (!header.teamName) setHeader((prev) => ({ ...prev, teamName: 'Content Manager Core Team' }))
     }
 
-    if (!header.auditorName) return alert('Tekil bulgu kaydı için Denetimi Yapan zorunludur.')
-    if (!singleFinding.findingType) return alert('Bulgu tipi zorunludur.')
-    if (!singleFinding.explanation.trim()) return alert('Açıklama zorunludur.')
-    if (!singleFinding.actionToTake.trim()) return alert('Alınacak faaliyet alanı zorunludur.')
-    if (!singleFinding.dueDate) return alert('Termin tarihi zorunludur.')
+    if (!header.auditorName) { toast.error('Tekil bulgu kaydı için Denetimi Yapan zorunludur.'); return }
+    if (!singleFinding.findingType) { toast.error('Bulgu tipi zorunludur.'); return }
+    if (!singleFinding.explanation.trim()) { toast.error('Açıklama zorunludur.'); return }
+    if (!singleFinding.actionToTake.trim()) { toast.error('Alınacak faaliyet alanı zorunludur.'); return }
+    if (!singleFinding.dueDate) { toast.error('Termin tarihi zorunludur.'); return }
 
     const loc = (header.department || '').trim()
-    if (!loc) return alert('Lokasyon alanı zorunludur.')
+    if (!loc) { toast.error('Lokasyon alanı zorunludur.'); return }
 
     // offline ise: audit + single finding kuyruğa
     if (!isOnline) {
@@ -1900,7 +1901,7 @@ export default function FiveSAuditFormPage() {
 
       await enqueueSubmission(submission, photoRows)
 
-      alert('Offline: Tekil bulgu kuyruğa eklendi. İnternet gelince otomatik gönderilecek.')
+      toast.success('Offline: Tekil bulgu kuyruğa eklendi. İnternet gelince otomatik gönderilecek.')
       setSingleFindingOpen(false)
       setSingleFinding({ findingType: '', explanation: '', photos: [], actionToTake: '', dueDate: '', linkedQuestionId: '' })
       return
@@ -1926,7 +1927,10 @@ export default function FiveSAuditFormPage() {
 
         onAfterHandle: async (data: any) => {
           const auditId = data?.data?.id ?? data?.id ?? data?.data?.[0]?.id ?? null
-          if (!auditId) return alert('Tekil bulgu için audit kaydı oluşturulamadı.')
+          if (!auditId) {
+            toast.error('Tekil bulgu için audit kaydı oluşturulamadı.')
+            return
+          }
 
           const uploadedPhotos: UploadedFileInfo[] = []
           for (const f of singleFinding.photos ?? []) {
@@ -1984,19 +1988,19 @@ export default function FiveSAuditFormPage() {
               },
             })
 
-            alert('Tekil bulgu başarıyla kaydedildi.')
+            toast.success('Tekil bulgu başarıyla kaydedildi.')
             setSingleFindingOpen(false)
             setSingleFinding({ findingType: '', explanation: '', photos: [], actionToTake: '', dueDate: '', linkedQuestionId: '' })
             fetchFindings(header.department)
           } catch (err) {
             console.error('TEKİL BULGU ADD_FIVE_S_FINDING error', err)
-            alert('Tekil bulgu kaydedilirken bir hata oluştu.')
+            toast.error('Tekil bulgu kaydedilirken bir hata oluştu.')
           }
         },
       })
     } catch (err) {
       console.error('TEKİL BULGU audit error -> offline queue', err)
-      alert('Kayıt sırasında hata oluştu. İnternet sorunu olabilir. Tekrar deneyin veya offline kuyruğa ekleyin.')
+      toast.error('Kayıt sırasında hata oluştu. İnternet sorunu olabilir. Tekrar deneyin veya offline kuyruğa ekleyin.')
     }
   }
 

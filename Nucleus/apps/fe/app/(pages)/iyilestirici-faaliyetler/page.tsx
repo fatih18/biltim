@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useGenericApiActions } from "@/app/_hooks/UseNucleusApi";
 import { DateInput } from "@/app/_components/DateInput";
+import { toast } from "sonner";
 
 type DecisionStatus = "open" | "in_progress" | "done" | "cancelled";
 
@@ -135,7 +136,7 @@ export default function BoardMeetingDecisionsPage() {
             onErrorHandle: (err: any) => {
                 console.error("GET_BOARD_MEETING_DECISIONS error", err);
                 setListLoading(false);
-                alert("Toplantı kararları listelenirken bir hata oluştu.");
+                toast.error("Toplantı kararları listelenirken bir hata oluştu.");
             },
         });
     };
@@ -158,10 +159,10 @@ export default function BoardMeetingDecisionsPage() {
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        if (!form.meetingDate) return alert("Toplantı tarihi zorunludur.");
-        if (!form.itemDescription.trim()) return alert("Madde açıklaması zorunludur.");
-        if (managerUsers.length === 0) return alert("Manager rolü olan kullanıcı bulunamadı.");
-        if (!form.assignedUserId) return alert("Sorumlu manager seçmelisiniz.");
+        if (!form.meetingDate) { toast.error("Toplantı tarihi zorunludur."); return; }
+        if (!form.itemDescription.trim()) { toast.error("Madde açıklaması zorunludur."); return; }
+        if (managerUsers.length === 0) { toast.error("Manager rolü olan kullanıcı bulunamadı."); return; }
+        if (!form.assignedUserId) { toast.error("Sorumlu manager seçmelisiniz."); return; }
 
         setLoading(true);
 
@@ -186,7 +187,7 @@ export default function BoardMeetingDecisionsPage() {
             onErrorHandle: (err: any) => {
                 console.error("ADD_BOARD_MEETING_DECISION error", err);
                 setLoading(false);
-                alert("Toplantı kararı kaydedilirken bir hata oluştu.");
+                toast.error("Toplantı kararı kaydedilirken bir hata oluştu.");
             },
         });
     };
@@ -201,7 +202,7 @@ export default function BoardMeetingDecisionsPage() {
             onErrorHandle: (err: any) => {
                 console.error("UPDATE_BOARD_MEETING_DECISION error", err);
                 fetchDecisions();
-                alert("Durum güncellenirken hata oluştu.");
+                toast.error("Durum güncellenirken hata oluştu.");
             },
         });
     };

@@ -3,6 +3,7 @@
 import type { RoleJSON } from '@monorepo/db-entities/schemas/default/role'
 import React, { useEffect, useMemo, useState } from 'react'
 import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
+import { toast } from "sonner";
 
 interface UsersCreateModalProps {
   isOpen: boolean
@@ -128,9 +129,7 @@ export function UsersCreateModal({
       const next = prev.includes(roleId) ? prev : [...prev, roleId]
       if (isValidSelection(next)) return next
 
-      window.alert(
-        'Aynı anda yalnızca "Denetçi + Saha Sorumlusu" (Auditor + Field Manager) birlikte seçilebilir. Diğer roller yalnızca tek seçilebilir.'
-      )
+      toast.error('Aynı anda yalnızca "Denetçi + Saha Sorumlusu" (Auditor + Field Manager) birlikte seçilebilir. Diğer roller yalnızca tek seçilebilir.')
       return prev
     })
   }
@@ -156,7 +155,7 @@ export function UsersCreateModal({
       onErrorHandle: (error) => {
         setIsLoadingRoles(false)
         console.error('Get roles failed:', error)
-        window.alert('Roller getirilemedi.')
+        toast.error('Roller getirilemedi.')
       },
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -165,7 +164,7 @@ export function UsersCreateModal({
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (selectedRoleIds.length === 0) {
-      window.alert('Lütfen en az bir rol seçin.')
+      toast.error('Lütfen en az bir rol seçin.')
       return
     }
     await onSubmit({

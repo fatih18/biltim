@@ -4,6 +4,7 @@ import React from "react";
 import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
 import { useGenericApiActions } from "@/app/_hooks/UseNucleusApi";
 import { useGetUserRole } from "@/app/_hooks/user/useGetUserRole";
+import { toast } from "sonner";
 import {
   questions as SEED_QUESTIONS,
   steps as SEED_STEPS,
@@ -154,7 +155,7 @@ export function QuestionsPanel() {
     const A = actions as any;
     const addStep = A?.ADD_FIVE_S_STEP?.start;
     const addQuestion = A?.ADD_FIVE_S_QUESTION?.start;
-    if (!addStep || !addQuestion) return alert("API aksiyonları bulunamadı.");
+    if (!addStep || !addQuestion) { toast.error("API aksiyonları bulunamadı."); return; }
 
     setSeeding(true);
     try {
@@ -187,7 +188,7 @@ export function QuestionsPanel() {
       await fetchAll();
     } catch (err) {
       console.error("Seed error", err);
-      alert("Seed sırasında hata oluştu.");
+      toast.error("Seed sırasında hata oluştu.");
     } finally {
       setSeeding(false);
     }
@@ -223,7 +224,7 @@ export function QuestionsPanel() {
       setEditingId(null);
     } catch (err) {
       console.error("UPDATE_FIVE_S_QUESTION error", err);
-      alert("Soru güncellenemedi.");
+      toast.error("Soru güncellenemedi.");
     } finally {
       setSaving(false);
     }
@@ -240,7 +241,7 @@ export function QuestionsPanel() {
       setQuestions((prev) => prev.filter((x) => x.id !== q.id));
     } catch (err) {
       console.error("DELETE_FIVE_S_QUESTION error", err);
-      alert("Soru silinemedi.");
+      toast.error("Soru silinemedi.");
     }
   }
 
@@ -255,7 +256,7 @@ export function QuestionsPanel() {
   }
 
   async function saveAdd(step: StepRow) {
-    if (!addText.trim()) return alert("Soru metni zorunludur.");
+    if (!addText.trim()) { toast.error("Soru metni zorunludur."); return; }
     const A = actions as any;
     const start = A?.ADD_FIVE_S_QUESTION?.start;
     if (!start) return;
@@ -288,7 +289,7 @@ export function QuestionsPanel() {
       setAddingStepId(null);
     } catch (err) {
       console.error("ADD_FIVE_S_QUESTION error", err);
-      alert("Soru eklenemedi.");
+      toast.error("Soru eklenemedi.");
     } finally {
       setAdding(false);
     }

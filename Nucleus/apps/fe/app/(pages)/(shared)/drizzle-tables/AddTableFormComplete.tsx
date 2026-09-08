@@ -8,6 +8,7 @@ import { FieldsTab } from './FormComponents/FieldsTab'
 import { IndexesTab } from './FormComponents/IndexesTab'
 import { RelationsTab } from './FormComponents/RelationsTab'
 import type { TableSchema } from './types'
+import { toast } from "sonner";
 
 type TabId = 'basic' | 'fields' | 'relations' | 'indexes' | 'code'
 
@@ -34,7 +35,7 @@ export function AddTableForm({
 
   const handleSubmit = () => {
     if (!schema.tableName || schema.fields.length === 0) {
-      alert('Table name and at least one field are required!')
+      toast.error('Table name and at least one field are required!')
       return
     }
     onAdd(schema)

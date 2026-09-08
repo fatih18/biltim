@@ -264,7 +264,7 @@ export function TeamsTab({
   const addDraftMember = React.useCallback(() => {
     const id = String(draftMemberId || "");
     if (!id) return;
-    if (id === draftLeaderId) return alert("Lider denetçi listesine eklenemez.");
+    if (id === draftLeaderId) { toast.error("Lider denetçi listesine eklenemez."); return; }
     setDraftMembers((prev) => (prev.includes(id) ? prev : [...prev, id]));
     setDraftMemberId("");
   }, [draftMemberId, draftLeaderId]);
@@ -290,14 +290,14 @@ export function TeamsTab({
 
     const leaderOk = leaderUsers.some((u: any) => String(u.id) === String(draftLeaderId));
     if (!leaderOk) {
-      alert("Seçilen liderin rolü uygun değil. Lider Denetçi veya Merkez Ekip rolünde olmalıdır. Saha Sorumlusu lider olamaz.");
+      toast.error("Seçilen liderin rolü uygun değil. Lider Denetçi veya Merkez Ekip rolünde olmalıdır. Saha Sorumlusu lider olamaz.");
       return false;
     }
 
     const auditorSet = new Set(auditorUsers.map((u: any) => String(u.id)));
     const bad = draftMembers.filter((id) => !auditorSet.has(String(id)));
     if (bad.length) {
-      alert("Denetçi listesinde rolü uygun olmayan kullanıcı(lar) var. Sadece Denetçi veya Merkez Ekip rolündekiler seçilebilir.");
+      toast.error("Denetçi listesinde rolü uygun olmayan kullanıcı(lar) var. Sadece Denetçi veya Merkez Ekip rolündekiler seçilebilir.");
       return false;
     }
 
@@ -308,9 +308,9 @@ export function TeamsTab({
   const saveTeam = React.useCallback(() => {
     const A = actionsRef.current as any;
 
-    if (!draftLeaderId) return alert("Lütfen bir lider seç.");
-    if (draftMembers.length === 0) return alert("En az 1 denetçi eklemelisin.");
-    if (draftMembers.includes(draftLeaderId)) return alert("Lider denetçi listesinde olamaz.");
+    if (!draftLeaderId) { toast.error("Lütfen bir lider seç."); return; }
+    if (draftMembers.length === 0) { toast.error("En az 1 denetçi eklemelisin."); return; }
+    if (draftMembers.includes(draftLeaderId)) { toast.error("Lider denetçi listesinde olamaz."); return; }
 
     if (!validateRoleConstraintsOnSave()) return;
 
@@ -365,7 +365,7 @@ export function TeamsTab({
         },
         onErrorHandle: (err: any) => {
           console.error(`${TEAM_KEYS.ADD} error`, err);
-          alert("Ekip oluşturulurken hata oluştu.");
+          toast.error("Ekip oluşturulurken hata oluştu.");
         },
       });
       return;
@@ -394,7 +394,7 @@ export function TeamsTab({
       },
       onErrorHandle: (err: any) => {
         console.error(`${TEAM_KEYS.UPDATE} error`, err);
-        alert("Ekip güncellenirken hata oluştu.");
+        toast.error("Ekip güncellenirken hata oluştu.");
       },
     });
   }, [
@@ -423,7 +423,7 @@ export function TeamsTab({
         },
         onErrorHandle: (err: any) => {
           console.error(`${TEAM_KEYS.DELETE} error`, err);
-          alert("Ekip silinirken hata oluştu.");
+          toast.error("Ekip silinirken hata oluştu.");
         },
       });
     },

@@ -13,6 +13,7 @@ import { UsersDetailsDrawer } from './components/UsersDetailsDrawer'
 import { UsersFilters } from './components/UsersFilters'
 import { UsersHeader } from './components/UsersHeader'
 import { UsersTable } from './components/UsersTable'
+import { toast } from "sonner";
 // import { UsersValidateModal } from './components/UsersValidateModal' // dosyada kullanılmıyor, istersen geri aç
 
 export default function UsersPage() {
@@ -104,7 +105,7 @@ export default function UsersPage() {
             },
             onErrorHandle: (error) => {
               console.error('Add profile failed:', error)
-              window.alert('Kullanıcı profili oluşturulamadı.')
+              toast.error('Kullanıcı profili oluşturulamadı.')
             },
           })
 
@@ -115,7 +116,7 @@ export default function UsersPage() {
                 payload: { user_id: createdUser.id, role_id: roleId },
                 onErrorHandle: (error) => {
                   console.error(`Add user role failed for role ${roleId}:`, error)
-                  window.alert('Rol eklenemedi.')
+                  toast.error('Rol eklenemedi.')
                 },
               })
             })
@@ -130,7 +131,7 @@ export default function UsersPage() {
           console.error('Add user failed:', error)
 
           if (isDuplicateEmailError(error)) {
-            window.alert('Aynı mail adresiyle iki kere kayıt yapılamaz.')
+            toast.error('Aynı mail adresiyle iki kere kayıt yapılamaz.')
             resolve()
             return
           }
@@ -142,7 +143,7 @@ export default function UsersPage() {
             msg.includes('network') ||
             msg.includes('failed to fetch')
           ) {
-            window.alert('Kullanıcı oluşturulamadı.')
+            toast.error('Kullanıcı oluşturulamadı.')
             resolve()
             return
           }
@@ -161,7 +162,7 @@ export default function UsersPage() {
     // ✅ FE tarafında kendini silmeyi engelle
     const meId = (store as any)?.user?.id
     if (meId && userIdToDelete === meId) {
-      window.alert('Kendi hesabını silemezsin. Başka bir admin ile silmeyi dene.')
+      toast.error('Kendi hesabını silemezsin. Başka bir admin ile silmeyi dene.')
       usersStore.setModalVisibility('delete', false)
       usersStore.setSelectedUserId(null)
       return
@@ -243,7 +244,7 @@ export default function UsersPage() {
               onDelete={(userId) => {
                 const meId = (store as any)?.user?.id
                 if (meId && userId === meId) {
-                  window.alert('Kendi hesabını silemezsin.')
+                  toast.error('Kendi hesabını silemezsin.')
                   return
                 }
                 usersStore.setSelectedUserId(userId)
