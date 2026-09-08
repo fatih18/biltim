@@ -10,6 +10,7 @@ import { Skeleton } from "@/app/_components/Global/Skeleton";
 import { buildFileUrl } from "@/app/_utils/photos";
 import { ClipboardCheck } from "lucide-react";
 import { EmptyState } from "@/app/_components/Global/EmptyState";
+import { hasPrivilege } from "@/app/_utils/routeAccess";
 
 type FindingStatus = "open" | "in_progress" | "closed";
 
@@ -141,15 +142,21 @@ export default function FiveSFindingsListPage() {
   const { uploadAnswerPhoto } = useUploadAnswerPhoto();
   const { roles: userRoles } = useGetUserRole();
 
+  /*
+   * Through hasPrivilege, so the install's root account is admitted whatever
+   * the list says. Written out by hand, none of these three mentioned godmin —
+   * so a godmin could not close a finding or delete one.
+   */
+  const myRoleNames = userRoles.map((r) => r.name);
   const OVERRIDE_ROLES = ["super admin", "manager", "content manager core team", "field manager"];
   const hasAuditor = userRoles.some((r) => r.name.toLowerCase() === "auditor");
-  const hasOverrideRole = userRoles.some((r) => OVERRIDE_ROLES.includes(r.name.toLowerCase()));
+  const hasOverrideRole = hasPrivilege(myRoleNames, OVERRIDE_ROLES);
   const isAuditor = hasAuditor && !hasOverrideRole;
   const CLOSE_ALLOWED_ROLES = ["field manager", "super admin", "manager"];
-  const canCloseFinding = userRoles.some((r) => CLOSE_ALLOWED_ROLES.includes(r.name.toLowerCase()));
+  const canCloseFinding = hasPrivilege(myRoleNames, CLOSE_ALLOWED_ROLES);
   // Madde 5: Sadece Merkez Ekip / Manager / Super Admin bulgu silebilir
   const DELETE_ALLOWED_ROLES = ["super admin", "manager", "content manager core team"];
-  const canDeleteFinding = userRoles.some((r) => DELETE_ALLOWED_ROLES.includes(r.name.toLowerCase()));
+  const canDeleteFinding = hasPrivilege(myRoleNames, DELETE_ALLOWED_ROLES);
   const [deletingFindingId, setDeletingFindingId] = useState<string | null>(null);
   const [downloadingExcel, setDownloadingExcel] = useState(false);
   const [findings, setFindings] = useState<FiveSFinding[]>([]);

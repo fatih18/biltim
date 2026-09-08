@@ -25,6 +25,28 @@ export function normalizeRoleName(value: string): string {
  * what happened the first time this shipped: a godmin asking for /generic-api
  * was sent back to the home page.
  */
+/**
+ * Whether these roles carry a privilege, where the install's root account always
+ * does.
+ *
+ * Four separate lists in this app named the roles allowed to do something —
+ * close a finding, delete one, see the report summary, open a screen — and none
+ * of them mentioned godmin. Each was written by someone thinking about the
+ * roles they knew, and each quietly excluded the one account that exists to sit
+ * above roles. Going through here means the next list cannot repeat it.
+ */
+export function hasPrivilege(
+  roleNames: readonly string[],
+  allowed: readonly string[],
+  isGod = false,
+): boolean {
+  if (isGod) return true;
+  const mine = roleNames.map(normalizeRoleName).filter(Boolean);
+  if (mine.includes("godmin")) return true;
+  const wanted = allowed.map(normalizeRoleName);
+  return mine.some((n) => wanted.includes(n));
+}
+
 const isSuperAdmin = (roles: string[]) =>
   roles.includes("super admin") || roles.includes("godmin");
 

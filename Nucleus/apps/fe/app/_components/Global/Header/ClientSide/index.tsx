@@ -433,13 +433,15 @@ export function ClientSide({
     if (allRoleNames.length === 0) return false
     const hasAuditor = allRoleNames.some((n) => n === 'auditor' || n === 'denetçi')
     if (!hasAuditor) return false
-    const hasOtherPrivileged = allRoleNames.some(
-      (n) =>
-        n === 'super admin' ||
-        n === 'manager' ||
-        n === 'field manager' ||
-        (n.includes('content manager') && n.includes('core team'))
-    )
+    const hasOtherPrivileged =
+      allRoleNames.includes('godmin') ||
+      allRoleNames.some(
+        (n) =>
+          n === 'super admin' ||
+          n === 'manager' ||
+          n === 'field manager' ||
+          (n.includes('content manager') && n.includes('core team'))
+      )
     return !hasOtherPrivileged
   }, [allRoleNames, isRoleLoading])
 

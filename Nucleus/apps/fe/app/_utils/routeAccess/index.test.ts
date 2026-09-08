@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { canAccessRoute, normalizeRoleName, requirementFor } from "./index";
+import { canAccessRoute, hasPrivilege, normalizeRoleName, requirementFor } from "./index";
 
 const BASIC = ["basic"];
 const AUDITOR = ["Denetçi"];
@@ -112,5 +112,33 @@ describe("the findings register, which the header used to guard separately", () 
 
   it("opens for anyone who is not an auditor at all", () => {
     expect(canAccessRoute("/bulgular", BASIC)).toBe(true);
+  });
+});
+
+describe("hasPrivilege", () => {
+  it("admits a role that is on the list", () => {
+    expect(hasPrivilege(["Manager"], ["super admin", "manager"])).toBe(true);
+  });
+
+  it("refuses one that is not", () => {
+    expect(hasPrivilege(["Denetçi"], ["super admin", "manager"])).toBe(false);
+  });
+
+  it("always admits the root account, however the list was written", () => {
+    // The reason this helper exists: four lists in this app named roles and
+    // none of them thought of godmin, so the root account could not close a
+    // finding, delete one, or see the report summary.
+    expect(hasPrivilege(["godmin"], ["manager"])).toBe(true);
+    expect(hasPrivilege(["basic"], ["manager"], true)).toBe(true);
+    expect(hasPrivilege([], ["manager"], true)).toBe(true);
+  });
+
+  it("compares folded, because role names arrive with any case and spacing", () => {
+    expect(hasPrivilege(["  Super   Admin "], ["super admin"])).toBe(true);
+  });
+
+  it("is not fooled by an empty list on either side", () => {
+    expect(hasPrivilege([], ["manager"])).toBe(false);
+    expect(hasPrivilege(["manager"], [])).toBe(false);
   });
 });
