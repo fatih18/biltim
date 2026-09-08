@@ -403,3 +403,74 @@ describe('a plan must be one of the two shapes', () => {
     expect(res?.status).toBe(400)
   })
 })
+
+describe('a finding must say what was found', () => {
+  const complete = {
+    description: 'Sahada dağınık malzeme',
+    location_name: 'Test Depo',
+    finding_type: 'Test Güvenlik',
+    detected_date: '2026-12-01',
+  }
+
+  it('refuses an empty body — eight such rows existed in the database', async () => {
+    const res = await enforceBusinessRules({
+      request: jsonReq('POST', '/fiveSFindings', {}),
+      body: undefined,
+      read: reader([]),
+    })
+    expect(res?.status).toBe(400)
+  })
+
+  it('names the fields that are missing rather than saying no', async () => {
+    const res = await enforceBusinessRules({
+      request: jsonReq('POST', '/fiveSFindings', { description: 'x' }),
+      body: undefined,
+      read: reader([]),
+    })
+    const body = (await res?.json()) as { message?: string }
+    expect(body.message).toContain('location_name')
+    expect(body.message).toContain('finding_type')
+    expect(body.message).not.toContain('description')
+  })
+
+  it('accepts a complete finding', async () => {
+    const res = await enforceBusinessRules({
+      request: jsonReq('POST', '/fiveSFindings', complete),
+      body: undefined,
+      read: reader([]),
+    })
+    expect(res).toBeUndefined()
+  })
+
+  it('reads the camelCase twins', async () => {
+    const res = await enforceBusinessRules({
+      request: jsonReq('POST', '/fiveSFindings', {
+        description: 'x',
+        locationName: 'y',
+        findingType: 'z',
+        detectedDate: '2026-12-01',
+      }),
+      body: undefined,
+      read: reader([]),
+    })
+    expect(res).toBeUndefined()
+  })
+
+  it('does not accept blanks as values', async () => {
+    const res = await enforceBusinessRules({
+      request: jsonReq('POST', '/fiveSFindings', { ...complete, location_name: '  ' }),
+      body: undefined,
+      read: reader([]),
+    })
+    expect(res?.status).toBe(400)
+  })
+
+  it('leaves updates alone — this is a rule about creating one', async () => {
+    const res = await enforceBusinessRules({
+      request: jsonReq('PUT', '/fiveSFindings/abc', { description: 'yeni metin' }),
+      body: undefined,
+      read: reader([{ photo_after_url: null }]),
+    })
+    expect(res).toBeUndefined()
+  })
+})

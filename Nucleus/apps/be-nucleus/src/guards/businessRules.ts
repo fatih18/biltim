@@ -25,6 +25,7 @@ import { query } from '../db'
 const FINDING_PATH = /^\/fiveSFindings\/([^/?]+)/
 const PLAN_PATH = /^\/fiveSAuditPlans\/([^/?]+)/
 const PLAN_COLLECTION = /^\/fiveSAuditPlans\/?$/
+const FINDING_COLLECTION = /^\/fiveSFindings\/?$/
 const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH'])
 
 /** The cap the planning screen shows as "Düzenle (N hak)". */
@@ -111,7 +112,12 @@ export async function enforceBusinessRules(ctx: RuleContext): Promise<Response |
   if (!WRITE_METHODS.has(request.method)) return undefined
 
   const path = new URL(request.url).pathname
-  if (!FINDING_PATH.test(path) && !PLAN_PATH.test(path) && !PLAN_COLLECTION.test(path)) {
+  if (
+    !FINDING_PATH.test(path) &&
+    !FINDING_COLLECTION.test(path) &&
+    !PLAN_PATH.test(path) &&
+    !PLAN_COLLECTION.test(path)
+  ) {
     return undefined
   }
 
@@ -143,6 +149,32 @@ export async function enforceBusinessRules(ctx: RuleContext): Promise<Response |
    * whole 5S programme is reported on, so an audit filed under the wrong
    * quarter is not a cosmetic problem.
    */
+  /*
+   * A finding needs to say what was found, and where.
+   *
+   * None of description, location_name, finding_type or detected_date is NOT
+   * NULL, so POST /fiveSFindings with an empty body answered 200 and created a
+   * row. Eight of them existed in the local database with nothing in any
+   * column — invisible on the dashboard, which counts through five_s_audits,
+   * and meaningless in the register. The audit form and the single-finding
+   * modal both require all four.
+   */
+  if (FINDING_COLLECTION.test(path) && request.method === 'POST') {
+    const body0 = await readBody(ctx)
+    const has = (k: string) => {
+      const v = body0[k] ?? body0[k.replace(/_([a-z])/g, (_, c) => c.toUpperCase())]
+      return typeof v === 'string' ? v.trim() !== '' : v !== undefined && v !== null
+    }
+    const missing = ['description', 'location_name', 'finding_type', 'detected_date'].filter(
+      (k) => !has(k)
+    )
+    if (missing.length > 0) {
+      return refuse(
+        `Bulgu kaydedilemedi: ${missing.join(', ')} alanları zorunludur.`
+      )
+    }
+  }
+
   /*
    * A plan is one of two shapes, and "neither" is not one of them.
    *
