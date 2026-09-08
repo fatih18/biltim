@@ -170,6 +170,20 @@ export default function Page() {
   }, [actions]);
 
   const [plans, setPlans] = React.useState<AuditPlanRow[]>([]);
+  /*
+   * Which tab is showing, and what the server says each one holds.
+   *
+   * The tab lives here rather than inside the panel because it decides which
+   * query runs. It is mirrored into a ref so `fetchAll` — which is a
+   * dependency-free callback on purpose, since action objects change identity
+   * on every render — can read the current value without being rebuilt.
+   */
+  // Kim olduğumuz, bağımlılıksız fetchAll'ın okuyabileceği yerde.
+  const benRef = React.useRef<string>("");
+  const [tab, setTab] = React.useState<"upcoming" | "completed">("upcoming");
+  const tabRef = React.useRef(tab);
+  const [upcomingCount, setUpcomingCount] = React.useState<number | null>(null);
+  const [completedCount, setCompletedCount] = React.useState<number | null>(null);
   const [locations, setLocations] = React.useState<LocationLite[]>([]);
   const [teams, setTeams] = React.useState<AuditTeamLite[]>([]);
   const [teamMembers, setTeamMembers] = React.useState<TeamMemberRow[]>([]);
@@ -188,7 +202,10 @@ export default function Page() {
       onAfterHandle: (resp: any) => {
         const data = resp?.data ?? resp?.response?.data ?? resp;
         const uidVal = data?.sub ?? data?.userId ?? data?.id ?? "";
-        if (uidVal) setCurrentUserId(String(uidVal));
+        if (uidVal) {
+          benRef.current = String(uidVal);
+          setCurrentUserId(String(uidVal));
+        }
       },
       onErrorHandle: (e: any) => {
         console.error(`${ME_KEY} error`, e);
@@ -246,13 +263,30 @@ export default function Page() {
       toast.error('Ana sayfa verileri yüklenemedi. Sayfayı yenilemeyi deneyin.')
     }
 
+    /*
+     * One tab, one query.
+     *
+     * This used to read 500 plans and let the panel split them with .filter(),
+     * so the tab counts were the counts of what had been loaded rather than of
+     * what exists, and a plant with more plans than the ceiling would quietly
+     * lose the oldest ones. The server can answer each tab exactly — measured
+     * against the live API, `status notIn ['completed']` returns 1 and
+     * `status in ['completed']` returns 6, which is what the labels show — and
+     * it returns the total alongside the page.
+     */
     run(startPlans, {
       payload: {
         page: 1,
-        limit: 500,
-        orderBy: "planned_date",
-        orderDirection: "desc",
-        filters: { is_active: true },
+        limit: 50,
+        sort: [{ field: "planned_date", direction: tabRef.current === "upcoming" ? "asc" : "desc" }],
+        filters: {
+          is_active: true,
+          location_id: { operator: "isNotNull", value: true },
+          status:
+            tabRef.current === "upcoming"
+              ? { operator: "notIn", value: ["completed"] }
+              : { operator: "in", value: ["completed"] },
+        },
       },
       onAfterHandle: (res: any) => {
         const arr = extractArray(res) as any[];
@@ -266,38 +300,138 @@ export default function Page() {
           title: p?.title ?? null,
         }));
         setPlans(mapped as AuditPlanRow[]);
+        okuIlgili(mapped);
+        const meta = (res?.pagination ?? res?.meta ?? res?.data?.meta) as
+          | { totalItems?: number; total?: number }
+          | undefined;
+        const toplam = meta?.totalItems ?? meta?.total ?? null;
+        if (tabRef.current === "upcoming") setUpcomingCount(toplam);
+        else setCompletedCount(toplam);
       },
       onErrorHandle: (e: any) => reportReadFailure(`${PLAN_KEYS.GET}`, e),
     });
 
-    run(startLocs, {
-      payload: { page: 1, limit: 200, orderBy: "created_at", orderDirection: "desc" },
-      onAfterHandle: (res: any) => setLocations(extractArray(res).map(toLocationLite)),
-      onErrorHandle: (e: any) => reportReadFailure(`${LOC_KEYS.GET}`, e),
+    // The other tab's count, without its rows — the label has to be right
+    // before anyone clicks it.
+    run(startPlans, {
+      payload: {
+        page: 1,
+        limit: 1,
+        filters: {
+          is_active: true,
+          location_id: { operator: "isNotNull", value: true },
+          status:
+            tabRef.current === "upcoming"
+              ? { operator: "in", value: ["completed"] }
+              : { operator: "notIn", value: ["completed"] },
+        },
+      },
+      onAfterHandle: (res: any) => {
+        const meta = (res?.pagination ?? res?.meta ?? res?.data?.meta) as
+          | { totalItems?: number; total?: number }
+          | undefined;
+        const toplam = meta?.totalItems ?? meta?.total ?? null;
+        if (tabRef.current === "upcoming") setCompletedCount(toplam);
+        else setUpcomingCount(toplam);
+      },
+      onErrorHandle: () => {},
     });
 
-    run(startTeams, {
-      payload: { page: 1, limit: 1000, orderBy: "created_at", orderDirection: "desc" },
-      onAfterHandle: (res: any) => setTeams(extractArray(res).map(toTeamLite)),
-      onErrorHandle: (e: any) => reportReadFailure(`${TEAM_KEYS.GET}`, e),
-    });
+    /*
+     * The supporting rows, asked for by id.
+     *
+     * These four reads used to pull the tables whole — 200 locations, 1000
+     * teams, 5000 team members and 2000 users on every visit, roughly 8 700
+     * rows to render a page that shows at most fifty — and every one of those
+     * ceilings was a limit nobody would notice passing: the 5001st membership
+     * simply would not exist as far as this screen was concerned.
+     *
+     * Now each is narrowed to what the plans on screen actually reference,
+     * plus the current user's own memberships, which is what decides whose
+     * plans they may see.
+     */
+    const okuIlgili = (planRows: any[]) => {
+      const lokIds = [...new Set(planRows.map((p) => p?.location_id).filter(Boolean).map(String))];
+      const ekipIds = [
+        ...new Set(planRows.map((p) => p?.assigned_team_id).filter(Boolean).map(String)),
+      ];
 
-    run(startMembers, {
-      payload: { page: 1, limit: 5000, orderBy: "created_at", orderDirection: "desc" },
-      onAfterHandle: (res: any) => setTeamMembers(extractArray(res).map(toTeamMemberLite)),
-      onErrorHandle: (e: any) => reportReadFailure(`${TEAM_MEMBER_KEYS.GET}`, e),
-    });
+      if (lokIds.length > 0) {
+        run(startLocs, {
+          payload: { page: 1, limit: 200, filters: { id: lokIds } },
+          onAfterHandle: (res: any) => setLocations(extractArray(res).map(toLocationLite)),
+          onErrorHandle: (e: any) => reportReadFailure(`${LOC_KEYS.GET}`, e),
+        });
+      } else {
+        setLocations([]);
+      }
 
-    run(startUsers, {
-      payload: { page: 1, limit: 2000 },
-      onAfterHandle: (res: any) => setUsers(extractArray(res).map(toUserLite)),
-      onErrorHandle: (e: any) => reportReadFailure(`${GET_USERS_KEY}`, e),
-    });
+      /*
+       * Teams: the ones on screen, plus the ones this person leads or belongs
+       * to — those decide which plans they are allowed to see at all, so they
+       * cannot be limited to what is currently listed.
+       */
+      run(startMembers, {
+        payload: {
+          page: 1,
+          limit: 500,
+          filters: benRef.current
+            ? { user_id: benRef.current }
+            : ekipIds.length > 0
+              ? { team_id: ekipIds }
+              : { id: ["00000000-0000-0000-0000-000000000000"] },
+        },
+        onAfterHandle: (res: any) => {
+          const uyeler = extractArray(res).map(toTeamMemberLite);
+          setTeamMembers(uyeler);
+          const hepsi = [...new Set([...ekipIds, ...uyeler.map((m: any) => String(m.team_id))])];
+          if (hepsi.length === 0) {
+            setTeams([]);
+            return;
+          }
+          run(startTeams, {
+            payload: { page: 1, limit: 500, filters: { id: hepsi } },
+            onAfterHandle: (r: any) => {
+              const ekipler = extractArray(r).map(toTeamLite);
+              setTeams(ekipler);
+              const kisiIds = [
+                ...new Set(
+                  [
+                    ...ekipler.map((t: any) => t.leaderUserId),
+                    ...uyeler.map((m: any) => m.user_id),
+                    benRef.current,
+                  ]
+                    .filter(Boolean)
+                    .map(String)
+                ),
+              ];
+              if (kisiIds.length === 0) {
+                setUsers([]);
+                return;
+              }
+              run(startUsers, {
+                payload: { page: 1, limit: 500, filters: { id: kisiIds } },
+                onAfterHandle: (u: any) => setUsers(extractArray(u).map(toUserLite)),
+                onErrorHandle: (e: any) => reportReadFailure(`${GET_USERS_KEY}`, e),
+              });
+            },
+            onErrorHandle: (e: any) => reportReadFailure(`${TEAM_KEYS.GET}`, e),
+          });
+        },
+        onErrorHandle: (e: any) => reportReadFailure(`${TEAM_MEMBER_KEYS.GET}`, e),
+      });
+    };
 
     if (!startPlans && !startLocs && !startTeams && !startMembers && !startUsers) {
       setLoading(false);
     }
   }, []);
+
+  // Switching tabs re-runs the query rather than re-slicing what is in memory.
+  React.useEffect(() => {
+    tabRef.current = tab;
+    fetchAll();
+  }, [tab, fetchAll]);
 
   React.useEffect(() => {
     fetchMeOnce();
@@ -636,6 +770,10 @@ export default function Page() {
           onUpdatePlanDate={updatePlanDate}
           getDateConflicts={getDateConflicts}
           onEditCompletedAudit={isPrivilegedUser ? openAuditEdit : undefined}
+          tab={tab}
+          onTabChange={setTab}
+          upcomingCount={upcomingCount}
+          completedCount={completedCount}
         />
 
         {isPrivilegedUser && (

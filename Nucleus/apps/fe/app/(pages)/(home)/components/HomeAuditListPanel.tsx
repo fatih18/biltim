@@ -83,6 +83,20 @@ export function HomeAuditListPanel(props: {
     onStartAudit?: (planId: string) => void;
     onEditCompletedAudit?: (plan: AuditPlanRow) => void;
     currentUserId?: string;
+    /*
+     * The two tabs are two SERVER queries, not one list split here.
+     *
+     * This panel used to receive every plan (limit 500) and pick the tabs out
+     * with .filter(), which means the counts on the tab labels were the counts
+     * of what happened to be loaded, not of what exists. The server answers
+     * both questions directly — status notIn ['completed'] and status in
+     * ['completed'], each with location_id not null — and returns the totals
+     * with them.
+     */
+    tab: "upcoming" | "completed";
+    onTabChange: (tab: "upcoming" | "completed") => void;
+    upcomingCount: number | null;
+    completedCount: number | null;
     canEditPlan: (plan: AuditPlanRow) => boolean;
     onUpdatePlanDate: (planId: string, dateYYYYMMDD: string, newCount: number) => void;
     getDateConflicts?: (planId: string, newDate: string) => string[];
@@ -97,29 +111,23 @@ export function HomeAuditListPanel(props: {
         onOpenPlan,
         onStartAudit,
         onEditCompletedAudit,
+        tab,
+        onTabChange,
+        upcomingCount,
+        completedCount,
         canEditPlan,
         onUpdatePlanDate,
         getDateConflicts,
     } = props;
 
-    const [tab, setTab] = React.useState<"upcoming" | "completed">("upcoming");
+
 
     // edit UI state
     const [editingId, setEditingId] = React.useState<string | null>(null);
     const [editDate, setEditDate] = React.useState<string>("");
 
-    const upcoming = React.useMemo(() =>
-        plans
-            .filter((p) => !!p.location_id && p.status !== "completed")
-            .sort((a, b) => (a.planned_date ?? "").localeCompare(b.planned_date ?? "")),
-        [plans]);
-    const completed = React.useMemo(() =>
-        plans
-            .filter((p) => !!p.location_id && p.status === "completed")
-            .sort((a, b) => (b.planned_date ?? "").localeCompare(a.planned_date ?? "")),
-        [plans]);
-
-    const list = tab === "upcoming" ? upcoming : completed;
+    // Already the right rows, in the right order, from the server.
+    const list = plans;
 
     const startEdit = (p: AuditPlanRow) => {
         setEditingId(p.id);
@@ -151,12 +159,18 @@ export function HomeAuditListPanel(props: {
                     <SegTabs
                         value={tab}
                         onChange={(v) => {
-                            setTab(v as any);
+                            onTabChange(v as "upcoming" | "completed");
                             cancelEdit();
                         }}
                         items={[
-                            { value: "upcoming", label: `Plan / Yaklaşan (${upcoming.length})` },
-                            { value: "completed", label: `Tamamlanan (${completed.length})` },
+                            {
+                                value: "upcoming",
+                                label: `Plan / Yaklaşan${upcomingCount === null ? "" : ` (${upcomingCount})`}`,
+                            },
+                            {
+                                value: "completed",
+                                label: `Tamamlanan${completedCount === null ? "" : ` (${completedCount})`}`,
+                            },
                         ]}
                     />
 
