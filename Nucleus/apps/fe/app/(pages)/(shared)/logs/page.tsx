@@ -1,4 +1,6 @@
 'use client'
+import { InfiniteScroll } from '@/app/_components/Global/InfiniteScroll'
+import { toast } from 'sonner'
 
 import type { AuditJSON, Read } from '@monorepo/db-entities/schemas/default/audit'
 import { useEffect, useState } from 'react'
@@ -23,10 +25,30 @@ export default function LogsPage() {
         if (!data) {
           return
         }
-        auditStore.audits = data
+        // Page 1 replaces (a changed filter or a refresh); later pages extend,
+        // because the list scrolls rather than turning pages now.
+        const incoming = data as NonNullable<typeof auditStore.audits>
+        const previous = auditStore.audits
+        const isFirstPage = (incoming.pagination?.page ?? 1) <= 1
+        auditStore.audits =
+          isFirstPage || !previous
+            ? incoming
+            : {
+                ...incoming,
+                data: [
+                  ...previous.data,
+                  ...incoming.data.filter(
+                    (row) => !previous.data.some((held) => held.id === row.id)
+                  ),
+                ],
+              }
       },
       onErrorHandle: (error) => {
-        console.log('error', error)
+        // This swallowed the failure into console.log: the list stayed as it
+        // was and the screen said nothing, so a log that could not be READ
+        // looked like a log with nothing IN it.
+        console.error('GET_AUDIT_LOGS error', error)
+        toast.error('Denetim logları yüklenirken bir hata oluştu.')
       },
     })
   }, [])
@@ -69,10 +91,30 @@ export default function LogsPage() {
         if (!data) {
           return
         }
-        auditStore.audits = data
+        // Page 1 replaces (a changed filter or a refresh); later pages extend,
+        // because the list scrolls rather than turning pages now.
+        const incoming = data as NonNullable<typeof auditStore.audits>
+        const previous = auditStore.audits
+        const isFirstPage = (incoming.pagination?.page ?? 1) <= 1
+        auditStore.audits =
+          isFirstPage || !previous
+            ? incoming
+            : {
+                ...incoming,
+                data: [
+                  ...previous.data,
+                  ...incoming.data.filter(
+                    (row) => !previous.data.some((held) => held.id === row.id)
+                  ),
+                ],
+              }
       },
       onErrorHandle: (error) => {
-        console.log('error', error)
+        // This swallowed the failure into console.log: the list stayed as it
+        // was and the screen said nothing, so a log that could not be READ
+        // looked like a log with nothing IN it.
+        console.error('GET_AUDIT_LOGS error', error)
+        toast.error('Denetim logları yüklenirken bir hata oluştu.')
       },
     })
   }, [
@@ -147,10 +189,30 @@ export default function LogsPage() {
         if (!data) {
           return
         }
-        auditStore.audits = data
+        // Page 1 replaces (a changed filter or a refresh); later pages extend,
+        // because the list scrolls rather than turning pages now.
+        const incoming = data as NonNullable<typeof auditStore.audits>
+        const previous = auditStore.audits
+        const isFirstPage = (incoming.pagination?.page ?? 1) <= 1
+        auditStore.audits =
+          isFirstPage || !previous
+            ? incoming
+            : {
+                ...incoming,
+                data: [
+                  ...previous.data,
+                  ...incoming.data.filter(
+                    (row) => !previous.data.some((held) => held.id === row.id)
+                  ),
+                ],
+              }
       },
       onErrorHandle: (error) => {
-        console.log('error', error)
+        // This swallowed the failure into console.log: the list stayed as it
+        // was and the screen said nothing, so a log that could not be READ
+        // looked like a log with nothing IN it.
+        console.error('GET_AUDIT_LOGS error', error)
+        toast.error('Denetim logları yüklenirken bir hata oluştu.')
       },
     })
   }
@@ -190,16 +252,11 @@ export default function LogsPage() {
         )}
 
         {auditStore.audits && totalItems > 0 && (
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            itemsPerPage={itemsPerPage}
-            totalItems={totalItems}
-            startIndex={startIndex}
-            hasPrevious={hasPrevious}
-            hasNext={hasNext}
-            onPageChange={handlePageChange}
-            onItemsPerPageChange={handleLimitChange}
+          <InfiniteScroll
+            hasMore={hasNext}
+            isLoadingMore={Boolean(actions.GET_AUDIT_LOGS?.state?.isPending)}
+            onLoadMore={() => handlePageChange(currentPage + 1)}
+            endLabel={`${totalItems} kaydın tamamı gösteriliyor`}
           />
         )}
 
