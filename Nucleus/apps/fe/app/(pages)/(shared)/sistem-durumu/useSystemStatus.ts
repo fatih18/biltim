@@ -71,6 +71,8 @@ export type ServerLogRecord = {
 export type SystemStatus = {
   readiness: Readiness | null
   snapshot: Snapshot | null
+  /** The last hour, one sample every ten seconds — oldest first. */
+  history: Array<Record<string, unknown>>
   alerts: Alert[]
   logs: ServerLogRecord[]
   levelCounts: Record<string, number>
@@ -82,10 +84,26 @@ export type SystemStatus = {
   refresh: () => void
 }
 
-export function useSystemStatus(actions: ActionMap, nowMs: number): SystemStatus {
+export type LogQuery = { level?: string; term?: string }
+
+export function useSystemStatus(
+  actions: ActionMap,
+  nowMs: number,
+  /*
+   * The log filter is applied by the SERVER, not here. The buffer holds 2000
+   * lines and a screenful is 120, so filtering the fetched slice made the level
+   * badges lie: "warn: 6" showed nothing, because those six were older than the
+   * last 120. `levels` and `search` narrow the whole buffer.
+   *
+   * The parameter is `levels`, plural. The singular `level=warn` is accepted and
+   * silently ignored — it answers 315 info rows.
+   */
+  logQuery: LogQuery = {}
+): SystemStatus {
   const [state, setState] = useState<Omit<SystemStatus, 'refresh'>>({
     readiness: null,
     snapshot: null,
+    history: [],
     alerts: [],
     logs: [],
     levelCounts: {},
@@ -106,7 +124,11 @@ export function useSystemStatus(actions: ActionMap, nowMs: number): SystemStatus
   actionsRef.current = actions
   const ready = Boolean(actions.GET_MONITORING_SNAPSHOT)
 
+  // Compared by value so a re-render does not refetch.
+  const logKeyJson = JSON.stringify({ level: logQuery.level ?? '', term: logQuery.term ?? '' })
+
   useEffect(() => {
+    const logKey = JSON.parse(logKeyJson) as { level: string; term: string }
     if (!ready) return
     let cancelled = false
     const a = actionsRef.current
@@ -118,13 +140,17 @@ export function useSystemStatus(actions: ActionMap, nowMs: number): SystemStatus
       call<Snapshot>(a.GET_MONITORING_SNAPSHOT),
       call<{ alerts?: Alert[] }>(a.GET_MONITORING_ALERTS),
       call<{ records?: ServerLogRecord[]; levelCounts?: Record<string, number> }>(a.GET_SERVER_LOGS, {
-        limit: 60,
+        limit: 120,
+        ...(logKey.level ? { levels: logKey.level } : {}),
+        ...(logKey.term ? { search: logKey.term } : {}),
       }),
-    ]).then(([readiness, snapshot, alertBody, logBody]) => {
+      call<{ snapshots?: Array<Record<string, unknown>> }>(a.GET_MONITORING_HISTORY, { minutes: 60 }),
+    ]).then(([readiness, snapshot, alertBody, logBody, historyBody]) => {
       if (cancelled) return
       setState({
         readiness,
         snapshot,
+        history: historyBody?.snapshots ?? [],
         alerts: alertBody?.alerts ?? [],
         logs: logBody?.records ?? [],
         levelCounts: logBody?.levelCounts ?? {},
@@ -137,7 +163,7 @@ export function useSystemStatus(actions: ActionMap, nowMs: number): SystemStatus
     return () => {
       cancelled = true
     }
-  }, [ready, nowMs, tick])
+  }, [ready, nowMs, tick, logKeyJson])
 
   return { ...state, refresh }
 }

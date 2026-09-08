@@ -13,8 +13,10 @@ import {
   Timer,
   Zap,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
+import { Spark, type SparkTone } from './Spark'
+import { peakOf, series, spanMinutes, statsOf } from './chart'
 import {
   type ActionMap,
   checkTone,
@@ -79,6 +81,55 @@ function Section({ title, subtitle, children }: { title: string; subtitle?: stri
   )
 }
 
+/**
+ * A number with the shape of the hour behind it. The reading answers "what is
+ * true now"; the line answers "is it getting worse", which is the question
+ * someone opens this screen to ask.
+ */
+function TrendStat({
+  icon,
+  label,
+  value,
+  hint,
+  tone = 'neutral',
+  values,
+  max,
+}: {
+  icon: React.ReactNode
+  label: string
+  value: string
+  hint?: string
+  tone?: Tone
+  values: number[]
+  max?: number
+}) {
+  const sparkTone: SparkTone =
+    tone === 'ok' ? 'ok' : tone === 'warn' ? 'warn' : tone === 'bad' ? 'bad' : 'info'
+  const stats = statsOf(values)
+  return (
+    <div className={`overflow-hidden rounded-xl border bg-white dark:bg-slate-900 ${RING[tone]}`}>
+      <div className="p-4 pb-2">
+        <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          <span className={INK[tone]}>{icon}</span>
+          {label}
+        </div>
+        <div className="mt-2 flex items-baseline gap-2">
+          <span className={`text-2xl font-semibold ${INK[tone]}`}>{value}</span>
+          {stats ? (
+            <span className="text-[11px] text-slate-500 dark:text-slate-400">
+              son 1 saat · en yüksek {stats.max.toFixed(stats.max < 10 ? 1 : 0)}
+            </span>
+          ) : null}
+        </div>
+        {hint ? (
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{hint}</div>
+        ) : null}
+      </div>
+      <Spark values={values} tone={sparkTone} max={max} label={`${label} son bir saat`} />
+    </div>
+  )
+}
+
 const grid = 'grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4'
 const n = (v: number | undefined | null, suffix = '') =>
   typeof v === 'number' && Number.isFinite(v) ? `${v}${suffix}` : '—'
@@ -93,7 +144,22 @@ const LEVEL_STYLE: Record<string, string> = {
 export default function SystemStatusPage() {
   const actions = useGenericApiActions() as unknown as ActionMap
   const [nowMs, setNowMs] = useState<number>(() => Date.now())
-  const status = useSystemStatus(actions, nowMs)
+  const [logLevel, setLogLevel] = useState<string>('')
+  const [logTerm, setLogTerm] = useState<string>('')
+  const [logTermApplied, setLogTermApplied] = useState<string>('')
+
+  // The typed term is debounced before it becomes a request.
+  useEffect(() => {
+    const timer = setTimeout(() => setLogTermApplied(logTerm.trim()), 350)
+    return () => clearTimeout(timer)
+  }, [logTerm])
+
+  const logQuery = useMemo(
+    () => ({ level: logLevel, term: logTermApplied }),
+    [logLevel, logTermApplied]
+  )
+
+  const status = useSystemStatus(actions, nowMs, logQuery)
 
   const s = status.snapshot ?? {}
   const checks = status.readiness?.checks ?? {}
@@ -106,7 +172,21 @@ export default function SystemStatusPage() {
   const slow = s.database?.queries?.slowQueries
   const slowTone: Tone = typeof slow === 'number' && slow > 0 ? 'warn' : 'ok'
 
-  const logs = useMemo(() => status.logs.slice(0, 40), [status.logs])
+  const h = status.history
+  const cpuSeries = useMemo(() => series(h, 'system.cpu.usage'), [h])
+  const memSeries = useMemo(() => series(h, 'system.memory.usagePercent'), [h])
+  const reqSeries = useMemo(() => series(h, 'application.requests.perMinute'), [h])
+  const rtSeries = useMemo(() => series(h, 'application.responseTime.avg'), [h])
+  const errSeries = useMemo(() => series(h, 'application.errors.rate'), [h])
+  const blockedSeries = useMemo(() => series(h, 'application.rateLimits.blocked'), [h])
+  const connSeries = useMemo(() => series(h, 'database.connections.active'), [h])
+  const diskSeries = useMemo(() => series(h, 'system.disk.usagePercent'), [h])
+  const lagSeries = useMemo(() => series(h, 'system.process.eventLoopLag'), [h])
+  const querySeries = useMemo(() => series(h, 'database.queries.avgTime'), [h])
+  const peak = useMemo(() => peakOf(h), [h])
+  const span = useMemo(() => spanMinutes(h), [h])
+
+  const logs = useMemo(() => status.logs.slice(0, 60), [status.logs])
 
   return (
     <div className="min-h-screen bg-slate-100 px-4 py-8 text-slate-900 dark:bg-slate-950 dark:text-slate-50 md:px-8">
@@ -167,30 +247,43 @@ export default function SystemStatusPage() {
           </div>
         </Section>
 
-        <Section title="Sunucu kaynakları" subtitle="Makinenin yükü. %80 üstü sarı, %90 üstü kırmızı.">
+        <Section
+          title="Sunucu kaynakları"
+          subtitle={
+            span
+              ? `Makinenin yükü ve son ${span} dakikanın seyri. %80 üstü sarı, %90 üstü kırmızı.`
+              : 'Makinenin yükü. %80 üstü sarı, %90 üstü kırmızı.'
+          }
+        >
           <div className={grid}>
-            <Stat
+            <TrendStat
               icon={<Cpu size={14} />}
               label="İşlemci"
               value={percent(s.system?.cpu?.usage)}
               hint={s.system?.cpu?.cores ? `${s.system.cpu.cores} çekirdek` : undefined}
               tone={usageTone(s.system?.cpu?.usage)}
+              values={cpuSeries}
+              max={100}
             />
-            <Stat
+            <TrendStat
               icon={<MemoryStick size={14} />}
               label="Bellek"
               value={percent(s.system?.memory?.usagePercent)}
               hint={`${formatBytes(s.system?.memory?.used)} / ${formatBytes(s.system?.memory?.total)}`}
               tone={usageTone(s.system?.memory?.usagePercent)}
+              values={memSeries}
+              max={100}
             />
-            <Stat
+            <TrendStat
               icon={<HardDrive size={14} />}
               label="Disk"
               value={percent(s.system?.disk?.usagePercent)}
               hint={`${formatBytes(s.system?.disk?.used)} / ${formatBytes(s.system?.disk?.total)}`}
               tone={usageTone(s.system?.disk?.usagePercent)}
+              values={diskSeries}
+              max={100}
             />
-            <Stat
+            <TrendStat
               icon={<Gauge size={14} />}
               label="Olay döngüsü gecikmesi"
               value={n(s.system?.process?.eventLoopLag, ' ms')}
@@ -201,50 +294,56 @@ export default function SystemStatusPage() {
                   ? 'warn'
                   : 'ok'
               }
+              values={lagSeries}
             />
           </div>
         </Section>
 
         <Section title="Trafik" subtitle="Son bir dakikanın isteği, yanıt süresi ve reddedilenler.">
           <div className={grid}>
-            <Stat
+            <TrendStat
               icon={<Activity size={14} />}
               label="Dakikada istek"
               value={n(s.application?.requests?.perMinute)}
               hint={`Toplam ${n(s.application?.requests?.total)}`}
+              values={reqSeries}
             />
-            <Stat
+            <TrendStat
               icon={<Timer size={14} />}
               label="Yanıt süresi"
               value={n(s.application?.responseTime?.avg, ' ms')}
               hint={`p95 ${n(s.application?.responseTime?.p95, ' ms')}`}
+              values={rtSeries}
             />
-            <Stat
+            <TrendStat
               icon={<AlertTriangle size={14} />}
               label="Hata oranı"
               value={percent(errorRate)}
               hint={`Toplam ${n(s.application?.errors?.total)} hata`}
               tone={errorTone}
+              values={errSeries}
             />
-            <Stat
+            <TrendStat
               icon={<AlertTriangle size={14} />}
               label="Oran sınırına takılan"
               value={n(blocked)}
               hint="Artıyorsa kullanıcılar giriş yapamıyor olabilir"
               tone={blockedTone}
+              values={blockedSeries}
             />
           </div>
         </Section>
 
         <Section title="Veritabanı" subtitle="Bağlantı havuzu ve sorgu süreleri.">
           <div className={grid}>
-            <Stat
+            <TrendStat
               icon={<Database size={14} />}
               label="Aktif bağlantı"
               value={n(s.database?.connections?.active)}
               hint={`${n(s.database?.connections?.idle)} boşta · ${n(s.database?.connections?.total)} toplam`}
+              values={connSeries}
             />
-            <Stat
+            <TrendStat
               icon={<Timer size={14} />}
               label="Ortalama sorgu"
               value={
@@ -252,6 +351,7 @@ export default function SystemStatusPage() {
                   ? `${s.database.queries.avgTime} ms`
                   : '—'
               }
+              values={querySeries}
             />
             <Stat
               icon={<AlertTriangle size={14} />}
@@ -266,6 +366,73 @@ export default function SystemStatusPage() {
               hint={`${n(s.redis?.connections?.connected)} bağlantı`}
             />
           </div>
+        </Section>
+
+        <Section
+          title="Taşınan en yüksek yük"
+          subtitle="Bu kurulumun gerçekten karşıladığı en yoğun dakika — tahmin değil, ölçüm."
+        >
+          {peak ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <span className="text-3xl font-semibold text-slate-900 dark:text-slate-100">
+                  {peak.requestsPerMinute}
+                </span>
+                <span className="text-sm text-slate-600 dark:text-slate-400">
+                  istek / dakika
+                </span>
+                {peak.at ? (
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    {new Date(peak.at).toLocaleString('tr-TR')}
+                  </span>
+                ) : null}
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div className="rounded-lg bg-slate-50 p-3 dark:bg-slate-950/50">
+                  <div className="text-xs text-slate-500 dark:text-slate-400">O anki işlemci</div>
+                  <div className={`mt-1 text-lg font-semibold ${INK[usageTone(peak.cpu)]}`}>
+                    {percent(peak.cpu)}
+                  </div>
+                </div>
+                <div className="rounded-lg bg-slate-50 p-3 dark:bg-slate-950/50">
+                  <div className="text-xs text-slate-500 dark:text-slate-400">O anki p95 yanıt</div>
+                  <div className="mt-1 text-lg font-semibold text-slate-900 dark:text-slate-100">
+                    {n(peak.responseTime, ' ms')}
+                  </div>
+                </div>
+                <div className="rounded-lg bg-slate-50 p-3 dark:bg-slate-950/50">
+                  <div className="text-xs text-slate-500 dark:text-slate-400">O anki hata oranı</div>
+                  <div
+                    className={`mt-1 text-lg font-semibold ${
+                      (peak.errorRate ?? 0) > 0 ? INK.bad : INK.ok
+                    }`}
+                  >
+                    {percent(peak.errorRate)}
+                  </div>
+                </div>
+              </div>
+
+              {/*
+                Deliberately a floor, not a ceiling. Extrapolating from an idle
+                system — "40 requests a minute at 12 ms, so it will do 40.000 at
+                12 ms" — has never been true of any server. What can be said
+                honestly is that it carried this much, and here is what the
+                machine looked like while it did.
+              */}
+              <p className="mt-4 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+                Bu bir <span className="font-medium">taban</span>: sistemin bu yükü taşıdığı
+                ölçüldü. Üst sınır, bir şey bozulana kadar yüklenerek yapılan bir koşuyla
+                belirlenir; öyle bir koşu yapılmadıkça buraya bir kapasite sayısı yazmak
+                ölçülmemiş bir şeyi uydurmak olur.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
+              Henüz kayda değer bir yük ölçülmedi. Bu kutu, sistem gerçek trafik taşıdıkça
+              o anın rakamlarıyla dolar.
+            </div>
+          )}
         </Section>
 
         {status.alerts.length > 0 ? (
@@ -289,19 +456,56 @@ export default function SystemStatusPage() {
           subtitle="Sürecin kendi çıktısı — pod'a girmeden okunabilsin diye."
         >
           <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-            {Object.keys(status.levelCounts).length > 0 ? (
-              <div className="flex flex-wrap gap-3 border-b border-slate-200 px-4 py-2 text-xs dark:border-slate-800">
-                {Object.entries(status.levelCounts).map(([level, count]) => (
-                  <span key={level} className={LEVEL_STYLE[level] ?? 'text-slate-600 dark:text-slate-400'}>
+            <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 px-4 py-2.5 dark:border-slate-800">
+              {Object.entries(status.levelCounts).map(([level, count]) => {
+                const active = logLevel === level
+                return (
+                  <button
+                    key={level}
+                    type="button"
+                    onClick={() => setLogLevel(active ? '' : level)}
+                    aria-pressed={active}
+                    className={`rounded-full border px-2.5 py-1 text-xs transition-colors ${
+                      active
+                        ? 'border-slate-400 bg-slate-200 dark:border-slate-600 dark:bg-slate-700'
+                        : 'border-transparent hover:bg-slate-100 dark:hover:bg-slate-800'
+                    } ${LEVEL_STYLE[level] ?? 'text-slate-600 dark:text-slate-400'}`}
+                  >
                     {level}: {count}
-                  </span>
-                ))}
-              </div>
-            ) : null}
+                  </button>
+                )
+              })}
+
+              <input
+                type="search"
+                value={logTerm}
+                onChange={(event) => setLogTerm(event.target.value)}
+                placeholder="Kayıtlarda ara…"
+                aria-label="Sunucu kayıtlarında ara"
+                className="ml-auto w-48 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs text-slate-900 outline-none placeholder:text-slate-500 focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20 dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-100 dark:placeholder:text-slate-500"
+              />
+
+              {logLevel || logTerm ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLogLevel('')
+                    setLogTerm('')
+                  }}
+                  className="rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
+                >
+                  Temizle
+                </button>
+              ) : null}
+            </div>
 
             {logs.length === 0 ? (
               <p className="px-4 py-8 text-center text-sm text-slate-600 dark:text-slate-400">
-                {status.isLoading ? 'Yükleniyor…' : 'Kayıt yok.'}
+                {status.isLoading
+                  ? 'Yükleniyor…'
+                  : status.logs.length > 0
+                    ? 'Bu filtrelerle kayıt bulunamadı.'
+                    : 'Kayıt yok.'}
               </p>
             ) : (
               <ul className="max-h-96 divide-y divide-slate-200 overflow-y-auto font-mono text-xs dark:divide-slate-800">
