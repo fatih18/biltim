@@ -146,9 +146,13 @@ export function MasterDataPanel(props: {
 
                                             <button
                                                 type="button"
-                                                onClick={() => onDelete(it.id)}
+                                                onClick={() => {
+                                                    // Irreversible, and it used to happen on a single click of
+                                                    // an icon. The questions panel beside this one already asks.
+                                                    if (window.confirm(`"${it.name}" kalıcı olarak silinecek. Emin misiniz?`)) onDelete(it.id);
+                                                }}
                                                 title="Sil"
-                                                className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-transparent text-rose-300/80 hover:bg-rose-100 hover:dark:bg-rose-500/10 hover:text-rose-700 hover:dark:text-rose-200"
+                                                className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-transparent text-rose-500 hover:bg-rose-100 hover:text-rose-700 dark:text-rose-300/80 hover:dark:bg-rose-500/10 hover:dark:text-rose-200"
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </button>
