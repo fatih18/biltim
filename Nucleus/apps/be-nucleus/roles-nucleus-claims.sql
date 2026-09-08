@@ -46,11 +46,22 @@ INSERT INTO wanted
 SELECT 'Auditor', a FROM unnest(ARRAY[
   'post.five_s_audits','post.five_s_audit_answers','post.five_s_findings','post.five_s_audit_drafts',
   'post.files','post.notifications',
-  'put.five_s_audit_drafts','patch.five_s_audit_drafts','delete.five_s_audit_drafts',
-  -- Bulguyu güncelleyebilir (fotoğraf, açıklama) ama durum kolonu YOK:
-  -- ekrandaki isAuditor kapısının arka uçtaki karşılığı.
-  'put.five_s_findings','patch.five_s_findings'
+  'put.five_s_audit_drafts','patch.five_s_audit_drafts','delete.five_s_audit_drafts'
 ]) a;
+
+-- Bulgu güncelleme: TABLO yetkisi DEĞİL, kolon kolon.
+--
+-- Ölçüldü: tam tablo yetkisi (put.five_s_findings) bütün kolonları açar —
+-- nucleus alan süzmesini yalnızca allowedFields DOLU olduğunda uygular, ve o
+-- da ancak tablo yetkisi YOKKEN dolar. Denetçiye tablo yetkisi verildiğinde
+-- durum kolonu da açılıyordu: PUT {"status":"in_progress"} 200 döndü.
+-- Bu yüzden denetçi, status DIŞINDAKİ kolonları tek tek alır. Ekrandaki
+-- isAuditor kapısının arka uçtaki karşılığı budur.
+INSERT INTO wanted
+SELECT 'Auditor', c.action
+FROM main.claims c
+WHERE c.action ~ '^(put|patch)\.five_s_findings\.'
+  AND c.action !~ '\.status$';
 
 -- ── Saha sorumlusu: bulguyu kapatan roldür ──────────────────────────────────
 INSERT INTO wanted
