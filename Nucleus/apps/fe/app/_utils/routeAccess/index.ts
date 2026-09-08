@@ -65,6 +65,28 @@ export const ROUTE_REQUIREMENTS: RouteRequirement[] = [
     allows: (roles) => isSuperAdmin(roles) || isContentManagerCoreTeam(roles),
   },
   {
+    /*
+     * An account whose ONLY role is auditor does not open the findings
+     * register — it is the list of what their own audits produced, and the
+     * product decided they see it through the audit instead. Anyone with
+     * another privileged role keeps it.
+     */
+    id: "findings",
+    match: (p) => startsWithAny(p, ["/bulgular"]),
+    allows: (roles) => {
+      const isAuditor = roles.some((n) => n === "auditor" || n === "denetçi");
+      if (!isAuditor) return true;
+      return roles.some(
+        (n) =>
+          n === "super admin" ||
+          n === "godmin" ||
+          n === "manager" ||
+          n === "field manager" ||
+          (n.includes("content manager") && n.includes("core team")),
+      );
+    },
+  },
+  {
     /** Mirrors the header's own `canSeeMasterMenus`. */
     id: "master-data",
     match: (p) => startsWithAny(p, ["/ana-veri-yonetimi", "/iyilestirici-faaliyetler"]),

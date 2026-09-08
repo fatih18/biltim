@@ -408,7 +408,10 @@ export function ClientSide({
   const canSeeUsersPage = useMemo(() => {
     if (isRoleLoading) return false
     return allRoleNames.some(
-      (n) => n === 'super admin' || (n.includes('content manager') && n.includes('core team'))
+      (n) =>
+        n === 'super admin' ||
+        n === 'godmin' ||
+        (n.includes('content manager') && n.includes('core team'))
     )
   }, [allRoleNames, isRoleLoading])
 
@@ -419,7 +422,7 @@ export function ClientSide({
       const hasContentManager = n.includes('content manager')
       const hasCoreTeam = n.includes('core team')
       if (hasContentManager && hasCoreTeam) return true
-      if (n === 'super admin') return true
+      if (n === 'super admin' || n === 'godmin') return true
       return false
     })
   }, [allRoleNames, isRoleLoading])
@@ -511,38 +514,14 @@ export function ClientSide({
     })
   }, [navItems, canSeeMasterMenus, canSeeUsersPage, restrictedIds])
 
-  // ✅ Route guard
-  useEffect(() => {
-    if (isRoleLoading) return
-
-    const isUsersRoute =
-      path === '/kullanicilar' ||
-      path.startsWith('/kullanicilar/') ||
-      path === '/users' ||
-      path.startsWith('/users/')
-
-    if (isUsersRoute && !canSeeUsersPage) {
-      router.replace('/')
-      return
-    }
-
-    const isMasterRoute =
-      path === '/ana-veri-yonetimi' ||
-      path.startsWith('/ana-veri-yonetimi/') ||
-      path === '/iyilestirici-faaliyetler' ||
-      path.startsWith('/iyilestirici-faaliyetler/')
-
-    if (isMasterRoute && !canSeeMasterMenus) {
-      router.replace('/')
-      return
-    }
-
-    // Madde 4: sadece Denetçi → /bulgular erişimi engelli
-    const isBulgularRoute = path === '/bulgular' || path.startsWith('/bulgular/')
-    if (isBulgularRoute && isAuditorOnly) {
-      router.replace('/')
-    }
-  }, [canSeeMasterMenus, canSeeUsersPage, isAuditorOnly, isRoleLoading, path, router])
+  /*
+   * The route guard that used to live here is gone. It answered the same
+   * question LoginChecker now answers, and the two did not agree: this one had
+   * no idea what a godmin was, so the install's root account was bounced off
+   * /ana-veri-yonetimi while the other gate was letting it through. Two gates
+   * that disagree is a bug, not redundancy — the rules live in
+   * app/_utils/routeAccess and both the menu below and the gate read them.
+   */
 
   const [openCategory, setOpenCategory] = useState<string | null>(null)
   const [mobileExpandedCategory, setMobileExpandedCategory] = useState<string | null>(null)

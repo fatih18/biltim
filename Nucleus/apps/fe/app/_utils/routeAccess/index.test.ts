@@ -55,7 +55,7 @@ describe("the rules the header already applied, now enforced", () => {
 
 describe("the gate restricts and does not become a second allow-list", () => {
   it("leaves ordinary screens open to any signed-in user", () => {
-    for (const p of ["/", "/bulgular", "/denetim", "/profile"]) {
+    for (const p of ["/", "/denetim", "/profile"]) {
       expect(canAccessRoute(p, BASIC)).toBe(true);
       expect(canAccessRoute(p, AUDITOR)).toBe(true);
     }
@@ -87,5 +87,30 @@ describe("the root account is never locked out of the tools for fixing things", 
   it("still refuses the same paths without it", () => {
     expect(canAccessRoute("/generic-api", ["basic"], false)).toBe(false);
     expect(canAccessRoute("/generic-api", ["auditor"])).toBe(false);
+  });
+});
+
+describe("the findings register, which the header used to guard separately", () => {
+  // The header had its own route guard for this, disagreeing with the gate. The
+  // rule itself is the product's: an account whose only role is auditor reads
+  // findings through the audit, not the register.
+  it("is closed to an auditor with no other role", () => {
+    expect(canAccessRoute("/bulgular", AUDITOR)).toBe(false);
+    expect(canAccessRoute("/bulgular", ["denetçi"])).toBe(false);
+  });
+
+  it("opens for an auditor who also carries a privileged role", () => {
+    expect(canAccessRoute("/bulgular", ["Denetçi", "Manager"])).toBe(true);
+    expect(canAccessRoute("/bulgular", ["Denetçi", "Field Manager"])).toBe(true);
+    expect(canAccessRoute("/bulgular", ["Denetçi", "Super Admin"])).toBe(true);
+  });
+
+  it("opens for godmin, which the header's version had never heard of", () => {
+    expect(canAccessRoute("/bulgular", ["godmin"])).toBe(true);
+    expect(canAccessRoute("/bulgular", ["Denetçi"], true)).toBe(true);
+  });
+
+  it("opens for anyone who is not an auditor at all", () => {
+    expect(canAccessRoute("/bulgular", BASIC)).toBe(true);
   });
 });
