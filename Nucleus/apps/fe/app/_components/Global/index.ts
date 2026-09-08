@@ -4,6 +4,7 @@ export * from "./Badge";
 export * from "./Button";
 export * from "./Card";
 export * from "./ConfirmDialog";
+export * from "./InfiniteScroll";
 export * from "./ScrollableTable";
 export * from "./EmptyState";
 export * from "./Header";
