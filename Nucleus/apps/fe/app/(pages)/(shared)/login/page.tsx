@@ -121,7 +121,7 @@ export default function Login() {
                       autoComplete="email"
                       placeholder="example@mail.com"
                       required
-                      className="h-12 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/60 pl-12 pr-4 text-sm font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-500 placeholder:dark:text-slate-500 outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+                      className="h-12 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/60 pl-12 pr-4 text-sm font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-500 placeholder:dark:text-slate-400 outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
                     />
                   </div>
                 </fieldset>
@@ -143,10 +143,10 @@ export default function Login() {
                       autoComplete="current-password"
                       placeholder="••••••••"
                       required
-                      className="h-12 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/60 pl-12 pr-12 text-sm font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-500 placeholder:dark:text-slate-500 outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+                      className="h-12 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/60 pl-12 pr-12 text-sm font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-500 placeholder:dark:text-slate-400 outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
                     />
 
-                    <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-slate-500 dark:text-slate-500">
+                    <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-slate-500 dark:text-slate-400">
                       <FiEye className="h-[18px] w-[18px]" aria-hidden="true" />
                     </span>
                   </div>

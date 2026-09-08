@@ -126,7 +126,7 @@ export function MasterDataPanel(props: {
                                     >
                                         {it.name}
                                         {!it.isActive ? (
-                                            <span className="ml-2 text-[11px] font-medium text-slate-500 dark:text-slate-500 no-underline">
+                                            <span className="ml-2 text-[11px] font-medium text-slate-500 dark:text-slate-400 no-underline">
                                                 (Pasif)
                                             </span>
                                         ) : null}

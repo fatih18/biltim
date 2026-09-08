@@ -64,7 +64,7 @@ export function LogsTable({ logs, onLogSelect }: LogsTableProps) {
     return (
       <div className="bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="text-center py-12">
-          <AlertCircle className="mx-auto text-slate-400 dark:text-slate-500 mb-4" size={48} />
+          <AlertCircle className="mx-auto text-slate-400 dark:text-slate-400 mb-4" size={48} />
           <h3 className="mb-2 text-lg font-medium text-slate-900 dark:text-slate-100">Log kaydı bulunamadı</h3>
           <p className="text-slate-500 dark:text-slate-400">Arama kriterlerinizi veya filtrelerinizi düzenleyin.</p>
         </div>
@@ -106,7 +106,7 @@ export function LogsTable({ logs, onLogSelect }: LogsTableProps) {
               <tr key={log.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-slate-100">
                   <div className="flex items-center gap-2">
-                    <Calendar size={14} className="text-slate-400 dark:text-slate-500" />
+                    <Calendar size={14} className="text-slate-400 dark:text-slate-400" />
                     {formatTimestamp(log.timestamp)}
                   </div>
                 </td>
@@ -120,7 +120,7 @@ export function LogsTable({ logs, onLogSelect }: LogsTableProps) {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-slate-100">
                   <div className="flex items-center gap-2">
-                    <Database size={14} className="text-slate-400 dark:text-slate-500" />
+                    <Database size={14} className="text-slate-400 dark:text-slate-400" />
                     <div>
                       <div className="font-medium">{log.entity_name}</div>
                       <div
@@ -134,7 +134,7 @@ export function LogsTable({ logs, onLogSelect }: LogsTableProps) {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-slate-100">
                   <div className="flex items-center gap-2">
-                    <User size={14} className="text-slate-400 dark:text-slate-500" />
+                    <User size={14} className="text-slate-400 dark:text-slate-400" />
                     <div
                       className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-24"
                       title={log.user_id ?? ''}

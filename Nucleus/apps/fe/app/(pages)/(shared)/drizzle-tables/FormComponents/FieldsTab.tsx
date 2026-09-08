@@ -44,7 +44,7 @@ export function FieldsTab({
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">Fields</h3>
-          <p className="text-sm text-slate-500 dark:text-slate-500">Define table columns and their properties</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Define table columns and their properties</p>
         </div>
         <button
           type="button"
@@ -270,7 +270,7 @@ export function FieldsTab({
         ))}
 
         {schema.fields.length === 0 && (
-          <div className="text-center py-12 text-slate-500 dark:text-slate-500">
+          <div className="text-center py-12 text-slate-500 dark:text-slate-400">
             No fields yet. Click "Add Field" to create one.
           </div>
         )}

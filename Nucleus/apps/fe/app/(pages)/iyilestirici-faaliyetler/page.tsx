@@ -249,7 +249,7 @@ export default function BoardMeetingDecisionsPage() {
                     <div className="flex items-center justify-between gap-2">
                         <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Geçmiş Toplantı Kararları</h2>
                         <div className="flex items-center gap-3">
-                            {usersLoading ? <span className="text-[11px] text-slate-500 dark:text-slate-500">Kullanıcılar…</span> : null}
+                            {usersLoading ? <span className="text-[11px] text-slate-500 dark:text-slate-400">Kullanıcılar…</span> : null}
                             {listLoading ? <span className="text-[11px] text-slate-600 dark:text-slate-400">Yükleniyor…</span> : null}
                         </div>
                     </div>
@@ -364,7 +364,7 @@ export default function BoardMeetingDecisionsPage() {
                                         ))}
                                     </select>
 
-                                    <div className="text-[11px] text-slate-500 dark:text-slate-500">
+                                    <div className="text-[11px] text-slate-500 dark:text-slate-400">
                                         Yalnızca rolü <span className="text-slate-700 dark:text-slate-300">müdür</span> olan kullanıcılar listelenir.
                                     </div>
                                 </div>

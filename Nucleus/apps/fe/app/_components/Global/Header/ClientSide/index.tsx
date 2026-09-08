@@ -218,12 +218,12 @@ function NotificationDropdown({
             {isLoading ? (
               <div className="px-4 py-8 text-center">
                 <div className="h-6 w-6 border-2 border-slate-300 dark:border-slate-700 border-t-indigo-500 rounded-full animate-spin mx-auto mb-2" />
-                <p className="text-sm text-slate-500 dark:text-slate-500">Loading...</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Loading...</p>
               </div>
             ) : notificationList.length === 0 ? (
               <div className="px-4 py-8 text-center">
                 <Bell className="h-8 w-8 text-slate-700 dark:text-slate-300 mx-auto mb-2" />
-                <p className="text-sm text-slate-500 dark:text-slate-500">No notifications</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">No notifications</p>
               </div>
             ) : (
               <div className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -255,7 +255,7 @@ function NotificationDropdown({
                           </span>
                         </div>
                         {notif.body && (
-                          <p className="text-xs text-slate-500 dark:text-slate-500 mt-0.5 line-clamp-2">{notif.body}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">{notif.body}</p>
                         )}
                         {notif.entity_name && (
                           <span className="inline-block mt-1 text-[10px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">
@@ -986,7 +986,7 @@ export function ClientSide({
                 >
                   <span
                     className={`transition-all duration-200 ${ isItemActive ?'text-slate-900 dark:text-white'
-                        : 'text-slate-500 dark:text-slate-500 group-hover:text-indigo-500 group-hover:scale-110'
+                        : 'text-slate-500 dark:text-slate-400 group-hover:text-indigo-500 group-hover:scale-110'
                     }`}
                   >
                     {item.icon}

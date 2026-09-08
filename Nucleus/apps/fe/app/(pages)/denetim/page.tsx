@@ -2011,7 +2011,7 @@ export default function FiveSAuditFormPage() {
                 ? 'Denetim sırasında ek tekil bulgu kaydedebilirsiniz. Bir soruya bağlamak opsiyoneldir.'
                 : 'Denetim planı olmasa bile (sadece yetkili rol) tekil bir 5S bulgusunu burada kaydedebilirsiniz.'}
             </p>
-            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-500">
+            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
               Durum:{' '}
               <span className={isOnline ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'}>
                 {isOnline ? 'Online' : 'Offline'}
@@ -2116,7 +2116,7 @@ export default function FiveSAuditFormPage() {
 
           <div>
             <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">
-              Bağlı Soru <span className="text-slate-500 dark:text-slate-500">(opsiyonel)</span>
+              Bağlı Soru <span className="text-slate-500 dark:text-slate-400">(opsiyonel)</span>
             </label>
             <select
               value={singleFinding.linkedQuestionId}
@@ -2186,7 +2186,7 @@ export default function FiveSAuditFormPage() {
                 ))}
               </ul>
             ) : (
-              <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-500">Henüz fotoğraf eklenmedi.</p>
+              <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">Henüz fotoğraf eklenmedi.</p>
             )}
           </div>
 
@@ -2318,7 +2318,7 @@ export default function FiveSAuditFormPage() {
                   {isOnline ? 'Online' : 'Offline'}
                 </span>
                 {queuedCount > 0 ? (
-                  <span className="ml-2 text-slate-500 dark:text-slate-500">• Kuyruk: {queuedCount}</span>
+                  <span className="ml-2 text-slate-500 dark:text-slate-400">• Kuyruk: {queuedCount}</span>
                 ) : null}
               </div>
             </div>
@@ -2387,13 +2387,13 @@ export default function FiveSAuditFormPage() {
 
                 <div className="grid gap-2 sm:grid-cols-2 text-[11px] text-slate-700 dark:text-slate-300">
                   <div>
-                    <span className="text-slate-500 dark:text-slate-500">Termin:</span> {String(activeFinding.due_date ?? '-')}
+                    <span className="text-slate-500 dark:text-slate-400">Termin:</span> {String(activeFinding.due_date ?? '-')}
                   </div>
                   <div>
-                    <span className="text-slate-500 dark:text-slate-500">Sorumlu:</span> {String(activeFinding.responsible_name ?? '-')}
+                    <span className="text-slate-500 dark:text-slate-400">Sorumlu:</span> {String(activeFinding.responsible_name ?? '-')}
                   </div>
                   <div className="sm:col-span-2">
-                    <span className="text-slate-500 dark:text-slate-500">Lokasyon:</span> {String(activeFinding.location_name ?? '-')}
+                    <span className="text-slate-500 dark:text-slate-400">Lokasyon:</span> {String(activeFinding.location_name ?? '-')}
                   </div>
                 </div>
 
@@ -2424,7 +2424,7 @@ export default function FiveSAuditFormPage() {
                     <div className="mt-2 text-[10px] text-slate-600 dark:text-slate-400">Fotoğrafa tıklayınca büyür.</div>
                   </div>
                 ) : (
-                  <div className="text-[11px] text-slate-500 dark:text-slate-500">Öncesi fotoğraf yok.</div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400">Öncesi fotoğraf yok.</div>
                 )}
               </div>
 
@@ -2482,7 +2482,7 @@ export default function FiveSAuditFormPage() {
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
                 Minimum hedef puan: <span className="font-semibold text-emerald-700 dark:text-emerald-300">75</span>
               </p>
-              <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-500">
+              <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
                 Plan: <span className="text-slate-700 dark:text-slate-300">{header.teamName}</span> •{' '}
                 <span className="text-slate-700 dark:text-slate-300">{header.department}</span> •{' '}
                 <span className="text-slate-700 dark:text-slate-300">{header.date}</span>
@@ -2492,7 +2492,7 @@ export default function FiveSAuditFormPage() {
                 <span className={isOnline ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'}>
                   {isOnline ? 'Online' : 'Offline'}
                 </span>
-                {queuedCount > 0 ? <span className="ml-2 text-slate-500 dark:text-slate-500">• Kuyruk: {queuedCount}</span> : null}
+                {queuedCount > 0 ? <span className="ml-2 text-slate-500 dark:text-slate-400">• Kuyruk: {queuedCount}</span> : null}
                 {queuedCount > 0 ? (
                   <button
                     type="button"
@@ -2522,7 +2522,7 @@ export default function FiveSAuditFormPage() {
                   <span className={`text-2xl font-bold ${totalScore >= 75 ? 'text-emerald-400' : 'text-amber-400'}`}>
                     {formatScore(totalScore)} / 100
                   </span>
-                  <span className="text-xs text-slate-500 dark:text-slate-500">{totalScore >= 75 ? 'Hedef üstü' : 'Hedef altında'}</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">{totalScore >= 75 ? 'Hedef üstü' : 'Hedef altında'}</span>
                 </div>
               </div>
             </div>
@@ -2573,10 +2573,10 @@ export default function FiveSAuditFormPage() {
                       onClick={() => setAuditorMenuOpen((o) => !o)}
                       className="flex w-full items-center justify-between rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2 text-left text-sm outline-none focus:border-sky-400"
                     >
-                      <span className={selectedAuditors.length ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-500'}>
+                      <span className={selectedAuditors.length ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}>
                         {selectedAuditors.length ? selectedAuditors.join(', ') : 'Seçiniz'}
                       </span>
-                      <span className="ml-2 text-slate-500 dark:text-slate-500">▾</span>
+                      <span className="ml-2 text-slate-500 dark:text-slate-400">▾</span>
                     </button>
                     {auditorMenuOpen && (
                       <>
@@ -2609,7 +2609,7 @@ export default function FiveSAuditFormPage() {
                     placeholder="İsim Soyisim"
                   />
                 )}
-                <p className="text-[10px] text-slate-500 dark:text-slate-500">Denetime aktif katılan denetçileri seçin (birden fazla seçilebilir).</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400">Denetime aktif katılan denetçileri seçin (birden fazla seçilebilir).</p>
               </div>
 
               <div className="space-y-1">
@@ -2813,12 +2813,12 @@ export default function FiveSAuditFormPage() {
                                 {ratingLabel}
                               </span>
                               <span className="font-semibold text-sky-700 dark:text-sky-300">{formatScore(point)}</span>
-                              <span className="text-[10px] text-slate-500 dark:text-slate-500">/ {q.maxScore.toFixed(2)}</span>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400">/ {q.maxScore.toFixed(2)}</span>
                             </div>
                           </div>
 
                           <div className="ml-2 flex items-center">
-                            <span className="mr-1 text-[10px] text-slate-500 dark:text-slate-500">{isOpen ? 'Kapat' : 'Aç'}</span>
+                            <span className="mr-1 text-[10px] text-slate-500 dark:text-slate-400">{isOpen ? 'Kapat' : 'Aç'}</span>
                             <span
                               className={`inline-block transform text-slate-600 dark:text-slate-400 transition-transform ${isOpen ? 'rotate-90' : 'rotate-0'
                                 }`}
@@ -3076,7 +3076,7 @@ export default function FiveSAuditFormPage() {
                       ))}
                     </ul>
                   ) : (
-                    <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-500">Henüz fotoğraf eklenmedi.</p>
+                    <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">Henüz fotoğraf eklenmedi.</p>
                   )}
                 </div>
 
@@ -3180,13 +3180,13 @@ export default function FiveSAuditFormPage() {
 
                 <div className="grid gap-2 sm:grid-cols-2 text-[11px] text-slate-700 dark:text-slate-300">
                   <div>
-                    <span className="text-slate-500 dark:text-slate-500">Termin:</span> {String(activeFinding.due_date ?? '-')}
+                    <span className="text-slate-500 dark:text-slate-400">Termin:</span> {String(activeFinding.due_date ?? '-')}
                   </div>
                   <div>
-                    <span className="text-slate-500 dark:text-slate-500">Sorumlu:</span> {String(activeFinding.responsible_name ?? '-')}
+                    <span className="text-slate-500 dark:text-slate-400">Sorumlu:</span> {String(activeFinding.responsible_name ?? '-')}
                   </div>
                   <div className="sm:col-span-2">
-                    <span className="text-slate-500 dark:text-slate-500">Lokasyon:</span> {String(activeFinding.location_name ?? '-')}
+                    <span className="text-slate-500 dark:text-slate-400">Lokasyon:</span> {String(activeFinding.location_name ?? '-')}
                   </div>
                 </div>
 
@@ -3217,7 +3217,7 @@ export default function FiveSAuditFormPage() {
                     <div className="mt-2 text-[10px] text-slate-600 dark:text-slate-400">Fotoğrafa tıklayınca büyür.</div>
                   </div>
                 ) : (
-                  <div className="text-[11px] text-slate-500 dark:text-slate-500">Öncesi fotoğraf yok.</div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400">Öncesi fotoğraf yok.</div>
                 )}
               </div>
 

@@ -917,7 +917,7 @@ export function VerificationFlow({ table }: VerificationFlowProps) {
       >
         <article className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
-          <p className="text-sm text-slate-500 dark:text-slate-500">Loading flow configuration...</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Loading flow configuration...</p>
         </article>
       </section>
     )
@@ -954,7 +954,7 @@ export function VerificationFlow({ table }: VerificationFlowProps) {
           <nav className="flex items-center gap-3 min-w-0">
             <Link
               href="/verifications"
-              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700"
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 transition-colors hover:bg-slate-50 hover:text-slate-700"
             >
               <ArrowLeft className="h-4 w-4" />
             </Link>
@@ -965,7 +965,7 @@ export function VerificationFlow({ table }: VerificationFlowProps) {
               <h1 className="text-base font-bold text-slate-900 dark:text-slate-100 sm:text-lg truncate">
                 Flow Builder
               </h1>
-              <p className="text-xs text-slate-500 dark:text-slate-500 sm:text-sm">
+              <p className="text-xs text-slate-500 dark:text-slate-400 sm:text-sm">
                 Table: <span className="font-medium text-indigo-600">{table}</span>
               </p>
             </hgroup>
@@ -1035,7 +1035,7 @@ export function VerificationFlow({ table }: VerificationFlowProps) {
                   <Workflow className="h-8 w-8 text-slate-600 dark:text-slate-400" />
                 </figcaption>
                 <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">Start building your flow</h3>
-                <p className="mt-1 text-sm text-slate-500 dark:text-slate-500">
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                   Drag components from the left panel to create your verification workflow
                 </p>
               </figure>

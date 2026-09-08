@@ -226,7 +226,7 @@ export function HomeAuditListPanel(props: {
                                                     ].join(" ")}
                                                 />
                                                 {parentRange && (
-                                                    <p className="text-[10px] text-slate-500 dark:text-slate-500">
+                                                    <p className="text-[10px] text-slate-500 dark:text-slate-400">
                                                         Aralık: {parentRange.start} – {parentRange.end}
                                                     </p>
                                                 )}
@@ -266,7 +266,7 @@ export function HomeAuditListPanel(props: {
                                                         Düzenle ({2 - (p.date_change_count ?? 0)} hak)
                                                     </button>
                                                 ) : (p.date_change_count ?? 0) >= 2 && canEditPlan({ ...p, date_change_count: 0 }) ? (
-                                                    <span className="text-[10px] text-slate-500 dark:text-slate-500">Tarih kilitli</span>
+                                                    <span className="text-[10px] text-slate-500 dark:text-slate-400">Tarih kilitli</span>
                                                 ) : null}
                                             </div>
                                         )}
@@ -280,7 +280,7 @@ export function HomeAuditListPanel(props: {
                                                     {parentRange.quarter ?? "—"}
                                                 </span>
                                                 {parentRange.title && (
-                                                    <span className="text-[10px] text-slate-500 dark:text-slate-500 truncate">{parentRange.title}</span>
+                                                    <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{parentRange.title}</span>
                                                 )}
                                             </div>
                                         ) : (
@@ -293,13 +293,13 @@ export function HomeAuditListPanel(props: {
                                     <div className="col-span-2 flex flex-col gap-0.5">
                                         {managerName && (
                                             <div className="flex items-center gap-1 text-[10px]">
-                                                <span className="font-medium text-slate-500 dark:text-slate-500">Müdür:</span>
+                                                <span className="font-medium text-slate-500 dark:text-slate-400">Müdür:</span>
                                                 <span className="text-slate-700 dark:text-slate-300">{managerName}</span>
                                             </div>
                                         )}
                                         {fieldManagerNames.length > 0 && (
                                             <div className="flex items-center gap-1 text-[10px]">
-                                                <span className="font-medium text-slate-500 dark:text-slate-500">Saha:</span>
+                                                <span className="font-medium text-slate-500 dark:text-slate-400">Saha:</span>
                                                 <span className="text-slate-700 dark:text-slate-300">{fieldManagerNames.join(", ")}</span>
                                             </div>
                                         )}
@@ -341,7 +341,7 @@ export function HomeAuditListPanel(props: {
                 </div>
 
                 {/* küçük not */}
-                <div className="mt-3 text-[11px] text-slate-500 dark:text-slate-500">
+                <div className="mt-3 text-[11px] text-slate-500 dark:text-slate-400">
                     Not: “Düzenle” butonu sadece ilgili ekibin liderinde görünür.
                 </div>
             </div>

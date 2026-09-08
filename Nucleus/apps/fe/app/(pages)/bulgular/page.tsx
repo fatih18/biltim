@@ -827,7 +827,7 @@ export default function FiveSFindingsListPage() {
                       <td className="px-4 py-2 text-xs">
                         <div className="max-w-[180px] truncate">{f.location_name}</div>
                         {f.form_title && (
-                          <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-500 truncate max-w-[220px]">
+                          <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-[220px]">
                             {f.form_title}
                           </div>
                         )}
@@ -901,7 +901,7 @@ export default function FiveSFindingsListPage() {
                           className="date-dark w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
                         />
                         {savingDueForId === f.id && (
-                          <span className="mt-1 block text-[11px] text-slate-500 dark:text-slate-500">Kaydediliyor...</span>
+                          <span className="mt-1 block text-[11px] text-slate-500 dark:text-slate-400">Kaydediliyor...</span>
                         )}
                       </td>
 
@@ -1011,7 +1011,7 @@ export default function FiveSFindingsListPage() {
                                         <button
                                           type="button"
                                           onClick={() => handleRemovePhoto(f, "after", idx)}
-                                          className="rounded p-0.5 text-slate-500 dark:text-slate-500 hover:text-rose-400 hover:bg-rose-100 hover:dark:bg-rose-500/10 transition-colors"
+                                          className="rounded p-0.5 text-slate-500 dark:text-slate-400 hover:text-rose-400 hover:bg-rose-100 hover:dark:bg-rose-500/10 transition-colors"
                                         >
                                           <X size={11} />
                                         </button>
@@ -1027,7 +1027,7 @@ export default function FiveSFindingsListPage() {
                           <label
                             className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-colors ${
                               uploadingFindingId === f.id
-                                ? "border-slate-300 dark:border-slate-700 bg-slate-200 dark:bg-slate-800/60 text-slate-500 dark:text-slate-500 cursor-not-allowed"
+                                ? "border-slate-300 dark:border-slate-700 bg-slate-200 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 cursor-not-allowed"
                                 : "border-slate-400 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/60 text-slate-700 dark:text-slate-300 hover:border-emerald-500/50 hover:text-emerald-700 hover:dark:text-emerald-300 hover:bg-emerald-100 hover:dark:bg-emerald-500/10"
                             }`}
                           >

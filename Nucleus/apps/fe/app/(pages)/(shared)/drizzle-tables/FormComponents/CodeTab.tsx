@@ -224,7 +224,7 @@ ${schema.relations
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">Generated Code</h3>
-          <p className="text-sm text-slate-500 dark:text-slate-500">Preview and copy your schema file</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Preview and copy your schema file</p>
         </div>
         <button
           type="button"

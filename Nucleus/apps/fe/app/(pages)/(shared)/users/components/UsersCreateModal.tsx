@@ -234,7 +234,7 @@ export function UsersCreateModal({
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 !bg-white dark:bg-slate-950/70 px-3 py-2
-                           text-sm text-slate-900 dark:text-slate-100 outline-none ring-sky-500/40 placeholder:text-slate-500 placeholder:dark:text-slate-500
+                           text-sm text-slate-900 dark:text-slate-100 outline-none ring-sky-500/40 placeholder:text-slate-500 placeholder:dark:text-slate-400
                            focus:border-sky-400 focus:ring-2"
               />
             </div>
@@ -254,10 +254,10 @@ export function UsersCreateModal({
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 !bg-white dark:bg-slate-950/70 px-3 py-2
-                           text-sm text-slate-900 dark:text-slate-100 outline-none ring-sky-500/40 placeholder:text-slate-500 placeholder:dark:text-slate-500
+                           text-sm text-slate-900 dark:text-slate-100 outline-none ring-sky-500/40 placeholder:text-slate-500 placeholder:dark:text-slate-400
                            focus:border-sky-400 focus:ring-2"
               />
-              <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-500">
+              <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
                 Şifre en az 8 karakter olmalıdır.
               </p>
             </div>
@@ -277,7 +277,7 @@ export function UsersCreateModal({
                   value={firstName}
                   onChange={(event) => setFirstName(event.target.value)}
                   className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2
-                             text-sm text-slate-900 dark:text-slate-100 outline-none ring-sky-500/40 placeholder:text-slate-500 placeholder:dark:text-slate-500
+                             text-sm text-slate-900 dark:text-slate-100 outline-none ring-sky-500/40 placeholder:text-slate-500 placeholder:dark:text-slate-400
                              focus:border-sky-400 focus:ring-2"
                 />
               </div>
@@ -296,7 +296,7 @@ export function UsersCreateModal({
                   value={lastName}
                   onChange={(event) => setLastName(event.target.value)}
                   className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2
-                             text-sm text-slate-900 dark:text-slate-100 outline-none ring-sky-500/40 placeholder:text-slate-500 placeholder:dark:text-slate-500
+                             text-sm text-slate-900 dark:text-slate-100 outline-none ring-sky-500/40 placeholder:text-slate-500 placeholder:dark:text-slate-400
                              focus:border-sky-400 focus:ring-2"
                 />
               </div>
@@ -312,7 +312,7 @@ export function UsersCreateModal({
                     Roller yükleniyor...
                   </div>
                 ) : availableRoles.length === 0 ? (
-                  <p className="text-xs text-slate-500 dark:text-slate-500">Rol bulunamadı.</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Rol bulunamadı.</p>
                 ) : (
                   availableRoles.map((role) => {
                     const isSelected = selectedRoleIds.includes(role.id)
@@ -333,7 +333,7 @@ export function UsersCreateModal({
                             {role.alias}
                           </span>
                           {role.description ? (
-                            <span className="block truncate text-[11px] text-slate-500 dark:text-slate-500">
+                            <span className="block truncate text-[11px] text-slate-500 dark:text-slate-400">
                               {role.description}
                             </span>
                           ) : null}
@@ -360,7 +360,7 @@ export function UsersCreateModal({
                 )}
               </div>
 
-              <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-500">
+              <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
                 Rol seçimi zorunludur. Çoklu seçimde yalnızca Denetçi + Saha Sorumlusu veya Denetçi + Merkez Ekip birlikte seçilebilir.
               </p>
             </div>

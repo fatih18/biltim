@@ -168,7 +168,7 @@ function BeforeAfterReport() {
           <div key={f.id} className="rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/40 p-2">
             <div className="mb-1.5 flex items-center justify-between text-[11px]">
               <span className="text-slate-800 dark:text-slate-200 truncate">{f.location_name ?? '-'}</span>
-              <span className="text-slate-500 dark:text-slate-500">#{f.finding_no ?? '-'}</span>
+              <span className="text-slate-500 dark:text-slate-400">#{f.finding_no ?? '-'}</span>
             </div>
             <div className="grid grid-cols-2 gap-1.5">
               <div>
@@ -190,7 +190,7 @@ function BeforeAfterReport() {
                 )}
               </div>
             </div>
-            <div className="mt-1 text-[10px] text-slate-500 dark:text-slate-500 truncate">{f.finding_type ?? ''}</div>
+            <div className="mt-1 text-[10px] text-slate-500 dark:text-slate-400 truncate">{f.finding_type ?? ''}</div>
           </div>
         )
       })}
@@ -222,7 +222,7 @@ function FactoryMapHeat({ mapHeat }: { mapHeat: Row[] }) {
             <div key={i} className="border border-slate-300 dark:border-slate-700" />
           ))}
         </div>
-        <div className="absolute left-2 top-2 text-[10px] text-slate-500 dark:text-slate-500">
+        <div className="absolute left-2 top-2 text-[10px] text-slate-500 dark:text-slate-400">
           Fabrika Krokisi (lokasyon koordinatları Ana Veri Yönetimi'nden girilebilir)
         </div>
         {placed.map((l) => (
@@ -247,7 +247,7 @@ function FactoryMapHeat({ mapHeat }: { mapHeat: Row[] }) {
           </div>
         ))}
         {placed.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-500 dark:text-slate-500">
+          <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-500 dark:text-slate-400">
             Henüz koordinatı girilmiş lokasyon yok.
           </div>
         )}
@@ -433,7 +433,13 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
             <XAxis dataKey="period" stroke="#64748b" fontSize={11} />
             <YAxis domain={[0, 100]} stroke="#64748b" fontSize={11} />
             <Tooltip contentStyle={tooltipStyle} />
-            <Legend wrapperStyle={{ fontSize: 11 }} />
+            <Legend
+              wrapperStyle={{ fontSize: 11 }}
+              /* the swatch carries the colour; the label reads as text (§3.3) */
+              formatter={(value) => (
+                <span className="text-slate-700 dark:text-slate-300">{value}</span>
+              )}
+            />
             <ReferenceLine y={75} stroke="#f59e0b" strokeDasharray="6 3" label={{ value: 'Hedef 75', fill: '#f59e0b', fontSize: 10 }} />
             <Line type="monotone" dataKey="avg_total" name="Ortalama Puan" stroke="#38bdf8" strokeWidth={2} dot />
             <Line type="monotone" dataKey="avg_target" name="Hedef" stroke="#f59e0b" strokeWidth={1} strokeDasharray="4 4" dot={false} />
@@ -450,7 +456,13 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
               <XAxis dataKey="name" stroke="#64748b" fontSize={10} interval={0} angle={-25} textAnchor="end" height={60} />
               <YAxis allowDecimals={false} stroke="#64748b" fontSize={11} />
               <Tooltip contentStyle={tooltipStyle} />
-              <Legend wrapperStyle={{ fontSize: 10 }} />
+              <Legend
+              wrapperStyle={{ fontSize: 10 }}
+              /* the swatch carries the colour; the label reads as text (§3.3) */
+              formatter={(value) => (
+                <span className="text-slate-700 dark:text-slate-300">{value}</span>
+              )}
+            />
               {locationTypePivot.columns.map((c, i) => (
                 <Bar key={c} dataKey={c} stackId="a" fill={CHART_COLORS[i % CHART_COLORS.length]} />
               ))}
@@ -466,7 +478,13 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
               <XAxis dataKey="name" stroke="#64748b" fontSize={10} interval={0} angle={-25} textAnchor="end" height={60} />
               <YAxis allowDecimals={false} stroke="#64748b" fontSize={11} />
               <Tooltip contentStyle={tooltipStyle} />
-              <Legend wrapperStyle={{ fontSize: 10 }} />
+              <Legend
+              wrapperStyle={{ fontSize: 10 }}
+              /* the swatch carries the colour; the label reads as text (§3.3) */
+              formatter={(value) => (
+                <span className="text-slate-700 dark:text-slate-300">{value}</span>
+              )}
+            />
               <Bar dataKey="Açık" fill="#f87171" />
               <Bar dataKey="Devam Ediyor" fill="#fbbf24" />
               <Bar dataKey="Kapalı" fill="#34d399" />
@@ -496,7 +514,13 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
               <XAxis dataKey="name" stroke="#64748b" fontSize={10} interval={0} angle={-25} textAnchor="end" height={60} />
               <YAxis allowDecimals={false} stroke="#64748b" fontSize={11} />
               <Tooltip contentStyle={tooltipStyle} />
-              <Legend wrapperStyle={{ fontSize: 10 }} />
+              <Legend
+              wrapperStyle={{ fontSize: 10 }}
+              /* the swatch carries the colour; the label reads as text (§3.3) */
+              formatter={(value) => (
+                <span className="text-slate-700 dark:text-slate-300">{value}</span>
+              )}
+            />
               {stepCodePivot.columns.map((c, i) => (
                 <Bar key={c} dataKey={c} stackId="s" fill={CHART_COLORS[i % CHART_COLORS.length]} />
               ))}
@@ -512,7 +536,13 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
               <XAxis dataKey="team_name" stroke="#64748b" fontSize={10} interval={0} angle={-25} textAnchor="end" height={60} />
               <YAxis stroke="#64748b" fontSize={11} />
               <Tooltip contentStyle={tooltipStyle} />
-              <Legend wrapperStyle={{ fontSize: 10 }} />
+              <Legend
+              wrapperStyle={{ fontSize: 10 }}
+              /* the swatch carries the colour; the label reads as text (§3.3) */
+              formatter={(value) => (
+                <span className="text-slate-700 dark:text-slate-300">{value}</span>
+              )}
+            />
               <Bar dataKey="avg_findings_per_audit" name="Ort. Bulgu / Denetim" fill="#a78bfa" />
               <Bar dataKey="audit_count" name="Denetim Sayısı" fill="#38bdf8" />
             </BarChart>
@@ -546,7 +576,7 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
                 ))}
                 {(data?.planCompliance ?? []).length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-3 py-4 text-center text-slate-500 dark:text-slate-500">Veri yok.</td>
+                    <td colSpan={5} className="px-3 py-4 text-center text-slate-500 dark:text-slate-400">Veri yok.</td>
                   </tr>
                 )}
               </tbody>
@@ -584,7 +614,7 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
               ))}
               {(data?.departmentSummary ?? []).length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-3 py-4 text-center text-slate-500 dark:text-slate-500">Veri yok.</td>
+                  <td colSpan={6} className="px-3 py-4 text-center text-slate-500 dark:text-slate-400">Veri yok.</td>
                 </tr>
               )}
             </tbody>
@@ -621,7 +651,7 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
               ))}
               {(data?.overdueActions ?? []).length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-3 py-4 text-center text-slate-500 dark:text-slate-500">Termini geçmiş açık aksiyon yok. 🎉</td>
+                  <td colSpan={7} className="px-3 py-4 text-center text-slate-500 dark:text-slate-400">Termini geçmiş açık aksiyon yok. 🎉</td>
                 </tr>
               )}
             </tbody>

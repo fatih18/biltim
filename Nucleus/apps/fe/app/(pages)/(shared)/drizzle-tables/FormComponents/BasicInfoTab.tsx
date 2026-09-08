@@ -130,7 +130,7 @@ export function BasicInfoTab({
             )
           })}
         </div>
-        <p className="mt-2 text-xs text-slate-500 dark:text-slate-500">
+        <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
           Selected methods will be excluded from auto-generated endpoints.
         </p>
       </div>

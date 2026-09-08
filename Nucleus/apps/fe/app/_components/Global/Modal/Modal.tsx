@@ -41,7 +41,7 @@ export function Modal({
                 <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">{title}</h2>
                 <button
                   type="button"
-                  className="rounded-full p-1 text-slate-500 dark:text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                  className="rounded-full p-1 text-slate-500 dark:text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
                   onClick={onClose}
                   aria-label="Modali kapat"
                 >

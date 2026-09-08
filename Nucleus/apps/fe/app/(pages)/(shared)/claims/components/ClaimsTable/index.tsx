@@ -9,22 +9,22 @@ export function ClaimsTable({ claims, isLoading, onEdit, onDelete }: ClaimsTable
       <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-sm">
         <thead className="bg-slate-50 dark:bg-slate-900">
           <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-500">
+            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Action
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-500">
+            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Method
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-500">
+            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Path
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-500">
+            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Mode
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-500">
+            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Description
             </th>
-            <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-500">
+            <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Actions
             </th>
           </tr>
@@ -41,7 +41,7 @@ export function ClaimsTable({ claims, isLoading, onEdit, onDelete }: ClaimsTable
             </tr>
           ) : !hasData ? (
             <tr>
-              <td colSpan={6} className="px-4 py-12 text-center text-sm text-slate-500 dark:text-slate-500">
+              <td colSpan={6} className="px-4 py-12 text-center text-sm text-slate-500 dark:text-slate-400">
                 No claims found.
               </td>
             </tr>

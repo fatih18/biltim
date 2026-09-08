@@ -31,7 +31,7 @@ export default function Verifications() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Verification Flows</h1>
-              <p className="text-slate-500 dark:text-slate-500">Design and manage approval workflows for your data</p>
+              <p className="text-slate-500 dark:text-slate-400">Design and manage approval workflows for your data</p>
             </div>
           </div>
         </div>
@@ -46,7 +46,7 @@ export default function Verifications() {
             </div>
             <div>
               <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">Multi-step Approval</div>
-              <div className="text-xs text-slate-500 dark:text-slate-500">Sequential or parallel verifiers</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">Sequential or parallel verifiers</div>
             </div>
           </div>
           <div className="flex items-center gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
@@ -55,7 +55,7 @@ export default function Verifications() {
             </div>
             <div>
               <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">Smart Notifications</div>
-              <div className="text-xs text-slate-500 dark:text-slate-500">Trigger-based alerts</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">Trigger-based alerts</div>
             </div>
           </div>
           <div className="flex items-center gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
@@ -64,7 +64,7 @@ export default function Verifications() {
             </div>
             <div>
               <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">Digital Signatures</div>
-              <div className="text-xs text-slate-500 dark:text-slate-500">Optional signature requirements</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">Optional signature requirements</div>
             </div>
           </div>
         </div>
@@ -96,7 +96,7 @@ export default function Verifications() {
                     </div>
 
                     <h3 className="mb-1 text-lg font-semibold text-slate-900 dark:text-slate-100">{table.name}</h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-500">{table.description}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">{table.description}</p>
                   </div>
                 </Link>
               )
@@ -106,7 +106,7 @@ export default function Verifications() {
 
         {/* Coming soon */}
         <div>
-          <h2 className="mb-4 text-lg font-semibold text-slate-500 dark:text-slate-500">Coming Soon</h2>
+          <h2 className="mb-4 text-lg font-semibold text-slate-500 dark:text-slate-400">Coming Soon</h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {comingSoonTables.map((table) => {
               const Icon = table.icon
@@ -119,7 +119,7 @@ export default function Verifications() {
                     <Icon className="h-5 w-5 text-slate-600 dark:text-slate-400" />
                   </div>
                   <div>
-                    <div className="text-sm font-medium text-slate-500 dark:text-slate-500">{table.name}</div>
+                    <div className="text-sm font-medium text-slate-500 dark:text-slate-400">{table.name}</div>
                     <div className="text-xs text-slate-600 dark:text-slate-400">Not available yet</div>
                   </div>
                 </div>

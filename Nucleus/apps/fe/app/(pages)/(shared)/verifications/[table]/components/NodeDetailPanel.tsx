@@ -296,9 +296,9 @@ function VerifierForm({
             onScroll={handleUserScroll}
           >
             {isLoadingUsers && users.length === 0 ? (
-              <div className="px-3 py-2 text-xs text-slate-500 dark:text-slate-500">Loading users…</div>
+              <div className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400">Loading users…</div>
             ) : users.length === 0 ? (
-              <div className="px-3 py-2 text-xs text-slate-500 dark:text-slate-500">No users found.</div>
+              <div className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400">No users found.</div>
             ) : (
               users.map((user) => {
                 const fullName = `${user.profile?.first_name ?? ''} ${
@@ -323,7 +323,7 @@ function VerifierForm({
                         {fullName || user.email}
                       </span>
                       {fullName && (
-                        <span className="block text-[11px] text-slate-500 dark:text-slate-500 truncate">
+                        <span className="block text-[11px] text-slate-500 dark:text-slate-400 truncate">
                           {user.email}
                         </span>
                       )}
@@ -364,9 +364,9 @@ function VerifierForm({
             onScroll={handleRoleScroll}
           >
             {isLoadingRoles && roles.length === 0 ? (
-              <div className="px-3 py-2 text-xs text-slate-500 dark:text-slate-500">Loading roles…</div>
+              <div className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400">Loading roles…</div>
             ) : roles.length === 0 ? (
-              <div className="px-3 py-2 text-xs text-slate-500 dark:text-slate-500">No roles found.</div>
+              <div className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400">No roles found.</div>
             ) : (
               roles.map((role) => {
                 const isSelected = data.verifierId === role.id
@@ -386,7 +386,7 @@ function VerifierForm({
                     <span className="flex-1 min-w-0">
                       <span className="block font-medium text-slate-900 dark:text-slate-100 truncate">{role.name}</span>
                       {role.description && (
-                        <span className="block text-[11px] text-slate-500 dark:text-slate-500 truncate">
+                        <span className="block text-[11px] text-slate-500 dark:text-slate-400 truncate">
                           {role.description}
                         </span>
                       )}
@@ -412,7 +412,7 @@ function VerifierForm({
           />
           <div>
             <div className="text-sm font-medium text-slate-900 dark:text-slate-100">Require Signature</div>
-            <div className="text-xs text-slate-500 dark:text-slate-500">Verifier must sign to approve</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">Verifier must sign to approve</div>
           </div>
         </label>
 
@@ -428,7 +428,7 @@ function VerifierForm({
               <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
                 All users with this role must approve
               </div>
-              <div className="text-xs text-slate-500 dark:text-slate-500">
+              <div className="text-xs text-slate-500 dark:text-slate-400">
                 Require approval from every user who has this role
               </div>
             </div>
@@ -597,9 +597,9 @@ function NotificationForm({
             onScroll={handleUserScroll}
           >
             {isLoadingUsers && users.length === 0 ? (
-              <div className="px-3 py-2 text-xs text-slate-500 dark:text-slate-500">Loading users…</div>
+              <div className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400">Loading users…</div>
             ) : users.length === 0 ? (
-              <div className="px-3 py-2 text-xs text-slate-500 dark:text-slate-500">No users found.</div>
+              <div className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400">No users found.</div>
             ) : (
               users.map((user) => {
                 const fullName = `${user.profile?.first_name ?? ''} ${
@@ -623,7 +623,7 @@ function NotificationForm({
                         {fullName || user.email}
                       </span>
                       {fullName && (
-                        <span className="block text-[11px] text-slate-500 dark:text-slate-500 truncate">
+                        <span className="block text-[11px] text-slate-500 dark:text-slate-400 truncate">
                           {user.email}
                         </span>
                       )}
@@ -664,9 +664,9 @@ function NotificationForm({
             onScroll={handleRoleScroll}
           >
             {isLoadingRoles && roles.length === 0 ? (
-              <div className="px-3 py-2 text-xs text-slate-500 dark:text-slate-500">Loading roles…</div>
+              <div className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400">Loading roles…</div>
             ) : roles.length === 0 ? (
-              <div className="px-3 py-2 text-xs text-slate-500 dark:text-slate-500">No roles found.</div>
+              <div className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400">No roles found.</div>
             ) : (
               roles.map((role) => {
                 const isSelected = data.recipientId === role.id
@@ -685,7 +685,7 @@ function NotificationForm({
                     <span className="flex-1 min-w-0">
                       <span className="block font-medium text-slate-900 dark:text-slate-100 truncate">{role.name}</span>
                       {role.description && (
-                        <span className="block text-[11px] text-slate-500 dark:text-slate-500 truncate">
+                        <span className="block text-[11px] text-slate-500 dark:text-slate-400 truncate">
                           {role.description}
                         </span>
                       )}

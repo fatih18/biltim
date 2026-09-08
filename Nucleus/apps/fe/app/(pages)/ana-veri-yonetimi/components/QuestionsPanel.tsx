@@ -349,7 +349,7 @@ export function QuestionsPanel() {
         <div className="rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 px-4 py-8 text-center">
           <p className="text-xs text-slate-600 dark:text-slate-400">Kayıtlı adım veya soru bulunamadı.</p>
           {isAdmin && (
-            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-500">
+            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
               Yukarıdaki "Varsayılan Soruları İçe Aktar" butonuyla veritabanını başlatın.
             </p>
           )}
@@ -373,7 +373,7 @@ export function QuestionsPanel() {
                   }
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-slate-500 dark:text-slate-500 text-[10px]">{isCollapsed ? "▸" : "▾"}</span>
+                    <span className="text-slate-500 dark:text-slate-400 text-[10px]">{isCollapsed ? "▸" : "▾"}</span>
                     <h3 className="text-xs font-semibold text-slate-700 dark:text-slate-300">{step.title}</h3>
                     <span className="rounded-full bg-slate-200 dark:bg-slate-800 px-2 py-0.5 text-[10px] text-slate-600 dark:text-slate-400">
                       {stepQs.length}
@@ -462,7 +462,7 @@ export function QuestionsPanel() {
                     )}
 
                     {stepQs.length === 0 && !isAdding && (
-                      <div className="px-4 py-3 text-xs text-slate-500 dark:text-slate-500">Bu adımda soru yok.</div>
+                      <div className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400">Bu adımda soru yok.</div>
                     )}
 
                     {stepQs.map((q, idx) => (
@@ -523,11 +523,11 @@ export function QuestionsPanel() {
                         ) : (
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex-1">
-                              <div className="text-[11px] text-slate-500 dark:text-slate-500">{q.externalId}</div>
+                              <div className="text-[11px] text-slate-500 dark:text-slate-400">{q.externalId}</div>
                               <div className="mt-0.5 text-xs leading-relaxed text-slate-800 dark:text-slate-200">
                                 {q.text}
                               </div>
-                              <div className="mt-1.5 flex items-center gap-3 text-[11px] text-slate-500 dark:text-slate-500">
+                              <div className="mt-1.5 flex items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400">
                                 <span>
                                   Maks. Puan:{" "}
                                   <span className="text-sky-700 dark:text-sky-300">{q.maxScore}</span>

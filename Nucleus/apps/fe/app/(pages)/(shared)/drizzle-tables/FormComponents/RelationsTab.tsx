@@ -38,7 +38,7 @@ export function RelationsTab({
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">Relations</h3>
-          <p className="text-sm text-slate-500 dark:text-slate-500">Define relationships between tables</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Define relationships between tables</p>
         </div>
         <button
           type="button"
@@ -141,7 +141,7 @@ export function RelationsTab({
         ))}
 
         {schema.relations.length === 0 && (
-          <div className="text-center py-12 text-slate-500 dark:text-slate-500">
+          <div className="text-center py-12 text-slate-500 dark:text-slate-400">
             No relations yet. Click "Add Relation" to create one.
           </div>
         )}

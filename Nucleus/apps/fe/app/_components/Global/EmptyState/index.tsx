@@ -43,7 +43,7 @@ export function EmptyState({
     >
       <span
         aria-hidden
-        className={`flex items-center justify-center rounded-full bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500 ${
+        className={`flex items-center justify-center rounded-full bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-400 ${
           compact ? "h-10 w-10" : "h-14 w-14 sm:h-16 sm:w-16"
         }`}
       >

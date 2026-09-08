@@ -41,7 +41,7 @@ export function UsersTable({ users, onSelectDetails, onValidateEmail, onDelete }
         </div>
 
         <div className="relative py-12 text-center">
-          <AlertCircle className="mx-auto mb-4 text-slate-500 dark:text-slate-500" size={48} />
+          <AlertCircle className="mx-auto mb-4 text-slate-500 dark:text-slate-400" size={48} />
           <h3 className="mb-2 text-lg font-semibold text-slate-900 dark:text-white">Kullanıcı bulunamadı</h3>
           <p className="text-slate-700 dark:text-slate-300">Arama kriterlerini veya filtreleri düzenleyip tekrar deneyin.</p>
         </div>

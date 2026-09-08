@@ -493,7 +493,7 @@ export function TeamsTab({
               ))}
             </select>
 
-            <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-500">
+            <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
               Lider adayları: {leaderUsers.length} • Denetçi adayları: {auditorUsers.length}
             </div>
           </div>
@@ -531,7 +531,7 @@ export function TeamsTab({
           <div>
             <div className="text-xs text-slate-600 dark:text-slate-400 mb-2">Takım Denetçileri</div>
             {draftMembers.length === 0 ? (
-              <div className="rounded-md border border-dashed border-slate-300 dark:border-slate-700 bg-slate-950/30 p-3 text-sm text-slate-500 dark:text-slate-500">
+              <div className="rounded-md border border-dashed border-slate-300 dark:border-slate-700 bg-slate-950/30 p-3 text-sm text-slate-500 dark:text-slate-400">
                 Henüz denetçi eklenmedi.
               </div>
             ) : (
@@ -564,7 +564,7 @@ export function TeamsTab({
               {editingTeamId ? "Kaydet" : "Takımı Oluştur"}
             </button>
 
-            <div className="text-[11px] text-slate-500 dark:text-slate-500">
+            <div className="text-[11px] text-slate-500 dark:text-slate-400">
               {teamsLoading ? "Yükleniyor..." : `Tanımlı ekip: ${teams.length}`}
             </div>
           </div>
@@ -579,14 +579,14 @@ export function TeamsTab({
             <div className="mt-1 text-xs text-slate-600 dark:text-slate-400">Ekipleri burada yönetebilirsin.</div>
           </div>
 
-          <div className="text-xs text-slate-500 dark:text-slate-500">
+          <div className="text-xs text-slate-500 dark:text-slate-400">
             Teams: {String(teamsLoading)} • Users: {String(usersLoading)}
           </div>
         </div>
 
         <div className="mt-4 space-y-3">
           {teams.length === 0 ? (
-            <div className="rounded-md border border-dashed border-slate-300 dark:border-slate-700 bg-slate-950/30 p-4 text-sm text-slate-500 dark:text-slate-500">
+            <div className="rounded-md border border-dashed border-slate-300 dark:border-slate-700 bg-slate-950/30 p-4 text-sm text-slate-500 dark:text-slate-400">
               Henüz ekip yok.
             </div>
           ) : (
@@ -604,7 +604,7 @@ export function TeamsTab({
                       <div className="text-sm font-semibold">
                         {t.name ? (
                           <>
-                            {t.name} <span className="text-slate-500 dark:text-slate-500 font-normal">•</span>{" "}
+                            {t.name} <span className="text-slate-500 dark:text-slate-400 font-normal">•</span>{" "}
                           </>
                         ) : null}
                         Lider: <span className="font-normal text-slate-800 dark:text-slate-200">{leaderName}</span>

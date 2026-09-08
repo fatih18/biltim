@@ -225,7 +225,7 @@ export function AuditPlannerPanel(props: {
 
         <div className="overflow-hidden">
           {parentPlans.length === 0 ? (
-            <div className="px-4 py-5 text-sm text-slate-500 dark:text-slate-500">Henüz dönem planı yok.</div>
+            <div className="px-4 py-5 text-sm text-slate-500 dark:text-slate-400">Henüz dönem planı yok.</div>
           ) : (
             <div className="divide-y divide-slate-800">
               {parentPlans.map((pp) => {
@@ -273,7 +273,7 @@ export function AuditPlannerPanel(props: {
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="text-[11px] text-slate-500 dark:text-slate-500">{childCount} denetim planı</span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400">{childCount} denetim planı</span>
                         <Badge>{auditStatusLabelTr(pp.status)}</Badge>
                         <DangerButton
                           className="py-1"
@@ -290,12 +290,12 @@ export function AuditPlannerPanel(props: {
                     {isExpanded && (
                       <div className="border-t border-slate-800/60 bg-slate-950/20">
                         {childPlans.length === 0 ? (
-                          <p className="px-8 py-4 text-xs text-slate-500 dark:text-slate-500">
+                          <p className="px-8 py-4 text-xs text-slate-500 dark:text-slate-400">
                             Bu döneme bağlı denetim planı yok.
                           </p>
                         ) : (
                           <div className="divide-y divide-slate-800/40">
-                            <div className="grid grid-cols-12 bg-slate-50 dark:bg-slate-900/60 px-8 py-2 text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-500">
+                            <div className="grid grid-cols-12 bg-slate-50 dark:bg-slate-900/60 px-8 py-2 text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                               <div className="col-span-2">Tarih</div>
                               <div className="col-span-3">Lokasyon</div>
                               <div className="col-span-2">Ekip</div>
@@ -361,7 +361,7 @@ export function AuditPlannerPanel(props: {
                                             Düzenle ({2 - changeCount} hak)
                                           </button>
                                         ) : (
-                                          <span className="text-[10px] text-slate-500 dark:text-slate-500">Tarih kilitli</span>
+                                          <span className="text-[10px] text-slate-500 dark:text-slate-400">Tarih kilitli</span>
                                         )}
                                       </div>
                                     )}
@@ -416,7 +416,7 @@ export function AuditPlannerPanel(props: {
             {/* Dönem bağlama */}
             <div className="space-y-1 md:col-span-2">
               <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
-                Dönem Planı <span className="text-slate-500 dark:text-slate-500">(opsiyonel)</span>
+                Dönem Planı <span className="text-slate-500 dark:text-slate-400">(opsiyonel)</span>
               </label>
               <Select value={parentPlanId} onChange={(e) => setParentPlanId(e.target.value)}>
                 <option value="">— Bağlı dönem yok —</option>
@@ -441,7 +441,7 @@ export function AuditPlannerPanel(props: {
                 onChange={(value) => setPlannedDate(value)}
               />
               {selectedParentRange && (
-                <p className="text-[10px] text-slate-500 dark:text-slate-500">
+                <p className="text-[10px] text-slate-500 dark:text-slate-400">
                   Dönem aralığı: {selectedParentRange.start} – {selectedParentRange.end}
                 </p>
               )}
@@ -500,7 +500,7 @@ export function AuditPlannerPanel(props: {
               <div className="border-b border-slate-800/60 bg-slate-50 dark:bg-slate-900/60 px-3 py-2">
                 <p className="text-[11px] font-medium text-slate-600 dark:text-slate-400">Dönemsiz Planlar</p>
               </div>
-              <div className="grid grid-cols-12 bg-slate-50 dark:bg-slate-900/90 px-3 py-2 text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-500">
+              <div className="grid grid-cols-12 bg-slate-50 dark:bg-slate-900/90 px-3 py-2 text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 <div className="col-span-2">Tarih</div>
                 <div className="col-span-3">Lokasyon</div>
                 <div className="col-span-2">Ekip</div>
@@ -565,7 +565,7 @@ export function AuditPlannerPanel(props: {
                               Düzenle ({2 - changeCount} hak)
                             </button>
                           ) : (
-                            <span className="text-[10px] text-slate-500 dark:text-slate-500">Tarih kilitli</span>
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400">Tarih kilitli</span>
                           )}
                         </div>
                       )}

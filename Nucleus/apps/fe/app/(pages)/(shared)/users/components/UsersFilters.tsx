@@ -66,7 +66,7 @@ export function UsersFilters({
             placeholder="E-posta, ad veya izin ile ara…"
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}
-            className="w-full rounded-xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/50 px-4 py-2.5 text-slate-900 dark:text-slate-100 placeholder:text-slate-500 placeholder:dark:text-slate-500 outline-none transition focus:border-emerald-500/40 focus:ring-2 focus:ring-emerald-500/20"
+            className="w-full rounded-xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/50 px-4 py-2.5 text-slate-900 dark:text-slate-100 placeholder:text-slate-500 placeholder:dark:text-slate-400 outline-none transition focus:border-emerald-500/40 focus:ring-2 focus:ring-emerald-500/20"
           />
         </div>
 

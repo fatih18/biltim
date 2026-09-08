@@ -5,10 +5,10 @@ function getTrendClasses(trend: KpiProps['trend']): string {
   const map: Record<NonNullable<KpiProps['trend']>, string> = {
     up: 'text-emerald-700',
     down: 'text-rose-700',
-    steady: 'text-slate-500 dark:text-slate-500',
+    steady: 'text-slate-500 dark:text-slate-400',
   }
   if (trend === undefined) {
-    return 'text-slate-500 dark:text-slate-500'
+    return 'text-slate-500 dark:text-slate-400'
   }
   return map[trend]
 }
@@ -38,7 +38,7 @@ export function Kpi({
             </div>
           ) : null}
           <div className="flex flex-col">
-            <span className="text-sm font-medium uppercase tracking-wider text-slate-500 dark:text-slate-500">
+            <span className="text-sm font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
               {title}
             </span>
             <span className="text-3xl font-semibold text-slate-900 dark:text-slate-100">{value}</span>
@@ -47,7 +47,7 @@ export function Kpi({
         {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
       </header>
       <footer className="flex items-baseline gap-2 text-sm">
-        {subValue ? <span className="text-slate-500 dark:text-slate-500">{subValue}</span> : null}
+        {subValue ? <span className="text-slate-500 dark:text-slate-400">{subValue}</span> : null}
         {trendLabel ? (
           <span className={cn('font-semibold', getTrendClasses(trend))}>{trendLabel}</span>
         ) : null}

@@ -159,7 +159,7 @@ export function LocationsPanel(props: {
                                     <div className={`col-span-4 text-sm font-semibold ${nameClass}`} title={it.isActive ? "Aktif" : "Pasif"}>
                                         {it.name}
                                         {!it.isActive && (
-                                            <span className="ml-2 text-[11px] font-medium text-slate-500 dark:text-slate-500 no-underline">(Pasif)</span>
+                                            <span className="ml-2 text-[11px] font-medium text-slate-500 dark:text-slate-400 no-underline">(Pasif)</span>
                                         )}
                                     </div>
 
