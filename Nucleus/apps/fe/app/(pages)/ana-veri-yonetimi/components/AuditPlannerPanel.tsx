@@ -295,7 +295,7 @@ export function AuditPlannerPanel(props: {
                           </p>
                         ) : (
                           <div className="divide-y divide-slate-800/40">
-                            <div className="grid grid-cols-12 bg-slate-50 dark:bg-slate-900/60 px-8 py-2 text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                            <div className="grid grid-cols-12 bg-slate-50 dark:bg-slate-900/60 px-8 py-2 text-[11px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                               <div className="col-span-2">Tarih</div>
                               <div className="col-span-3">Lokasyon</div>
                               <div className="col-span-2">Ekip</div>
@@ -325,7 +325,7 @@ export function AuditPlannerPanel(props: {
                                           onChange={(v) => setEditingDateVal(v)}
                                         />
                                         {editingDateVal && getEditConflicts(a.id, editingDateVal).map((w, i) => (
-                                          <p key={i} className="text-[10px] text-amber-700 dark:text-amber-300">⚠ {w}</p>
+                                          <p key={i} className="text-[11px] text-amber-700 dark:text-amber-300">⚠ {w}</p>
                                         ))}
                                         <div className="flex gap-1">
                                           <button
@@ -336,14 +336,14 @@ export function AuditPlannerPanel(props: {
                                               }
                                               setEditingDateId(null);
                                             }}
-                                            className="rounded bg-sky-500 px-2 py-0.5 text-[10px] font-semibold text-slate-950 hover:bg-sky-400"
+                                            className="rounded bg-sky-500 px-2 py-0.5 text-[11px] font-semibold text-slate-950 hover:bg-sky-400"
                                           >
                                             Kaydet
                                           </button>
                                           <button
                                             type="button"
                                             onClick={() => setEditingDateId(null)}
-                                            className="rounded border border-slate-400 dark:border-slate-600 px-2 py-0.5 text-[10px] text-slate-700 dark:text-slate-300 hover:bg-slate-200 hover:dark:bg-slate-800"
+                                            className="rounded border border-slate-400 dark:border-slate-600 px-2 py-0.5 text-[11px] text-slate-700 dark:text-slate-300 hover:bg-slate-200 hover:dark:bg-slate-800"
                                           >
                                             İptal
                                           </button>
@@ -356,12 +356,12 @@ export function AuditPlannerPanel(props: {
                                           <button
                                             type="button"
                                             onClick={() => { setEditingDateId(a.id); setEditingDateVal(a.plannedDate); }}
-                                            className="text-left text-[10px] text-sky-700 dark:text-sky-400 hover:underline"
+                                            className="text-left text-[11px] text-sky-700 dark:text-sky-400 hover:underline"
                                           >
                                             Düzenle ({2 - changeCount} hak)
                                           </button>
                                         ) : (
-                                          <span className="text-[10px] text-slate-500 dark:text-slate-400">Tarih kilitli</span>
+                                          <span className="text-[11px] text-slate-500 dark:text-slate-400">Tarih kilitli</span>
                                         )}
                                       </div>
                                     )}
@@ -441,12 +441,12 @@ export function AuditPlannerPanel(props: {
                 onChange={(value) => setPlannedDate(value)}
               />
               {selectedParentRange && (
-                <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   Dönem aralığı: {selectedParentRange.start} – {selectedParentRange.end}
                 </p>
               )}
               {dateOutOfRange && (
-                <p className="text-[10px] text-rose-400">⚠ Tarih dönem aralığı dışında</p>
+                <p className="text-[11px] text-rose-400">⚠ Tarih dönem aralığı dışında</p>
               )}
             </div>
 
@@ -500,7 +500,7 @@ export function AuditPlannerPanel(props: {
               <div className="border-b border-slate-800/60 bg-slate-50 dark:bg-slate-900/60 px-3 py-2">
                 <p className="text-[11px] font-medium text-slate-600 dark:text-slate-400">Dönemsiz Planlar</p>
               </div>
-              <div className="grid grid-cols-12 bg-slate-50 dark:bg-slate-900/90 px-3 py-2 text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              <div className="grid grid-cols-12 bg-slate-50 dark:bg-slate-900/90 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 <div className="col-span-2">Tarih</div>
                 <div className="col-span-3">Lokasyon</div>
                 <div className="col-span-2">Ekip</div>
@@ -529,7 +529,7 @@ export function AuditPlannerPanel(props: {
                             onChange={(v) => setEditingDateVal(v)}
                           />
                           {editingDateVal && getEditConflicts(a.id, editingDateVal).map((w, i) => (
-                            <p key={i} className="text-[10px] text-amber-700 dark:text-amber-300">⚠ {w}</p>
+                            <p key={i} className="text-[11px] text-amber-700 dark:text-amber-300">⚠ {w}</p>
                           ))}
                           <div className="flex gap-1">
                             <button
@@ -540,14 +540,14 @@ export function AuditPlannerPanel(props: {
                                 }
                                 setEditingDateId(null);
                               }}
-                              className="rounded bg-sky-500 px-2 py-0.5 text-[10px] font-semibold text-slate-950 hover:bg-sky-400"
+                              className="rounded bg-sky-500 px-2 py-0.5 text-[11px] font-semibold text-slate-950 hover:bg-sky-400"
                             >
                               Kaydet
                             </button>
                             <button
                               type="button"
                               onClick={() => setEditingDateId(null)}
-                              className="rounded border border-slate-400 dark:border-slate-600 px-2 py-0.5 text-[10px] text-slate-700 dark:text-slate-300 hover:bg-slate-200 hover:dark:bg-slate-800"
+                              className="rounded border border-slate-400 dark:border-slate-600 px-2 py-0.5 text-[11px] text-slate-700 dark:text-slate-300 hover:bg-slate-200 hover:dark:bg-slate-800"
                             >
                               İptal
                             </button>
@@ -560,12 +560,12 @@ export function AuditPlannerPanel(props: {
                             <button
                               type="button"
                               onClick={() => { setEditingDateId(a.id); setEditingDateVal(a.plannedDate); }}
-                              className="text-left text-[10px] text-sky-700 dark:text-sky-400 hover:underline"
+                              className="text-left text-[11px] text-sky-700 dark:text-sky-400 hover:underline"
                             >
                               Düzenle ({2 - changeCount} hak)
                             </button>
                           ) : (
-                            <span className="text-[10px] text-slate-500 dark:text-slate-400">Tarih kilitli</span>
+                            <span className="text-[11px] text-slate-500 dark:text-slate-400">Tarih kilitli</span>
                           )}
                         </div>
                       )}

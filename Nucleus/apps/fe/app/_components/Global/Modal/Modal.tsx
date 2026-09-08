@@ -27,9 +27,13 @@ export function Modal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white dark:bg-slate-900/40 px-4 py-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm dark:bg-slate-950/70 px-4 py-6">
       <div
-        className={cn('w-full rounded-3xl bg-white shadow-2xl', getSizeClasses(size), className)}
+        className={cn(
+          'w-full rounded-3xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900',
+          getSizeClasses(size),
+          className
+        )}
         role="dialog"
         aria-modal="true"
         aria-label={title ?? 'Modal dialog'}
@@ -41,7 +45,7 @@ export function Modal({
                 <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">{title}</h2>
                 <button
                   type="button"
-                  className="rounded-full p-1 text-slate-500 dark:text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                  className="rounded-full p-1 text-slate-500 dark:text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
                   onClick={onClose}
                   aria-label="Modali kapat"
                 >

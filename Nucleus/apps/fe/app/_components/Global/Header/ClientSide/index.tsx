@@ -183,6 +183,9 @@ function NotificationDropdown({
         onClick={() => setIsOpen(!isOpen)}
         className="relative p-2 hover:bg-slate-200 hover:dark:bg-white/10 rounded-lg transition-all duration-300 hover:scale-110"
         type="button"
+        aria-label={unreadCount > 0 ? `Bildirimler (${unreadCount} okunmamış)` : 'Bildirimler'}
+        title={unreadCount > 0 ? `Bildirimler (${unreadCount} okunmamış)` : 'Bildirimler'}
+        aria-expanded={isOpen}
       >
         <Bell size={20} />
         {unreadCount > 0 && (
@@ -250,7 +253,7 @@ function NotificationDropdown({
                           >
                             {notif.title}
                           </span>
-                          <span className="text-[10px] text-slate-600 dark:text-slate-400 flex-shrink-0">
+                          <span className="text-[11px] text-slate-600 dark:text-slate-400 flex-shrink-0">
                             {formatTime(notif.created_at)}
                           </span>
                         </div>
@@ -258,7 +261,7 @@ function NotificationDropdown({
                           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">{notif.body}</p>
                         )}
                         {notif.entity_name && (
-                          <span className="inline-block mt-1 text-[10px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">
+                          <span className="inline-block mt-1 text-[11px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">
                             {notif.entity_name}
                           </span>
                         )}
@@ -376,6 +379,7 @@ function ThemeToggle(): React.JSX.Element {
       onClick={toggle}
       className="p-2 hover:bg-slate-200 hover:dark:bg-white/10 rounded-lg transition-all duration-300 hover:scale-110"
       title={isLight ? 'Koyu temaya geç' : 'Açık temaya geç'}
+      aria-label={isLight ? 'Koyu temaya geç' : 'Açık temaya geç'}
     >
       {isLight ? <Moon size={20} /> : <Sun size={20} />}
     </button>
@@ -980,7 +984,7 @@ export function ClientSide({
                     setOpenCategory(null)
                   }}
                   className={`flex items-center gap-3 px-4 py-2.5 mx-2 rounded-xl transition-all duration-200 group ${ isItemActive ?'bg-gradient-to-r from-indigo-500 to-purple-500 text-slate-900 dark:text-white shadow-lg shadow-indigo-500/30'
-                        : 'text-slate-700 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50'
+                        : 'text-slate-700 dark:text-slate-200 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 dark:hover:from-indigo-500/20 dark:hover:to-purple-500/20'
                     }
                     ${index > 0 ? 'mt-1' : ''}`}
                 >
@@ -992,7 +996,7 @@ export function ClientSide({
                     {item.icon}
                   </span>
                   <span
-                    className={`font-medium text-sm ${isItemActive ?'' : 'group-hover:text-indigo-600'}`}
+                    className={`font-medium text-sm ${isItemActive ?'' : 'group-hover:text-indigo-600 dark:group-hover:text-indigo-300'}`}
                   >
                     {item.label}
                   </span>
@@ -1084,9 +1088,20 @@ export function ClientSide({
   }
 
   return (
+    /*
+     * z-30, deliberately.
+     *
+     * This was z-[9998], which put the navigation bar above every dialog in the
+     * app: modals and drawers all sit at z-40..z-60, so each one rendered
+     * UNDERNEATH the nav. On the user detail drawer — `fixed inset-y-0` — that
+     * hid its top 81px, which is exactly where its title and close button are.
+     * The header is `relative`, in normal flow, so it only has to outrank page
+     * content (which tops out at z-20); its own dropdown is inside its stacking
+     * context and rides along.
+     */
     <header
       ref={headerRef}
-      className="relative z-[9998] border-b border-slate-200 bg-white text-slate-900 shadow-sm dark:border-slate-600/50 dark:bg-gradient-to-r dark:from-slate-800 dark:via-slate-700 dark:to-slate-800 dark:text-white dark:shadow-xl"
+      className="relative z-30 border-b border-slate-200 bg-white text-slate-900 shadow-sm dark:border-slate-600/50 dark:bg-gradient-to-r dark:from-slate-800 dark:via-slate-700 dark:to-slate-800 dark:text-white dark:shadow-xl"
     >
       <div className="absolute inset-0 opacity-5 pointer-events-none">
         <div className="absolute inset-0 bg-grid-pattern"></div>
@@ -1099,6 +1114,9 @@ export function ClientSide({
               onClick={toggleMenu}
               className="lg:hidden p-2 hover:bg-slate-200 hover:dark:bg-white/10 rounded-lg transition-all duration-300 hover:scale-110"
               type="button"
+              aria-label={isExpanded ? 'Menüyü kapat' : 'Menüyü aç'}
+              title={isExpanded ? 'Menüyü kapat' : 'Menüyü aç'}
+              aria-expanded={isExpanded}
             >
               {isExpanded ? <X size={24} /> : <Menu size={24} />}
             </button>
@@ -1127,6 +1145,8 @@ export function ClientSide({
                 onClick={toggleSearch}
                 className="p-2 hover:bg-slate-200 hover:dark:bg-white/10 rounded-lg transition-all duration-300 hover:scale-110"
                 type="button"
+                aria-label="Ara"
+                title="Ara"
               >
                 <Search size={20} />
               </button>

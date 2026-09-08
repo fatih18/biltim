@@ -2,7 +2,12 @@
   "appId": "biltim",
   "rateLimit": {
     "authRoutes": {
-      "login": { "window": "15m", "max": 5, "perAddressMax": 300, "blockDuration": "1m" }
+      "login": {
+        "window": "15m",
+        "max": 5,
+        "perAddressMax": 300,
+        "blockDuration": "1m"
+      }
     }
   },
   "mode": "development",
@@ -70,6 +75,13 @@
       "includeAddresses": true,
       "includePhones": true,
       "includeFiles": true
+    },
+    "sessions": {
+      "enabled": true,
+      "isPublic": false,
+      "allowMultipleDevices": true,
+      "maxActiveSessions": 5,
+      "inactivityTimeout": "30d"
     }
   },
   "authorization": {

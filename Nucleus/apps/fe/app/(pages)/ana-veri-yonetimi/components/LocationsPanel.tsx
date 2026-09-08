@@ -1,4 +1,5 @@
 "use client";
+import { confirmDialog } from '@/app/_components/Global/ConfirmDialog'
 
 import React from "react";
 import { Pencil, Trash2 } from "lucide-react";
@@ -185,7 +186,12 @@ export function LocationsPanel(props: {
                                             onClick={() => {
                                                     // Irreversible, and it used to happen on a single click of
                                                     // an icon. The questions panel beside this one already asks.
-                                                    if (window.confirm(`"${it.name}" kalıcı olarak silinecek. Emin misiniz?`)) onDelete(it.id);
+                                                    void confirmDialog({
+                                                        title: 'Kaydı sil',
+                                                        message: `"${it.name}" kalıcı olarak silinecek. Bu işlem geri alınamaz.`,
+                                                        confirmLabel: 'Sil',
+                                                        tone: 'danger',
+                                                    }).then((ok) => { if (ok) onDelete(it.id) });
                                                 }}
                                             title="Sil"
                                             className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-transparent text-rose-500 hover:bg-rose-100 hover:text-rose-700 dark:text-rose-300/80 hover:dark:bg-rose-500/10 hover:dark:text-rose-200"

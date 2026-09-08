@@ -226,17 +226,17 @@ export function HomeAuditListPanel(props: {
                                                     ].join(" ")}
                                                 />
                                                 {parentRange && (
-                                                    <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                                                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
                                                         Aralık: {parentRange.start} – {parentRange.end}
                                                     </p>
                                                 )}
                                                 {outOfRange && (
-                                                    <p className="text-[10px] text-rose-400">
+                                                    <p className="text-[11px] text-rose-400">
                                                         ⚠ Seçilen tarih ana plan aralığı dışında
                                                     </p>
                                                 )}
                                                 {editDate && getDateConflicts?.(p.id, editDate).map((w, i) => (
-                                                    <p key={i} className="text-[10px] text-amber-700 dark:text-amber-300">⚠ {w}</p>
+                                                    <p key={i} className="text-[11px] text-amber-700 dark:text-amber-300">⚠ {w}</p>
                                                 ))}
                                                 <div className="flex gap-1">
                                                     <button
@@ -261,12 +261,12 @@ export function HomeAuditListPanel(props: {
                                                     <button
                                                         type="button"
                                                         onClick={() => startEdit(p)}
-                                                        className="text-left text-[10px] text-sky-700 dark:text-sky-400 hover:underline"
+                                                        className="text-left text-[11px] text-sky-700 dark:text-sky-400 hover:underline"
                                                     >
                                                         Düzenle ({2 - (p.date_change_count ?? 0)} hak)
                                                     </button>
                                                 ) : (p.date_change_count ?? 0) >= 2 && canEditPlan({ ...p, date_change_count: 0 }) ? (
-                                                    <span className="text-[10px] text-slate-500 dark:text-slate-400">Tarih kilitli</span>
+                                                    <span className="text-[11px] text-slate-500 dark:text-slate-400">Tarih kilitli</span>
                                                 ) : null}
                                             </div>
                                         )}
@@ -276,11 +276,11 @@ export function HomeAuditListPanel(props: {
                                     <div className="col-span-2">
                                         {parentRange ? (
                                             <div className="flex flex-col gap-0.5">
-                                                <span className="inline-block rounded border border-indigo-700/50 bg-indigo-100 dark:bg-indigo-950/40 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-600 dark:text-indigo-300">
+                                                <span className="inline-block rounded border border-indigo-700/50 bg-indigo-100 dark:bg-indigo-950/40 px-1.5 py-0.5 text-[11px] font-semibold text-indigo-600 dark:text-indigo-300">
                                                     {parentRange.quarter ?? "—"}
                                                 </span>
                                                 {parentRange.title && (
-                                                    <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{parentRange.title}</span>
+                                                    <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{parentRange.title}</span>
                                                 )}
                                             </div>
                                         ) : (
@@ -292,13 +292,13 @@ export function HomeAuditListPanel(props: {
 
                                     <div className="col-span-2 flex flex-col gap-0.5">
                                         {managerName && (
-                                            <div className="flex items-center gap-1 text-[10px]">
+                                            <div className="flex items-center gap-1 text-[11px]">
                                                 <span className="font-medium text-slate-500 dark:text-slate-400">Müdür:</span>
                                                 <span className="text-slate-700 dark:text-slate-300">{managerName}</span>
                                             </div>
                                         )}
                                         {fieldManagerNames.length > 0 && (
-                                            <div className="flex items-center gap-1 text-[10px]">
+                                            <div className="flex items-center gap-1 text-[11px]">
                                                 <span className="font-medium text-slate-500 dark:text-slate-400">Saha:</span>
                                                 <span className="text-slate-700 dark:text-slate-300">{fieldManagerNames.join(", ")}</span>
                                             </div>

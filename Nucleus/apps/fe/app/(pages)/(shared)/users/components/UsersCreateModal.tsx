@@ -325,7 +325,7 @@ export function UsersCreateModal({
 
                         <span className="flex items-center gap-2">
                           {role.is_system ? (
-                            <span className="rounded-full border border-amber-800/50 bg-amber-950/25 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-200">
+                            <span className="rounded-full border border-amber-800/50 bg-amber-950/25 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-200">
                               Sistem
                             </span>
                           ) : null}

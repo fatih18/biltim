@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { confirmDialog } from '@/app/_components/Global/ConfirmDialog'
 import Dexie, { type Table } from 'dexie'
 
 import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
@@ -1641,10 +1642,14 @@ export default function FiveSAuditFormPage() {
       (q) => openFindingsByQuestion.has(q.id) && answers[q.id]?.rating === 'good'
     )
     if (goodButOpen.length > 0) {
-      const listTxt = goodButOpen.map((q) => `• ${q.id}: ${q.text.slice(0, 60)}`).join('\n')
-      const ok = window.confirm(
-        `Aşağıdaki sorularda henüz KAPANMAMIŞ bulgular varken "İyi" seçtiniz:\n\n${listTxt}\n\nYine de devam etmek istiyor musunuz?`
-      )
+      const ok = await confirmDialog({
+        title: 'Kapanmamış bulgu varken "İyi" seçildi',
+        message:
+          'Aşağıdaki sorularda henüz kapanmamış bulgular var. Yine de denetimi bu haliyle kaydetmek istiyor musunuz?',
+        items: goodButOpen.map((q) => `${q.id}: ${q.text.slice(0, 60)}`),
+        confirmLabel: 'Yine de kaydet',
+        tone: 'danger',
+      })
       if (!ok) return
     }
 
@@ -1684,6 +1689,47 @@ export default function FiveSAuditFormPage() {
             console.warn('Audit ID bulunamadı, findings kaydı atlanıyor.')
             setSubmitted(true)
             return
+          }
+
+          /*
+           * Per-question answers.
+           *
+           * The audit row keeps only the five step totals, and a finding is
+           * written only for a non-good answer. That left every "İyi" with no
+           * record at all: after a completed audit nothing could say what was
+           * answered for a given question, and the score could not be
+           * recomputed from its parts. `five_s_audit_answers` was designed for
+           * exactly this (rating / explanation / finding_type per question) and
+           * was never written to. It is supplementary to the audit itself, so a
+           * failure here reports but does not fail the submission.
+           */
+          const answeredAt = new Date().toISOString()
+          const answerJobs = questions
+            .filter((q) => !!answers[q.id]?.rating)
+            .map(async (q) => {
+              const ans = answers[q.id]
+              if (!ans?.rating) return
+              await startAsPromise((actions as any).ADD_FIVE_S_AUDIT_ANSWER?.start, {
+                payload: {
+                  audit_id: auditId,
+                  question_id: q.id,
+                  step_code: q.stepCode,
+                  rating: ans.rating,
+                  explanation: ans.explanation?.trim() || undefined,
+                  finding_type: ans.findingType || undefined,
+                  has_open_finding: ans.rating !== 'good' && !!ans.findingType,
+                  answered_at: answeredAt,
+                },
+              })
+            })
+
+          const answerResults = await Promise.allSettled(answerJobs)
+          const failedAnswers = answerResults.filter((r) => r.status === 'rejected')
+          if (failedAnswers.length > 0) {
+            console.error('Soru yanıtları kaydedilemedi', failedAnswers)
+            toast.error(
+              `${failedAnswers.length} soru yanıtı kaydedilemedi. Denetim kaydedildi, ayrıntı için yöneticinize bildirin.`
+            )
           }
 
           const nonGoodAnswers = Object.values(answers).filter((ans) => ans.rating && ans.rating !== 'good')
@@ -2182,7 +2228,7 @@ export default function FiveSAuditFormPage() {
                     <button
                       type="button"
                       onClick={() => handleSingleFindingPhotoRemove(i)}
-                      className="rounded-md border border-slate-300 dark:border-slate-700 px-2 py-0.5 text-[10px] text-slate-800 dark:text-slate-200 hover:bg-slate-200 hover:dark:bg-slate-800"
+                      className="rounded-md border border-slate-300 dark:border-slate-700 px-2 py-0.5 text-[11px] text-slate-800 dark:text-slate-200 hover:bg-slate-200 hover:dark:bg-slate-800"
                     >
                       Sil
                     </button>
@@ -2419,13 +2465,13 @@ export default function FiveSAuditFormPage() {
                             className="h-20 w-full object-cover transition-transform group-hover:scale-[1.03]"
                             loading="lazy"
                           />
-                          <span className="absolute bottom-1 right-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-slate-900 dark:text-slate-100">
+                          <span className="absolute bottom-1 right-1 rounded bg-black/60 px-1.5 py-0.5 text-[11px] text-slate-900 dark:text-slate-100">
                             {idx + 1}
                           </span>
                         </button>
                       ))}
                     </div>
-                    <div className="mt-2 text-[10px] text-slate-600 dark:text-slate-400">Fotoğrafa tıklayınca büyür.</div>
+                    <div className="mt-2 text-[11px] text-slate-600 dark:text-slate-400">Fotoğrafa tıklayınca büyür.</div>
                   </div>
                 ) : (
                   <div className="text-[11px] text-slate-500 dark:text-slate-400">Öncesi fotoğraf yok.</div>
@@ -2502,7 +2548,7 @@ export default function FiveSAuditFormPage() {
                     type="button"
                     onClick={syncOfflineQueue}
                     disabled={!isOnline || syncing}
-                    className="ml-3 inline-flex items-center justify-center rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/60 px-2 py-1 text-[10px] hover:bg-slate-100 hover:dark:bg-slate-950 disabled:opacity-50"
+                    className="ml-3 inline-flex items-center justify-center rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/60 px-2 py-1 text-[11px] hover:bg-slate-100 hover:dark:bg-slate-950 disabled:opacity-50"
                   >
                     {syncing ? 'Senkron...' : 'Senkronla'}
                   </button>
@@ -2613,7 +2659,7 @@ export default function FiveSAuditFormPage() {
                     placeholder="İsim Soyisim"
                   />
                 )}
-                <p className="text-[10px] text-slate-500 dark:text-slate-400">Denetime aktif katılan denetçileri seçin (birden fazla seçilebilir).</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">Denetime aktif katılan denetçileri seçin (birden fazla seçilebilir).</p>
               </div>
 
               <div className="space-y-1">
@@ -2696,13 +2742,13 @@ export default function FiveSAuditFormPage() {
                               <td className="px-4 py-2 text-xs">
                                 <span className={isMissing ? 'font-semibold text-rose-700 dark:text-rose-200' : ''}>{q.text}</span>
                                 {isMissing && (
-                                  <span className="ml-2 inline-flex items-center rounded-sm bg-rose-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-rose-400 ring-1 ring-rose-500/40">
+                                  <span className="ml-2 inline-flex items-center rounded-sm bg-rose-500/20 px-1.5 py-0.5 text-[11px] font-semibold text-rose-400 ring-1 ring-rose-500/40">
                                     ⚠ Yanıt Gerekli
                                   </span>
                                 )}
                                 {openFindingsByQuestion.has(q.id) && (
                                   <span
-                                    className="ml-2 inline-flex items-center rounded-sm bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/40"
+                                    className="ml-2 inline-flex items-center rounded-sm bg-amber-500/20 px-1.5 py-0.5 text-[11px] font-semibold text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/40"
                                     title="Bu soruya bağlı henüz kapanmamış bulgu var"
                                   >
                                     ⚠ Açık bulgu ({openFindingsByQuestion.get(q.id)})
@@ -2803,10 +2849,10 @@ export default function FiveSAuditFormPage() {
                             <div className="mt-0.5 text-xs">
                               <span className={isMissingMobile ? 'font-semibold text-rose-700 dark:text-rose-200' : 'text-slate-900 dark:text-slate-100'}>{q.text}</span>
                               {isMissingMobile && (
-                                <span className="ml-1 inline-flex items-center rounded-sm bg-rose-500/20 px-1 py-0.5 text-[10px] font-semibold text-rose-400">⚠</span>
+                                <span className="ml-1 inline-flex items-center rounded-sm bg-rose-500/20 px-1 py-0.5 text-[11px] font-semibold text-rose-400">⚠</span>
                               )}
                               {openFindingsByQuestion.has(q.id) && (
-                                <span className="ml-1 inline-flex items-center rounded-sm bg-amber-500/20 px-1 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
+                                <span className="ml-1 inline-flex items-center rounded-sm bg-amber-500/20 px-1 py-0.5 text-[11px] font-semibold text-amber-700 dark:text-amber-300">
                                   ⚠ Açık bulgu ({openFindingsByQuestion.get(q.id)})
                                 </span>
                               )}
@@ -2817,12 +2863,12 @@ export default function FiveSAuditFormPage() {
                                 {ratingLabel}
                               </span>
                               <span className="font-semibold text-sky-700 dark:text-sky-300">{formatScore(point)}</span>
-                              <span className="text-[10px] text-slate-500 dark:text-slate-400">/ {q.maxScore.toFixed(2)}</span>
+                              <span className="text-[11px] text-slate-500 dark:text-slate-400">/ {q.maxScore.toFixed(2)}</span>
                             </div>
                           </div>
 
                           <div className="ml-2 flex items-center">
-                            <span className="mr-1 text-[10px] text-slate-500 dark:text-slate-400">{isOpen ? 'Kapat' : 'Aç'}</span>
+                            <span className="mr-1 text-[11px] text-slate-500 dark:text-slate-400">{isOpen ? 'Kapat' : 'Aç'}</span>
                             <span
                               className={`inline-block transform text-slate-600 dark:text-slate-400 transition-transform ${isOpen ?'rotate-90' : 'rotate-0'
                                 }`}
@@ -3070,7 +3116,7 @@ export default function FiveSAuditFormPage() {
                           <button
                             type="button"
                             onClick={() => handlePhotoRemove(activeQuestion.id, i)}
-                            className="rounded-md border border-slate-300 dark:border-slate-700 px-2 py-0.5 text-[10px] text-slate-800 dark:text-slate-200 hover:bg-slate-200 hover:dark:bg-slate-800"
+                            className="rounded-md border border-slate-300 dark:border-slate-700 px-2 py-0.5 text-[11px] text-slate-800 dark:text-slate-200 hover:bg-slate-200 hover:dark:bg-slate-800"
                           >
                             Sil
                           </button>
@@ -3210,13 +3256,13 @@ export default function FiveSAuditFormPage() {
                             className="h-20 w-full object-cover transition-transform group-hover:scale-[1.03]"
                             loading="lazy"
                           />
-                          <span className="absolute bottom-1 right-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-slate-900 dark:text-slate-100">
+                          <span className="absolute bottom-1 right-1 rounded bg-black/60 px-1.5 py-0.5 text-[11px] text-slate-900 dark:text-slate-100">
                             {idx + 1}
                           </span>
                         </button>
                       ))}
                     </div>
-                    <div className="mt-2 text-[10px] text-slate-600 dark:text-slate-400">Fotoğrafa tıklayınca büyür.</div>
+                    <div className="mt-2 text-[11px] text-slate-600 dark:text-slate-400">Fotoğrafa tıklayınca büyür.</div>
                   </div>
                 ) : (
                   <div className="text-[11px] text-slate-500 dark:text-slate-400">Öncesi fotoğraf yok.</div>

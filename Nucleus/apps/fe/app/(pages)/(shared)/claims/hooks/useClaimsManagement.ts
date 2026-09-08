@@ -1,3 +1,4 @@
+import { confirmDialog } from '@/app/_components/Global/ConfirmDialog'
 import type {
   Create as ClaimCreate,
   ClaimJSON,
@@ -199,9 +200,15 @@ export function useClaimsManagement(actions: GenericApiActions, isGod: boolean) 
     }
   }
 
-  const handleDelete = (claim: ClaimJSON) => {
+  const handleDelete = async (claim: ClaimJSON) => {
     if (!isGod) return
-    const confirmed = window.confirm(`Delete claim "${claim.action}"?`)
+    const confirmed = await confirmDialog({
+      title: 'Delete claim',
+      message: `"${claim.action}" will be permanently deleted. This cannot be undone.`,
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      tone: 'danger',
+    })
     if (!confirmed) return
 
     const payload = { _id: claim.id }

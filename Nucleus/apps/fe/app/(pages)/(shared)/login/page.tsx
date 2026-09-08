@@ -76,8 +76,8 @@ export default function Login() {
         {/* Mobile BG */}
         <div className="absolute inset-0 lg:hidden">
           <AbstractAnimatedBackground />
-          <div className="absolute inset-0 bg-white dark:bg-slate-950/70" />
-          <div className="absolute inset-0 bg-gradient-to-b from-slate-950/70 via-slate-950/40 to-slate-950/80" />
+          <div className="absolute inset-0 bg-white/92 dark:bg-slate-950/70" />
+          <div className="absolute inset-0 bg-gradient-to-b from-white/40 via-transparent to-white/60 dark:from-slate-950/70 dark:via-slate-950/40 dark:to-slate-950/80" />
         </div>
 
         {/* Left: Form */}
@@ -86,7 +86,8 @@ export default function Login() {
             {/* Mobile logo */}
             <div className="mb-10 lg:hidden">
               <div className="mx-auto flex w-fit items-center gap-3">
-                <Image src="/logo.png" alt="Logo" width={96} height={96} />
+                <Image src="/logo.png" alt="Biltim 5S" width={96} height={96} className="dark:hidden" />
+                <Image src="/white-logo.png" alt="" aria-hidden width={96} height={96} className="hidden dark:block" />
               </div>
             </div>
 
@@ -189,46 +190,61 @@ export default function Login() {
         {/* Right: Brand / Visual */}
         <div className="relative hidden overflow-hidden lg:block">
           <AbstractAnimatedBackground />
-          <div className="absolute inset-0 bg-slate-950/55" />
+          {/*
+            Every scrim belongs BEHIND the artwork. The old markup closed with a
+            third overlay after the logo block and without a z-index, so it sat
+            on top and dimmed the very thing it was meant to set off.
+          */}
+          <div className="absolute inset-0 bg-slate-950/70" />
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-950/30 via-transparent to-slate-950/45" />
 
-          <div className="relative z-10 flex h-full border-l border-slate-300 dark:border-slate-800">
-            <div className="relative flex w-full items-center justify-center">
+          <div className="relative z-10 flex h-full flex-col border-l border-slate-300 dark:border-slate-800">
+            <div className="relative flex w-full flex-1 items-center justify-center">
+              {/*
+                The artwork ships as dark navy, which was invisible against the
+                dark scrim. `brightness-0 invert` repaints any opaque pixel pure
+                white, so the composition survives and the contrast works.
+              */}
               <div
-                className="absolute inset-0 m-auto size-fit opacity-90"
+                className="absolute inset-0 m-auto size-fit opacity-70"
                 style={{ animation: 'slowSpin 22s linear infinite' }}
               >
                 <Image
                   src="/outer-logo.png"
-                  alt="Logo"
-                  width={256}
-                  height={256}
-                  className="h-[256px] w-[256px] drop-shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
+                  alt=""
+                  aria-hidden
+                  width={280}
+                  height={280}
+                  className="h-[280px] w-[280px] brightness-0 invert"
                 />
               </div>
 
               <div className="relative">
                 <Image
                   src="/inner-logo.png"
-                  alt="Logo"
-                  width={256}
-                  height={256}
-                  className="h-[256px] w-[256px] drop-shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
-                />
-              </div>
-
-              <div className="absolute inset-x-0 bottom-16 flex items-center justify-center">
-                <Image
-                  src="/logo-label.png"
-                  alt="Logo"
-                  width={256}
-                  height={40}
-                  className="h-[40px] w-[256px] opacity-90"
+                  alt=""
+                  aria-hidden
+                  width={228}
+                  height={228}
+                  className="h-[228px] w-[228px] brightness-0 invert drop-shadow-[0_18px_60px_rgba(0,0,0,0.55)]"
                 />
               </div>
             </div>
-          </div>
 
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-950/20 via-transparent to-slate-950/35" />
+            <div className="relative z-10 px-16 pb-20 text-center">
+              <Image
+                src="/logo-label.png"
+                alt="Biltim 5S"
+                width={220}
+                height={34}
+                className="mx-auto h-[34px] w-[220px] brightness-0 invert"
+              />
+              <p className="mx-auto mt-6 max-w-md text-balance text-sm leading-relaxed text-white/70">
+                Saha denetimlerini planlayın, bulguları kayıt altına alın, iyileştirici
+                faaliyetleri kapanışına kadar takip edin.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
     </main>

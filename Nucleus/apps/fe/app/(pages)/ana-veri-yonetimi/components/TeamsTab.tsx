@@ -585,10 +585,6 @@ export function TeamsTab({
             <div className="text-sm font-semibold">Tanımlı Ekipler</div>
             <div className="mt-1 text-xs text-slate-600 dark:text-slate-400">Ekipleri burada yönetebilirsin.</div>
           </div>
-
-          <div className="text-xs text-slate-500 dark:text-slate-400">
-            Teams: {String(teamsLoading)} • Users: {String(usersLoading)}
-          </div>
         </div>
 
         <div className="mt-4 space-y-3">

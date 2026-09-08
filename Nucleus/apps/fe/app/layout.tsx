@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import { Toaster } from 'sonner'
-import { Header, LoginChecker } from './_components'
+import { ConfirmHost, Header, LoginChecker } from './_components'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -50,6 +50,7 @@ export default function RootLayout({
         <Header />
 
         <Toaster />
+        <ConfirmHost />
         <LoginChecker>{children}</LoginChecker>
       </body>
     </html>

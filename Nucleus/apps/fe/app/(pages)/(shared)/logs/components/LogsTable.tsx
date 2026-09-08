@@ -155,7 +155,9 @@ export function LogsTable({ logs, onLogSelect }: LogsTableProps) {
                   <button
                     type="button"
                     onClick={() => onLogSelect(log)}
-                    className="text-blue-600 hover:text-blue-900 transition-colors"
+                    className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-200 transition-colors"
+                    aria-label="Log kaydı detayını gör"
+                    title="Detayı gör"
                   >
                     <Eye size={16} />
                   </button>

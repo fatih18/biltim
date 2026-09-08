@@ -716,13 +716,6 @@ export default function Page() {
                 ) : (
                     <QuestionsPanel />
                 )}
-
-                {tab !== "master" ? (
-                    <div className="text-[11px] text-slate-600 dark:text-slate-400">
-                        Users: {users.length} ({String(usersLoading)}) • Teams: {teams.length} ({String(teamsLoading)}) • Plans:{" "}
-                        {auditPlans.length} ({String(plansLoading)})
-                    </div>
-                ) : null}
             </div>
         </div>
     );

@@ -172,7 +172,7 @@ function BeforeAfterReport() {
             </div>
             <div className="grid grid-cols-2 gap-1.5">
               <div>
-                <div className="mb-0.5 text-[10px] text-rose-700 dark:text-rose-300">Önce</div>
+                <div className="mb-0.5 text-[11px] text-rose-700 dark:text-rose-300">Önce</div>
                 {before ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={before} alt="önce" className="h-24 w-full rounded object-cover" loading="lazy" />
@@ -181,7 +181,7 @@ function BeforeAfterReport() {
                 )}
               </div>
               <div>
-                <div className="mb-0.5 text-[10px] text-emerald-700 dark:text-emerald-300">Sonra</div>
+                <div className="mb-0.5 text-[11px] text-emerald-700 dark:text-emerald-300">Sonra</div>
                 {after ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={after} alt="sonra" className="h-24 w-full rounded object-cover" loading="lazy" />
@@ -190,7 +190,7 @@ function BeforeAfterReport() {
                 )}
               </div>
             </div>
-            <div className="mt-1 text-[10px] text-slate-500 dark:text-slate-400 truncate">{f.finding_type ?? ''}</div>
+            <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 truncate">{f.finding_type ?? ''}</div>
           </div>
         )
       })}
@@ -222,7 +222,7 @@ function FactoryMapHeat({ mapHeat }: { mapHeat: Row[] }) {
             <div key={i} className="border border-slate-300 dark:border-slate-700" />
           ))}
         </div>
-        <div className="absolute left-2 top-2 text-[10px] text-slate-500 dark:text-slate-400">
+        <div className="absolute left-2 top-2 text-xs text-slate-600 dark:text-slate-300">
           Fabrika Krokisi (lokasyon koordinatları Ana Veri Yönetimi'nden girilebilir)
         </div>
         {placed.map((l) => (
@@ -238,7 +238,7 @@ function FactoryMapHeat({ mapHeat }: { mapHeat: Row[] }) {
                 backgroundColor: heatColor(num(l.open_findings), maxOpen),
                 width: 28 + Math.min(num(l.open_findings), 10) * 2,
                 height: 28 + Math.min(num(l.open_findings), 10) * 2,
-                fontSize: 11,
+                fontSize: 12,
               }}
             >
               {num(l.open_findings)}
@@ -258,7 +258,7 @@ function FactoryMapHeat({ mapHeat }: { mapHeat: Row[] }) {
           {unplaced.map((l) => (
             <span
               key={str(l.id)}
-              className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/40 px-2 py-1 text-[10px] text-slate-700 dark:text-slate-300"
+              className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/40 px-2 py-1 text-[11px] text-slate-700 dark:text-slate-300"
               title="Kroki koordinatı girilmemiş"
             >
               <span
@@ -430,17 +430,22 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
         <ResponsiveContainer width="100%" height={260}>
           <LineChart data={data?.scoreTrend ?? []}>
             <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-            <XAxis dataKey="period" stroke="#64748b" fontSize={11} />
-            <YAxis domain={[0, 100]} stroke="#64748b" fontSize={11} />
+            <XAxis dataKey="period" stroke="#94a3b8" fontSize={12} />
+            <YAxis domain={[0, 100]} stroke="#94a3b8" fontSize={12} />
             <Tooltip contentStyle={tooltipStyle} />
             <Legend
-              wrapperStyle={{ fontSize: 11 }}
+              wrapperStyle={{ fontSize: 12 }}
               /* the swatch carries the colour; the label reads as text (§3.3) */
               formatter={(value) => (
                 <span className="text-slate-700 dark:text-slate-300">{value}</span>
               )}
             />
-            <ReferenceLine y={75} stroke="#f59e0b" strokeDasharray="6 3" label={{ value: 'Hedef 75', fill: '#f59e0b', fontSize: 10 }} />
+            <ReferenceLine
+              y={75}
+              stroke="#f59e0b"
+              strokeDasharray="6 3"
+              label={{ value: 'Hedef 75', fill: '#f59e0b', fontSize: 12, position: 'insideTopLeft' }}
+            />
             <Line type="monotone" dataKey="avg_total" name="Ortalama Puan" stroke="#38bdf8" strokeWidth={2} dot />
             <Line type="monotone" dataKey="avg_target" name="Hedef" stroke="#f59e0b" strokeWidth={1} strokeDasharray="4 4" dot={false} />
           </LineChart>
@@ -453,11 +458,11 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={locationTypePivot.data}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-              <XAxis dataKey="name" stroke="#64748b" fontSize={10} interval={0} angle={-25} textAnchor="end" height={60} />
-              <YAxis allowDecimals={false} stroke="#64748b" fontSize={11} />
+              <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} interval={0} angle={-25} textAnchor="end" height={60} />
+              <YAxis allowDecimals={false} stroke="#94a3b8" fontSize={12} />
               <Tooltip contentStyle={tooltipStyle} />
               <Legend
-              wrapperStyle={{ fontSize: 10 }}
+              wrapperStyle={{ fontSize: 12 }}
               /* the swatch carries the colour; the label reads as text (§3.3) */
               formatter={(value) => (
                 <span className="text-slate-700 dark:text-slate-300">{value}</span>
@@ -475,11 +480,11 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={statusPivot.data}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-              <XAxis dataKey="name" stroke="#64748b" fontSize={10} interval={0} angle={-25} textAnchor="end" height={60} />
-              <YAxis allowDecimals={false} stroke="#64748b" fontSize={11} />
+              <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} interval={0} angle={-25} textAnchor="end" height={60} />
+              <YAxis allowDecimals={false} stroke="#94a3b8" fontSize={12} />
               <Tooltip contentStyle={tooltipStyle} />
               <Legend
-              wrapperStyle={{ fontSize: 10 }}
+              wrapperStyle={{ fontSize: 12 }}
               /* the swatch carries the colour; the label reads as text (§3.3) */
               formatter={(value) => (
                 <span className="text-slate-700 dark:text-slate-300">{value}</span>
@@ -497,8 +502,8 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={data?.scoresByDepartment ?? []}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-              <XAxis dataKey="department_name" stroke="#64748b" fontSize={10} interval={0} angle={-25} textAnchor="end" height={60} />
-              <YAxis domain={[0, 100]} stroke="#64748b" fontSize={11} />
+              <XAxis dataKey="department_name" stroke="#94a3b8" fontSize={12} interval={0} angle={-25} textAnchor="end" height={60} />
+              <YAxis domain={[0, 100]} stroke="#94a3b8" fontSize={12} />
               <Tooltip contentStyle={tooltipStyle} />
               <ReferenceLine y={75} stroke="#f59e0b" strokeDasharray="6 3" />
               <Bar dataKey="avg_total" name="Ort. Puan" fill="#38bdf8" />
@@ -511,11 +516,11 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={stepCodePivot.data}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-              <XAxis dataKey="name" stroke="#64748b" fontSize={10} interval={0} angle={-25} textAnchor="end" height={60} />
-              <YAxis allowDecimals={false} stroke="#64748b" fontSize={11} />
+              <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} interval={0} angle={-25} textAnchor="end" height={60} />
+              <YAxis allowDecimals={false} stroke="#94a3b8" fontSize={12} />
               <Tooltip contentStyle={tooltipStyle} />
               <Legend
-              wrapperStyle={{ fontSize: 10 }}
+              wrapperStyle={{ fontSize: 12 }}
               /* the swatch carries the colour; the label reads as text (§3.3) */
               formatter={(value) => (
                 <span className="text-slate-700 dark:text-slate-300">{value}</span>
@@ -533,11 +538,11 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={data?.findingsPerTeam ?? []}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-              <XAxis dataKey="team_name" stroke="#64748b" fontSize={10} interval={0} angle={-25} textAnchor="end" height={60} />
-              <YAxis stroke="#64748b" fontSize={11} />
+              <XAxis dataKey="team_name" stroke="#94a3b8" fontSize={12} interval={0} angle={-25} textAnchor="end" height={60} />
+              <YAxis stroke="#94a3b8" fontSize={12} />
               <Tooltip contentStyle={tooltipStyle} />
               <Legend
-              wrapperStyle={{ fontSize: 10 }}
+              wrapperStyle={{ fontSize: 12 }}
               /* the swatch carries the colour; the label reads as text (§3.3) */
               formatter={(value) => (
                 <span className="text-slate-700 dark:text-slate-300">{value}</span>

@@ -211,7 +211,7 @@ export function RoleClaimsModal({ isOpen, role, onClose }: RoleClaimsModalProps)
               {claim.action}
             </div>
             <div className="text-xs text-slate-300/90">
-              <span className="rounded-full border border-slate-300 dark:border-white/20 bg-slate-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+              <span className="rounded-full border border-slate-300 dark:border-white/20 bg-slate-200 dark:bg-white/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide">
                 {claim.method}
               </span>
               <span className="ml-2 text-slate-800 dark:text-slate-200">{claim.path}</span>

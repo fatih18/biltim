@@ -1,4 +1,5 @@
 "use client";
+import { confirmDialog } from '@/app/_components/Global/ConfirmDialog'
 
 import React from "react";
 import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
@@ -151,7 +152,12 @@ export function QuestionsPanel() {
 
   /* ─── Seed ─── */
   const handleSeed = async () => {
-    if (!window.confirm(`Hardcoded ${SEED_STEPS.length} adım ve ${SEED_QUESTIONS.length} soru veritabanına eklenecek. Devam edilsin mi?`)) return;
+    const seedOk = await confirmDialog({
+      title: 'Adım ve soruları yükle',
+      message: `${SEED_STEPS.length} adım ve ${SEED_QUESTIONS.length} soru veritabanına eklenecek.`,
+      confirmLabel: 'Yükle',
+    });
+    if (!seedOk) return;
     const A = actions as any;
     const addStep = A?.ADD_FIVE_S_STEP?.start;
     const addQuestion = A?.ADD_FIVE_S_QUESTION?.start;
@@ -232,7 +238,13 @@ export function QuestionsPanel() {
 
   /* ─── Delete ─── */
   async function handleDelete(q: QuestionRow) {
-    if (!window.confirm(`"${q.externalId}" sorusu kalıcı olarak silinecek. Emin misiniz?`)) return;
+    const delOk = await confirmDialog({
+      title: 'Soruyu sil',
+      message: `"${q.externalId}" sorusu kalıcı olarak silinecek. Bu işlem geri alınamaz.`,
+      confirmLabel: 'Sil',
+      tone: 'danger',
+    });
+    if (!delOk) return;
     const A = actions as any;
     const start = A?.DELETE_FIVE_S_QUESTION?.start;
     if (!start) return;
@@ -374,9 +386,9 @@ export function QuestionsPanel() {
                   }
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-slate-500 dark:text-slate-400 text-[10px]">{isCollapsed ? "▸" : "▾"}</span>
+                    <span className="text-slate-500 dark:text-slate-400 text-[11px]">{isCollapsed ? "▸" : "▾"}</span>
                     <h3 className="text-xs font-semibold text-slate-700 dark:text-slate-300">{step.title}</h3>
-                    <span className="rounded-full bg-slate-200 dark:bg-slate-800 px-2 py-0.5 text-[10px] text-slate-600 dark:text-slate-400">
+                    <span className="rounded-full bg-slate-200 dark:bg-slate-800 px-2 py-0.5 text-[11px] text-slate-600 dark:text-slate-400">
                       {stepQs.length}
                     </span>
                   </div>
@@ -387,7 +399,7 @@ export function QuestionsPanel() {
                         e.stopPropagation();
                         openAdd(step);
                       }}
-                      className="inline-flex items-center gap-1 rounded-md bg-sky-500/10 px-2 py-1 text-[10px] text-sky-700 dark:text-sky-300 hover:bg-sky-500/20"
+                      className="inline-flex items-center gap-1 rounded-md bg-sky-500/10 px-2 py-1 text-[11px] text-sky-700 dark:text-sky-300 hover:bg-sky-500/20"
                     >
                       <Plus className="h-3 w-3" />
                       Soru Ekle

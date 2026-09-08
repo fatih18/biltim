@@ -443,7 +443,7 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
                       </div>
 
                       {role.is_system ? (
-                        <span className="rounded-full border border-amber-500/30 bg-amber-100 dark:bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-200">
+                        <span className="rounded-full border border-amber-500/30 bg-amber-100 dark:bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-200">
                           Sistem
                         </span>
                       ) : null}

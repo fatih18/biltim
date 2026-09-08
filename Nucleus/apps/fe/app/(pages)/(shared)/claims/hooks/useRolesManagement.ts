@@ -1,3 +1,4 @@
+import { confirmDialog } from '@/app/_components/Global/ConfirmDialog'
 import type {
   Create as RoleCreate,
   RoleJSON,
@@ -199,9 +200,15 @@ export function useRolesManagement(actions: GenericApiActions, isGod: boolean) {
     }
   }
 
-  const handleDelete = (role: RoleJSON) => {
+  const handleDelete = async (role: RoleJSON) => {
     if (!isGod) return
-    const confirmed = window.confirm(`Delete role "${role.name}"?`)
+    const confirmed = await confirmDialog({
+      title: 'Delete role',
+      message: `"${role.name}" will be permanently deleted. This cannot be undone.`,
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      tone: 'danger',
+    })
     if (!confirmed) return
 
     const payload = { _id: role.id }

@@ -1,4 +1,5 @@
 "use client";
+import { confirmDialog } from '@/app/_components/Global/ConfirmDialog'
 
 import { useEffect, useMemo, useState } from "react";
 import { useGenericApiActions } from "@/app/_hooks/UseNucleusApi";
@@ -415,14 +416,17 @@ export default function FiveSFindingsListPage() {
   };
 
   // Madde 5: bulgu silme (sadece Merkez Ekip)
-  const handleDeleteFinding = (finding: FiveSFinding) => {
+  const handleDeleteFinding = async (finding: FiveSFinding) => {
     if (!canDeleteFinding) return;
     const del = (actions as any).DELETE_FIVE_S_FINDING;
     if (!del?.start) return;
 
-    const ok = window.confirm(
-      `#${finding.finding_no} numaralı bulguyu silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`
-    );
+    const ok = await confirmDialog({
+      title: 'Bulguyu sil',
+      message: `#${finding.finding_no} numaralı bulgu kalıcı olarak silinecek. Bu işlem geri alınamaz.`,
+      confirmLabel: 'Sil',
+      tone: 'danger',
+    });
     if (!ok) return;
 
     setDeletingFindingId(finding.id);
@@ -473,9 +477,14 @@ export default function FiveSFindingsListPage() {
   };
 
   // Madde 2: tüm sonrası fotoğrafları sil
-  const handleRemoveAllAfterPhotos = (finding: FiveSFinding) => {
+  const handleRemoveAllAfterPhotos = async (finding: FiveSFinding) => {
     if (!actions.UPDATE_FIVE_S_FINDING) return;
-    const ok = window.confirm("Tüm 'Sonrası' fotoğrafları silinecek. Emin misiniz?");
+    const ok = await confirmDialog({
+      title: 'Sonrası fotoğraflarını sil',
+      message: "Bu bulgunun tüm 'Sonrası' fotoğrafları silinecek. Bu işlem geri alınamaz.",
+      confirmLabel: 'Sil',
+      tone: 'danger',
+    });
     if (!ok) return;
 
     setFindings((prev) =>
@@ -846,7 +855,14 @@ export default function FiveSFindingsListPage() {
                       </td>
 
                       {/* Durum */}
-                      <td className="px-4 py-2">
+                      {/*
+                        min-w: the select is w-full, and with no floor the auto
+                        table layout squeezed this column to 51px — narrower
+                        than its own longest option ("Devam ediyor" needs 103),
+                        so the control rendered as "De". The floor is the widest
+                        option plus the chevron.
+                      */}
+                      <td className="px-4 py-2 min-w-[9.5rem] align-top">
                         <div className="flex flex-col gap-1">
                           <select
                             value={f.status || "open"}
@@ -861,7 +877,7 @@ export default function FiveSFindingsListPage() {
                                     ? "Kapatmak için \"Sonrası Fotoğraf\" yükleyin."
                                     : undefined
                             }
-                            className={`w-full rounded-md px-2 py-1 text-[11px] outline-none ring-sky-500/30 focus:ring-2 ${statusBadgeClass( f.status )} ${isAuditor ?"cursor-not-allowed opacity-50" : ""}`}
+                            className={`w-full truncate rounded-md px-2 py-1 text-[11px] outline-none ring-sky-500/30 focus:ring-2 ${statusBadgeClass( f.status )} ${isAuditor ?"cursor-not-allowed opacity-50" : ""}`}
                           >
                             <option value="open">Açık</option>
                             <option value="in_progress">Devam ediyor</option>
