@@ -93,7 +93,7 @@ export function useClaimsManagement(actions: GenericApiActions, isGod: boolean) 
       onErrorHandle: (error: unknown) => {
         setIsInitialLoading(false)
         setIsRefreshing(false)
-        setErrorMessage(String(error ?? 'Failed to load claims'))
+        setErrorMessage(String(error ?? 'Yetkiler yüklenemedi.'))
       },
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -120,7 +120,7 @@ export function useClaimsManagement(actions: GenericApiActions, isGod: boolean) 
       },
       onErrorHandle: (error: unknown) => {
         setIsRefreshing(false)
-        setErrorMessage(String(error ?? 'Failed to refresh claims'))
+        setErrorMessage(String(error ?? 'Yetkiler yenilenemedi.'))
       },
     })
   }
@@ -179,7 +179,7 @@ export function useClaimsManagement(actions: GenericApiActions, isGod: boolean) 
         },
         onErrorHandle: (error: unknown) => {
           setIsSubmitting(false)
-          setErrorMessage(String(error ?? 'Failed to update claim'))
+          setErrorMessage(String(error ?? 'Yetki güncellenemedi.'))
         },
       })
     } else {
@@ -194,7 +194,7 @@ export function useClaimsManagement(actions: GenericApiActions, isGod: boolean) 
         },
         onErrorHandle: (error: unknown) => {
           setIsSubmitting(false)
-          setErrorMessage(String(error ?? 'Failed to create claim'))
+          setErrorMessage(String(error ?? 'Yetki oluşturulamadı.'))
         },
       })
     }
@@ -203,10 +203,10 @@ export function useClaimsManagement(actions: GenericApiActions, isGod: boolean) 
   const handleDelete = async (claim: ClaimJSON) => {
     if (!isGod) return
     const confirmed = await confirmDialog({
-      title: 'Delete claim',
-      message: `"${claim.action}" will be permanently deleted. This cannot be undone.`,
-      confirmLabel: 'Delete',
-      cancelLabel: 'Cancel',
+      title: 'Yetki silinsin mi?',
+      message: `"${claim.action}" kalıcı olarak silinecek; bu işlem geri alınamaz. Bu yetkiye bağlı roller onu kaybeder.`,
+      confirmLabel: 'Sil',
+      cancelLabel: 'Vazgeç',
       tone: 'danger',
     })
     if (!confirmed) return
@@ -222,7 +222,7 @@ export function useClaimsManagement(actions: GenericApiActions, isGod: boolean) 
       },
       onErrorHandle: (error: unknown) => {
         setIsRefreshing(false)
-        setErrorMessage(String(error ?? 'Failed to delete claim'))
+        setErrorMessage(String(error ?? 'Yetki silinemedi.'))
       },
     })
   }

@@ -269,7 +269,7 @@ export function UsersManageClaimsModal({
                             </span>
                           </div>
                           {claim.description ? (
-                            <p className="text-sm text-slate-300/80">{claim.description}</p>
+                            <p className="text-sm text-slate-600 dark:text-slate-300">{claim.description}</p>
                           ) : null}
                         </div>
 

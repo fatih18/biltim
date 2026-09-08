@@ -18,7 +18,16 @@ export default function ClaimsManagementPage() {
 
   const [activeTab, setActiveTab] = useState<Tab>('claims')
 
-  const methods = useMemo(() => ['GET', 'POST', 'PATCH', 'DELETE'], [])
+  /*
+   * PUT was missing from this list.
+   *
+   * The same array feeds the method filter AND the create/edit form's method
+   * dropdown, so 559 of the 2 845 claims in the database — every `put.*`, which
+   * is how a full-record update is authorised — could neither be filtered to
+   * nor created from this screen. Counted: GET 883, POST 672, PATCH 644,
+   * PUT 559, DELETE 87.
+   */
+  const methods = useMemo(() => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'], [])
   const modes = useMemo(() => ['exact', 'startsWith'] as const, [])
 
   const claimsManagement = useClaimsManagement(actions, user?.is_god ?? false)

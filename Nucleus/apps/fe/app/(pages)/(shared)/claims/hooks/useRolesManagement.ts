@@ -98,7 +98,7 @@ export function useRolesManagement(actions: GenericApiActions, isGod: boolean) {
       onErrorHandle: (error: unknown) => {
         setIsInitialLoading(false)
         setIsRefreshing(false)
-        setErrorMessage(String(error ?? 'Failed to load roles'))
+        setErrorMessage(String(error ?? 'Roller yüklenemedi.'))
       },
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -124,7 +124,7 @@ export function useRolesManagement(actions: GenericApiActions, isGod: boolean) {
       },
       onErrorHandle: (error: unknown) => {
         setIsRefreshing(false)
-        setErrorMessage(String(error ?? 'Failed to refresh roles'))
+        setErrorMessage(String(error ?? 'Roller yenilenemedi.'))
       },
     })
   }
@@ -155,7 +155,7 @@ export function useRolesManagement(actions: GenericApiActions, isGod: boolean) {
     event.preventDefault()
     if (!isGod) return
     if (!formState.name.trim()) {
-      setErrorMessage('Role name is required.')
+      setErrorMessage('Rol adı zorunludur.')
       return
     }
 
@@ -179,7 +179,7 @@ export function useRolesManagement(actions: GenericApiActions, isGod: boolean) {
         },
         onErrorHandle: (error: unknown) => {
           setIsSubmitting(false)
-          setErrorMessage(String(error ?? 'Failed to update role'))
+          setErrorMessage(String(error ?? 'Rol güncellenemedi.'))
         },
       })
     } else {
@@ -194,7 +194,7 @@ export function useRolesManagement(actions: GenericApiActions, isGod: boolean) {
         },
         onErrorHandle: (error: unknown) => {
           setIsSubmitting(false)
-          setErrorMessage(String(error ?? 'Failed to create role'))
+          setErrorMessage(String(error ?? 'Rol oluşturulamadı.'))
         },
       })
     }
@@ -203,10 +203,10 @@ export function useRolesManagement(actions: GenericApiActions, isGod: boolean) {
   const handleDelete = async (role: RoleJSON) => {
     if (!isGod) return
     const confirmed = await confirmDialog({
-      title: 'Delete role',
-      message: `"${role.name}" will be permanently deleted. This cannot be undone.`,
-      confirmLabel: 'Delete',
-      cancelLabel: 'Cancel',
+      title: 'Rol silinsin mi?',
+      message: `"${role.name}" kalıcı olarak silinecek; bu işlem geri alınamaz. Bu role sahip kullanıcılar rolün açtığı ekranları kaybeder.`,
+      confirmLabel: 'Sil',
+      cancelLabel: 'Vazgeç',
       tone: 'danger',
     })
     if (!confirmed) return
@@ -222,7 +222,7 @@ export function useRolesManagement(actions: GenericApiActions, isGod: boolean) {
       },
       onErrorHandle: (error: unknown) => {
         setIsRefreshing(false)
-        setErrorMessage(String(error ?? 'Failed to delete role'))
+        setErrorMessage(String(error ?? 'Rol silinemedi.'))
       },
     })
   }

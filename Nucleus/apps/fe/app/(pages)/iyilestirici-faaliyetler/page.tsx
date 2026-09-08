@@ -1,9 +1,9 @@
 "use client";
-import { attachRoles } from "@/app/_utils/userRoles";
+import { usersWithRole } from "@/app/_utils/userRoles";
 import { useServerList } from '@/app/_hooks/UseServerList'
 import { InfiniteScroll } from '@/app/_components/Global/InfiniteScroll'
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useGenericApiActions } from "@/app/_hooks/UseNucleusApi";
 import { DateInput } from "@/app/_components/DateInput";
 import { toast } from "sonner";
@@ -61,10 +61,6 @@ function getRoleNames(u: UserLite): string[] {
         .map((x) => String(x));
 }
 
-function hasRole(u: UserLite, roleName: string) {
-    const want = roleName.toLowerCase().trim();
-    return getRoleNames(u).some((r) => String(r).toLowerCase().trim() === want);
-}
 
 const emptyForm = () => ({
     meetingDate: new Date().toISOString().slice(0, 10),
@@ -86,9 +82,10 @@ export default function BoardMeetingDecisionsPage() {
     const [usersLoading, setUsersLoading] = useState(false);
     const [users, setUsers] = useState<UserLite[]>([]);
 
-    const managerUsers = useMemo(() => {
-        return users.filter((u) => hasRole(u, "manager"));
-    }, [users]);
+    // Comes from the server already narrowed to the role; nothing is filtered
+    // out here.
+    const [managers, setManagers] = useState<UserLite[]>([]);
+    const managerUsers = managers;
 
     const userById = useMemo(() => {
         const m = new Map<string, UserLite>();
@@ -102,43 +99,54 @@ export default function BoardMeetingDecisionsPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const fetchUsers = () => {
+    /*
+     * Two narrow reads instead of the whole user table.
+     *
+     * This used to ask for limit: 1000 users and pick the managers out in the
+     * browser. That is the wrong shape twice over: /users returns no roles at
+     * all, so the scan matched nothing and the dropdown was permanently empty;
+     * and on a plant with a thousand employees the ceiling would be passed
+     * silently, dropping managers off the end of the list.
+     *
+     * The server is asked for what each part of the screen needs: the people
+     * holding the Manager role (for the dropdown), and the people already
+     * named on the decisions in view (so a decision assigned to someone who
+     * has since stopped being a manager still shows a name, not a blank).
+     */
+    const fetchUsers = useCallback(async (assignedIds: string[] = []) => {
         setUsersLoading(true);
+        const A = actions as any;
+        const extract = (r: any) =>
+            r?.response?.data ?? r?.data?.data ?? r?.data ?? (Array.isArray(r) ? r : []);
 
-        actions.GET_USERS?.start({
-            payload: { page: 1, limit: 1000 },
-            onAfterHandle: (res: any) => {
-                const rows: any[] =
-                    res?.response?.data ??
-                    res?.data?.data ??
-                    res?.data ??
-                    (Array.isArray(res) ? res : []);
-
-                /*
-                 * This screen picks the responsible manager out of user.roles,
-                 * and /users does not return roles — so the dropdown read
-                 * "Manager rolü olan kullanıcı yok" and the form could not be
-                 * submitted at all, on an install that has a Manager account.
-                 * The board-decisions table was empty for exactly this reason.
-                 */
-                const A = actions as any;
-                attachRoles(
-                    rows,
-                    A?.GET_ROLES?.start,
-                    A?.GET_USER_ROLES?.start,
-                    (r: any) =>
-                        r?.response?.data ?? r?.data?.data ?? r?.data ?? (Array.isArray(r) ? r : [])
-                ).then((withRoles) => {
-                    setUsers(withRoles as UserLite[]);
-                    setUsersLoading(false);
+        const readUsersById = (ids: string[]) =>
+            new Promise<any[]>((resolve) => {
+                if (ids.length === 0 || !A?.GET_USERS?.start) return resolve([]);
+                A.GET_USERS.start({
+                    payload: { page: 1, limit: 500, filters: { id: ids } },
+                    onAfterHandle: (r: any) => resolve(extract(r)),
+                    onErrorHandle: () => resolve([]),
                 });
-            },
-            onErrorHandle: (err: any) => {
-                console.error("GET_USERS error", err);
-                setUsersLoading(false);
-            },
-        });
-    };
+            });
+
+        try {
+            const [yoneticiler, atananlar] = await Promise.all([
+                usersWithRole<any>(
+                    "Manager",
+                    { roles: A?.GET_ROLES?.start, userRoles: A?.GET_USER_ROLES?.start, users: A?.GET_USERS?.start },
+                    extract
+                ),
+                readUsersById(assignedIds),
+            ]);
+
+            const byId = new Map<string, UserLite>();
+            for (const u of [...yoneticiler, ...atananlar]) byId.set(String(u.id), u as UserLite);
+            setManagers(yoneticiler.map((u: any) => ({ ...u, roles: [{ name: "Manager" }] })) as UserLite[]);
+            setUsers([...byId.values()]);
+        } finally {
+            setUsersLoading(false);
+        }
+    }, []);
 
     /*
      * The decisions list is read a page at a time, newest meeting first.
@@ -160,6 +168,24 @@ export default function BoardMeetingDecisionsPage() {
     useEffect(() => {
         setDecisions(decisionList.rows);
     }, [decisionList.rows]);
+
+    /*
+     * Names for the people already on the page.
+     *
+     * The rows carry an id, not a name, and the people they point at are not
+     * necessarily managers any more — so they cannot come from the manager
+     * lookup. They are fetched by exactly those ids as more pages load.
+     */
+    useEffect(() => {
+        const ids = [
+            ...new Set(
+                decisionList.rows
+                    .map((d: any) => String(d?.assigned_user_id ?? d?.assignedUserId ?? ""))
+                    .filter(Boolean)
+            ),
+        ];
+        if (ids.length > 0) fetchUsers(ids);
+    }, [decisionList.rows, fetchUsers]);
 
     useEffect(() => {
         setListLoading(decisionList.isLoading);

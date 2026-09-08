@@ -207,20 +207,28 @@ export function RoleClaimsModal({ isOpen, role, onClose }: RoleClaimsModalProps)
       >
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="space-y-1">
-            <div className="text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">
+            {/*
+              Not uppercased: the page is lang="tr", so CSS `uppercase` turns
+              every dotless i into İ and "get.integration_run_items.after" was
+              being shown as "GET.İNTEGRATİON_RUN_İTEMS.AFTER". That is not the
+              claim's name — anyone reading it off the screen to type into the
+              filter, or into the SQL that grants it, would be copying a string
+              that does not exist.
+            */}
+            <div className="text-xs font-semibold tracking-wide text-slate-700 dark:text-slate-300">
               {claim.action}
             </div>
-            <div className="text-xs text-slate-300/90">
+            <div className="text-xs text-slate-600 dark:text-slate-300">
               <span className="rounded-full border border-slate-300 dark:border-white/20 bg-slate-200 dark:bg-white/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide">
                 {claim.method}
               </span>
               <span className="ml-2 text-slate-800 dark:text-slate-200">{claim.path}</span>
             </div>
             <div className="text-[11px] text-slate-600 dark:text-slate-400">
-              Matching mode: <span className="font-semibold">{claim.mode}</span>
+              Eşleşme: <span className="font-semibold">{claim.mode}</span>
             </div>
             {claim.description ? (
-              <div className="text-[11px] text-slate-300/80">{claim.description}</div>
+              <div className="text-[11px] text-slate-600 dark:text-slate-400">{claim.description}</div>
             ) : null}
           </div>
 
@@ -270,9 +278,9 @@ export function RoleClaimsModal({ isOpen, role, onClose }: RoleClaimsModalProps)
           <header className="flex flex-col gap-4 border-b border-slate-300 dark:border-white/10 px-8 py-6">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-bold">Manage Claims for {role.name}</h2>
+                <h2 className="text-2xl font-bold">{role.name} — Yetkileri Yönet</h2>
                 <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
-                  Attach or detach low-level claims that this role will provide to users.
+                  Bu rolün kullanıcılara sağladığı yetkileri ekleyin veya kaldırın.
                 </p>
               </div>
               <button
@@ -286,8 +294,9 @@ export function RoleClaimsModal({ isOpen, role, onClose }: RoleClaimsModalProps)
             </div>
 
             <div className="text-xs text-slate-700 dark:text-slate-300">
-              Atandı <span className="font-semibold">{assignedClaimIds.length}</span> of{' '}
-              <span className="font-semibold">{claims.length}</span> claims
+              Yüklenen <span className="font-semibold">{claims.length}</span> yetkiden{' '}
+              <span className="font-semibold">{assignedClaimIds.length}</span> tanesi bu role
+              atandı
             </div>
 
             <div className="relative">

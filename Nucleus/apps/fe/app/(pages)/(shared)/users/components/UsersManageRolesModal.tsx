@@ -269,7 +269,7 @@ export function UsersManageRolesModal({ isOpen, userId, onClose }: UsersManageRo
                           </div>
                           <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{role.name}</h3>
                           {role.description ? (
-                            <p className="text-sm text-slate-300/80">{role.description}</p>
+                            <p className="text-sm text-slate-600 dark:text-slate-300">{role.description}</p>
                           ) : null}
                         </div>
 

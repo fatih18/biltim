@@ -56,7 +56,7 @@ export function RolesTab({ management }: RolesTabProps) {
             <div>
               <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Roller</h2>
               <p className="text-sm text-slate-600 dark:text-slate-400">
-                Group claims into reusable roles for efficient permission management
+                Yetkileri role gruplayın; kullanıcıya tek tek izin vermek yerine rol atarsınız
               </p>
             </div>
             <div className="flex items-center gap-3">

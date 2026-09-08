@@ -2673,7 +2673,7 @@ export default function FiveSAuditFormPage() {
                 <span className="text-slate-700 dark:text-slate-300">{header.department}</span> •{' '}
                 <span className="text-slate-700 dark:text-slate-300">{planDate || header.date}</span>
                 {planDate && planDate !== header.date ? (
-                  <span className="ml-1 text-slate-500 dark:text-slate-400">
+                  <span className="ml-1 text-slate-600 dark:text-slate-400">
                     (denetim {header.date} tarihinde yapılıyor)
                   </span>
                 ) : null}
@@ -2710,7 +2710,19 @@ export default function FiveSAuditFormPage() {
               <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end">
                 <div className="flex flex-col items-start gap-1 rounded-xl bg-white dark:bg-slate-900/70 px-4 py-3 text-sm sm:items-end">
                   <span className="text-slate-600 dark:text-slate-400">Toplam Puan</span>
-                  <span className={`text-2xl font-bold ${totalScore >= 75 ?'text-emerald-400' : 'text-amber-400'}`}>
+                  {/*
+                    Measured on the light theme: amber-400 on the white score
+                    card came out at 1.72:1, against 3:1 for large bold text —
+                    the number the whole form exists to produce was the least
+                    readable thing on it.
+                  */}
+                  <span
+                    className={`text-2xl font-bold ${
+                      totalScore >= 75
+                        ? 'text-emerald-700 dark:text-emerald-400'
+                        : 'text-amber-700 dark:text-amber-400'
+                    }`}
+                  >
                     {formatScore(totalScore)} / 100
                   </span>
                   <span className="text-xs text-slate-500 dark:text-slate-400">{totalScore >= 75 ? 'Hedef üstü' : 'Hedef altında'}</span>
@@ -2889,7 +2901,7 @@ export default function FiveSAuditFormPage() {
                                 )}
                                 {openFindingsByQuestion.has(q.id) && (
                                   <span
-                                    className="ml-2 inline-flex items-center rounded-sm bg-amber-500/20 px-1.5 py-0.5 text-[11px] font-semibold text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/40"
+                                    className="ml-2 inline-flex items-center rounded-sm bg-amber-500/20 px-1.5 py-0.5 text-[11px] font-semibold text-amber-900 dark:text-amber-300 ring-1 ring-amber-500/40"
                                     title="Bu soruya bağlı henüz kapanmamış bulgu var"
                                   >
                                     ⚠ Açık bulgu ({openFindingsByQuestion.get(q.id)})

@@ -28,7 +28,7 @@ export function RoleModal({
       <div className="w-full max-w-xl rounded-2xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50 shadow-2xl">
         <header className="flex items-center justify-between border-b border-slate-300 dark:border-slate-700 px-6 py-4">
           <div>
-            <h2 className="text-lg font-semibold">{editingRole ? 'Edit Role' : 'New Role'}</h2>
+            <h2 className="text-lg font-semibold">{editingRole ? 'Rolü Düzenle' : 'Yeni Rol'}</h2>
             <p className="text-xs text-slate-700 dark:text-slate-300">
               Yetkileri bir arada gruplamak için rol tanımlayın.
             </p>
@@ -93,7 +93,7 @@ export function RoleModal({
               disabled={isSubmitting}
             >
               {isSubmitting && <Loader2 className="h-3 w-3 animate-spin" />}
-              <span>{editingRole ? 'Save' : 'Create'}</span>
+              <span>{editingRole ? 'Kaydet' : 'Oluştur'}</span>
             </button>
           </footer>
         </form>

@@ -160,7 +160,7 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
         className={`fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${ isVisible ?'opacity-100' : 'opacity-0'
         }`}
         onClick={handleClose}
-        aria-label="Close drawer"
+        aria-label="Paneli kapat"
       />
 
       {/* Drawer */}
@@ -212,7 +212,7 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
                 type="button"
                 onClick={handleClose}
                 className="rounded-lg p-2 transition-all duration-200 hover:scale-110 hover:bg-slate-200 hover:dark:bg-white/10"
-                aria-label="Close user details"
+                aria-label="Kullanıcı ayrıntılarını kapat"
               >
                 <X size={20} />
               </button>
