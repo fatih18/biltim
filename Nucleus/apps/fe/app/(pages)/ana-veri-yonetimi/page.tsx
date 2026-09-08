@@ -473,7 +473,7 @@ export default function Page() {
                 onErrorHandle: (error: any) => {
                     if (error?.name === "AbortError") return;
                     console.error(`${key} error`, error);
-
+                    toast.error("Kayıt güncellenemedi. Lütfen tekrar deneyin.");
                 },
             });
         },
@@ -596,6 +596,7 @@ export default function Page() {
             onErrorHandle: (error: any) => {
                 if (error?.name === "AbortError") return;
                 console.error(`${key} (date) error`, error);
+                toast.error("Tarih değiştirilemedi. Lütfen tekrar deneyin.");
             },
         });
     }, []);
@@ -614,7 +615,7 @@ export default function Page() {
             onErrorHandle: (error: any) => {
                 if (error?.name === "AbortError") return;
                 console.error(`${key} error`, error);
-
+                toast.error("İşlem tamamlanamadı. Lütfen tekrar deneyin.");
             },
         });
     }, []);
@@ -631,7 +632,7 @@ export default function Page() {
             onErrorHandle: (error: any) => {
                 if (error?.name === "AbortError") return;
                 console.error(`${key} error`, error);
-
+                toast.error("İşlem tamamlanamadı. Lütfen tekrar deneyin.");
             },
         });
     }, []);

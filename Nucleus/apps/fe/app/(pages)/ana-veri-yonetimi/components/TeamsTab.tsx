@@ -3,6 +3,7 @@
 import React from "react";
 import { nowIso, uid } from "./utils";
 import type { User } from "./types";
+import { toast } from "sonner";
 
 type AuditTeam = {
   id: string;
@@ -325,7 +326,10 @@ export function TeamsTab({
       userIds.forEach((userId) => {
         start({
           payload: { team_id: teamId, user_id: userId, is_active: true },
-          onErrorHandle: (err: any) => console.error(`${TEAM_MEMBER_KEYS.ADD} error`, err),
+          onErrorHandle: (err: any) => {
+            console.error(`${TEAM_MEMBER_KEYS.ADD} error`, err);
+            toast.error("Üye eklenemedi. Lütfen tekrar deneyin.");
+          },
         });
       });
     };
@@ -336,7 +340,10 @@ export function TeamsTab({
       memberIds.forEach((_id) => {
         start({
           payload: { _id },
-          onErrorHandle: (err: any) => console.error(`${TEAM_MEMBER_KEYS.DELETE} error`, err),
+          onErrorHandle: (err: any) => {
+            console.error(`${TEAM_MEMBER_KEYS.DELETE} error`, err);
+            toast.error("Üye çıkarılamadı. Lütfen tekrar deneyin.");
+          },
         });
       });
     };
