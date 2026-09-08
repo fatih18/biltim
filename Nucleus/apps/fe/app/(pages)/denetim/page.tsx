@@ -465,11 +465,17 @@ export default function FiveSAuditFormPage() {
   }
   const closeSingleFindingModal = () => setSingleFindingOpen(false)
 
+  /*
+   * hasPrivilege, not a literal list of role names — the last place in the app
+   * still deciding this way. Matching "manager", "content manager core team"
+   * and "auditor" by name meant the root account, whose role is godmin and
+   * nothing else, never saw the "Tekil Bulgu +" button at all. Same dead end as
+   * the audit form and the questions editor had.
+   */
   const canCreateSingleFinding = useMemo(() => {
     if (roleLoading) return false
-    const norm = (v: string) => (v ?? '').trim().toLowerCase().replace(/\s+/g, ' ')
-    const all = [roleName ?? '', ...(roles ?? []).map((r) => r.name ?? '')].map(norm)
-    return all.includes(norm('content manager core team')) || all.includes(norm('manager')) || all.includes(norm('auditor'))
+    const names = [roleName ?? '', ...(roles ?? []).map((r) => r.name ?? '')]
+    return hasPrivilege(names, ['manager', 'content manager core team', 'auditor'])
   }, [roleName, roles, roleLoading])
 
   /*
