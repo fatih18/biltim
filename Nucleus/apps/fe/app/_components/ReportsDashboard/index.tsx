@@ -361,6 +361,7 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
     const summary = data?.departmentSummary ?? []
     const auditCount = summary.reduce((s, r) => s + num(r.audit_count), 0)
     const open = summary.reduce((s, r) => s + num(r.open_findings), 0)
+    const inProgress = summary.reduce((s, r) => s + num((r as { in_progress_findings?: unknown }).in_progress_findings), 0)
     const closed = summary.reduce((s, r) => s + num(r.closed_findings), 0)
     const overdue = data?.overdueActions?.length ?? 0
     const trend = data?.scoreTrend ?? []
@@ -368,6 +369,7 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
     return {
       auditCount,
       open,
+      inProgress,
       closed,
       overdue,
       lastAvg: last ? num(last.avg_total).toFixed(1) : '-',
@@ -417,10 +419,16 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
       </div>
 
       {/* Özet kartlar (rapor 2 + 10 özet) */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+      {/*
+        Six cards, not five: with only "Açık" and "Kapalı" and closed meaning
+        "not open", the in-progress findings were folded into the closed number.
+        Now each status is counted as itself and the three add up to the total.
+      */}
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <StatCard label="Toplam Denetim" value={String(totals.auditCount)} />
         <StatCard label="Son Dönem Ort. Puan" value={String(totals.lastAvg)} tone={Number(totals.lastAvg) >= 75 ? 'good' : 'warn'} />
         <StatCard label="Açık Bulgu" value={String(totals.open)} tone="warn" />
+        <StatCard label="Devam Eden" value={String(totals.inProgress)} tone="warn" />
         <StatCard label="Kapalı Bulgu" value={String(totals.closed)} tone="good" />
         <StatCard label="Termin Geçmiş" value={String(totals.overdue)} tone={totals.overdue > 0 ? 'bad' : 'good'} />
       </div>

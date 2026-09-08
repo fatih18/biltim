@@ -150,13 +150,25 @@ const dashboard = defineRoute({
          WHERE ${aWhere} GROUP BY t.name ORDER BY avg_findings_per_audit DESC`,
         ap
       ),
+      /*
+       * The three finding counts, and what each one means.
+       *
+       * closed_findings read status <> 'open', so every finding someone was
+       * still working on counted as resolved: on the local data the dashboard
+       * reported 42 closed when 20 were, overstating completed work by more
+       * than double. It now means closed, in_progress is counted on its own so
+       * the three add up to the total, and a finding past its termin is overdue
+       * whether or not anyone has started it — restricting that to 'open' hid
+       * exactly the late work that needs chasing.
+       */
       query(
         `SELECT coalesce(l.department_name, 'Tanımsız') AS department_name,
                 count(DISTINCT a.id)::int AS audit_count,
                 round(avg(a.total_score), 2) AS avg_total,
                 count(f.id) FILTER (WHERE f.status = 'open')::int AS open_findings,
-                count(f.id) FILTER (WHERE f.status <> 'open')::int AS closed_findings,
-                count(f.id) FILTER (WHERE f.status = 'open' AND f.due_date < CURRENT_DATE)::int
+                count(f.id) FILTER (WHERE f.status = 'in_progress')::int AS in_progress_findings,
+                count(f.id) FILTER (WHERE f.status = 'closed')::int AS closed_findings,
+                count(f.id) FILTER (WHERE f.status <> 'closed' AND f.due_date < CURRENT_DATE)::int
                   AS overdue_findings
          FROM five_s_audits a
          LEFT JOIN five_s_locations l ON lower(trim(l.name)) = lower(trim(a.department_name))
