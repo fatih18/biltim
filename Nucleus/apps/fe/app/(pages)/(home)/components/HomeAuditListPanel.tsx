@@ -236,7 +236,7 @@ export function HomeAuditListPanel(props: {
                                                     </p>
                                                 )}
                                                 {editDate && getDateConflicts?.(p.id, editDate).map((w, i) => (
-                                                    <p key={i} className="text-[10px] text-amber-600 dark:text-amber-300">⚠ {w}</p>
+                                                    <p key={i} className="text-[10px] text-amber-700 dark:text-amber-300">⚠ {w}</p>
                                                 ))}
                                                 <div className="flex gap-1">
                                                     <button
@@ -261,7 +261,7 @@ export function HomeAuditListPanel(props: {
                                                     <button
                                                         type="button"
                                                         onClick={() => startEdit(p)}
-                                                        className="text-left text-[10px] text-sky-600 dark:text-sky-400 hover:underline"
+                                                        className="text-left text-[10px] text-sky-700 dark:text-sky-400 hover:underline"
                                                     >
                                                         Düzenle ({2 - (p.date_change_count ?? 0)} hak)
                                                     </button>

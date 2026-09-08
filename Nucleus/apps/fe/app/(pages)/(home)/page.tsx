@@ -602,7 +602,7 @@ export default function Page() {
           <section className="mt-8">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">5S Rapor Özeti</h2>
-              <a href="/raporlar" className="text-xs text-sky-600 dark:text-sky-300 hover:text-sky-700 hover:dark:text-sky-200 underline">
+              <a href="/raporlar" className="text-xs text-sky-700 dark:text-sky-300 hover:text-sky-700 hover:dark:text-sky-200 underline">
                 Tüm raporlar →
               </a>
             </div>

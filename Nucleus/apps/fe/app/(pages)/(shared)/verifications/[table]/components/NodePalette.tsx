@@ -36,7 +36,7 @@ const paletteItems: PaletteItem[] = [
     label: 'Notification',
     description: 'Send notifications before or after a step',
     icon: <Bell className="h-5 w-5" />,
-    color: 'text-amber-600',
+    color: 'text-amber-700',
     bgColor: 'bg-amber-500',
   },
 ]

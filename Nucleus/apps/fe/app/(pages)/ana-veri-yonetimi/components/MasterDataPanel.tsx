@@ -111,7 +111,7 @@ export function MasterDataPanel(props: {
                     ) : (
                         filtered.map((it) => {
                             const nameClass = it.isActive
-                                ? "text-emerald-600 dark:text-emerald-300"
+                                ? "text-emerald-700 dark:text-emerald-300"
                                 : "text-rose-300/60 line-through";
 
                             return (

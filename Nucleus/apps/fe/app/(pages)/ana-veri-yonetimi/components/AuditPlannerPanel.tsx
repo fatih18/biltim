@@ -174,7 +174,7 @@ export function AuditPlannerPanel(props: {
           <button
             type="button"
             onClick={() => setPpOpen((v) => !v)}
-            className="rounded-md border border-sky-700/60 bg-sky-950/40 px-3 py-1.5 text-xs font-medium text-sky-600 dark:text-sky-300 hover:bg-sky-950/70"
+            className="rounded-md border border-sky-700/60 bg-sky-950/40 px-3 py-1.5 text-xs font-medium text-sky-700 dark:text-sky-300 hover:bg-sky-950/70"
           >
             {ppOpen ? "İptal" : "+ Yeni Dönem"}
           </button>
@@ -325,7 +325,7 @@ export function AuditPlannerPanel(props: {
                                           onChange={(v) => setEditingDateVal(v)}
                                         />
                                         {editingDateVal && getEditConflicts(a.id, editingDateVal).map((w, i) => (
-                                          <p key={i} className="text-[10px] text-amber-600 dark:text-amber-300">⚠ {w}</p>
+                                          <p key={i} className="text-[10px] text-amber-700 dark:text-amber-300">⚠ {w}</p>
                                         ))}
                                         <div className="flex gap-1">
                                           <button
@@ -356,7 +356,7 @@ export function AuditPlannerPanel(props: {
                                           <button
                                             type="button"
                                             onClick={() => { setEditingDateId(a.id); setEditingDateVal(a.plannedDate); }}
-                                            className="text-left text-[10px] text-sky-600 dark:text-sky-400 hover:underline"
+                                            className="text-left text-[10px] text-sky-700 dark:text-sky-400 hover:underline"
                                           >
                                             Düzenle ({2 - changeCount} hak)
                                           </button>
@@ -478,7 +478,7 @@ export function AuditPlannerPanel(props: {
 
           {createConflicts.length > 0 && (
             <div className="rounded-md border border-amber-500/30 bg-amber-100 dark:bg-amber-500/10 px-3 py-2 space-y-1">
-              <p className="text-[11px] font-semibold text-amber-600 dark:text-amber-300">⚠ Çakışma Uyarısı</p>
+              <p className="text-[11px] font-semibold text-amber-700 dark:text-amber-300">⚠ Çakışma Uyarısı</p>
               {createConflicts.map((w, i) => (
                 <p key={i} className="text-[11px] text-amber-700 dark:text-amber-200">{w}</p>
               ))}
@@ -529,7 +529,7 @@ export function AuditPlannerPanel(props: {
                             onChange={(v) => setEditingDateVal(v)}
                           />
                           {editingDateVal && getEditConflicts(a.id, editingDateVal).map((w, i) => (
-                            <p key={i} className="text-[10px] text-amber-600 dark:text-amber-300">⚠ {w}</p>
+                            <p key={i} className="text-[10px] text-amber-700 dark:text-amber-300">⚠ {w}</p>
                           ))}
                           <div className="flex gap-1">
                             <button
@@ -560,7 +560,7 @@ export function AuditPlannerPanel(props: {
                             <button
                               type="button"
                               onClick={() => { setEditingDateId(a.id); setEditingDateVal(a.plannedDate); }}
-                              className="text-left text-[10px] text-sky-600 dark:text-sky-400 hover:underline"
+                              className="text-left text-[10px] text-sky-700 dark:text-sky-400 hover:underline"
                             >
                               Düzenle ({2 - changeCount} hak)
                             </button>

@@ -386,7 +386,7 @@ export function QuestionsPanel() {
                         e.stopPropagation();
                         openAdd(step);
                       }}
-                      className="inline-flex items-center gap-1 rounded-md bg-sky-500/10 px-2 py-1 text-[10px] text-sky-600 dark:text-sky-300 hover:bg-sky-500/20"
+                      className="inline-flex items-center gap-1 rounded-md bg-sky-500/10 px-2 py-1 text-[10px] text-sky-700 dark:text-sky-300 hover:bg-sky-500/20"
                     >
                       <Plus className="h-3 w-3" />
                       Soru Ekle
@@ -399,7 +399,7 @@ export function QuestionsPanel() {
                     {/* Add form */}
                     {isAdding && isAdmin && (
                       <div className="border-b border-slate-800/60 bg-white dark:bg-slate-950/40 px-4 py-3 space-y-2">
-                        <p className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-300">Yeni Soru</p>
+                        <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">Yeni Soru</p>
                         <textarea
                           rows={3}
                           value={addText}
@@ -530,7 +530,7 @@ export function QuestionsPanel() {
                               <div className="mt-1.5 flex items-center gap-3 text-[11px] text-slate-500 dark:text-slate-500">
                                 <span>
                                   Maks. Puan:{" "}
-                                  <span className="text-sky-600 dark:text-sky-300">{q.maxScore}</span>
+                                  <span className="text-sky-700 dark:text-sky-300">{q.maxScore}</span>
                                 </span>
                                 <span>
                                   {q.requireExplanation ? "Açıklama zorunlu" : "Açıklama opsiyonel"}

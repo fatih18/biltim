@@ -145,7 +145,7 @@ export function LocationsPanel(props: {
                         <div className="px-3 py-6 text-sm text-slate-600 dark:text-slate-400 text-center">Kayıt yok.</div>
                     ) : (
                         filtered.map((it) => {
-                            const nameClass = it.isActive ? "text-emerald-600 dark:text-emerald-300" : "text-rose-300/60 line-through";
+                            const nameClass = it.isActive ? "text-emerald-700 dark:text-emerald-300" : "text-rose-300/60 line-through";
                             const managerName = it.managerUserId ? (userById.get(it.managerUserId) ?? it.managerUserId) : "-";
                             const fmNames = (it.fieldManagerUserIds ?? [])
                                 .map((id) => userById.get(id) ?? id)
@@ -293,7 +293,7 @@ export function LocationsPanel(props: {
                                                     type="button"
                                                     onClick={() => toggleFieldManager(u.id)}
                                                     className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-slate-200 hover:dark:bg-slate-700 ${
-                                                        checked ? "text-emerald-600 dark:text-emerald-300" : "text-slate-800 dark:text-slate-200"
+                                                        checked ? "text-emerald-700 dark:text-emerald-300" : "text-slate-800 dark:text-slate-200"
                                                     }`}
                                                 >
                                                     <span className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border ${
@@ -314,7 +314,7 @@ export function LocationsPanel(props: {
                         {fieldManagerUserIds.length > 0 && (
                             <div className="mt-1.5 flex flex-wrap gap-1">
                                 {fieldManagerUserIds.map((id) => (
-                                    <span key={id} className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] text-emerald-600 dark:text-emerald-300">
+                                    <span key={id} className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] text-emerald-700 dark:text-emerald-300">
                                         {userById.get(id) ?? id}
                                         <button type="button" onClick={() => toggleFieldManager(id)} className="text-emerald-400 hover:text-emerald-700 hover:dark:text-emerald-200">×</button>
                                     </span>

@@ -64,12 +64,12 @@ function Card(props: { title: string; subtitle?: string; children: React.ReactNo
 function StatCard(props: { label: string; value: string; tone?: 'default' | 'good' | 'warn' | 'bad' }) {
   const toneClass =
     props.tone === 'good'
-      ? 'text-emerald-600 dark:text-emerald-300'
+      ? 'text-emerald-700 dark:text-emerald-300'
       : props.tone === 'warn'
-        ? 'text-amber-600 dark:text-amber-300'
+        ? 'text-amber-700 dark:text-amber-300'
         : props.tone === 'bad'
-          ? 'text-rose-600 dark:text-rose-300'
-          : 'text-sky-600 dark:text-sky-300'
+          ? 'text-rose-700 dark:text-rose-300'
+          : 'text-sky-700 dark:text-sky-300'
   return (
     <div className="rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 px-4 py-3">
       <div className="text-[11px] text-slate-600 dark:text-slate-400">{props.label}</div>
@@ -172,7 +172,7 @@ function BeforeAfterReport() {
             </div>
             <div className="grid grid-cols-2 gap-1.5">
               <div>
-                <div className="mb-0.5 text-[10px] text-rose-600 dark:text-rose-300">Önce</div>
+                <div className="mb-0.5 text-[10px] text-rose-700 dark:text-rose-300">Önce</div>
                 {before ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={before} alt="önce" className="h-24 w-full rounded object-cover" loading="lazy" />
@@ -181,7 +181,7 @@ function BeforeAfterReport() {
                 )}
               </div>
               <div>
-                <div className="mb-0.5 text-[10px] text-emerald-600 dark:text-emerald-300">Sonra</div>
+                <div className="mb-0.5 text-[10px] text-emerald-700 dark:text-emerald-300">Sonra</div>
                 {after ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={after} alt="sonra" className="h-24 w-full rounded object-cover" loading="lazy" />
@@ -539,9 +539,9 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
                       {str(r.status) === 'planned' ? 'Planlandı' : str(r.status) === 'completed' ? 'Tamamlandı' : str(r.status) === 'cancelled' ? 'İptal' : str(r.status)}
                     </td>
                     <td className="px-3 py-2 text-center">{num(r.count)}</td>
-                    <td className="px-3 py-2 text-center text-emerald-600 dark:text-emerald-300">{num(r.auditor_attended)}</td>
-                    <td className="px-3 py-2 text-center text-emerald-600 dark:text-emerald-300">{num(r.field_manager_attended)}</td>
-                    <td className="px-3 py-2 text-center text-rose-600 dark:text-rose-300">{num(r.field_manager_missed)}</td>
+                    <td className="px-3 py-2 text-center text-emerald-700 dark:text-emerald-300">{num(r.auditor_attended)}</td>
+                    <td className="px-3 py-2 text-center text-emerald-700 dark:text-emerald-300">{num(r.field_manager_attended)}</td>
+                    <td className="px-3 py-2 text-center text-rose-700 dark:text-rose-300">{num(r.field_manager_missed)}</td>
                   </tr>
                 ))}
                 {(data?.planCompliance ?? []).length === 0 && (
@@ -574,12 +574,12 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
                 <tr key={i} className="border-t border-slate-300 dark:border-slate-800/80">
                   <td className="px-3 py-2">{str(r.department_name)}</td>
                   <td className="px-3 py-2 text-center">{num(r.audit_count)}</td>
-                  <td className={`px-3 py-2 text-center font-semibold ${num(r.avg_total) >= 75 ? 'text-emerald-600 dark:text-emerald-300' : 'text-amber-600 dark:text-amber-300'}`}>
+                  <td className={`px-3 py-2 text-center font-semibold ${num(r.avg_total) >= 75 ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'}`}>
                     {r.avg_total != null ? num(r.avg_total).toFixed(1) : '-'}
                   </td>
-                  <td className="px-3 py-2 text-center text-rose-600 dark:text-rose-300">{num(r.open_findings)}</td>
-                  <td className="px-3 py-2 text-center text-emerald-600 dark:text-emerald-300">{num(r.closed_findings)}</td>
-                  <td className="px-3 py-2 text-center text-amber-600 dark:text-amber-300">{num(r.overdue_findings)}</td>
+                  <td className="px-3 py-2 text-center text-rose-700 dark:text-rose-300">{num(r.open_findings)}</td>
+                  <td className="px-3 py-2 text-center text-emerald-700 dark:text-emerald-300">{num(r.closed_findings)}</td>
+                  <td className="px-3 py-2 text-center text-amber-700 dark:text-amber-300">{num(r.overdue_findings)}</td>
                 </tr>
               ))}
               {(data?.departmentSummary ?? []).length === 0 && (
@@ -612,10 +612,10 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
                 <tr key={str(r.id)} className="border-t border-slate-300 dark:border-slate-800/80">
                   <td className="px-3 py-2 text-slate-600 dark:text-slate-400">{num(r.finding_no)}</td>
                   <td className="px-3 py-2">{str(r.location_name)}</td>
-                  <td className="px-3 py-2 text-sky-600 dark:text-sky-300">{str(r.finding_type)}</td>
+                  <td className="px-3 py-2 text-sky-700 dark:text-sky-300">{str(r.finding_type)}</td>
                   <td className="px-3 py-2 max-w-[240px] truncate" title={str(r.action_to_take)}>{str(r.action_to_take) || '-'}</td>
                   <td className="px-3 py-2">{str(r.due_date).slice(0, 10)}</td>
-                  <td className="px-3 py-2 text-center font-semibold text-rose-600 dark:text-rose-300">{num(r.overdue_days)} gün</td>
+                  <td className="px-3 py-2 text-center font-semibold text-rose-700 dark:text-rose-300">{num(r.overdue_days)} gün</td>
                   <td className="px-3 py-2">{str(r.responsible_name) || '-'}</td>
                 </tr>
               ))}

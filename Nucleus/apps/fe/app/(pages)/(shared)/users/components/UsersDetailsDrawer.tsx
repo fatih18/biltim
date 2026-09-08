@@ -320,7 +320,7 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
                 >
                   <div className="flex items-start gap-3">
                     <div className="rounded-lg bg-white dark:bg-slate-950/50 p-2">
-                      <MapPin size={16} className="text-sky-600 dark:text-sky-300" />
+                      <MapPin size={16} className="text-sky-700 dark:text-sky-300" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <h4 className="truncate font-semibold text-slate-900 dark:text-slate-100">{address.name}</h4>
@@ -354,7 +354,7 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
                 >
                   <div className="flex items-start gap-3">
                     <div className="rounded-lg bg-white dark:bg-slate-950/50 p-2">
-                      <Phone size={16} className="text-emerald-600 dark:text-emerald-300" />
+                      <Phone size={16} className="text-emerald-700 dark:text-emerald-300" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <h4 className="truncate font-semibold text-slate-900 dark:text-slate-100">{phone.name}</h4>
@@ -425,7 +425,7 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
                 Roller yükleniyor...
               </div>
             ) : rolesErrorCode === 403 ? (
-              <div className="mt-4 text-sm text-rose-600 dark:text-rose-300">
+              <div className="mt-4 text-sm text-rose-700 dark:text-rose-300">
                 Bu kullanıcının rollerini görüntüleme izniniz yok.
               </div>
             ) : (

@@ -3,8 +3,8 @@ import type { KpiProps } from './types'
 
 function getTrendClasses(trend: KpiProps['trend']): string {
   const map: Record<NonNullable<KpiProps['trend']>, string> = {
-    up: 'text-emerald-600',
-    down: 'text-rose-600',
+    up: 'text-emerald-700',
+    down: 'text-rose-700',
     steady: 'text-slate-500 dark:text-slate-500',
   }
   if (trend === undefined) {

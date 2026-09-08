@@ -99,7 +99,7 @@ function NotificationRuleNodeComponent({
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1">
-            <Bell className="h-2.5 w-2.5 text-amber-600" />
+            <Bell className="h-2.5 w-2.5 text-amber-700" />
             <span className="text-[9px] font-medium text-amber-700">Notification</span>
           </div>
           <div className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">{getTriggerLabel()}</div>

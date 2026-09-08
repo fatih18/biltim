@@ -42,7 +42,7 @@ export default function Verifications() {
         <div className="mb-10 grid gap-4 sm:grid-cols-3">
           <div className="flex items-center gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100">
-              <Users className="h-5 w-5 text-emerald-600" />
+              <Users className="h-5 w-5 text-emerald-700" />
             </div>
             <div>
               <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">Multi-step Approval</div>
@@ -51,7 +51,7 @@ export default function Verifications() {
           </div>
           <div className="flex items-center gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100">
-              <Bell className="h-5 w-5 text-amber-600" />
+              <Bell className="h-5 w-5 text-amber-700" />
             </div>
             <div>
               <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">Smart Notifications</div>

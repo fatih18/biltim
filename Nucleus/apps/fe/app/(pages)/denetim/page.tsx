@@ -2013,7 +2013,7 @@ export default function FiveSAuditFormPage() {
             </p>
             <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-500">
               Durum:{' '}
-              <span className={isOnline ? 'text-emerald-600 dark:text-emerald-300' : 'text-amber-600 dark:text-amber-300'}>
+              <span className={isOnline ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'}>
                 {isOnline ? 'Online' : 'Offline'}
               </span>
               {queuedCount > 0 ? <span className="ml-2">• Kuyruk: {queuedCount}</span> : null}
@@ -2287,7 +2287,7 @@ export default function FiveSAuditFormPage() {
                         Tarih: <span className="text-slate-700 dark:text-slate-300">{p.planned_date || '-'}</span>
                       </div>
                     </div>
-                    <span className="text-xs text-sky-600 dark:text-sky-400">Seç →</span>
+                    <span className="text-xs text-sky-700 dark:text-sky-400">Seç →</span>
                   </div>
                 </button>
               )
@@ -2314,7 +2314,7 @@ export default function FiveSAuditFormPage() {
 
               <div className="mt-2 text-[11px] text-slate-600 dark:text-slate-400">
                 Durum:{' '}
-                <span className={isOnline ? 'text-emerald-600 dark:text-emerald-300' : 'text-amber-600 dark:text-amber-300'}>
+                <span className={isOnline ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'}>
                   {isOnline ? 'Online' : 'Offline'}
                 </span>
                 {queuedCount > 0 ? (
@@ -2480,7 +2480,7 @@ export default function FiveSAuditFormPage() {
             <div>
               <h1 className="text-xl font-semibold md:text-2xl">5S Denetim Formu (Sahalar)</h1>
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                Minimum hedef puan: <span className="font-semibold text-emerald-600 dark:text-emerald-300">75</span>
+                Minimum hedef puan: <span className="font-semibold text-emerald-700 dark:text-emerald-300">75</span>
               </p>
               <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-500">
                 Plan: <span className="text-slate-700 dark:text-slate-300">{header.teamName}</span> •{' '}
@@ -2489,7 +2489,7 @@ export default function FiveSAuditFormPage() {
               </p>
               <p className="mt-2 text-[11px] text-slate-600 dark:text-slate-400">
                 Durum:{' '}
-                <span className={isOnline ? 'text-emerald-600 dark:text-emerald-300' : 'text-amber-600 dark:text-amber-300'}>
+                <span className={isOnline ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'}>
                   {isOnline ? 'Online' : 'Offline'}
                 </span>
                 {queuedCount > 0 ? <span className="ml-2 text-slate-500 dark:text-slate-500">• Kuyruk: {queuedCount}</span> : null}
@@ -2647,7 +2647,7 @@ export default function FiveSAuditFormPage() {
                   <div className="flex flex-col items-start gap-1 md:items-end">
                     <div className="flex items-baseline gap-2 text-sm">
                       <span className="text-slate-600 dark:text-slate-400">Adım Puanı:</span>
-                      <span className="font-semibold text-sky-600 dark:text-sky-300">
+                      <span className="font-semibold text-sky-700 dark:text-sky-300">
                         {formatScore(stepScore)} / {step.maxScore.toFixed(2)}
                       </span>
                     </div>
@@ -2698,7 +2698,7 @@ export default function FiveSAuditFormPage() {
                                 )}
                                 {openFindingsByQuestion.has(q.id) && (
                                   <span
-                                    className="ml-2 inline-flex items-center rounded-sm bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-300 ring-1 ring-amber-500/40"
+                                    className="ml-2 inline-flex items-center rounded-sm bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/40"
                                     title="Bu soruya bağlı henüz kapanmamış bulgu var"
                                   >
                                     ⚠ Açık bulgu ({openFindingsByQuestion.get(q.id)})
@@ -2734,7 +2734,7 @@ export default function FiveSAuditFormPage() {
                                       value="good"
                                       checked={rating === 'good'}
                                       onChange={() => handleRatingChange(q.id, 'good')}
-                                      className="h-3 w-3 border-slate-500 bg-white dark:bg-slate-900 text-sky-600 dark:text-sky-400 focus:ring-sky-500"
+                                      className="h-3 w-3 border-slate-500 bg-white dark:bg-slate-900 text-sky-700 dark:text-sky-400 focus:ring-sky-500"
                                     />
                                     <span>İyi</span>
                                   </label>
@@ -2745,7 +2745,7 @@ export default function FiveSAuditFormPage() {
                                       value="medium"
                                       checked={rating === 'medium'}
                                       onChange={() => handleRatingChange(q.id, 'medium')}
-                                      className="h-3 w-3 border-slate-500 bg-white dark:bg-slate-900 text-sky-600 dark:text-sky-400 focus:ring-sky-500"
+                                      className="h-3 w-3 border-slate-500 bg-white dark:bg-slate-900 text-sky-700 dark:text-sky-400 focus:ring-sky-500"
                                     />
                                     <span>Orta</span>
                                   </label>
@@ -2756,14 +2756,14 @@ export default function FiveSAuditFormPage() {
                                       value="bad"
                                       checked={rating === 'bad'}
                                       onChange={() => handleRatingChange(q.id, 'bad')}
-                                      className="h-3 w-3 border-slate-500 bg-white dark:bg-slate-900 text-sky-600 dark:text-sky-400 focus:ring-sky-500"
+                                      className="h-3 w-3 border-slate-500 bg-white dark:bg-slate-900 text-sky-700 dark:text-sky-400 focus:ring-sky-500"
                                     />
                                     <span>Kötü</span>
                                   </label>
                                 </div>
                               </td>
 
-                              <td className="px-4 py-2 text-xs font-semibold text-sky-600 dark:text-sky-300">{formatScore(point)}</td>
+                              <td className="px-4 py-2 text-xs font-semibold text-sky-700 dark:text-sky-300">{formatScore(point)}</td>
                             </tr>
                           )
                         })}
@@ -2802,7 +2802,7 @@ export default function FiveSAuditFormPage() {
                                 <span className="ml-1 inline-flex items-center rounded-sm bg-rose-500/20 px-1 py-0.5 text-[10px] font-semibold text-rose-400">⚠</span>
                               )}
                               {openFindingsByQuestion.has(q.id) && (
-                                <span className="ml-1 inline-flex items-center rounded-sm bg-amber-500/20 px-1 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-300">
+                                <span className="ml-1 inline-flex items-center rounded-sm bg-amber-500/20 px-1 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
                                   ⚠ Açık bulgu ({openFindingsByQuestion.get(q.id)})
                                 </span>
                               )}
@@ -2812,7 +2812,7 @@ export default function FiveSAuditFormPage() {
                                 <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
                                 {ratingLabel}
                               </span>
-                              <span className="font-semibold text-sky-600 dark:text-sky-300">{formatScore(point)}</span>
+                              <span className="font-semibold text-sky-700 dark:text-sky-300">{formatScore(point)}</span>
                               <span className="text-[10px] text-slate-500 dark:text-slate-500">/ {q.maxScore.toFixed(2)}</span>
                             </div>
                           </div>
@@ -2857,7 +2857,7 @@ export default function FiveSAuditFormPage() {
                                     value="good"
                                     checked={rating === 'good'}
                                     onChange={() => handleRatingChange(q.id, 'good')}
-                                    className="h-3 w-3 border-slate-500 bg-white dark:bg-slate-900 text-sky-600 dark:text-sky-400 focus:ring-sky-500"
+                                    className="h-3 w-3 border-slate-500 bg-white dark:bg-slate-900 text-sky-700 dark:text-sky-400 focus:ring-sky-500"
                                   />
                                   <span>İyi</span>
                                 </label>
@@ -2868,7 +2868,7 @@ export default function FiveSAuditFormPage() {
                                     value="medium"
                                     checked={rating === 'medium'}
                                     onChange={() => handleRatingChange(q.id, 'medium')}
-                                    className="h-3 w-3 border-slate-500 bg-white dark:bg-slate-900 text-sky-600 dark:text-sky-400 focus:ring-sky-500"
+                                    className="h-3 w-3 border-slate-500 bg-white dark:bg-slate-900 text-sky-700 dark:text-sky-400 focus:ring-sky-500"
                                   />
                                   <span>Orta</span>
                                 </label>
@@ -2879,7 +2879,7 @@ export default function FiveSAuditFormPage() {
                                     value="bad"
                                     checked={rating === 'bad'}
                                     onChange={() => handleRatingChange(q.id, 'bad')}
-                                    className="h-3 w-3 border-slate-500 bg-white dark:bg-slate-900 text-sky-600 dark:text-sky-400 focus:ring-sky-500"
+                                    className="h-3 w-3 border-slate-500 bg-white dark:bg-slate-900 text-sky-700 dark:text-sky-400 focus:ring-sky-500"
                                   />
                                   <span>Kötü</span>
                                 </label>
@@ -2911,21 +2911,21 @@ export default function FiveSAuditFormPage() {
                   {steps.map((step) => (
                     <tr key={step.code} className="border-t border-slate-300 dark:border-slate-800/80">
                       <td className="px-4 py-2 text-xs">{step.title}</td>
-                      <td className="px-4 py-2 text-xs font-semibold text-sky-600 dark:text-sky-300">
+                      <td className="px-4 py-2 text-xs font-semibold text-sky-700 dark:text-sky-300">
                         {formatScore(stepScores[step.code])}
                       </td>
                     </tr>
                   ))}
                   <tr className="border-t border-slate-700/80">
                     <td className="px-4 py-2 text-xs font-semibold">Toplam (100)</td>
-                    <td className="px-4 py-2 text-xs font-bold text-emerald-600 dark:text-emerald-300">{formatScore(totalScore)}</td>
+                    <td className="px-4 py-2 text-xs font-bold text-emerald-700 dark:text-emerald-300">{formatScore(totalScore)}</td>
                   </tr>
                 </tbody>
               </table>
             </div>
 
             {submitted && (
-              <p className="text-xs text-emerald-600 dark:text-emerald-300">
+              <p className="text-xs text-emerald-700 dark:text-emerald-300">
                 {isOnline ? 'Form başarıyla gönderildi.' : 'Form offline kuyruğa alındı (internet gelince gönderilecek).'}
               </p>
             )}

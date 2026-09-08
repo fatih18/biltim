@@ -110,7 +110,7 @@ export default function Login() {
                   </label>
 
                   <div className="relative mt-2">
-                    <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-sky-600 dark:text-sky-300">
+                    <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-sky-700 dark:text-sky-300">
                       <FiMail className="h-[18px] w-[18px]" aria-hidden="true" />
                     </span>
 
@@ -132,7 +132,7 @@ export default function Login() {
                   </label>
 
                   <div className="relative mt-2">
-                    <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-sky-600 dark:text-sky-300">
+                    <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-sky-700 dark:text-sky-300">
                       <FiLock className="h-[18px] w-[18px]" aria-hidden="true" />
                     </span>
 
@@ -170,7 +170,7 @@ export default function Login() {
                     <input
                       type="checkbox"
                       name="remember"
-                      className="h-4 w-4 rounded border-slate-400 dark:border-slate-600 bg-white dark:bg-slate-950/60 text-sky-600 dark:text-sky-400 focus:ring-sky-400"
+                      className="h-4 w-4 rounded border-slate-400 dark:border-slate-600 bg-white dark:bg-slate-950/60 text-sky-700 dark:text-sky-400 focus:ring-sky-400"
                     />
                     Beni Hatırla
                   </label>

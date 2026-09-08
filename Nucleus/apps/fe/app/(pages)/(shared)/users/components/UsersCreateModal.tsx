@@ -351,7 +351,7 @@ export function UsersCreateModal({
                             checked={isSelected}
                             disabled={disabled}
                             onChange={(event) => toggleRole(role.id, event.target.checked)}
-                            className="h-4 w-4 rounded border-slate-400 dark:border-slate-600 bg-white dark:bg-slate-950/70 text-sky-600 dark:text-sky-400 focus:ring-sky-500/40"
+                            className="h-4 w-4 rounded border-slate-400 dark:border-slate-600 bg-white dark:bg-slate-950/70 text-sky-700 dark:text-sky-400 focus:ring-sky-500/40"
                           />
                         </span>
                       </label>

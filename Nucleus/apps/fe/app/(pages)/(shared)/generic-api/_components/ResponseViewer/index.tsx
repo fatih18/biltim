@@ -35,7 +35,7 @@ function FieldCopyButton({ value, label }: { value: string; label: string }) {
         <div className="text-sm font-mono text-gray-800 truncate">{value}</div>
       </div>
       <div
-        className={`flex-shrink-0 p-1.5 rounded ${ copied ?'bg-emerald-100 text-emerald-600' : 'bg-white text-gray-400'
+        className={`flex-shrink-0 p-1.5 rounded ${ copied ?'bg-emerald-100 text-emerald-700' : 'bg-white text-gray-400'
         }`}
       >
         {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}

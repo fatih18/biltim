@@ -543,7 +543,7 @@ export function TeamsTab({
                   >
                     <div className="text-sm">{userNameById.get(id) ?? id}</div>
                     <button
-                      className="text-xs text-rose-600 dark:text-rose-300 hover:text-rose-700 hover:dark:text-rose-200"
+                      className="text-xs text-rose-700 dark:text-rose-300 hover:text-rose-700 hover:dark:text-rose-200"
                       onClick={() => removeDraftMember(id)}
                     >
                       Çıkar

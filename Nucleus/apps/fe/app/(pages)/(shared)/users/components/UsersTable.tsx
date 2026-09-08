@@ -93,21 +93,21 @@ export function UsersTable({ users, onSelectDetails, onValidateEmail, onDelete }
                 : '—'
 
               const verificationBadge = user.verified_at ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400 dark:border-emerald-400/40 bg-emerald-100 dark:bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-300">
+                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400 dark:border-emerald-400/40 bg-emerald-100 dark:bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
                   <CheckCircle2 size={14} /> Doğrulandı
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 rounded-full border border-amber-400 dark:border-amber-400/40 bg-amber-100 dark:bg-amber-500/10 px-2 py-1 text-xs font-semibold text-amber-600 dark:text-amber-300">
+                <span className="inline-flex items-center gap-1 rounded-full border border-amber-400 dark:border-amber-400/40 bg-amber-100 dark:bg-amber-500/10 px-2 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300">
                   <MailCheck size={14} /> Bekliyor
                 </span>
               )
 
               const accessBadge = user.is_locked ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-rose-400 dark:border-rose-400/40 bg-rose-100 dark:bg-rose-500/10 px-2 py-1 text-xs font-semibold text-rose-600 dark:text-rose-300">
+                <span className="inline-flex items-center gap-1 rounded-full border border-rose-400 dark:border-rose-400/40 bg-rose-100 dark:bg-rose-500/10 px-2 py-1 text-xs font-semibold text-rose-700 dark:text-rose-300">
                   <ShieldBan size={14} /> Kilitli
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400 dark:border-emerald-400/40 bg-emerald-100 dark:bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-300">
+                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400 dark:border-emerald-400/40 bg-emerald-100 dark:bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
                   <ShieldCheck size={14} /> Aktif
                 </span>
               )
@@ -116,7 +116,7 @@ export function UsersTable({ users, onSelectDetails, onValidateEmail, onDelete }
                 <tr key={user.id} className="transition-colors hover:bg-slate-100 hover:dark:bg-white/5">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 dark:bg-white/10 text-emerald-600 dark:text-emerald-300">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 dark:bg-white/10 text-emerald-700 dark:text-emerald-300">
                         <User size={18} />
                       </div>
                       <div>
@@ -153,7 +153,7 @@ export function UsersTable({ users, onSelectDetails, onValidateEmail, onDelete }
                       {!user.verified_at ? (
                         <button
                           type="button"
-                          className="inline-flex items-center gap-1 text-sm font-semibold text-emerald-600 dark:text-emerald-300 hover:text-emerald-700 hover:dark:text-emerald-200 transition-colors"
+                          className="inline-flex items-center gap-1 text-sm font-semibold text-emerald-700 dark:text-emerald-300 hover:text-emerald-700 hover:dark:text-emerald-200 transition-colors"
                           onClick={() => onValidateEmail(user.id)}
                         >
                           <MailCheck size={14} aria-hidden="true" /> E-postasını Doğrula
@@ -162,7 +162,7 @@ export function UsersTable({ users, onSelectDetails, onValidateEmail, onDelete }
 
                       <button
                         type="button"
-                        className="inline-flex items-center gap-1 text-sm font-semibold text-rose-600 dark:text-rose-300 hover:text-rose-700 hover:dark:text-rose-200 transition-colors"
+                        className="inline-flex items-center gap-1 text-sm font-semibold text-rose-700 dark:text-rose-300 hover:text-rose-700 hover:dark:text-rose-200 transition-colors"
                         onClick={() => onDelete(user.id)}
                       >
                         <Trash2 size={14} aria-hidden="true" /> Sil

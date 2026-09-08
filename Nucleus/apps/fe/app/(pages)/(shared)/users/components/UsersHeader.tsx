@@ -14,7 +14,7 @@ export function UsersHeader({ onCreate, onRefresh, isRefreshing }: UsersHeaderPr
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-4">
           <div className="rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/40 p-3">
-            <Shield size={28} className="text-emerald-600 dark:text-emerald-300" />
+            <Shield size={28} className="text-emerald-700 dark:text-emerald-300" />
           </div>
 
           <div>

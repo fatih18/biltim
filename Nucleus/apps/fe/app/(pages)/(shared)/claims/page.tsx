@@ -80,7 +80,7 @@ export default function ClaimsManagementPage() {
             type="button"
             onClick={() => setActiveTab('claims')}
             className={`px-4 py-2 text-sm font-medium transition-colors ${ activeTab ==='claims'
-                ? 'border-b-2 border-emerald-500 text-emerald-600'
+                ? 'border-b-2 border-emerald-500 text-emerald-700'
                 : 'text-slate-400 dark:text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -90,7 +90,7 @@ export default function ClaimsManagementPage() {
             type="button"
             onClick={() => setActiveTab('roles')}
             className={`px-4 py-2 text-sm font-medium transition-colors ${ activeTab ==='roles'
-                ? 'border-b-2 border-emerald-500 text-emerald-600'
+                ? 'border-b-2 border-emerald-500 text-emerald-700'
                 : 'text-slate-400 dark:text-slate-600 hover:text-slate-900'
             }`}
           >

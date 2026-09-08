@@ -220,7 +220,7 @@ export function EndpointList({
         {pinnedFiltered.length > 0 && (
           <div>
             <div className="px-4 py-2 bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-200 sticky top-0 backdrop-blur-sm flex items-center gap-2">
-              <Pin className="h-3 w-3 text-amber-600" />
+              <Pin className="h-3 w-3 text-amber-700" />
               <span className="text-xs font-semibold text-amber-700 uppercase tracking-wider">
                 Pinned ({pinnedFiltered.length})
               </span>
@@ -252,7 +252,7 @@ export function EndpointList({
                     className="opacity-0 group-hover:opacity-100 p-1 hover:bg-amber-100 rounded transition-all"
                     title="Unpin"
                   >
-                    <PinOff className="h-3.5 w-3.5 text-amber-600" />
+                    <PinOff className="h-3.5 w-3.5 text-amber-700" />
                   </button>
                 </div>
               )
@@ -304,7 +304,7 @@ export function EndpointList({
                       <button
                         type="button"
                         onClick={(e) => togglePin(endpoint, e)}
-                        className={`p-1 rounded transition-all ${ isPinned ?'text-amber-600 bg-amber-50'
+                        className={`p-1 rounded transition-all ${ isPinned ?'text-amber-700 bg-amber-50'
                             : 'opacity-0 group-hover:opacity-100 hover:bg-gray-100 text-gray-400'
                         }`}
                         title={isPinned ? 'Unpin' : 'Pin'}
