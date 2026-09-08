@@ -24,7 +24,8 @@ import { query } from '../db'
 
 const FINDING_PATH = /^\/fiveSFindings\/([^/?]+)/
 const PLAN_PATH = /^\/fiveSAuditPlans\/([^/?]+)/
-const WRITE_METHODS = new Set(['PUT', 'PATCH'])
+const PLAN_COLLECTION = /^\/fiveSAuditPlans\/?$/
+const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH'])
 
 /** The cap the planning screen shows as "Düzenle (N hak)". */
 export const MAX_DATE_CHANGES = 2
@@ -110,12 +111,14 @@ export async function enforceBusinessRules(ctx: RuleContext): Promise<Response |
   if (!WRITE_METHODS.has(request.method)) return undefined
 
   const path = new URL(request.url).pathname
-  if (!FINDING_PATH.test(path) && !PLAN_PATH.test(path)) return undefined
+  if (!FINDING_PATH.test(path) && !PLAN_PATH.test(path) && !PLAN_COLLECTION.test(path)) {
+    return undefined
+  }
 
   const body = await readBody(ctx)
   const read = ctx.read ?? query
 
-  const finding = FINDING_PATH.exec(path)
+  const finding = request.method !== 'POST' ? FINDING_PATH.exec(path) : null
   if (finding && String(body.status ?? '').toLowerCase() === 'closed') {
     // A photo supplied in the SAME request counts; the screen uploads first,
     // but a caller may legitimately do both at once.
@@ -133,7 +136,36 @@ export async function enforceBusinessRules(ctx: RuleContext): Promise<Response |
     return undefined
   }
 
-  const plan = PLAN_PATH.exec(path)
+  /*
+   * A plan belongs to its period. The screen disables "Denetim Planı Oluştur"
+   * for a date outside the parent's range; the API accepted 2027-03-15 into a
+   * period running 2026-10-01 to 2026-12-31. The quarterly cycle is what the
+   * whole 5S programme is reported on, so an audit filed under the wrong
+   * quarter is not a cosmetic problem.
+   */
+  const planCreate = PLAN_COLLECTION.test(path) && request.method === 'POST'
+  if (planCreate || (PLAN_PATH.test(path) && body.planned_date !== undefined)) {
+    const parentId = String(body.parent_plan_id ?? body.parentPlanId ?? '').trim()
+    const date = toDateKey(body.planned_date)
+    if (parentId && date) {
+      const parents = await read(
+        'select date_range_start, date_range_end, quarter from main.five_s_audit_plans where id = $1',
+        [parentId]
+      )
+      const parent = parents[0]
+      if (parent) {
+        const from = toDateKey(parent.date_range_start)
+        const to = toDateKey(parent.date_range_end)
+        if ((from && date < from) || (to && date > to)) {
+          return refuse(
+            `Denetim tarihi, bağlı olduğu dönemin (${parent.quarter ?? 'dönem'}) ${from} – ${to} aralığı dışında olamaz.`
+          )
+        }
+      }
+    }
+  }
+
+  const plan = request.method !== 'POST' ? PLAN_PATH.exec(path) : null
   if (plan && body.planned_date !== undefined) {
     const rows = await read(
       'select planned_date, date_change_count from main.five_s_audit_plans where id = $1',

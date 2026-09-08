@@ -249,3 +249,74 @@ describe('re-saving a plan without moving it', () => {
     expect(res).toBeUndefined()
   })
 })
+
+describe('a plan belongs to its period', () => {
+  const period = [{ date_range_start: '2026-10-01', date_range_end: '2026-12-31', quarter: '2026-Q4' }]
+
+  it('refuses a create dated after the period ends', async () => {
+    // Live: the screen disabled the button and the API took 2027-03-15 into a
+    // period running 2026-10-01 to 2026-12-31.
+    const res = await enforceBusinessRules({
+      request: jsonReq('POST', '/fiveSAuditPlans', {
+        planned_date: '2027-03-15',
+        parent_plan_id: 'pp1',
+      }),
+      body: undefined,
+      read: reader(period),
+    })
+    expect(res?.status).toBe(400)
+  })
+
+  it('refuses one dated before it starts', async () => {
+    const res = await enforceBusinessRules({
+      request: jsonReq('POST', '/fiveSAuditPlans', {
+        planned_date: '2026-09-30',
+        parent_plan_id: 'pp1',
+      }),
+      body: undefined,
+      read: reader(period),
+    })
+    expect(res?.status).toBe(400)
+  })
+
+  it('allows the boundaries themselves', async () => {
+    for (const date of ['2026-10-01', '2026-12-31', '2026-11-15']) {
+      const res = await enforceBusinessRules({
+        request: jsonReq('POST', '/fiveSAuditPlans', { planned_date: date, parent_plan_id: 'pp1' }),
+        body: undefined,
+        read: reader(period),
+      })
+      expect(res).toBeUndefined()
+    }
+  })
+
+  it('leaves a plan with no period alone — the range is the parent’s, and there is none', async () => {
+    const res = await enforceBusinessRules({
+      request: jsonReq('POST', '/fiveSAuditPlans', { planned_date: '2027-03-15' }),
+      body: undefined,
+      read: reader(period),
+    })
+    expect(res).toBeUndefined()
+  })
+
+  it('also catches a date MOVED out of range by an update', async () => {
+    const res = await enforceBusinessRules({
+      request: jsonReq('PUT', '/fiveSAuditPlans/p1', {
+        planned_date: '2027-03-15',
+        parent_plan_id: 'pp1',
+      }),
+      body: undefined,
+      read: reader(period),
+    })
+    expect(res?.status).toBe(400)
+  })
+
+  it('does not block a create on some other table', async () => {
+    const res = await enforceBusinessRules({
+      request: jsonReq('POST', '/fiveSLocations', { name: 'x' }),
+      body: undefined,
+      read: reader(period),
+    })
+    expect(res).toBeUndefined()
+  })
+})
