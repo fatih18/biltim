@@ -82,3 +82,31 @@ describe('nucleus system tables', () => {
     expect(out.searchFields).toBe('email')
   })
 })
+
+describe('secrets are never searchable', () => {
+  /*
+   * The users table's other text columns are `password` and
+   * `email_verification_token`. A search box over either is an oracle for
+   * guessing them a character at a time, so email is the only one offered and
+   * the pattern guards every other table too.
+   */
+  it('offers only email on users', () => {
+    expect(searchableColumns('users')).toEqual(['email'])
+  })
+
+  it('scopes the system tables to columns that actually exist on them', () => {
+    // config.json declares only what THIS app adds — claims lists `mode`
+    // alone, which is why searching /claims found nothing.
+    expect(searchableColumns('claims')).toContain('action')
+    expect(searchableColumns('roles')).toContain('name')
+    expect(searchableColumns('audit_logs')).toContain('summary')
+  })
+
+  it('never names a secret-ish column for any table', () => {
+    for (const table of ['users', 'claims', 'roles', 'audit_logs', 'five_s_findings']) {
+      for (const col of searchableColumns(table)) {
+        expect(col).not.toMatch(/pass|secret|token|hash|salt/i)
+      }
+    }
+  })
+})

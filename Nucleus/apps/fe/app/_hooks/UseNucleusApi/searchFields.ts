@@ -40,14 +40,26 @@ export function tableOfEndpoint(endpointKey: string): string | null {
  * the related profiles row and permissions are a join, so email is what the
  * server can match here.
  */
+/*
+ * Nucleus's own tables. config.json declares only the columns THIS app adds to
+ * them — claims lists just `mode`, roles just `alias`, audit_logs just
+ * `timestamp` — so deriving from it produces a set that finds nothing:
+ * measured on /claims, where searching a term with 114 matches returned "No
+ * claims found" because the only column offered was `mode`.
+ *
+ * users is deliberately email alone. Its other text columns are `password` and
+ * `email_verification_token`, and a search box over either is an oracle for
+ * guessing them one character at a time.
+ */
 const SYSTEM_TABLE_COLUMNS: Record<string, string[]> = {
   users: ['email'],
-  // audit_logs is declared in config.json with a single column; the rest come
-  // from nucleus's own system-table definition, so they cannot be read here.
-  // These are the ones the log screen's box offers to search: "Varlık adı,
-  // özet veya IP adresiyle log ara".
+  claims: ['action', 'description', 'path', 'method'],
+  roles: ['name', 'description', 'alias'],
   audit_logs: ['entity_name', 'summary', 'ip_address', 'operation_type'],
 }
+
+/** Never searchable, wherever the column list came from. */
+const SECRET_COLUMN = /pass|secret|token|hash|salt|otp|credential|private_key|api_key/i
 
 const cache = new Map<string, string[]>()
 
@@ -66,6 +78,7 @@ export function searchableColumns(table: string): string[] {
     // An id is not something a person searches for by typing a word, and
     // including every uuid column makes the query pointlessly wide.
     .filter((c) => !/^id$/.test(String(c.name)) && !/_id$/.test(String(c.name)))
+    .filter((c) => !SECRET_COLUMN.test(String(c.name)))
     .map((c) => String(c.name))
   cache.set(table, columns)
   return columns
