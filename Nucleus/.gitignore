@@ -45,6 +45,9 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # .next directories are already ignored with **/.next above
 
 apps/be/storage/**
+# Yüklenen dosyalar diskte durur; be-nucleus'a geçişte bu yol da taşındı.
+# Yoksa müşteriye giden repoya denetim fotoğrafları karışır.
+apps/be-nucleus/storage/**
 .windsurf
 .bun.lock
 
