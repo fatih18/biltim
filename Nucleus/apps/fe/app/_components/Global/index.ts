@@ -3,7 +3,6 @@ export * from "./Accordion";
 export * from "./Badge";
 export * from "./Button";
 export * from "./Card";
-export * from "./DailyPasswordGate";
 export * from "./Header";
 export * from "./Kpi";
 export * from "./Loader";

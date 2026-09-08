@@ -115,7 +115,7 @@ type FindingPhotoRow = {
 
 function photoUrl(p?: PhotoItem | null): string | null {
   if (!p) return null
-  if (p.file_id) return `/api/view-file/${encodeURIComponent(p.file_id)}`
+  if (p.file_id) return `/cdn/${encodeURIComponent(p.file_id)}`
   return p.url ?? null
 }
 

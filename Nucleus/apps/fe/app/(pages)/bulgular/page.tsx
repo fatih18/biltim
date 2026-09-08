@@ -72,7 +72,7 @@ function statusBadgeClass(status: string) {
 }
 
 function buildFileUrl(fileId: string) {
-  return `/api/view-file/${encodeURIComponent(fileId)}`;
+  return `/cdn/${encodeURIComponent(fileId)}`;
 }
 
 function extractUuidMaybe(input: string): string | null {
@@ -442,7 +442,7 @@ export default function FiveSFindingsListPage() {
       if (dateFrom) params.set("date_from", dateFrom);
       if (dateTo) params.set("date_to", dateTo);
       const qs = params.toString();
-      const res = await fetch(`/api/reports/open-findings${qs ? `?${qs}` : ""}`);
+      const res = await fetch(`/reports/open-findings.xlsx${qs ? `?${qs}` : ""}`);
       if (!res.ok) throw new Error(`Excel indirme hatası (${res.status})`);
       const blob = await res.blob();
       const cd = res.headers.get("Content-Disposition") ?? "";

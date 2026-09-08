@@ -3,7 +3,6 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import { Toaster } from 'sonner'
 import { Header, LoginChecker } from './_components'
-//import { FetchDebug } from './_components/fetchDebug'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -36,8 +35,6 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   viewportFit: 'cover',
   themeColor: '#1F2937',
 }
@@ -48,13 +45,12 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
+    <html lang="tr">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <Header />
 
         <Toaster />
         <LoginChecker>{children}</LoginChecker>
-        {/* <FetchDebug /> */}
       </body>
     </html>
   )

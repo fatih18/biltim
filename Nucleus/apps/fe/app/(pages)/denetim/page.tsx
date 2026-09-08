@@ -193,7 +193,7 @@ function toPhotoArr(ups: UploadedFileInfo[]) {
 }
 
 function buildFileUrl(fileId: string) {
-  return `/api/view-file/${encodeURIComponent(fileId)}`
+  return `/cdn/${encodeURIComponent(fileId)}`
 }
 
 function extractUuidMaybe(input: string): string | null {

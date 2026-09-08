@@ -22,7 +22,7 @@ export function useUploadAnswerPhoto() {
         formData.append("files", file, file.name);
         formData.append("type", "image");
 
-        const res = await fetch("/api/upload-file", {
+        const res = await fetch("/files/", {
             method: "POST",
             body: formData,
         });
