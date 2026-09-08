@@ -35,7 +35,7 @@ export default function ErrorPage() {
       {/* Ambient Background Glow */}
       <div className="absolute inset-0">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-slate-100 dark:bg-white/5 rounded-full blur-3xl animate-[float_8s_ease-in-out_infinite]" />
-        <div className="absolute top-1/3 left-1/3 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-white/3 rounded-full blur-2xl animate-[float_12s_ease-in-out_infinite_reverse]" />
+        <div className="absolute top-1/3 left-1/3 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-white/3 dark:bg-slate-900/3 rounded-full blur-2xl animate-[float_12s_ease-in-out_infinite_reverse]" />
       </div>
 
       {/* Main Content */}
@@ -61,10 +61,10 @@ export default function ErrorPage() {
                   <div className="w-0 h-0 bg-slate-200 dark:bg-white/10 rounded-full animate-[gentlePulse_2s_ease-out]" />
                 </div>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-0 h-0 bg-white/8 rounded-full animate-[gentlePulse_2s_ease-out_0.3s]" />
+                  <div className="w-0 h-0 bg-white/8 dark:bg-slate-900/8 rounded-full animate-[gentlePulse_2s_ease-out_0.3s]" />
                 </div>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-0 h-0 bg-white/6 rounded-full animate-[gentlePulse_2s_ease-out_0.6s]" />
+                  <div className="w-0 h-0 bg-white/6 dark:bg-slate-900/6 rounded-full animate-[gentlePulse_2s_ease-out_0.6s]" />
                 </div>
               </>
             )}
@@ -75,7 +75,7 @@ export default function ErrorPage() {
             <h2 className="text-2xl md:text-3xl font-light text-white/90 tracking-wide animate-[fadeInUp_1s_ease-out_0.5s_both]">
               Something went wrong
             </h2>
-            <div className="w-24 h-px bg-white/30 mx-auto animate-[grow_2s_ease-out_1s_both]" />
+            <div className="w-24 h-px bg-white/30 dark:bg-slate-900/30 mx-auto animate-[grow_2s_ease-out_1s_both]" />
             <p className="text-lg text-white/60 font-light max-w-md mx-auto leading-relaxed animate-[fadeInUp_1s_ease-out_1.5s_both]">
               An unexpected error occurred on the server. Please try again or return to the
               dashboard.

@@ -2519,7 +2519,7 @@ export default function FiveSAuditFormPage() {
               <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end">
                 <div className="flex flex-col items-start gap-1 rounded-xl bg-white dark:bg-slate-900/70 px-4 py-3 text-sm sm:items-end">
                   <span className="text-slate-600 dark:text-slate-400">Toplam Puan</span>
-                  <span className={`text-2xl font-bold ${totalScore >= 75 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  <span className={`text-2xl font-bold ${totalScore >= 75 ?'text-emerald-400' : 'text-amber-400'}`}>
                     {formatScore(totalScore)} / 100
                   </span>
                   <span className="text-xs text-slate-500 dark:text-slate-400">{totalScore >= 75 ? 'Hedef üstü' : 'Hedef altında'}</span>
@@ -2654,7 +2654,7 @@ export default function FiveSAuditFormPage() {
 
                     <div className="h-1.5 w-40 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
                       <div
-                        className={`h-full rounded-full ${stepRatio >= 0.75 ? 'bg-emerald-400' : stepRatio >= 0.5 ? 'bg-amber-400' : 'bg-rose-500'
+                        className={`h-full rounded-full ${stepRatio >= 0.75 ?'bg-emerald-400' : stepRatio >= 0.5 ? 'bg-amber-400' : 'bg-rose-500'
                           }`}
                         style={{ width: `${Math.min(stepRatio * 100, 100)}%` }}
                       />
@@ -2684,7 +2684,7 @@ export default function FiveSAuditFormPage() {
                           const isMissing = hasAttempted && liveUnanswered.has(q.id)
 
                           return (
-                            <tr key={q.id} className={`border-t border-slate-300 dark:border-slate-800/80 align-top ${isMissing ? 'bg-rose-200 dark:bg-rose-950/40 border-l-4 border-l-rose-500' : ''}`}>
+                            <tr key={q.id} className={`border-t border-slate-300 dark:border-slate-800/80 align-top ${isMissing ?'bg-rose-200 dark:bg-rose-950/40 border-l-4 border-l-rose-500' : ''}`}>
                               <td className="px-4 py-2 text-[11px] text-slate-600 dark:text-slate-400">
                                 {step.order}.{q.order}
                               </td>
@@ -2786,7 +2786,7 @@ export default function FiveSAuditFormPage() {
                     const isMissingMobile = hasAttempted && liveUnanswered.has(q.id)
 
                     return (
-                      <div key={q.id} className={`px-3 py-2 ${isMissingMobile ? 'bg-rose-200 dark:bg-rose-950/40 border-l-4 border-rose-500' : ''}`}>
+                      <div key={q.id} className={`px-3 py-2 ${isMissingMobile ?'bg-rose-200 dark:bg-rose-950/40 border-l-4 border-rose-500' : ''}`}>
                         <button
                           type="button"
                           onClick={() => toggleExpanded(q.id)}
@@ -2820,7 +2820,7 @@ export default function FiveSAuditFormPage() {
                           <div className="ml-2 flex items-center">
                             <span className="mr-1 text-[10px] text-slate-500 dark:text-slate-400">{isOpen ? 'Kapat' : 'Aç'}</span>
                             <span
-                              className={`inline-block transform text-slate-600 dark:text-slate-400 transition-transform ${isOpen ? 'rotate-90' : 'rotate-0'
+                              className={`inline-block transform text-slate-600 dark:text-slate-400 transition-transform ${isOpen ?'rotate-90' : 'rotate-0'
                                 }`}
                             >
                               ▸
@@ -2954,9 +2954,7 @@ export default function FiveSAuditFormPage() {
                     type="submit"
                     disabled={hasAttempted && liveUnanswered.size > 0}
                     title={hasAttempted && liveUnanswered.size > 0 ? `${liveUnanswered.size} soru yanıtlanmadan form kaydedilemez.` : undefined}
-                    className={`inline-flex items-center gap-1.5 justify-center rounded-md px-4 py-2 text-xs font-semibold transition-colors ${
-                      hasAttempted && liveUnanswered.size > 0
-                        ? 'cursor-not-allowed bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
+                    className={`inline-flex items-center gap-1.5 justify-center rounded-md px-4 py-2 text-xs font-semibold transition-colors ${ hasAttempted && liveUnanswered.size > 0 ?'cursor-not-allowed bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
                         : 'bg-sky-500 text-slate-950 hover:bg-sky-400'
                     }`}
                   >

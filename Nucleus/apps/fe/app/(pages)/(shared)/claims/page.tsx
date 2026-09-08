@@ -27,7 +27,7 @@ export default function ClaimsManagementPage() {
   // Not authenticated
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 dark:from-slate-900 to-slate-100 dark:to-slate-900 p-6">
         <div className="mx-auto max-w-7xl">
           <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 text-center shadow-lg">
             <h1 className="mb-2 text-2xl font-semibold text-slate-800 dark:text-slate-200">Authorization Management</h1>
@@ -41,7 +41,7 @@ export default function ClaimsManagementPage() {
   // Not authorized (not god admin)
   if (!user.is_god) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 dark:from-slate-900 to-slate-100 dark:to-slate-900 p-6">
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-200 bg-white dark:bg-slate-900 p-8 text-center shadow-lg">
             <AlertTriangle className="text-red-500" size={32} />
@@ -57,7 +57,7 @@ export default function ClaimsManagementPage() {
 
   // Main page
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 dark:from-slate-900 to-slate-100 dark:to-slate-900 p-6">
       <div className="mx-auto max-w-7xl space-y-6">
         {/* Header */}
         <header className="bg-white dark:bg-gradient-to-r dark:from-slate-800 via-slate-700 dark:to-slate-800 text-slate-900 dark:text-white rounded-2xl shadow-xl border border-slate-600/60 p-6">

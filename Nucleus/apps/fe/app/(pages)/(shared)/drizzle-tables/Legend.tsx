@@ -2,7 +2,7 @@
 
 export function Legend() {
   return (
-    <div className="absolute top-4 right-4 z-10 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border-2 border-gray-200 p-4">
+    <div className="absolute top-4 right-4 z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-lg shadow-lg border-2 border-gray-200 p-4">
       <h3 className="text-sm font-bold text-gray-700 mb-3">Relation Types</h3>
       <div className="space-y-2">
         <div className="flex items-center gap-2">

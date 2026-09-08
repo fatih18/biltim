@@ -17,7 +17,7 @@ export default async function VerificationsPage({ params }: PageProps) {
   // Validate table parameter
   if (!table || !ALLOWED_TABLES.includes(table)) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 via-white to-red-50/30 p-6">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 dark:from-slate-900 via-white dark:via-slate-950 to-red-50/30 p-6">
         <div className="w-full max-w-md rounded-2xl border border-red-200 bg-white dark:bg-slate-900 p-8 text-center shadow-xl">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
             <AlertTriangle className="h-8 w-8 text-red-500" />

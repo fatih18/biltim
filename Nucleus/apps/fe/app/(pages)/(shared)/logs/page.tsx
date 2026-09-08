@@ -159,7 +159,7 @@ export default function LogsPage() {
   const showInitialLoader = actions.GET_AUDIT_LOGS?.state?.isPending
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 dark:from-slate-900 to-slate-100 dark:to-slate-900 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         <LogsHeader onRefresh={handleRefresh} isLoading={showInitialLoader} />
 

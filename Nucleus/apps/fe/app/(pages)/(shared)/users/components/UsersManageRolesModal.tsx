@@ -234,9 +234,7 @@ export function UsersManageRolesModal({ isOpen, userId, onClose }: UsersManageRo
                   return (
                     <div
                       key={role.id}
-                      className={`rounded-2xl border p-4 transition ${
-                        isAssigned
-                          ? 'border-emerald-400/60 bg-emerald-100 dark:bg-emerald-500/10 shadow-lg shadow-emerald-500/10'
+                      className={`rounded-2xl border p-4 transition ${ isAssigned ?'border-emerald-400/60 bg-emerald-100 dark:bg-emerald-500/10 shadow-lg shadow-emerald-500/10'
                           : 'border-slate-300 dark:border-white/10 bg-slate-100 dark:bg-white/5'
                       }`}
                     >
@@ -257,9 +255,7 @@ export function UsersManageRolesModal({ isOpen, userId, onClose }: UsersManageRo
                             type="button"
                             onClick={() => handleToggle(role)}
                             disabled={isBusy}
-                            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                              isAssigned
-                                ? 'bg-emerald-500 text-slate-900 dark:text-white hover:bg-emerald-600'
+                            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${ isAssigned ?'bg-emerald-500 text-slate-900 dark:text-white hover:bg-emerald-600'
                                 : 'border border-slate-300 dark:border-white/20 bg-slate-200 dark:bg-white/10 text-slate-900 dark:text-white hover:bg-slate-300 hover:dark:bg-white/20'
                             }`}
                           >

@@ -64,7 +64,7 @@ export function TableNode({ data }: NodeProps) {
           {fieldEntries.map(([fieldName, fieldConfig]: [string, FieldConfig]) => (
             <div
               key={fieldName}
-              className="flex items-center justify-between text-xs p-2 bg-gray-50 rounded hover:!bg-gray-100 transition-colors relative group"
+              className="flex items-center justify-between text-xs p-2 bg-gray-50 dark:bg-slate-900 rounded hover:!bg-gray-100 transition-colors relative group"
             >
               {/* Left handles - source ve target */}
               <Handle

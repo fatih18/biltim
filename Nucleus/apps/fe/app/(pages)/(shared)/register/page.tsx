@@ -55,7 +55,7 @@ export default function Register() {
       <section className="relative grid min-h-screen grid-cols-1 lg:grid-cols-[1fr_2fr]">
         <div className="absolute inset-0 lg:hidden">
           <AbstractAnimatedBackground />
-          <div className="absolute inset-0 bg-white/25" />
+          <div className="absolute inset-0 bg-white/25 dark:bg-slate-900/25" />
         </div>
         <div className="relative flex flex-col justify-center px-5 py-12 sm:px-12 lg:px-[72px]">
           <div className="mx-auto w-full max-w-md sm:max-w-[420px]">
@@ -272,7 +272,7 @@ export default function Register() {
             </div>
           </div>
           <AbstractAnimatedBackground />
-          <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-white/0 to-white/10" />
+          <div className="absolute inset-0 bg-gradient-to-br from-white/10 dark:from-slate-950/10 via-white/0 dark:via-slate-950/0 to-white/10 dark:to-slate-950/10" />
         </div>
       </section>
     </main>

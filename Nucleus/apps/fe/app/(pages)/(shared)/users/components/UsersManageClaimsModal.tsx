@@ -246,9 +246,7 @@ export function UsersManageClaimsModal({
                   return (
                     <div
                       key={claim.id}
-                      className={`rounded-2xl border p-4 transition ${
-                        isAssigned
-                          ? 'border-emerald-400/60 bg-emerald-100 dark:bg-emerald-500/10 shadow-lg shadow-emerald-500/10'
+                      className={`rounded-2xl border p-4 transition ${ isAssigned ?'border-emerald-400/60 bg-emerald-100 dark:bg-emerald-500/10 shadow-lg shadow-emerald-500/10'
                           : 'border-slate-300 dark:border-white/10 bg-slate-100 dark:bg-white/5'
                       }`}
                     >

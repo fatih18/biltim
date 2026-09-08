@@ -269,7 +269,7 @@ export function EndpointList({
               <button
                 type="button"
                 onClick={() => toggleCategory(category)}
-                className="w-full px-4 py-2 bg-gradient-to-r from-gray-50 to-slate-50 border-b border-gray-100 sticky top-0 backdrop-blur-sm flex items-center justify-between hover:from-gray-100 hover:to-slate-100 transition-colors"
+                className="w-full px-4 py-2 bg-gradient-to-r from-gray-50 dark:from-slate-900 to-slate-50 dark:to-slate-900 border-b border-gray-100 sticky top-0 backdrop-blur-sm flex items-center justify-between hover:from-gray-100 hover:to-slate-100 transition-colors"
               >
                 <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
                   {isCollapsed ? (

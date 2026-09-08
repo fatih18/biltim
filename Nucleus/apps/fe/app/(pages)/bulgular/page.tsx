@@ -861,9 +861,7 @@ export default function FiveSFindingsListPage() {
                                     ? "Kapatmak için \"Sonrası Fotoğraf\" yükleyin."
                                     : undefined
                             }
-                            className={`w-full rounded-md px-2 py-1 text-[11px] outline-none ring-sky-500/30 focus:ring-2 ${statusBadgeClass(
-                              f.status
-                            )} ${isAuditor ? "cursor-not-allowed opacity-50" : ""}`}
+                            className={`w-full rounded-md px-2 py-1 text-[11px] outline-none ring-sky-500/30 focus:ring-2 ${statusBadgeClass( f.status )} ${isAuditor ?"cursor-not-allowed opacity-50" : ""}`}
                           >
                             <option value="open">Açık</option>
                             <option value="in_progress">Devam ediyor</option>
@@ -1025,9 +1023,7 @@ export default function FiveSFindingsListPage() {
 
                           {/* Upload */}
                           <label
-                            className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                              uploadingFindingId === f.id
-                                ? "border-slate-300 dark:border-slate-700 bg-slate-200 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 cursor-not-allowed"
+                            className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-colors ${ uploadingFindingId === f.id ?"border-slate-300 dark:border-slate-700 bg-slate-200 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 cursor-not-allowed"
                                 : "border-slate-400 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/60 text-slate-700 dark:text-slate-300 hover:border-emerald-500/50 hover:text-emerald-700 hover:dark:text-emerald-300 hover:bg-emerald-100 hover:dark:bg-emerald-500/10"
                             }`}
                           >
@@ -1119,9 +1115,7 @@ export default function FiveSFindingsListPage() {
                     page: Math.max(1, prev.page - 1),
                   }))
                 }
-                className={`rounded-md border px-3 py-1 text-xs ${
-                  canPrev && !loading
-                    ? "border-slate-400 dark:border-slate-600 text-slate-900 dark:text-slate-100 hover:bg-slate-200 hover:dark:bg-slate-800"
+                className={`rounded-md border px-3 py-1 text-xs ${ canPrev && !loading ?"border-slate-400 dark:border-slate-600 text-slate-900 dark:text-slate-100 hover:bg-slate-200 hover:dark:bg-slate-800"
                     : "border-slate-300 dark:border-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed"
                 }`}
               >
@@ -1136,9 +1130,7 @@ export default function FiveSFindingsListPage() {
                     page: Math.min(prev.pageCount, prev.page + 1),
                   }))
                 }
-                className={`rounded-md border px-3 py-1 text-xs ${
-                  canNext && !loading
-                    ? "border-slate-400 dark:border-slate-600 text-slate-900 dark:text-slate-100 hover:bg-slate-200 hover:dark:bg-slate-800"
+                className={`rounded-md border px-3 py-1 text-xs ${ canNext && !loading ?"border-slate-400 dark:border-slate-600 text-slate-900 dark:text-slate-100 hover:bg-slate-200 hover:dark:bg-slate-800"
                     : "border-slate-300 dark:border-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed"
                 }`}
               >

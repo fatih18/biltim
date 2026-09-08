@@ -468,7 +468,7 @@ export function QuestionsPanel() {
                     {stepQs.map((q, idx) => (
                       <div
                         key={q.id}
-                        className={`px-4 py-3${idx > 0 || isAdding ? " border-t border-slate-800/60" : ""}`}
+                        className={`px-4 py-3${idx > 0 || isAdding ?" border-t border-slate-800/60" : ""}`}
                       >
                         {editingId === q.id ? (
                           <div className="space-y-2">

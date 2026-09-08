@@ -99,7 +99,7 @@ export function ResponseViewer({
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-slate-50">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-gray-50 dark:from-slate-900 to-slate-50 dark:to-slate-900">
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-gray-700">Response</span>
           {isStreaming && (
@@ -137,7 +137,7 @@ export function ResponseViewer({
       </div>
       <div className="h-96 relative">
         {isLoading && !isStreaming ? (
-          <div className="h-full flex items-center justify-center bg-gradient-to-br from-slate-50/50 to-gray-50/50">
+          <div className="h-full flex items-center justify-center bg-gradient-to-br from-slate-50/50 dark:from-slate-900/50 to-gray-50/50 dark:to-slate-900/50">
             <div className="flex flex-col items-center gap-3">
               <div className="relative">
                 <div className="h-12 w-12 rounded-full border-4 border-violet-200 border-t-violet-600 animate-spin" />
@@ -146,7 +146,7 @@ export function ResponseViewer({
             </div>
           </div>
         ) : isStreaming && streamingText ? (
-          <div className="h-full p-4 overflow-auto bg-gradient-to-br from-slate-50/50 to-gray-50/50">
+          <div className="h-full p-4 overflow-auto bg-gradient-to-br from-slate-50/50 dark:from-slate-900/50 to-gray-50/50 dark:to-slate-900/50">
             <pre className="text-sm font-mono whitespace-pre-wrap break-words leading-relaxed text-gray-800">
               {streamingText}
               <span className="inline-block w-2 h-4 bg-violet-500 animate-pulse ml-0.5" />
@@ -185,9 +185,9 @@ export function ResponseViewer({
             }
           />
         ) : (
-          <div className="h-full flex items-center justify-center text-gray-400 bg-gradient-to-br from-slate-50/50 to-gray-50/50">
+          <div className="h-full flex items-center justify-center text-gray-400 bg-gradient-to-br from-slate-50/50 dark:from-slate-900/50 to-gray-50/50 dark:to-slate-900/50">
             <div className="text-center">
-              <div className="h-16 w-16 mx-auto mb-3 rounded-2xl bg-gray-100 flex items-center justify-center">
+              <div className="h-16 w-16 mx-auto mb-3 rounded-2xl bg-gray-100 dark:bg-slate-950 flex items-center justify-center">
                 <span className="text-2xl">📭</span>
               </div>
               <p className="text-sm font-medium">No response yet</p>

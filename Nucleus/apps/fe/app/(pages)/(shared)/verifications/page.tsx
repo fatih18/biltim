@@ -21,9 +21,9 @@ const comingSoonTables = [
 
 export default function Verifications() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 dark:from-slate-900 via-white dark:via-slate-950 to-indigo-50/30 dark:to-indigo-950/30">
       {/* Header */}
-      <div className="border-b border-slate-200 dark:border-slate-800 bg-white/80 backdrop-blur-sm">
+      <div className="border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-6 py-8">
           <div className="flex items-center gap-4">
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-200">
@@ -113,7 +113,7 @@ export default function Verifications() {
               return (
                 <div
                   key={table.name}
-                  className="flex items-center gap-3 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 p-4 opacity-60"
+                  className="flex items-center gap-3 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 p-4 opacity-60"
                 >
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-200 dark:bg-slate-800">
                     <Icon className="h-5 w-5 text-slate-600 dark:text-slate-400" />

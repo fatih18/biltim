@@ -966,8 +966,8 @@ export function ClientSide({
         </button>
 
         {isOpen && category.items && (
-          <div className="absolute top-full left-0 mt-2 min-w-[220px] py-2 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/20 border border-slate-300 dark:border-white/20 z-[9999] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-            <div className="absolute inset-0 bg-gradient-to-br from-slate-50 to-slate-100/80 -z-10" />
+          <div className="absolute top-full left-0 mt-2 min-w-[220px] py-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/20 border border-slate-300 dark:border-white/20 z-[9999] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="absolute inset-0 bg-gradient-to-br from-slate-50 dark:from-slate-900 to-slate-100/80 dark:to-slate-900/80 -z-10" />
             {category.items.map((item, index) => {
               const isItemActive =
                 item.href && (item.href === '/' ? path === '/' : path.startsWith(item.href))

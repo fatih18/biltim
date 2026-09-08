@@ -181,22 +181,16 @@ export function UsersCreateModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm
-                 overflow-y-auto overscroll-contain
-                 px-4 py-6
-                 flex items-start justify-center"
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm overflow-y-auto overscroll-contain px-4 py-6 flex items-start justify-center"
       role="dialog"
       aria-modal="true"
     >
       <div
-        className="w-full max-w-md rounded-2xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/90
-                   shadow-2xl shadow-slate-950/70
-                   my-0"
+        className="w-full max-w-md rounded-2xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/90 shadow-2xl shadow-slate-950/70 my-0"
       >
         <form
           onSubmit={handleSubmit}
-          className="space-y-6 px-6 py-6
-                     max-h-[calc(100vh-3rem)] overflow-y-auto"
+          className="space-y-6 px-6 py-6 max-h-[calc(100vh-3rem)] overflow-y-auto"
         >
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -211,8 +205,7 @@ export function UsersCreateModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-2 py-1
-                         text-slate-700 dark:text-slate-300 hover:bg-white hover:dark:bg-slate-950/70 hover:text-slate-900 hover:dark:text-slate-100 transition-colors"
+              className="rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-2 py-1 text-slate-700 dark:text-slate-300 hover:bg-white hover:dark:bg-slate-950/70 hover:text-slate-900 hover:dark:text-slate-100 transition-colors"
               aria-label="Close create user modal"
             >
               ×
@@ -233,9 +226,7 @@ export function UsersCreateModal({
                 required
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 !bg-white dark:bg-slate-950/70 px-3 py-2
-                           text-sm text-slate-900 dark:text-slate-100 outline-none ring-sky-500/40 placeholder:text-slate-500 placeholder:dark:text-slate-400
-                           focus:border-sky-400 focus:ring-2"
+                className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 !bg-white dark:bg-slate-950/70 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none ring-sky-500/40 placeholder:text-slate-500 placeholder:dark:text-slate-400 focus:border-sky-400 focus:ring-2"
               />
             </div>
 
@@ -253,9 +244,7 @@ export function UsersCreateModal({
                 minLength={8}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 !bg-white dark:bg-slate-950/70 px-3 py-2
-                           text-sm text-slate-900 dark:text-slate-100 outline-none ring-sky-500/40 placeholder:text-slate-500 placeholder:dark:text-slate-400
-                           focus:border-sky-400 focus:ring-2"
+                className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 !bg-white dark:bg-slate-950/70 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none ring-sky-500/40 placeholder:text-slate-500 placeholder:dark:text-slate-400 focus:border-sky-400 focus:ring-2"
               />
               <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
                 Şifre en az 8 karakter olmalıdır.
@@ -276,9 +265,7 @@ export function UsersCreateModal({
                   required
                   value={firstName}
                   onChange={(event) => setFirstName(event.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2
-                             text-sm text-slate-900 dark:text-slate-100 outline-none ring-sky-500/40 placeholder:text-slate-500 placeholder:dark:text-slate-400
-                             focus:border-sky-400 focus:ring-2"
+                  className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none ring-sky-500/40 placeholder:text-slate-500 placeholder:dark:text-slate-400 focus:border-sky-400 focus:ring-2"
                 />
               </div>
 
@@ -295,9 +282,7 @@ export function UsersCreateModal({
                   required
                   value={lastName}
                   onChange={(event) => setLastName(event.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2
-                             text-sm text-slate-900 dark:text-slate-100 outline-none ring-sky-500/40 placeholder:text-slate-500 placeholder:dark:text-slate-400
-                             focus:border-sky-400 focus:ring-2"
+                  className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none ring-sky-500/40 placeholder:text-slate-500 placeholder:dark:text-slate-400 focus:border-sky-400 focus:ring-2"
                 />
               </div>
             </div>

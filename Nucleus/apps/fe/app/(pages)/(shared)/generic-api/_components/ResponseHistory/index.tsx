@@ -154,7 +154,7 @@ function HistoryEntry({
 
       {/* Expanded Content */}
       {isExpanded && (
-        <div className="border-t border-gray-100 bg-gray-50/50">
+        <div className="border-t border-gray-100 bg-gray-50/50 dark:bg-slate-900/50">
           {/* Actions */}
           <div className="flex items-center gap-2 p-3 border-b border-gray-100">
             <button
@@ -241,7 +241,7 @@ export function ResponseHistory({ history, onClear, onReplay }: ResponseHistoryP
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-slate-50">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-gray-50 dark:from-slate-900 to-slate-50 dark:to-slate-900">
         <div className="flex items-center gap-2">
           <Clock className="h-4 w-4 text-gray-500" />
           <span className="text-sm font-semibold text-gray-700">Response History</span>

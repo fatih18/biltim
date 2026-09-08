@@ -51,7 +51,7 @@ const str = (v: unknown) => String(v ?? '')
 
 function Card(props: { title: string; subtitle?: string; children: React.ReactNode; className?: string }) {
   return (
-    <section className={`rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 p-4 ${props.className ?? ''}`}>
+    <section className={`rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 p-4 ${props.className ??''}`}>
       <div className="mb-3">
         <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{props.title}</h3>
         {props.subtitle && <p className="mt-0.5 text-[11px] text-slate-600 dark:text-slate-400">{props.subtitle}</p>}
@@ -604,7 +604,7 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
                 <tr key={i} className="border-t border-slate-300 dark:border-slate-800/80">
                   <td className="px-3 py-2">{str(r.department_name)}</td>
                   <td className="px-3 py-2 text-center">{num(r.audit_count)}</td>
-                  <td className={`px-3 py-2 text-center font-semibold ${num(r.avg_total) >= 75 ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'}`}>
+                  <td className={`px-3 py-2 text-center font-semibold ${num(r.avg_total) >= 75 ?'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'}`}>
                     {r.avg_total != null ? num(r.avg_total).toFixed(1) : '-'}
                   </td>
                   <td className="px-3 py-2 text-center text-rose-700 dark:text-rose-300">{num(r.open_findings)}</td>

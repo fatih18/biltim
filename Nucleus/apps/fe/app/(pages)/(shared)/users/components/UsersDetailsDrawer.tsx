@@ -157,8 +157,7 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
       {/* Backdrop */}
       <button
         type="button"
-        className={`fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
-          isVisible ? 'opacity-100' : 'opacity-0'
+        className={`fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${ isVisible ?'opacity-100' : 'opacity-0'
         }`}
         onClick={handleClose}
         aria-label="Close drawer"
@@ -166,8 +165,7 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
 
       {/* Drawer */}
       <div
-        className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-2xl transform flex-col border-l border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-50 shadow-2xl shadow-slate-950/60 transition-all duration-300 ease-out ${
-          isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
+        className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-2xl transform flex-col border-l border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-50 shadow-2xl shadow-slate-950/60 transition-all duration-300 ease-out ${ isVisible ?'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
         }`}
       >
         {/* Header */}
@@ -224,8 +222,7 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
 
         {/* Content */}
         <div
-          className={`flex-1 space-y-8 overflow-y-auto px-6 py-6 transition-all duration-500 delay-100 ${
-            isVisible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
+          className={`flex-1 space-y-8 overflow-y-auto px-6 py-6 transition-all duration-500 delay-100 ${ isVisible ?'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
           }`}
         >
           {/* Account Information */}

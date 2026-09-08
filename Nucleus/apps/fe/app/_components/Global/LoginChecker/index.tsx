@@ -102,7 +102,7 @@ export function LoginChecker({ children }: { children: React.ReactNode }) {
 
   if (requiresAuth && (!store.isLoginChecked || !store.user)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-gray-100">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 dark:from-slate-900 via-white dark:via-slate-950 to-gray-100">
         <Loader message="Loading..." />
       </div>
     )

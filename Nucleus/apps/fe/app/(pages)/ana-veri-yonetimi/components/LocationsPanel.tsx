@@ -275,7 +275,7 @@ export function LocationsPanel(props: {
                                         .map((id) => userById.get(id) ?? id)
                                         .join(", ")}
                             </span>
-                            <svg className={`h-3 w-3 flex-shrink-0 text-slate-600 dark:text-slate-400 transition-transform ${fmDropdownOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                            <svg className={`h-3 w-3 flex-shrink-0 text-slate-600 dark:text-slate-400 transition-transform ${fmDropdownOpen ?"rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                         </button>
 
                         {fmDropdownOpen && (
@@ -292,12 +292,10 @@ export function LocationsPanel(props: {
                                                     key={u.id}
                                                     type="button"
                                                     onClick={() => toggleFieldManager(u.id)}
-                                                    className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-slate-200 hover:dark:bg-slate-700 ${
-                                                        checked ? "text-emerald-700 dark:text-emerald-300" : "text-slate-800 dark:text-slate-200"
+                                                    className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-slate-200 hover:dark:bg-slate-700 ${ checked ?"text-emerald-700 dark:text-emerald-300" : "text-slate-800 dark:text-slate-200"
                                                     }`}
                                                 >
-                                                    <span className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border ${
-                                                        checked ? "border-emerald-500 bg-emerald-500" : "border-slate-400 dark:border-slate-600 bg-transparent"
+                                                    <span className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border ${ checked ?"border-emerald-500 bg-emerald-500" : "border-slate-400 dark:border-slate-600 bg-transparent"
                                                     }`}>
                                                         {checked && (
                                                             <svg className="h-2.5 w-2.5 text-slate-900 dark:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>

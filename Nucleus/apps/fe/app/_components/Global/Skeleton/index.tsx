@@ -67,7 +67,7 @@ export function SkeletonText({ lines = 3, className = "" }: { lines?: number; cl
         <Skeleton
           key={`line-${lines}-${i}`}
           shape="text"
-          className={`h-3 ${i === lines - 1 ? "w-2/3" : "w-full"}`}
+          className={`h-3 ${i === lines - 1 ?"w-2/3" : "w-full"}`}
         />
       ))}
     </span>
@@ -102,7 +102,7 @@ export function SkeletonTable({
             <Skeleton
               key={`cell-${r}-${c}`}
               shape="text"
-              className={`h-3 ${c === 0 ? "w-1/4" : "flex-1"}`}
+              className={`h-3 ${c === 0 ?"w-1/4" : "flex-1"}`}
             />
           ))}
         </div>

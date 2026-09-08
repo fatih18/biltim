@@ -211,7 +211,7 @@ export default function BoardMeetingDecisionsPage() {
             <div className="mx-auto max-w-5xl space-y-6">
                 {/* Header */}
                 <header className="border-b border-slate-300 dark:border-slate-800 rounded-2xl pb-4">
-                    <div className="flex flex-col gap-3 p-4   md:flex-row md:items-start md:justify-between">
+                    <div className="flex flex-col gap-3 p-4 md:flex-row md:items-start md:justify-between">
                         <div>
                             <h1 className="text-xl font-semibold md:text-2xl">Kurul Toplantı Kararları</h1>
                             <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">

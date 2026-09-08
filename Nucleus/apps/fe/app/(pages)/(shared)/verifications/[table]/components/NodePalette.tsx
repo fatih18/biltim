@@ -83,7 +83,7 @@ export function NodePalette({ isCollapsed, onToggle }: NodePaletteProps) {
               type="button"
               draggable
               onDragStart={(e) => onDragStart(e, item.type)}
-              className={`group w-full cursor-grab rounded-lg border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/80 transition-all duration-200 hover:border-slate-300 hover:bg-white hover:shadow-sm active:cursor-grabbing active:scale-[0.98] active:shadow-md ${isCollapsed ?'p-2.5' : 'p-2.5'}
+              className={`group w-full cursor-grab rounded-lg border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 transition-all duration-200 hover:border-slate-300 hover:bg-white hover:shadow-sm active:cursor-grabbing active:scale-[0.98] active:shadow-md ${isCollapsed ?'p-2.5' : 'p-2.5'}
               `}
             >
               {isCollapsed ? (
@@ -110,7 +110,7 @@ export function NodePalette({ isCollapsed, onToggle }: NodePaletteProps) {
 
       {!isCollapsed && (
         <div className="border-t border-slate-100 dark:border-slate-800 p-2.5">
-          <div className="rounded-md bg-gradient-to-r from-indigo-50/80 to-purple-50/80 p-2.5">
+          <div className="rounded-md bg-gradient-to-r from-indigo-50/80 dark:from-indigo-950/80 to-purple-50/80 p-2.5">
             <div className="text-[10px] font-medium text-indigo-800">Pro tip</div>
             <div className="mt-0.5 text-[10px] leading-relaxed text-indigo-600">
               Connect nodes by dragging from right handles to left handles

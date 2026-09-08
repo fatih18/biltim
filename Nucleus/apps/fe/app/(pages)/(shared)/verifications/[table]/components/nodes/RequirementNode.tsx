@@ -54,7 +54,7 @@ function RequirementNodeComponent({ data, selected }: NodeProps & { data: Requir
         style={{ top: '50%' }}
       />
 
-      <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-indigo-50 to-purple-50 px-3 py-2">
+      <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-indigo-50 dark:from-indigo-950 to-purple-50 px-3 py-2">
         <div className="flex h-6 w-6 items-center justify-center rounded-md bg-indigo-500 text-white shadow-sm">
           {getVerifierIcon()}
         </div>

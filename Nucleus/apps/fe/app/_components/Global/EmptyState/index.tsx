@@ -37,22 +37,19 @@ export function EmptyState({
   return (
     <div
       role="status"
-      className={`flex flex-col items-center justify-center text-center ${
-        compact ? "gap-2 px-4 py-8" : "gap-3 px-4 py-12 xs:py-14 sm:py-16"
+      className={`flex flex-col items-center justify-center text-center ${ compact ?"gap-2 px-4 py-8" : "gap-3 px-4 py-12 xs:py-14 sm:py-16"
       } ${className}`}
     >
       <span
         aria-hidden
-        className={`flex items-center justify-center rounded-full bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-400 ${
-          compact ? "h-10 w-10" : "h-14 w-14 sm:h-16 sm:w-16"
+        className={`flex items-center justify-center rounded-full bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-400 ${ compact ?"h-10 w-10" : "h-14 w-14 sm:h-16 sm:w-16"
         }`}
       >
         <Icon size={compact ? 20 : 26} strokeWidth={1.5} />
       </span>
 
       <p
-        className={`font-semibold text-slate-900 dark:text-slate-100 ${
-          compact ? "text-sm" : "text-base sm:text-lg"
+        className={`font-semibold text-slate-900 dark:text-slate-100 ${ compact ?"text-sm" : "text-base sm:text-lg"
         }`}
       >
         {title}

@@ -260,7 +260,7 @@ export function AuditPlannerPanel(props: {
                       <div className="flex items-center gap-3">
                         <ChevronRight
                           size={14}
-                          className={`shrink-0 text-slate-600 dark:text-slate-400 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`}
+                          className={`shrink-0 text-slate-600 dark:text-slate-400 transition-transform duration-200 ${isExpanded ?"rotate-90" : ""}`}
                         />
                         <span className="rounded border border-indigo-700/50 bg-indigo-100 dark:bg-indigo-950/40 px-2 py-0.5 text-[11px] font-semibold text-indigo-600 dark:text-indigo-300">
                           {pp.quarter ?? "—"}

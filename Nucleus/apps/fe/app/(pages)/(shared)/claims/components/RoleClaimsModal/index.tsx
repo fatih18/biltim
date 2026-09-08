@@ -229,8 +229,7 @@ export function RoleClaimsModal({ isOpen, role, onClose }: RoleClaimsModalProps)
               type="button"
               onClick={() => handleToggle(claim)}
               disabled={busy}
-              className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${isAssigned
-                ? 'bg-emerald-500 text-emerald-950 hover:bg-emerald-400'
+              className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${isAssigned ?'bg-emerald-500 text-emerald-950 hover:bg-emerald-400'
                 : 'border border-white/30 bg-slate-200 dark:bg-white/10 text-slate-900 dark:text-white hover:bg-slate-300 hover:dark:bg-white/20'
                 }`}
             >
