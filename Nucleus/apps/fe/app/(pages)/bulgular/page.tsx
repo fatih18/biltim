@@ -226,11 +226,22 @@ export default function FiveSFindingsListPage() {
    */
   const listFilters = useMemo(
     () => ({
+      /*
+       * Location is an exact match on a column, not a free-text search.
+       *
+       * It used to go out as `search` with no `searchFields`, which the server
+       * REFUSES outright — "A 'search' needs 'searchFields' naming the columns
+       * to search ... without it the term would be ignored and every row
+       * returned." The refusal was swallowed and the screen kept showing the
+       * unfiltered list, so choosing a location did nothing at all. Measured:
+       * 73 findings before and 73 after, where the correct filter returns 2.
+       */
+      location_name: locationFilter || undefined,
       status: statusFilter || undefined,
       detected_date_gte: dateFrom || undefined,
       detected_date_lte: dateTo || undefined,
     }),
-    [statusFilter, dateFrom, dateTo]
+    [locationFilter, statusFilter, dateFrom, dateTo]
   );
 
   const listSort = useMemo(
@@ -241,7 +252,6 @@ export default function FiveSFindingsListPage() {
   const serverList = useServerList<FiveSFinding>({
     action: actions.GET_FIVE_S_FINDINGS,
     pageSize: PAGE_SIZE,
-    search: locationFilter,
     sort: listSort,
     filters: listFilters,
   });
