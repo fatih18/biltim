@@ -1627,7 +1627,18 @@ export default function FiveSAuditFormPage() {
         },
       })
     } catch (err) {
-      console.warn('Plan completed işaretlenemedi (kritik değil):', err)
+      /*
+       * This is not "kritik değil". If the plan is not stamped, it stays
+       * `planned` with no audit_id: the auditor is shown the same audit again
+       * next time and whoever planned it sees work that was never done.
+       * Measured while narrowing the auditor's permissions — the audit saved
+       * with a score of 100.00 and the plan stayed open, silently, because the
+       * stamp was refused.
+       */
+      console.error('Plan tamamlandı olarak işaretlenemedi', err)
+      toast.error(
+        'Denetim kaydedildi ancak plan tamamlandı olarak işaretlenemedi. Lütfen yöneticinize bildirin.'
+      )
     }
   }
 

@@ -49,6 +49,19 @@ SELECT 'Auditor', a FROM unnest(ARRAY[
   'put.five_s_audit_drafts','patch.five_s_audit_drafts','delete.five_s_audit_drafts'
 ]) a;
 
+-- Planı tamamlandı olarak damgalama: yine kolon kolon.
+--
+-- Denetçi formu kaydettikten sonra ekran planı işaretliyor (markPlanCompleted):
+-- status, audit_id, auditor_attended, field_manager_attended. Bu yetki
+-- verilmeyince denetim kaydediliyor ama plan `planned` kalıyordu — denetçi aynı
+-- denetimi tekrar görür, planlayan yapılmadı sanır. Ölçüldü: denetim 100.00
+-- puanla kaydedildi, plan damgalanmadı. `planned_date` bilerek YOK: denetçi
+-- denetimi tamamlayabilir ama tarihini oynatamaz.
+INSERT INTO wanted
+SELECT 'Auditor', c.action
+FROM main.claims c
+WHERE c.action ~ '^(put|patch)\.five_s_audit_plans\.(status|audit_id|auditor_attended|field_manager_attended)$';
+
 -- Bulgu güncelleme: TABLO yetkisi DEĞİL, kolon kolon.
 --
 -- Ölçüldü: tam tablo yetkisi (put.five_s_findings) bütün kolonları açar —
