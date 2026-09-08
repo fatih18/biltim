@@ -151,7 +151,8 @@
         {
           "name": "item_no",
           "type": "integer",
-          "notNull": true
+          "notNull": true,
+          "generatedByDefaultAsIdentity": true
         },
         {
           "name": "item_description",

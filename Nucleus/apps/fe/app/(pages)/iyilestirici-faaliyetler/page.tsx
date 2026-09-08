@@ -1,4 +1,5 @@
 "use client";
+import { attachRoles } from "@/app/_utils/userRoles";
 import { useServerList } from '@/app/_hooks/UseServerList'
 import { InfiniteScroll } from '@/app/_components/Global/InfiniteScroll'
 
@@ -113,8 +114,24 @@ export default function BoardMeetingDecisionsPage() {
                     res?.data ??
                     (Array.isArray(res) ? res : []);
 
-                setUsers(rows as UserLite[]);
-                setUsersLoading(false);
+                /*
+                 * This screen picks the responsible manager out of user.roles,
+                 * and /users does not return roles — so the dropdown read
+                 * "Manager rolü olan kullanıcı yok" and the form could not be
+                 * submitted at all, on an install that has a Manager account.
+                 * The board-decisions table was empty for exactly this reason.
+                 */
+                const A = actions as any;
+                attachRoles(
+                    rows,
+                    A?.GET_ROLES?.start,
+                    A?.GET_USER_ROLES?.start,
+                    (r: any) =>
+                        r?.response?.data ?? r?.data?.data ?? r?.data ?? (Array.isArray(r) ? r : [])
+                ).then((withRoles) => {
+                    setUsers(withRoles as UserLite[]);
+                    setUsersLoading(false);
+                });
             },
             onErrorHandle: (err: any) => {
                 console.error("GET_USERS error", err);

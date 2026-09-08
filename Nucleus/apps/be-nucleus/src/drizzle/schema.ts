@@ -1,4 +1,4 @@
-import { PgColumn, bigint, boolean, check, date, index, integer, jsonb, numeric, pgSchema, pgTable, text, timestamp, unique, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
+import { PgColumn, bigint, boolean, check, date, doublePrecision, index, integer, jsonb, numeric, pgSchema, pgTable, text, timestamp, unique, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
 export const usersColumns = {
@@ -1181,6 +1181,35 @@ export function createAuditLogsForSchema(schema: ReturnType<typeof pgSchema>) {
 	]);
 }
 
+export const monitoringMetricsColumns = {
+	id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+	metricType: text('metric_type').notNull(),
+	metricName: text('metric_name').notNull(),
+	value: doublePrecision('value').notNull(),
+	tags: jsonb('tags'),
+	recordedAt: timestamp('recorded_at').notNull(),
+};
+
+export const monitoringMetricsIndexes = (t: { metricType: PgColumn; metricName: PgColumn; recordedAt: PgColumn }) => [
+	index('monitoring_metrics_metric_type_idx').on(t.metricType),
+	index('monitoring_metrics_metric_name_idx').on(t.metricName),
+	index('monitoring_metrics_recorded_at_idx').on(t.recordedAt),
+];
+
+export const monitoringMetrics = pgTable('monitoring_metrics', monitoringMetricsColumns, (t) => [
+	index('monitoring_metrics_metric_type_idx').on(t.metricType),
+	index('monitoring_metrics_metric_name_idx').on(t.metricName),
+	index('monitoring_metrics_recorded_at_idx').on(t.recordedAt),
+]);
+
+export function createMonitoringMetricsForSchema(schema: ReturnType<typeof pgSchema>) {
+	return schema.table('monitoring_metrics', monitoringMetricsColumns, (t) => [
+		index('monitoring_metrics_metric_type_idx').on(t.metricType),
+		index('monitoring_metrics_metric_name_idx').on(t.metricName),
+		index('monitoring_metrics_recorded_at_idx').on(t.recordedAt),
+	]);
+}
+
 export const oauthAccountsColumns = {
 	id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
@@ -1295,7 +1324,7 @@ export const boardMeetingDecisionsColumns = {
 	createdAt: timestamp('created_at').notNull().default(sql`now()`),
 	updatedAt: timestamp('updated_at').default(sql`now()`),
 	meetingDate: timestamp('meeting_date').notNull(),
-	itemNo: integer('item_no').notNull(),
+	itemNo: integer('item_no').generatedByDefaultAsIdentity(),
 	itemDescription: varchar('item_description', { length: 1000 }).notNull(),
 	status: varchar('status', { length: 50 }).notNull().default('open'),
 	assignedUserId: uuid('assigned_user_id'),
@@ -1745,6 +1774,7 @@ export function createAllTablesForSchema(schema: ReturnType<typeof pgSchema>) {
 	tables.webauthnCredentials = createWebauthnCredentialsForSchema(schema);
 	tables.webauthnChallenges = createWebauthnChallengesForSchema(schema);
 	tables.auditLogs = createAuditLogsForSchema(schema);
+	tables.monitoringMetrics = createMonitoringMetricsForSchema(schema);
 	tables.oauthAccounts = createOauthAccountsForSchema(schema);
 	tables.apiKeys = createApiKeysForSchema(schema);
 	tables.boardMeetingDecisions = createBoardMeetingDecisionsForSchema(schema);
