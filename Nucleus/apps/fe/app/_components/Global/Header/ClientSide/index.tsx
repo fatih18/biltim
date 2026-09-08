@@ -194,7 +194,7 @@ function NotificationDropdown({
 
       {isOpen && (
         <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-900 rounded-xl shadow-2xl z-50 overflow-hidden">
-          <div className="bg-gradient-to-r from-slate-700 to-slate-800 px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-3 dark:border-transparent dark:bg-gradient-to-r dark:from-slate-700 dark:to-slate-800">
             <span className="text-slate-900 dark:text-white font-semibold">Notifications</span>
             <div className="flex items-center gap-2">
               {unreadCount > 0 && (
@@ -310,7 +310,7 @@ function UserAvatar({
   if (imageError || !src) {
     return (
       <div
-        className={`bg-gradient-to-br from-slate-500 to-slate-600 flex items-center justify-center text-slate-900 dark:text-white font-semibold ${className}`}
+        className={`flex items-center justify-center bg-gradient-to-br from-sky-500 to-indigo-600 font-semibold text-white ${className}`}
         style={{ width: size, height: size }}
       >
         {initials}
@@ -1084,7 +1084,7 @@ export function ClientSide({
   return (
     <header
       ref={headerRef}
-      className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 text-slate-900 dark:text-white shadow-xl relative border-b border-slate-600/50 z-[9998]"
+      className="relative z-[9998] border-b border-slate-200 bg-white text-slate-900 shadow-sm dark:border-slate-600/50 dark:bg-gradient-to-r dark:from-slate-800 dark:via-slate-700 dark:to-slate-800 dark:text-white dark:shadow-xl"
     >
       <div className="absolute inset-0 opacity-5 pointer-events-none">
         <div className="absolute inset-0 bg-grid-pattern"></div>
@@ -1160,7 +1160,7 @@ export function ClientSide({
                 className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 rounded-xl shadow-2xl z-50 hidden"
                 style={{ display: isProfileOpen ? 'block' : 'none' }}
               >
-                <div className="bg-gradient-to-r from-slate-600 to-slate-700 p-4">
+                <div className="border-b border-slate-200 bg-slate-50 p-4 dark:border-transparent dark:bg-gradient-to-r dark:from-slate-600 dark:to-slate-700">
                   <UserAvatar
                     alt={profileName}
                     size={64}
