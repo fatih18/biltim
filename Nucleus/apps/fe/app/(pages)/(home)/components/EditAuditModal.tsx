@@ -1,5 +1,6 @@
 "use client";
 
+import { useModal } from '@/app/_hooks/UseModal';
 import React from "react";
 import { DateInput } from "@/app/_components/DateInput";
 
@@ -25,6 +26,7 @@ export function EditAuditModal(props: {
 }) {
     const { audit, saving, onSave, onClose } = props;
     const [form, setForm] = React.useState<EditableAudit>(audit);
+    const modal = useModal(onClose, { labelledBy: "denetim-duzenle-baslik" });
 
     const set = <K extends keyof EditableAudit>(key: K, value: EditableAudit[K]) =>
         setForm((prev) => ({ ...prev, [key]: value }));
@@ -40,10 +42,13 @@ export function EditAuditModal(props: {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-            <div className="w-full max-w-lg rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-2xl md:p-6 max-h-[90vh] overflow-y-auto">
+            <div
+                {...modal}
+                className="w-full max-w-lg rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-2xl md:p-6 max-h-[90vh] overflow-y-auto"
+            >
                 <div className="flex items-start justify-between gap-3">
                     <div>
-                        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Tamamlanmış Denetimi Düzenle</h3>
+                        <h3 id="denetim-duzenle-baslik" className="text-sm font-semibold text-slate-900 dark:text-slate-100">Tamamlanmış Denetimi Düzenle</h3>
                         <p className="mt-1 text-[11px] text-slate-600 dark:text-slate-400">
                             {audit.department_name} — sadece Merkez Ekip düzenleyebilir.
                         </p>

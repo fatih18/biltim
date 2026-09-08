@@ -1,5 +1,7 @@
 'use client'
 
+import { useModal } from '@/app/_hooks/UseModal'
+
 interface UsersValidateModalProps {
   isOpen: boolean
   userEmail: string | undefined
@@ -15,6 +17,8 @@ export function UsersValidateModal({
   onClose,
   isSubmitting,
 }: UsersValidateModalProps) {
+  const modal = useModal(onClose, { enabled: isOpen })
+
   if (!isOpen) {
     return null
   }
@@ -25,7 +29,7 @@ export function UsersValidateModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
-      <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 shadow-2xl">
+      <div {...modal} className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 shadow-2xl">
         <div className="px-6 py-6 space-y-4">
           <div>
             <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Verify Email</h2>

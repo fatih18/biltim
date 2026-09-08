@@ -604,6 +604,28 @@ export default function Page() {
     const startUpdate = safeStart(A, AUDIT_KEYS.UPDATE);
     if (!startUpdate) return;
 
+    /*
+     * The fields already say max="100" and the browser marks 150 invalid — but
+     * the form submitted anyway, and the audit was stored with a score of 150
+     * out of 100. Every figure the customer reads comes off these columns, so
+     * the check happens before the request, and the server refuses it too.
+     */
+    const puanlar: Array<[string, unknown]> = [
+      ["Toplam Puan", next.total_score],
+      ["S1 Puanı", next.score_s1],
+      ["S2 Puanı", next.score_s2],
+      ["S3 Puanı", next.score_s3],
+      ["S4 Puanı", next.score_s4],
+      ["S5 Puanı", next.score_s5],
+    ];
+    for (const [ad, ham] of puanlar) {
+      const n = Number(ham);
+      if (!Number.isFinite(n) || n < 0 || n > 100) {
+        toast.error(`${ad} 0 ile 100 arasında olmalıdır.`);
+        return;
+      }
+    }
+
     setAuditSaving(true);
     startUpdate({
       payload: {

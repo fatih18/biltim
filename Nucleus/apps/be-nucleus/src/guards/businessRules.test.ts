@@ -536,3 +536,50 @@ describe('gelecekteki tarihler', () => {
     expect(res).toBeUndefined()
   })
 })
+
+describe('puan sınırları', () => {
+  it('100 üstü toplam puanı reddeder', async () => {
+    const res = await enforceBusinessRules({
+      request: jsonReq('PATCH', '/fiveSAudits/abc', { total_score: '150.00' }),
+    })
+    expect(res?.status).toBe(400)
+    expect((await res?.json()).message).toContain('0 ile 100 arasında')
+  })
+
+  it('negatif adım puanını reddeder', async () => {
+    const res = await enforceBusinessRules({
+      request: jsonReq('PATCH', '/fiveSAudits/abc', { score_s3: '-1' }),
+    })
+    expect(res?.status).toBe(400)
+  })
+
+  it('camelCase ikizini de görür', async () => {
+    const res = await enforceBusinessRules({
+      request: jsonReq('PATCH', '/fiveSAudits/abc', { totalScore: 101 }),
+    })
+    expect(res?.status).toBe(400)
+  })
+
+  it('sayı olmayanı reddeder', async () => {
+    const res = await enforceBusinessRules({
+      request: jsonReq('PATCH', '/fiveSAudits/abc', { total_score: 'yüz' }),
+    })
+    expect(res?.status).toBe(400)
+  })
+
+  it('geçerli puanı geçirir — sınırlar dahil', async () => {
+    for (const v of ['0', '0.00', '75.5', '100', '100.00']) {
+      const res = await enforceBusinessRules({
+        request: jsonReq('PATCH', '/fiveSAudits/abc', { total_score: v }),
+      })
+      expect(res).toBeUndefined()
+    }
+  })
+
+  it('puan taşımayan denetim yazmasına karışmaz', async () => {
+    const res = await enforceBusinessRules({
+      request: jsonReq('PATCH', '/fiveSAudits/abc', { auditor_name: 'x' }),
+    })
+    expect(res).toBeUndefined()
+  })
+})

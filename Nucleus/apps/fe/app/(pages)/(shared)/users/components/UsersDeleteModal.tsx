@@ -1,5 +1,7 @@
 'use client'
 
+import { useModal } from '@/app/_hooks/UseModal'
+
 interface UsersDeleteModalProps {
   isOpen: boolean
   userEmail: string | undefined
@@ -15,6 +17,8 @@ export function UsersDeleteModal({
   onClose,
   isSubmitting,
 }: UsersDeleteModalProps) {
+  const modal = useModal(onClose, { enabled: isOpen })
+
   if (!isOpen) {
     return null
   }
@@ -25,7 +29,7 @@ export function UsersDeleteModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-      <div className="w-full max-w-md rounded-2xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/90 shadow-2xl shadow-slate-950/60">
+      <div {...modal} className="w-full max-w-md rounded-2xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/90 shadow-2xl shadow-slate-950/60">
         <div className="space-y-4 px-6 py-6">
           <div>
             <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Kullanıcıyı Sil</h2>

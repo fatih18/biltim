@@ -1,5 +1,6 @@
 'use client'
 
+import { useModal } from '@/app/_hooks/UseModal'
 import type { RoleJSON } from '@monorepo/db-entities/schemas/default/role'
 import type { UserRoleJSON } from '@monorepo/db-entities/schemas/default/user_role'
 import { Check, Loader2, Search, Shield, X } from 'lucide-react'
@@ -14,6 +15,8 @@ interface UsersManageRolesModalProps {
 }
 
 export function UsersManageRolesModal({ isOpen, userId, onClose }: UsersManageRolesModalProps) {
+  const modal = useModal(onClose, { enabled: isOpen })
+
   const actions = useGenericApiActions()
   const [search, setSearch] = useState('')
   const [roles, setRoles] = useState<RoleJSON[]>([])
@@ -189,7 +192,7 @@ export function UsersManageRolesModal({ isOpen, userId, onClose }: UsersManageRo
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm p-6">
-      <div className="bg-white relative w-full max-w-3xl overflow-hidden rounded-3xl dark:bg-gradient-to-br dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 text-slate-900 dark:text-white shadow-2xl">
+      <div {...modal} className="bg-white relative w-full max-w-3xl overflow-hidden rounded-3xl dark:bg-gradient-to-br dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 text-slate-900 dark:text-white shadow-2xl">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0 bg-grid-pattern" />
         </div>

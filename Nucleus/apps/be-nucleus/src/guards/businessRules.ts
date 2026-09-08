@@ -180,6 +180,44 @@ export async function enforceBusinessRules(ctx: RuleContext): Promise<Response |
     return refuse(`${futureField[2]} gelecekte olamaz.`)
   }
 
+  /*
+   * A 5S score is out of 100, and the database will take 150.
+   *
+   * Measured: the edit modal's own field says max="100" and the browser marks
+   * 150 invalid, but the form submits regardless — the audit was stored with
+   * total_score 150.00, and PATCH with the same value answered 200. Every
+   * number the customer is shown is computed from these columns: the period
+   * average, the "hedef üstü / hedef altında" verdict, the trend line. One
+   * mistyped score moves all of them, and nothing on any screen says the value
+   * is impossible.
+   *
+   * The ceiling is the one the form already claims, so this refuses only what
+   * the screen would never have sent.
+   */
+  if (AUDIT_PATH.test(path) || AUDIT_COLLECTION.test(path)) {
+    const b = await readBody(ctx)
+    const SCORE_FIELDS: Array<[string, string]> = [
+      ['total_score', 'Toplam puan'],
+      ['score_s1', 'S1 puanı'],
+      ['score_s2', 'S2 puanı'],
+      ['score_s3', 'S3 puanı'],
+      ['score_s4', 'S4 puanı'],
+      ['score_s5', 'S5 puanı'],
+    ]
+    for (const [snake, label] of SCORE_FIELDS) {
+      const camel = snake.replace(/_([a-z0-9])/g, (_, c) => c.toUpperCase())
+      const raw = b[snake] ?? b[camel]
+      if (raw === undefined || raw === null || raw === '') continue
+      const n = Number(raw)
+      if (!Number.isFinite(n)) {
+        return refuse(`${label} sayı olmalıdır.`)
+      }
+      if (n < 0 || n > 100) {
+        return refuse(`${label} 0 ile 100 arasında olmalıdır; gönderilen: ${raw}.`)
+      }
+    }
+  }
+
   const finding = request.method !== 'POST' ? FINDING_PATH.exec(path) : null
   if (finding && String(body.status ?? '').toLowerCase() === 'closed') {
     // A photo supplied in the SAME request counts; the screen uploads first,

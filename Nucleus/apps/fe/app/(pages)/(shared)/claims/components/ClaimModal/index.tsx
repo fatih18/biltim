@@ -1,4 +1,5 @@
 import { Loader2 } from 'lucide-react'
+import { useModal } from '@/app/_hooks/UseModal'
 import type { ClaimModalProps } from '../../types'
 
 export function ClaimModal({
@@ -12,11 +13,13 @@ export function ClaimModal({
   onSubmit,
   onFormChange,
 }: ClaimModalProps) {
+  const modal = useModal(onClose, { enabled: isOpen })
+
   if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="w-full max-w-xl rounded-2xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50 shadow-2xl">
+      <div {...modal} className="w-full max-w-xl rounded-2xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50 shadow-2xl">
         <header className="flex items-center justify-between border-b border-slate-300 dark:border-slate-700 px-6 py-4">
           <div>
             <h2 className="text-lg font-semibold">{editingClaim ? 'Yetkiyi Düzenle' : 'Yeni Yetki'}</h2>
