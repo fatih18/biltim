@@ -172,7 +172,13 @@ export function HomeAuditListPanel(props: {
 
             <div className="p-4">
                 <div className="overflow-hidden rounded-lg border border-slate-300 dark:border-slate-800">
-                    <div className="grid grid-cols-12 bg-slate-50 dark:bg-slate-900/60 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-slate-600 dark:text-slate-400">
+                    {/*
+                      Six column labels do not fit a phone: measured at 375px they
+                      overlapped each other — "Lokasyon" ran into "Müdür". Each row
+                      below already repeats its own labels at that width, so the
+                      header is desktop-only rather than squeezed.
+                    */}
+                    <div className="hidden grid-cols-12 bg-slate-50 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-slate-600 sm:grid dark:bg-slate-900/60 dark:text-slate-400">
                         <div className="col-span-2">Tarih</div>
                         <div className="col-span-2">Dönem</div>
                         <div className="col-span-2">Lokasyon</div>
