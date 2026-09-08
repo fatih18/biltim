@@ -7,7 +7,8 @@
     "dev": "bun run --watch src/index.ts",
     "start": "bun run src/index.ts",
     "gen": "bunx nucleus-core-ts generate config.json src/drizzle",
-    "validate": "bunx nucleus-core-ts validate config.json"
+    "validate": "bunx nucleus-core-ts validate config.json",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "nucleus-core-ts": "0.10.115",
