@@ -8,6 +8,8 @@ import { DateInput } from "@/app/_components/DateInput";
 import { Camera, Eye, FileSpreadsheet, ImageIcon, Loader2, Trash2, Upload, X, ChevronDown, ChevronUp } from "lucide-react";
 import { Skeleton } from "@/app/_components/Global/Skeleton";
 import { buildFileUrl } from "@/app/_utils/photos";
+import { ClipboardCheck } from "lucide-react";
+import { EmptyState } from "@/app/_components/Global/EmptyState";
 
 type FindingStatus = "open" | "in_progress" | "closed";
 
@@ -785,8 +787,12 @@ export default function FiveSFindingsListPage() {
 
                 {rows.length === 0 && !loading && (
                   <tr>
-                    <td colSpan={canDeleteFinding ? 12 : 11} className="px-4 py-6 text-center text-xs text-slate-600 dark:text-slate-400">
-                      Gösterilecek bulgu bulunamadı.
+                    <td colSpan={canDeleteFinding ? 12 : 11} className="px-4">
+                      <EmptyState
+                        icon={ClipboardCheck}
+                        title="Gösterilecek bulgu yok"
+                        description="Seçili filtrelere uyan bir bulgu bulunmuyor. Filtreleri genişletmeyi deneyin ya da denetim yapıldıkça bulgular burada toplanır."
+                      />
                     </td>
                   </tr>
                 )}

@@ -29,7 +29,7 @@ export function LogsTable({ logs, onLogSelect }: LogsTableProps) {
       case 'soft_delete':
         return <Trash2 size={16} className="text-red-600" />
       default:
-        return <Activity size={16} className="text-gray-600" />
+        return <Activity size={16} className="text-slate-600 dark:text-slate-400" />
     }
   }
 
@@ -45,7 +45,7 @@ export function LogsTable({ logs, onLogSelect }: LogsTableProps) {
       case 'soft_delete':
         return 'bg-red-100 text-red-800 border-red-200'
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200'
+        return 'bg-gray-100 text-slate-800 dark:text-slate-200 border-gray-200'
     }
   }
 
@@ -64,9 +64,9 @@ export function LogsTable({ logs, onLogSelect }: LogsTableProps) {
     return (
       <div className="bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="text-center py-12">
-          <AlertCircle className="mx-auto text-gray-400 mb-4" size={48} />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Log kaydı bulunamadı</h3>
-          <p className="text-gray-500">Arama kriterlerinizi veya filtrelerinizi düzenleyin.</p>
+          <AlertCircle className="mx-auto text-slate-400 dark:text-slate-500 mb-4" size={48} />
+          <h3 className="mb-2 text-lg font-medium text-slate-900 dark:text-slate-100">Log kaydı bulunamadı</h3>
+          <p className="text-slate-500 dark:text-slate-400">Arama kriterlerinizi veya filtrelerinizi düzenleyin.</p>
         </div>
       </div>
     )
@@ -78,25 +78,25 @@ export function LogsTable({ logs, onLogSelect }: LogsTableProps) {
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 Zaman Damgası
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 İşlem
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 Varlık
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 Kullanıcı
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 Özet
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 IP Adresi
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 İşlemler
               </th>
             </tr>
@@ -104,9 +104,9 @@ export function LogsTable({ logs, onLogSelect }: LogsTableProps) {
           <tbody className="bg-white dark:bg-slate-900 divide-y divide-gray-200">
             {logs.map((log) => (
               <tr key={log.id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-slate-100">
                   <div className="flex items-center gap-2">
-                    <Calendar size={14} className="text-gray-400" />
+                    <Calendar size={14} className="text-slate-400 dark:text-slate-500" />
                     {formatTimestamp(log.timestamp)}
                   </div>
                 </td>
@@ -118,13 +118,13 @@ export function LogsTable({ logs, onLogSelect }: LogsTableProps) {
                     {log.operation_type}
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-slate-100">
                   <div className="flex items-center gap-2">
-                    <Database size={14} className="text-gray-400" />
+                    <Database size={14} className="text-slate-400 dark:text-slate-500" />
                     <div>
                       <div className="font-medium">{log.entity_name}</div>
                       <div
-                        className="text-xs text-gray-500 truncate max-w-32"
+                        className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-32"
                         title={log.entity_id ?? undefined}
                       >
                         {log.entity_id ?? '-'}
@@ -132,26 +132,26 @@ export function LogsTable({ logs, onLogSelect }: LogsTableProps) {
                     </div>
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-slate-100">
                   <div className="flex items-center gap-2">
-                    <User size={14} className="text-gray-400" />
+                    <User size={14} className="text-slate-400 dark:text-slate-500" />
                     <div
-                      className="text-xs text-gray-500 truncate max-w-24"
+                      className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-24"
                       title={log.user_id ?? ''}
                     >
                       {log.user_id ?? '-'}
                     </div>
                   </div>
                 </td>
-                <td className="px-6 py-4 text-sm text-gray-900">
+                <td className="px-6 py-4 text-sm text-slate-900 dark:text-slate-100">
                   <div className="max-w-48 truncate" title={log.summary ?? 'Özet yok'}>
                     {log.summary ?? '-'}
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
                   {log.ip_address ?? '-'}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
                   <button
                     type="button"
                     onClick={() => onLogSelect(log)}
