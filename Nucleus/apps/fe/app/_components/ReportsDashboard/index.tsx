@@ -50,10 +50,10 @@ const str = (v: unknown) => String(v ?? '')
 
 function Card(props: { title: string; subtitle?: string; children: React.ReactNode; className?: string }) {
   return (
-    <section className={`rounded-xl border border-slate-800 bg-slate-900/60 p-4 ${props.className ?? ''}`}>
+    <section className={`rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 p-4 ${props.className ?? ''}`}>
       <div className="mb-3">
-        <h3 className="text-sm font-semibold text-slate-100">{props.title}</h3>
-        {props.subtitle && <p className="mt-0.5 text-[11px] text-slate-400">{props.subtitle}</p>}
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{props.title}</h3>
+        {props.subtitle && <p className="mt-0.5 text-[11px] text-slate-600 dark:text-slate-400">{props.subtitle}</p>}
       </div>
       {props.children}
     </section>
@@ -63,15 +63,15 @@ function Card(props: { title: string; subtitle?: string; children: React.ReactNo
 function StatCard(props: { label: string; value: string; tone?: 'default' | 'good' | 'warn' | 'bad' }) {
   const toneClass =
     props.tone === 'good'
-      ? 'text-emerald-300'
+      ? 'text-emerald-600 dark:text-emerald-300'
       : props.tone === 'warn'
-        ? 'text-amber-300'
+        ? 'text-amber-600 dark:text-amber-300'
         : props.tone === 'bad'
-          ? 'text-rose-300'
-          : 'text-sky-300'
+          ? 'text-rose-600 dark:text-rose-300'
+          : 'text-sky-600 dark:text-sky-300'
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/60 px-4 py-3">
-      <div className="text-[11px] text-slate-400">{props.label}</div>
+    <div className="rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 px-4 py-3">
+      <div className="text-[11px] text-slate-600 dark:text-slate-400">{props.label}</div>
       <div className={`mt-1 text-xl font-bold ${toneClass}`}>{props.value}</div>
     </div>
   )
@@ -152,9 +152,9 @@ function BeforeAfterReport() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  if (loading) return <div className="text-xs text-slate-400">Yükleniyor...</div>
+  if (loading) return <div className="text-xs text-slate-600 dark:text-slate-400">Yükleniyor...</div>
   if (rows.length === 0)
-    return <div className="text-xs text-slate-400">Öncesi/sonrası fotoğraflı kapatılmış bulgu bulunamadı.</div>
+    return <div className="text-xs text-slate-600 dark:text-slate-400">Öncesi/sonrası fotoğraflı kapatılmış bulgu bulunamadı.</div>
 
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -162,32 +162,32 @@ function BeforeAfterReport() {
         const before = photoUrl(f.photo_before_files?.[0])
         const after = photoUrl(f.photo_after_files?.[0])
         return (
-          <div key={f.id} className="rounded-lg border border-slate-800 bg-slate-950/40 p-2">
+          <div key={f.id} className="rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/40 p-2">
             <div className="mb-1.5 flex items-center justify-between text-[11px]">
-              <span className="text-slate-200 truncate">{f.location_name ?? '-'}</span>
-              <span className="text-slate-500">#{f.finding_no ?? '-'}</span>
+              <span className="text-slate-800 dark:text-slate-200 truncate">{f.location_name ?? '-'}</span>
+              <span className="text-slate-500 dark:text-slate-500">#{f.finding_no ?? '-'}</span>
             </div>
             <div className="grid grid-cols-2 gap-1.5">
               <div>
-                <div className="mb-0.5 text-[10px] text-rose-300">Önce</div>
+                <div className="mb-0.5 text-[10px] text-rose-600 dark:text-rose-300">Önce</div>
                 {before ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={before} alt="önce" className="h-24 w-full rounded object-cover" loading="lazy" />
                 ) : (
-                  <div className="h-24 rounded bg-slate-800" />
+                  <div className="h-24 rounded bg-slate-200 dark:bg-slate-800" />
                 )}
               </div>
               <div>
-                <div className="mb-0.5 text-[10px] text-emerald-300">Sonra</div>
+                <div className="mb-0.5 text-[10px] text-emerald-600 dark:text-emerald-300">Sonra</div>
                 {after ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={after} alt="sonra" className="h-24 w-full rounded object-cover" loading="lazy" />
                 ) : (
-                  <div className="h-24 rounded bg-slate-800" />
+                  <div className="h-24 rounded bg-slate-200 dark:bg-slate-800" />
                 )}
               </div>
             </div>
-            <div className="mt-1 text-[10px] text-slate-500 truncate">{f.finding_type ?? ''}</div>
+            <div className="mt-1 text-[10px] text-slate-500 dark:text-slate-500 truncate">{f.finding_type ?? ''}</div>
           </div>
         )
       })}
@@ -212,14 +212,14 @@ function FactoryMapHeat({ mapHeat }: { mapHeat: Row[] }) {
 
   return (
     <div className="space-y-3">
-      <div className="relative w-full overflow-hidden rounded-lg border border-slate-800 bg-slate-950/60" style={{ aspectRatio: '16/9' }}>
+      <div className="relative w-full overflow-hidden rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/60" style={{ aspectRatio: '16/9' }}>
         {/* Kroki placeholder — gerçek kroki görseli eklendiğinde arka plana konabilir */}
         <div className="absolute inset-0 grid grid-cols-8 grid-rows-4 opacity-20">
           {Array.from({ length: 32 }).map((_, i) => (
-            <div key={i} className="border border-slate-700" />
+            <div key={i} className="border border-slate-300 dark:border-slate-700" />
           ))}
         </div>
-        <div className="absolute left-2 top-2 text-[10px] text-slate-500">
+        <div className="absolute left-2 top-2 text-[10px] text-slate-500 dark:text-slate-500">
           Fabrika Krokisi (lokasyon koordinatları Ana Veri Yönetimi'nden girilebilir)
         </div>
         {placed.map((l) => (
@@ -240,11 +240,11 @@ function FactoryMapHeat({ mapHeat }: { mapHeat: Row[] }) {
             >
               {num(l.open_findings)}
             </div>
-            <div className="mt-0.5 max-w-[80px] truncate text-center text-[9px] text-slate-300">{str(l.name)}</div>
+            <div className="mt-0.5 max-w-[80px] truncate text-center text-[9px] text-slate-700 dark:text-slate-300">{str(l.name)}</div>
           </div>
         ))}
         {placed.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-500">
+          <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-500 dark:text-slate-500">
             Henüz koordinatı girilmiş lokasyon yok.
           </div>
         )}
@@ -255,7 +255,7 @@ function FactoryMapHeat({ mapHeat }: { mapHeat: Row[] }) {
           {unplaced.map((l) => (
             <span
               key={str(l.id)}
-              className="inline-flex items-center gap-1.5 rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1 text-[10px] text-slate-300"
+              className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/40 px-2 py-1 text-[10px] text-slate-700 dark:text-slate-300"
               title="Kroki koordinatı girilmemiş"
             >
               <span
@@ -361,7 +361,7 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
 
   if (error) {
     return (
-      <div className="rounded-xl border border-rose-800/60 bg-rose-950/30 p-4 text-sm text-rose-200">
+      <div className="rounded-xl border border-rose-800/60 bg-rose-100 dark:bg-rose-950/30 p-4 text-sm text-rose-700 dark:text-rose-200">
         {error}
         <button type="button" onClick={fetchData} className="ml-3 underline">
           Tekrar dene
@@ -373,28 +373,28 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
   return (
     <div className="space-y-4">
       {/* Filtre çubuğu */}
-      <div className="flex flex-wrap items-end gap-3 rounded-xl border border-slate-800 bg-slate-900/60 p-3">
+      <div className="flex flex-wrap items-end gap-3 rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 p-3">
         <div className="space-y-1">
-          <label className="block text-[11px] font-medium text-slate-300">Başlangıç</label>
+          <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300">Başlangıç</label>
           <DateInput
             value={dateFrom}
             onChange={setDateFrom}
-            className="date-dark rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+            className="date-dark rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
           />
         </div>
         <div className="space-y-1">
-          <label className="block text-[11px] font-medium text-slate-300">Bitiş</label>
+          <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300">Bitiş</label>
           <DateInput
             value={dateTo}
             onChange={setDateTo}
-            className="date-dark rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+            className="date-dark rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
           />
         </div>
         <button
           type="button"
           onClick={fetchData}
           disabled={loading}
-          className="inline-flex items-center gap-1.5 rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 text-xs hover:bg-slate-950 disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/60 px-3 py-2 text-xs hover:bg-slate-100 hover:dark:bg-slate-950 disabled:opacity-50"
         >
           {loading ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
           Yenile
@@ -507,8 +507,8 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
         {/* Rapor 8: Denetim planına uyum */}
         <Card title="Denetim Planına Uyum" subtitle="Plan durumları ve katılım bilgisi">
           <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-xs text-slate-200">
-              <thead className="text-[11px] uppercase tracking-wide text-slate-400">
+            <table className="min-w-full text-left text-xs text-slate-800 dark:text-slate-200">
+              <thead className="text-[11px] uppercase tracking-wide text-slate-600 dark:text-slate-400">
                 <tr>
                   <th className="px-3 py-2">Durum</th>
                   <th className="px-3 py-2 text-center">Plan</th>
@@ -519,19 +519,19 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
               </thead>
               <tbody>
                 {(data?.planCompliance ?? []).map((r, i) => (
-                  <tr key={i} className="border-t border-slate-800/80">
+                  <tr key={i} className="border-t border-slate-300 dark:border-slate-800/80">
                     <td className="px-3 py-2">
                       {str(r.status) === 'planned' ? 'Planlandı' : str(r.status) === 'completed' ? 'Tamamlandı' : str(r.status) === 'cancelled' ? 'İptal' : str(r.status)}
                     </td>
                     <td className="px-3 py-2 text-center">{num(r.count)}</td>
-                    <td className="px-3 py-2 text-center text-emerald-300">{num(r.auditor_attended)}</td>
-                    <td className="px-3 py-2 text-center text-emerald-300">{num(r.field_manager_attended)}</td>
-                    <td className="px-3 py-2 text-center text-rose-300">{num(r.field_manager_missed)}</td>
+                    <td className="px-3 py-2 text-center text-emerald-600 dark:text-emerald-300">{num(r.auditor_attended)}</td>
+                    <td className="px-3 py-2 text-center text-emerald-600 dark:text-emerald-300">{num(r.field_manager_attended)}</td>
+                    <td className="px-3 py-2 text-center text-rose-600 dark:text-rose-300">{num(r.field_manager_missed)}</td>
                   </tr>
                 ))}
                 {(data?.planCompliance ?? []).length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-3 py-4 text-center text-slate-500">Veri yok.</td>
+                    <td colSpan={5} className="px-3 py-4 text-center text-slate-500 dark:text-slate-500">Veri yok.</td>
                   </tr>
                 )}
               </tbody>
@@ -543,8 +543,8 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
       {/* Rapor 10: Müdürlük bazlı özet */}
       <Card title="Müdürlük Bazlı Özet" subtitle="Denetim sayısı, ortalama puan ve bulgu durumları (müdürlük eşlemesi Ana Veri Yönetimi'ndeki lokasyonlardan gelir)">
         <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-xs text-slate-200">
-            <thead className="text-[11px] uppercase tracking-wide text-slate-400">
+          <table className="min-w-full text-left text-xs text-slate-800 dark:text-slate-200">
+            <thead className="text-[11px] uppercase tracking-wide text-slate-600 dark:text-slate-400">
               <tr>
                 <th className="px-3 py-2">Müdürlük</th>
                 <th className="px-3 py-2 text-center">Denetim</th>
@@ -556,20 +556,20 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
             </thead>
             <tbody>
               {(data?.departmentSummary ?? []).map((r, i) => (
-                <tr key={i} className="border-t border-slate-800/80">
+                <tr key={i} className="border-t border-slate-300 dark:border-slate-800/80">
                   <td className="px-3 py-2">{str(r.department_name)}</td>
                   <td className="px-3 py-2 text-center">{num(r.audit_count)}</td>
-                  <td className={`px-3 py-2 text-center font-semibold ${num(r.avg_total) >= 75 ? 'text-emerald-300' : 'text-amber-300'}`}>
+                  <td className={`px-3 py-2 text-center font-semibold ${num(r.avg_total) >= 75 ? 'text-emerald-600 dark:text-emerald-300' : 'text-amber-600 dark:text-amber-300'}`}>
                     {r.avg_total != null ? num(r.avg_total).toFixed(1) : '-'}
                   </td>
-                  <td className="px-3 py-2 text-center text-rose-300">{num(r.open_findings)}</td>
-                  <td className="px-3 py-2 text-center text-emerald-300">{num(r.closed_findings)}</td>
-                  <td className="px-3 py-2 text-center text-amber-300">{num(r.overdue_findings)}</td>
+                  <td className="px-3 py-2 text-center text-rose-600 dark:text-rose-300">{num(r.open_findings)}</td>
+                  <td className="px-3 py-2 text-center text-emerald-600 dark:text-emerald-300">{num(r.closed_findings)}</td>
+                  <td className="px-3 py-2 text-center text-amber-600 dark:text-amber-300">{num(r.overdue_findings)}</td>
                 </tr>
               ))}
               {(data?.departmentSummary ?? []).length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-3 py-4 text-center text-slate-500">Veri yok.</td>
+                  <td colSpan={6} className="px-3 py-4 text-center text-slate-500 dark:text-slate-500">Veri yok.</td>
                 </tr>
               )}
             </tbody>
@@ -580,8 +580,8 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
       {/* Rapor 4: Termin geçmiş aksiyonlar */}
       <Card title="Termin Tarihi Geçmiş Aksiyonlar" subtitle="Termini geçmiş, hâlâ açık bulgular">
         <div className="max-h-80 overflow-auto">
-          <table className="min-w-full text-left text-xs text-slate-200">
-            <thead className="sticky top-0 bg-slate-900 text-[11px] uppercase tracking-wide text-slate-400">
+          <table className="min-w-full text-left text-xs text-slate-800 dark:text-slate-200">
+            <thead className="sticky top-0 bg-white dark:bg-slate-900 text-[11px] uppercase tracking-wide text-slate-600 dark:text-slate-400">
               <tr>
                 <th className="px-3 py-2">No</th>
                 <th className="px-3 py-2">Lokasyon</th>
@@ -594,19 +594,19 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
             </thead>
             <tbody>
               {(data?.overdueActions ?? []).map((r) => (
-                <tr key={str(r.id)} className="border-t border-slate-800/80">
-                  <td className="px-3 py-2 text-slate-400">{num(r.finding_no)}</td>
+                <tr key={str(r.id)} className="border-t border-slate-300 dark:border-slate-800/80">
+                  <td className="px-3 py-2 text-slate-600 dark:text-slate-400">{num(r.finding_no)}</td>
                   <td className="px-3 py-2">{str(r.location_name)}</td>
-                  <td className="px-3 py-2 text-sky-300">{str(r.finding_type)}</td>
+                  <td className="px-3 py-2 text-sky-600 dark:text-sky-300">{str(r.finding_type)}</td>
                   <td className="px-3 py-2 max-w-[240px] truncate" title={str(r.action_to_take)}>{str(r.action_to_take) || '-'}</td>
                   <td className="px-3 py-2">{str(r.due_date).slice(0, 10)}</td>
-                  <td className="px-3 py-2 text-center font-semibold text-rose-300">{num(r.overdue_days)} gün</td>
+                  <td className="px-3 py-2 text-center font-semibold text-rose-600 dark:text-rose-300">{num(r.overdue_days)} gün</td>
                   <td className="px-3 py-2">{str(r.responsible_name) || '-'}</td>
                 </tr>
               ))}
               {(data?.overdueActions ?? []).length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-3 py-4 text-center text-slate-500">Termini geçmiş açık aksiyon yok. 🎉</td>
+                  <td colSpan={7} className="px-3 py-4 text-center text-slate-500 dark:text-slate-500">Termini geçmiş açık aksiyon yok. 🎉</td>
                 </tr>
               )}
             </tbody>

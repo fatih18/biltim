@@ -24,18 +24,18 @@ export function Modal(props: {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-            <div className="w-full max-w-lg rounded-xl border border-slate-700 bg-slate-900 p-4 shadow-2xl md:p-6">
+            <div className="w-full max-w-lg rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-2xl md:p-6">
                 <div className="flex items-start justify-between gap-3">
                     <div>
-                        <h3 className="text-sm font-semibold text-slate-100">{title}</h3>
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{title}</h3>
                         {description ? (
-                            <p className="mt-1 text-[11px] text-slate-400">{description}</p>
+                            <p className="mt-1 text-[11px] text-slate-600 dark:text-slate-400">{description}</p>
                         ) : null}
                     </div>
                     <button
                         type="button"
                         onClick={onClose}
-                        className="text-sm text-slate-400 hover:text-slate-200"
+                        className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-800 hover:dark:text-slate-200"
                     >
                         ✕
                     </button>

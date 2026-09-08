@@ -10,7 +10,7 @@ type AuditTeamLite = { id: string; name?: string | null; isActive: boolean };
 
 function Badge({ children }: { children: React.ReactNode }) {
     return (
-        <span className="inline-flex items-center rounded-md border border-slate-700 bg-slate-950/50 px-2 py-0.5 text-[11px] text-slate-200">
+        <span className="inline-flex items-center rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/50 px-2 py-0.5 text-[11px] text-slate-800 dark:text-slate-200">
             {children}
         </span>
     );
@@ -19,12 +19,12 @@ function Badge({ children }: { children: React.ReactNode }) {
 function StatusPill({ status }: { status: string }) {
     const base = "inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-medium";
     if (status === "planned")
-        return <span className={`${base} border-amber-800/60 bg-amber-950/30 text-amber-200`}>{auditStatusLabelTr(status)}</span>;
+        return <span className={`${base} border-amber-800/60 bg-amber-100 dark:bg-amber-950/30 text-amber-700 dark:text-amber-200`}>{auditStatusLabelTr(status)}</span>;
     if (status === "completed")
-        return <span className={`${base} border-emerald-800/60 bg-emerald-950/25 text-emerald-200`}>{auditStatusLabelTr(status)}</span>;
+        return <span className={`${base} border-emerald-800/60 bg-emerald-950/25 text-emerald-700 dark:text-emerald-200`}>{auditStatusLabelTr(status)}</span>;
     if (status === "cancelled")
-        return <span className={`${base} border-rose-900/60 bg-rose-950/25 text-rose-200`}>{auditStatusLabelTr(status)}</span>;
-    return <span className={`${base} border-slate-700 bg-slate-950/50 text-slate-200`}>{auditStatusLabelTr(status)}</span>;
+        return <span className={`${base} border-rose-900/60 bg-rose-950/25 text-rose-700 dark:text-rose-200`}>{auditStatusLabelTr(status)}</span>;
+    return <span className={`${base} border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/50 text-slate-800 dark:text-slate-200`}>{auditStatusLabelTr(status)}</span>;
 }
 
 function SegTabs({
@@ -37,7 +37,7 @@ function SegTabs({
     items: { value: string; label: string }[];
 }) {
     return (
-        <div className="inline-flex rounded-lg border border-slate-800 bg-slate-950/40 p-1">
+        <div className="inline-flex rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/40 p-1">
             {items.map((it) => {
                 const active = it.value === value;
                 return (
@@ -46,7 +46,7 @@ function SegTabs({
                         onClick={() => onChange(it.value)}
                         className={[
                             "rounded-md px-3 py-1.5 text-xs font-semibold",
-                            active ? "bg-slate-200 text-slate-950" : "text-slate-300 hover:bg-slate-950/50",
+                            active ? "bg-slate-200 text-slate-950" : "text-slate-700 dark:text-slate-300 hover:bg-white hover:dark:bg-slate-950/50",
                         ].join(" ")}
                     >
                         {it.label}
@@ -137,11 +137,11 @@ export function HomeAuditListPanel(props: {
     };
 
     return (
-        <section className="rounded-xl border border-slate-800 bg-slate-900/40">
-            <div className="flex items-start justify-between gap-3 border-b border-slate-800 px-4 py-3">
+        <section className="rounded-xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900/40">
+            <div className="flex items-start justify-between gap-3 border-b border-slate-300 dark:border-slate-800 px-4 py-3">
                 <div>
-                    <div className="text-sm font-semibold text-slate-100">Denetimler</div>
-                    <div className="mt-1 text-xs text-slate-400">Planlanan / yaklaşan ve tamamlanan denetimler.</div>
+                    <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">Denetimler</div>
+                    <div className="mt-1 text-xs text-slate-600 dark:text-slate-400">Planlanan / yaklaşan ve tamamlanan denetimler.</div>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -158,7 +158,7 @@ export function HomeAuditListPanel(props: {
                     />
 
                     <button
-                        className="rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 text-xs hover:bg-slate-950 disabled:opacity-50"
+                        className="rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/60 px-3 py-2 text-xs hover:bg-slate-100 hover:dark:bg-slate-950 disabled:opacity-50"
                         onClick={onRefresh}
                         disabled={!onRefresh || loading}
                     >
@@ -168,8 +168,8 @@ export function HomeAuditListPanel(props: {
             </div>
 
             <div className="p-4">
-                <div className="overflow-hidden rounded-lg border border-slate-800">
-                    <div className="grid grid-cols-12 bg-slate-900/60 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                <div className="overflow-hidden rounded-lg border border-slate-300 dark:border-slate-800">
+                    <div className="grid grid-cols-12 bg-slate-50 dark:bg-slate-900/60 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-slate-600 dark:text-slate-400">
                         <div className="col-span-2">Tarih</div>
                         <div className="col-span-2">Dönem</div>
                         <div className="col-span-2">Lokasyon</div>
@@ -179,9 +179,9 @@ export function HomeAuditListPanel(props: {
                     </div>
 
                     {loading ? (
-                        <div className="px-3 py-6 text-sm text-slate-400">Yükleniyor...</div>
+                        <div className="px-3 py-6 text-sm text-slate-600 dark:text-slate-400">Yükleniyor...</div>
                     ) : list.length === 0 ? (
-                        <div className="px-3 py-6 text-sm text-slate-400">Kayıt bulunamadı.</div>
+                        <div className="px-3 py-6 text-sm text-slate-600 dark:text-slate-400">Kayıt bulunamadı.</div>
                     ) : (
                         list.map((p) => {
                             const locInfo = locInfoById.get(p.location_id);
@@ -197,7 +197,7 @@ export function HomeAuditListPanel(props: {
                                 (editDate < parentRange.start || editDate > parentRange.end));
 
                             return (
-                                <div key={p.id} className="grid grid-cols-12 items-start gap-2 border-t border-slate-800/80 px-3 py-2">
+                                <div key={p.id} className="grid grid-cols-12 items-start gap-2 border-t border-slate-300 dark:border-slate-800/80 px-3 py-2">
                                     {/* Tarih */}
                                     <div className="col-span-2">
                                         {isEditing ? (
@@ -209,11 +209,11 @@ export function HomeAuditListPanel(props: {
                                                         "date-dark w-full rounded-md border px-3 py-2 text-xs outline-none ring-sky-500/40 focus:ring-2",
                                                         outOfRange
                                                             ? "border-rose-600 bg-rose-950/20 focus:border-rose-400"
-                                                            : "border-slate-700 bg-slate-950/70 focus:border-sky-400",
+                                                            : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 focus:border-sky-400",
                                                     ].join(" ")}
                                                 />
                                                 {parentRange && (
-                                                    <p className="text-[10px] text-slate-500">
+                                                    <p className="text-[10px] text-slate-500 dark:text-slate-500">
                                                         Aralık: {parentRange.start} – {parentRange.end}
                                                     </p>
                                                 )}
@@ -223,18 +223,18 @@ export function HomeAuditListPanel(props: {
                                                     </p>
                                                 )}
                                                 {editDate && getDateConflicts?.(p.id, editDate).map((w, i) => (
-                                                    <p key={i} className="text-[10px] text-amber-300">⚠ {w}</p>
+                                                    <p key={i} className="text-[10px] text-amber-600 dark:text-amber-300">⚠ {w}</p>
                                                 ))}
                                                 <div className="flex gap-1">
                                                     <button
-                                                        className="rounded-md border border-emerald-800/60 bg-emerald-950/30 px-3 py-1 text-xs text-emerald-200 hover:bg-emerald-950/50 disabled:opacity-50"
+                                                        className="rounded-md border border-emerald-800/60 bg-emerald-100 dark:bg-emerald-950/30 px-3 py-1 text-xs text-emerald-700 dark:text-emerald-200 hover:bg-emerald-950/50 disabled:opacity-50"
                                                         onClick={() => saveEdit(p)}
                                                         disabled={!editDate || outOfRange}
                                                     >
                                                         Kaydet
                                                     </button>
                                                     <button
-                                                        className="rounded-md border border-slate-700 bg-slate-950/60 px-3 py-1 text-xs hover:bg-slate-950"
+                                                        className="rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/60 px-3 py-1 text-xs hover:bg-slate-100 hover:dark:bg-slate-950"
                                                         onClick={cancelEdit}
                                                     >
                                                         İptal
@@ -243,17 +243,17 @@ export function HomeAuditListPanel(props: {
                                             </div>
                                         ) : (
                                             <div className="flex flex-col gap-0.5">
-                                                <span className="text-sm text-slate-200">{normalizeDateYYYYMMDD(p.planned_date) || "-"}</span>
+                                                <span className="text-sm text-slate-800 dark:text-slate-200">{normalizeDateYYYYMMDD(p.planned_date) || "-"}</span>
                                                 {editable ? (
                                                     <button
                                                         type="button"
                                                         onClick={() => startEdit(p)}
-                                                        className="text-left text-[10px] text-sky-400 hover:underline"
+                                                        className="text-left text-[10px] text-sky-600 dark:text-sky-400 hover:underline"
                                                     >
                                                         Düzenle ({2 - (p.date_change_count ?? 0)} hak)
                                                     </button>
                                                 ) : (p.date_change_count ?? 0) >= 2 && canEditPlan({ ...p, date_change_count: 0 }) ? (
-                                                    <span className="text-[10px] text-slate-500">Tarih kilitli</span>
+                                                    <span className="text-[10px] text-slate-500 dark:text-slate-500">Tarih kilitli</span>
                                                 ) : null}
                                             </div>
                                         )}
@@ -263,35 +263,35 @@ export function HomeAuditListPanel(props: {
                                     <div className="col-span-2">
                                         {parentRange ? (
                                             <div className="flex flex-col gap-0.5">
-                                                <span className="inline-block rounded border border-indigo-700/50 bg-indigo-950/40 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-300">
+                                                <span className="inline-block rounded border border-indigo-700/50 bg-indigo-100 dark:bg-indigo-950/40 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-600 dark:text-indigo-300">
                                                     {parentRange.quarter ?? "—"}
                                                 </span>
                                                 {parentRange.title && (
-                                                    <span className="text-[10px] text-slate-500 truncate">{parentRange.title}</span>
+                                                    <span className="text-[10px] text-slate-500 dark:text-slate-500 truncate">{parentRange.title}</span>
                                                 )}
                                             </div>
                                         ) : (
-                                            <span className="text-[11px] text-slate-600">—</span>
+                                            <span className="text-[11px] text-slate-400 dark:text-slate-600">—</span>
                                         )}
                                     </div>
 
-                                    <div className="col-span-2 text-sm text-slate-100">{loc}</div>
+                                    <div className="col-span-2 text-sm text-slate-900 dark:text-slate-100">{loc}</div>
 
                                     <div className="col-span-2 flex flex-col gap-0.5">
                                         {managerName && (
                                             <div className="flex items-center gap-1 text-[10px]">
-                                                <span className="font-medium text-slate-500">Müdür:</span>
-                                                <span className="text-slate-300">{managerName}</span>
+                                                <span className="font-medium text-slate-500 dark:text-slate-500">Müdür:</span>
+                                                <span className="text-slate-700 dark:text-slate-300">{managerName}</span>
                                             </div>
                                         )}
                                         {fieldManagerNames.length > 0 && (
                                             <div className="flex items-center gap-1 text-[10px]">
-                                                <span className="font-medium text-slate-500">Saha:</span>
-                                                <span className="text-slate-300">{fieldManagerNames.join(", ")}</span>
+                                                <span className="font-medium text-slate-500 dark:text-slate-500">Saha:</span>
+                                                <span className="text-slate-700 dark:text-slate-300">{fieldManagerNames.join(", ")}</span>
                                             </div>
                                         )}
                                         {!managerName && fieldManagerNames.length === 0 && (
-                                            <span className="text-xs text-slate-600">—</span>
+                                            <span className="text-xs text-slate-400 dark:text-slate-600">—</span>
                                         )}
                                     </div>
 
@@ -305,7 +305,7 @@ export function HomeAuditListPanel(props: {
                                             <button
                                                 type="button"
                                                 onClick={() => onStartAudit(p.id)}
-                                                className="rounded-md border border-sky-800/60 bg-sky-950/30 px-2 py-1 text-[11px] font-semibold text-sky-200 hover:bg-sky-950/60"
+                                                className="rounded-md border border-sky-800/60 bg-sky-100 dark:bg-sky-950/30 px-2 py-1 text-[11px] font-semibold text-sky-700 dark:text-sky-200 hover:bg-sky-200 hover:dark:bg-sky-950/60"
                                             >
                                                 Denetimi Başlat
                                             </button>
@@ -314,7 +314,7 @@ export function HomeAuditListPanel(props: {
                                             <button
                                                 type="button"
                                                 onClick={() => onEditCompletedAudit(p)}
-                                                className="rounded-md border border-indigo-800/60 bg-indigo-950/30 px-2 py-1 text-[11px] font-semibold text-indigo-200 hover:bg-indigo-950/60"
+                                                className="rounded-md border border-indigo-800/60 bg-indigo-100 dark:bg-indigo-950/30 px-2 py-1 text-[11px] font-semibold text-indigo-700 dark:text-indigo-200 hover:bg-indigo-200 hover:dark:bg-indigo-950/60"
                                                 title="Tamamlanmış denetimi düzenle (Merkez Ekip)"
                                             >
                                                 Düzenle
@@ -328,7 +328,7 @@ export function HomeAuditListPanel(props: {
                 </div>
 
                 {/* küçük not */}
-                <div className="mt-3 text-[11px] text-slate-500">
+                <div className="mt-3 text-[11px] text-slate-500 dark:text-slate-500">
                     Not: “Düzenle” butonu sadece ilgili ekibin liderinde görünür.
                 </div>
             </div>

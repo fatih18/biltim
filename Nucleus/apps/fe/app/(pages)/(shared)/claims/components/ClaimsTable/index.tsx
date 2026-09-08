@@ -9,22 +9,22 @@ export function ClaimsTable({ claims, isLoading, onEdit, onDelete }: ClaimsTable
       <table className="min-w-full divide-y divide-slate-200 text-sm">
         <thead className="bg-slate-50">
           <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-500">
               Action
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-500">
               Method
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-500">
               Path
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-500">
               Mode
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-500">
               Description
             </th>
-            <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+            <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-500">
               Actions
             </th>
           </tr>
@@ -33,7 +33,7 @@ export function ClaimsTable({ claims, isLoading, onEdit, onDelete }: ClaimsTable
           {isLoading ? (
             <tr>
               <td colSpan={6} className="px-4 py-12 text-center">
-                <div className="flex items-center justify-center gap-2 text-slate-600">
+                <div className="flex items-center justify-center gap-2 text-slate-400 dark:text-slate-600">
                   <Loader2 className="h-5 w-5 animate-spin" />
                   <span>Loading claims...</span>
                 </div>
@@ -41,7 +41,7 @@ export function ClaimsTable({ claims, isLoading, onEdit, onDelete }: ClaimsTable
             </tr>
           ) : !hasData ? (
             <tr>
-              <td colSpan={6} className="px-4 py-12 text-center text-sm text-slate-500">
+              <td colSpan={6} className="px-4 py-12 text-center text-sm text-slate-500 dark:text-slate-500">
                 No claims found.
               </td>
             </tr>
@@ -61,7 +61,7 @@ export function ClaimsTable({ claims, isLoading, onEdit, onDelete }: ClaimsTable
                   </span>
                 </td>
                 <td className="px-4 py-3 text-xs text-slate-700">
-                  {claim.description || <span className="text-slate-400">—</span>}
+                  {claim.description || <span className="text-slate-600 dark:text-slate-400">—</span>}
                 </td>
                 <td className="px-4 py-3 text-right">
                   <div className="inline-flex items-center gap-2">

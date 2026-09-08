@@ -16,11 +16,11 @@ export function ClaimModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="w-full max-w-xl rounded-2xl bg-slate-900 text-slate-50 shadow-2xl">
-        <header className="flex items-center justify-between border-b border-slate-700 px-6 py-4">
+      <div className="w-full max-w-xl rounded-2xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50 shadow-2xl">
+        <header className="flex items-center justify-between border-b border-slate-300 dark:border-slate-700 px-6 py-4">
           <div>
             <h2 className="text-lg font-semibold">{editingClaim ? 'Edit Claim' : 'New Claim'}</h2>
-            <p className="text-xs text-slate-300">
+            <p className="text-xs text-slate-700 dark:text-slate-300">
               Configure a claim that maps to a backend endpoint.
             </p>
           </div>
@@ -28,7 +28,7 @@ export function ClaimModal({
 
         <form onSubmit={onSubmit} className="space-y-4 px-6 py-5">
           <div className="space-y-1">
-            <label htmlFor="claim-action" className="text-xs font-medium text-slate-200">
+            <label htmlFor="claim-action" className="text-xs font-medium text-slate-800 dark:text-slate-200">
               Action
             </label>
             <input
@@ -37,20 +37,20 @@ export function ClaimModal({
               value={formState.action}
               onChange={(e) => onFormChange({ action: e.target.value })}
               placeholder="users.read, profiles.read..."
-              className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-50 placeholder:text-slate-400"
+              className="w-full rounded-lg border border-slate-400 dark:border-slate-600 bg-slate-200 dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 placeholder:text-slate-600 placeholder:dark:text-slate-400"
             />
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1">
-              <label htmlFor="claim-method" className="text-xs font-medium text-slate-200">
+              <label htmlFor="claim-method" className="text-xs font-medium text-slate-800 dark:text-slate-200">
                 Method
               </label>
               <select
                 id="claim-method"
                 value={formState.method}
                 onChange={(e) => onFormChange({ method: e.target.value })}
-                className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-50"
+                className="w-full rounded-lg border border-slate-400 dark:border-slate-600 bg-slate-200 dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-50"
               >
                 {methods.map((m) => (
                   <option key={m} value={m}>
@@ -61,14 +61,14 @@ export function ClaimModal({
             </div>
 
             <div className="space-y-1">
-              <label htmlFor="claim-mode" className="text-xs font-medium text-slate-200">
+              <label htmlFor="claim-mode" className="text-xs font-medium text-slate-800 dark:text-slate-200">
                 Mode
               </label>
               <select
                 id="claim-mode"
                 value={formState.mode}
                 onChange={(e) => onFormChange({ mode: e.target.value as 'exact' | 'startsWith' })}
-                className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-50"
+                className="w-full rounded-lg border border-slate-400 dark:border-slate-600 bg-slate-200 dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-50"
               >
                 {modes.map((m) => (
                   <option key={m} value={m}>
@@ -80,7 +80,7 @@ export function ClaimModal({
           </div>
 
           <div className="space-y-1">
-            <label htmlFor="claim-path" className="text-xs font-medium text-slate-200">
+            <label htmlFor="claim-path" className="text-xs font-medium text-slate-800 dark:text-slate-200">
               Path
             </label>
             <input
@@ -89,12 +89,12 @@ export function ClaimModal({
               value={formState.path}
               onChange={(e) => onFormChange({ path: e.target.value })}
               placeholder="/users, /profiles/:id..."
-              className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-50 placeholder:text-slate-400"
+              className="w-full rounded-lg border border-slate-400 dark:border-slate-600 bg-slate-200 dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 placeholder:text-slate-600 placeholder:dark:text-slate-400"
             />
           </div>
 
           <div className="space-y-1">
-            <label htmlFor="claim-description" className="text-xs font-medium text-slate-200">
+            <label htmlFor="claim-description" className="text-xs font-medium text-slate-800 dark:text-slate-200">
               Description
             </label>
             <textarea
@@ -103,15 +103,15 @@ export function ClaimModal({
               onChange={(e) => onFormChange({ description: e.target.value })}
               rows={3}
               placeholder="Optional description..."
-              className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-50 placeholder:text-slate-400"
+              className="w-full rounded-lg border border-slate-400 dark:border-slate-600 bg-slate-200 dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 placeholder:text-slate-600 placeholder:dark:text-slate-400"
             />
           </div>
 
-          <footer className="mt-6 flex items-center justify-end gap-2 border-t border-slate-700 pt-4">
+          <footer className="mt-6 flex items-center justify-end gap-2 border-t border-slate-300 dark:border-slate-700 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full border border-slate-600 bg-slate-800 px-4 py-1.5 text-xs font-medium text-slate-100 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-full border border-slate-400 dark:border-slate-600 bg-slate-200 dark:bg-slate-800 px-4 py-1.5 text-xs font-medium text-slate-900 dark:text-slate-100 hover:bg-slate-200 hover:dark:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
               disabled={isSubmitting}
             >
               Cancel

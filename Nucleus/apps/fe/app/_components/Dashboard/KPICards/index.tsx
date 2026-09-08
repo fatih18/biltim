@@ -71,7 +71,7 @@ export function KPICards({ data, userRole }: KPICardsProps) {
           <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent"></div>
           <div className="relative flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-slate-600 uppercase tracking-wide">
+              <p className="text-sm font-semibold text-slate-400 dark:text-slate-600 uppercase tracking-wide">
                 Aktif Projeler
               </p>
               <p className="text-4xl font-bold text-slate-900 mt-2">
@@ -83,7 +83,7 @@ export function KPICards({ data, userRole }: KPICardsProps) {
               </div>
             </div>
             <div className="bg-gradient-to-br from-slate-600 to-slate-700 p-4 rounded-xl shadow-lg">
-              <Briefcase className="text-white" size={28} />
+              <Briefcase className="text-slate-900 dark:text-white" size={28} />
             </div>
           </div>
         </div>
@@ -92,7 +92,7 @@ export function KPICards({ data, userRole }: KPICardsProps) {
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent"></div>
           <div className="relative flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-slate-600 uppercase tracking-wide">
+              <p className="text-sm font-semibold text-slate-400 dark:text-slate-600 uppercase tracking-wide">
                 Aktif RFP'ler
               </p>
               <p className="text-4xl font-bold text-slate-900 mt-2">
@@ -104,7 +104,7 @@ export function KPICards({ data, userRole }: KPICardsProps) {
               </div>
             </div>
             <div className="bg-gradient-to-br from-slate-600 to-slate-700 p-4 rounded-xl shadow-lg">
-              <FileText className="text-white" size={28} />
+              <FileText className="text-slate-900 dark:text-white" size={28} />
             </div>
           </div>
         </div>
@@ -113,7 +113,7 @@ export function KPICards({ data, userRole }: KPICardsProps) {
           <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent"></div>
           <div className="relative flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-slate-600 uppercase tracking-wide">
+              <p className="text-sm font-semibold text-slate-400 dark:text-slate-600 uppercase tracking-wide">
                 Toplam Teklifler
               </p>
               <p className="text-4xl font-bold text-slate-900 mt-2">
@@ -125,7 +125,7 @@ export function KPICards({ data, userRole }: KPICardsProps) {
               </div>
             </div>
             <div className="bg-gradient-to-br from-slate-600 to-slate-700 p-4 rounded-xl shadow-lg">
-              <Users className="text-white" size={28} />
+              <Users className="text-slate-900 dark:text-white" size={28} />
             </div>
           </div>
         </div>
@@ -134,7 +134,7 @@ export function KPICards({ data, userRole }: KPICardsProps) {
           <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent"></div>
           <div className="relative flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-slate-600 uppercase tracking-wide">
+              <p className="text-sm font-semibold text-slate-400 dark:text-slate-600 uppercase tracking-wide">
                 Maliyet Tasarrufu
               </p>
               <p className="text-4xl font-bold text-slate-900 mt-2">
@@ -146,7 +146,7 @@ export function KPICards({ data, userRole }: KPICardsProps) {
               </div>
             </div>
             <div className="bg-gradient-to-br from-slate-600 to-slate-700 p-4 rounded-xl shadow-lg">
-              <Target className="text-white" size={28} />
+              <Target className="text-slate-900 dark:text-white" size={28} />
             </div>
           </div>
         </div>
@@ -161,17 +161,17 @@ export function KPICards({ data, userRole }: KPICardsProps) {
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent"></div>
         <div className="relative flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-slate-600 uppercase tracking-wide">
+            <p className="text-sm font-semibold text-slate-400 dark:text-slate-600 uppercase tracking-wide">
               Davetli RFP'ler
             </p>
             <p className="text-4xl font-bold text-slate-900 mt-2">5</p>
             <div className="flex items-center gap-2 mt-3">
-              <Clock className="text-slate-500" size={16} />
-              <span className="text-sm font-medium text-slate-600">2 beklemede</span>
+              <Clock className="text-slate-500 dark:text-slate-500" size={16} />
+              <span className="text-sm font-medium text-slate-400 dark:text-slate-600">2 beklemede</span>
             </div>
           </div>
           <div className="bg-gradient-to-br from-slate-600 to-slate-700 p-4 rounded-xl shadow-lg">
-            <FileText className="text-white" size={28} />
+            <FileText className="text-slate-900 dark:text-white" size={28} />
           </div>
         </div>
       </div>
@@ -180,7 +180,7 @@ export function KPICards({ data, userRole }: KPICardsProps) {
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent"></div>
         <div className="relative flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-slate-600 uppercase tracking-wide">
+            <p className="text-sm font-semibold text-slate-400 dark:text-slate-600 uppercase tracking-wide">
               Gönderilen Teklifler
             </p>
             <p className="text-4xl font-bold text-slate-900 mt-2">8</p>
@@ -190,7 +190,7 @@ export function KPICards({ data, userRole }: KPICardsProps) {
             </div>
           </div>
           <div className="bg-gradient-to-br from-slate-600 to-slate-700 p-4 rounded-xl shadow-lg">
-            <CheckCircle className="text-white" size={28} />
+            <CheckCircle className="text-slate-900 dark:text-white" size={28} />
           </div>
         </div>
       </div>
@@ -199,7 +199,7 @@ export function KPICards({ data, userRole }: KPICardsProps) {
         <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent"></div>
         <div className="relative flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-slate-600 uppercase tracking-wide">
+            <p className="text-sm font-semibold text-slate-400 dark:text-slate-600 uppercase tracking-wide">
               Kazanma Oranı
             </p>
             <p className="text-4xl font-bold text-slate-900 mt-2">75%</p>
@@ -209,7 +209,7 @@ export function KPICards({ data, userRole }: KPICardsProps) {
             </div>
           </div>
           <div className="bg-gradient-to-br from-slate-600 to-slate-700 p-4 rounded-xl shadow-lg">
-            <TrendingUp className="text-white" size={28} />
+            <TrendingUp className="text-slate-900 dark:text-white" size={28} />
           </div>
         </div>
       </div>
@@ -218,17 +218,17 @@ export function KPICards({ data, userRole }: KPICardsProps) {
         <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent"></div>
         <div className="relative flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-slate-600 uppercase tracking-wide">
+            <p className="text-sm font-semibold text-slate-400 dark:text-slate-600 uppercase tracking-wide">
               Toplam Değer
             </p>
             <p className="text-4xl font-bold text-slate-900 mt-2">{formatCurrency(3200000)}</p>
             <div className="flex items-center gap-2 mt-3">
-              <DollarSign className="text-slate-500" size={16} />
-              <span className="text-sm font-medium text-slate-600">Bu yıl</span>
+              <DollarSign className="text-slate-500 dark:text-slate-500" size={16} />
+              <span className="text-sm font-medium text-slate-400 dark:text-slate-600">Bu yıl</span>
             </div>
           </div>
           <div className="bg-gradient-to-br from-slate-600 to-slate-700 p-4 rounded-xl shadow-lg">
-            <DollarSign className="text-white" size={28} />
+            <DollarSign className="text-slate-900 dark:text-white" size={28} />
           </div>
         </div>
       </div>

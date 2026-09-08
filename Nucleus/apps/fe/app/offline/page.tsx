@@ -2,7 +2,7 @@
 
 export default function OfflinePage() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-gray-900 to-gray-800 text-white">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-gray-900 to-gray-800 text-slate-900 dark:text-white">
       <div className="text-center">
         <div className="mb-8">
           <svg
@@ -32,7 +32,7 @@ export default function OfflinePage() {
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition-colors hover:bg-blue-700"
+          className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-slate-900 dark:text-white transition-colors hover:bg-blue-700"
         >
           Try Again
         </button>

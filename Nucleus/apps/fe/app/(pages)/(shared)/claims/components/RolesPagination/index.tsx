@@ -13,7 +13,7 @@ export function RolesPagination({ pagination, currentCount, onPageChange }: Role
 
   return (
     <div className="mt-4 flex items-center justify-between border-t border-slate-200 pt-4">
-      <div className="text-sm text-slate-600">
+      <div className="text-sm text-slate-400 dark:text-slate-600">
         Showing <span className="font-medium">{currentCount}</span> of{' '}
         <span className="font-medium">{totalItems}</span> roles
       </div>
@@ -26,7 +26,7 @@ export function RolesPagination({ pagination, currentCount, onPageChange }: Role
         >
           Previous
         </button>
-        <span className="text-xs text-slate-600">
+        <span className="text-xs text-slate-400 dark:text-slate-600">
           Page <span className="font-semibold">{currentPage}</span> of{' '}
           <span className="font-semibold">{totalPages}</span>
         </span>

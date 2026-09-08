@@ -23,16 +23,16 @@ export function RolesTable({
       <table className="min-w-full divide-y divide-slate-200 text-sm">
         <thead className="bg-slate-50">
           <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-500">
               Name
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-500">
               Description
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-500">
               Type
             </th>
-            <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+            <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-500">
               Actions
             </th>
           </tr>
@@ -41,7 +41,7 @@ export function RolesTable({
           {isLoading ? (
             <tr>
               <td colSpan={4} className="px-4 py-12 text-center">
-                <div className="flex items-center justify-center gap-2 text-slate-600">
+                <div className="flex items-center justify-center gap-2 text-slate-400 dark:text-slate-600">
                   <Loader2 className="h-5 w-5 animate-spin" />
                   <span>Loading roles...</span>
                 </div>
@@ -49,7 +49,7 @@ export function RolesTable({
             </tr>
           ) : !hasData ? (
             <tr>
-              <td colSpan={4} className="px-4 py-12 text-center text-sm text-slate-500">
+              <td colSpan={4} className="px-4 py-12 text-center text-sm text-slate-500 dark:text-slate-500">
                 No roles found.
               </td>
             </tr>
@@ -58,7 +58,7 @@ export function RolesTable({
               <tr key={role.id} className="hover:bg-slate-50/80">
                 <td className="px-4 py-3 text-sm font-medium text-slate-900">{role.name}</td>
                 <td className="px-4 py-3 text-xs text-slate-700">
-                  {role.description || <span className="text-slate-400">—</span>}
+                  {role.description || <span className="text-slate-600 dark:text-slate-400">—</span>}
                 </td>
                 <td className="px-4 py-3">
                   {role.is_system ? (

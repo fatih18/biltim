@@ -41,7 +41,7 @@ export function ClaimsTab({ management, methods, modes }: ClaimsTabProps) {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold text-slate-900">Claims</h2>
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-slate-400 dark:text-slate-600">
                 Low-level permissions that map to specific API endpoints
               </p>
             </div>
@@ -58,7 +58,7 @@ export function ClaimsTab({ management, methods, modes }: ClaimsTabProps) {
               <button
                 type="button"
                 onClick={openCreateModal}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 transition-colors text-sm font-semibold text-white shadow"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 transition-colors text-sm font-semibold text-slate-900 dark:text-white shadow"
               >
                 <Plus size={18} />
                 New Claim

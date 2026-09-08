@@ -18,7 +18,7 @@ export function ProposalFilters({
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="relative">
           <Search
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"
+            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 dark:text-slate-400"
             size={20}
           />
           <input
@@ -54,8 +54,8 @@ export function ProposalFilters({
         </select>
 
         <div className="flex items-center gap-2">
-          <Filter className="text-slate-600" size={20} />
-          <span className="text-sm text-slate-600">
+          <Filter className="text-slate-400 dark:text-slate-600" size={20} />
+          <span className="text-sm text-slate-400 dark:text-slate-600">
             <span className="font-semibold text-blue-600">{filteredCount}</span> / {totalProposals}{' '}
             teklif
           </span>
@@ -66,7 +66,7 @@ export function ProposalFilters({
       <div className="mt-6 space-y-3">
         <div className="flex items-center justify-between">
           <h4 className="text-sm font-semibold text-slate-700">Hızlı Filtreler</h4>
-          <span className="text-xs text-slate-500">Tek tıkla filtrele</span>
+          <span className="text-xs text-slate-500 dark:text-slate-500">Tek tıkla filtrele</span>
         </div>
 
         <div className="flex flex-wrap gap-2">

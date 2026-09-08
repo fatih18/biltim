@@ -3,7 +3,7 @@ import type { ButtonProps, ButtonSize, ButtonVariant } from './types'
 
 function getVariantClasses(variant: ButtonVariant): string {
   const map: Record<ButtonVariant, string> = {
-    primary: 'bg-blue-600 text-white hover:bg-blue-500',
+    primary: 'bg-blue-600 text-slate-900 dark:text-white hover:bg-blue-500',
     secondary:
       'bg-white text-blue-600 border border-blue-200 hover:border-blue-400 hover:bg-blue-50',
     ghost: 'bg-transparent text-blue-600 hover:bg-blue-50',

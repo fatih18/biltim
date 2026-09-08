@@ -99,12 +99,12 @@ export function Accordion({
                   <span>{item.title}</span>
                 </div>
                 {item.description ? (
-                  <p className="text-xs text-slate-500">{item.description}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-500">{item.description}</p>
                 ) : null}
               </div>
               <span
                 className={cn(
-                  'flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition-transform',
+                  'flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 dark:text-slate-500 transition-transform',
                   isOpen ? 'rotate-180' : '',
                   chevronClassName
                 )}

@@ -601,13 +601,13 @@ export default function Page() {
     }, []);
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-50 px-4 py-6 md:px-8">
+        <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-50 px-4 py-6 md:px-8">
             <div className="mx-auto max-w-7xl space-y-6">
-                <header className="border-b border-slate-800 pb-4">
+                <header className="border-b border-slate-300 dark:border-slate-800 pb-4">
                     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                         <div>
                             <h1 className="text-xl font-semibold md:text-2xl">Ana Veri Yönetimi</h1>
-                            <p className="mt-1 text-sm text-slate-400">Veriler yönetimi.</p>
+                            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Veriler yönetimi.</p>
                         </div>
 
                         <SegmentedTabs
@@ -681,7 +681,7 @@ export default function Page() {
                 )}
 
                 {tab !== "master" ? (
-                    <div className="text-[11px] text-slate-600">
+                    <div className="text-[11px] text-slate-400 dark:text-slate-600">
                         Users: {users.length} ({String(usersLoading)}) • Teams: {teams.length} ({String(teamsLoading)}) • Plans:{" "}
                         {auditPlans.length} ({String(plansLoading)})
                     </div>

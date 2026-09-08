@@ -206,7 +206,7 @@ export function EndpointList({
             onClick={() => onCategoryChange(cat.id)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
               selectedCategory === cat.id
-                ? `bg-gradient-to-r ${cat.color} text-white shadow-md`
+                ? `bg-gradient-to-r ${cat.color} text-slate-900 dark:text-white shadow-md`
                 : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
             }`}
           >

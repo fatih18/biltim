@@ -97,25 +97,25 @@ export function TeamLeaderWithMembersTooltip({
                 ref={anchorRef}
                 type="button"
                 onClick={() => setOpen((v) => !v)}
-                className="inline-flex items-center gap-2 rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1 text-xs text-slate-200 hover:bg-slate-950/60"
+                className="inline-flex items-center gap-2 rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/40 px-2 py-1 text-xs text-slate-800 dark:text-slate-200 hover:bg-white hover:dark:bg-slate-950/60"
             >
                 <span className="max-w-[160px] truncate">{leader}</span>
-                <span className="text-[10px] text-slate-500">Üyeler</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-500">Üyeler</span>
             </button>
 
             {open
                 ? createPortal(
                     <div
                         ref={popRef}
-                        className="fixed z-[9999] w-72 rounded-lg border border-slate-700 bg-slate-950/95 p-3 text-xs shadow-xl"
+                        className="fixed z-[9999] w-72 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-950/95 p-3 text-xs shadow-xl"
                         style={{ top: pos.top, left: pos.left }}
                     >
-                        <div className="text-[11px] font-semibold text-slate-200">
+                        <div className="text-[11px] font-semibold text-slate-800 dark:text-slate-200">
                             Ekip üyeleri
                         </div>
 
                         {members.length ? (
-                            <ul className="mt-2 max-h-40 space-y-1 overflow-auto pr-1 text-slate-300">
+                            <ul className="mt-2 max-h-40 space-y-1 overflow-auto pr-1 text-slate-700 dark:text-slate-300">
                                 {members.map((n, i) => (
                                     <li key={`${n}-${i}`} className="truncate">
                                         • {n}
@@ -123,10 +123,10 @@ export function TeamLeaderWithMembersTooltip({
                                 ))}
                             </ul>
                         ) : (
-                            <div className="mt-2 text-slate-500">Üye bulunamadı.</div>
+                            <div className="mt-2 text-slate-500 dark:text-slate-500">Üye bulunamadı.</div>
                         )}
 
-                        <div className="mt-2 text-[10px] text-slate-600">
+                        <div className="mt-2 text-[10px] text-slate-400 dark:text-slate-600">
                             Kapatmak için dışarı tıkla ya da tekrar tıkla.
                         </div>
                     </div>,

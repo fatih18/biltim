@@ -917,7 +917,7 @@ export function VerificationFlow({ table }: VerificationFlowProps) {
       >
         <article className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
-          <p className="text-sm text-slate-500">Loading flow configuration...</p>
+          <p className="text-sm text-slate-500 dark:text-slate-500">Loading flow configuration...</p>
         </article>
       </section>
     )
@@ -932,7 +932,7 @@ export function VerificationFlow({ table }: VerificationFlowProps) {
         <aside className="fixed top-4 left-1/2 z-50 -translate-x-1/2 animate-in fade-in slide-in-from-top-2 duration-300">
           <article
             className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium shadow-lg ${
-              saveMessage.includes('Error') ? 'bg-red-500 text-white' : 'bg-emerald-500 text-white'
+              saveMessage.includes('Error') ? 'bg-red-500 text-slate-900 dark:text-white' : 'bg-emerald-500 text-slate-900 dark:text-white'
             }`}
           >
             {saveMessage.includes('Error') ? (
@@ -955,18 +955,18 @@ export function VerificationFlow({ table }: VerificationFlowProps) {
           <nav className="flex items-center gap-3 min-w-0">
             <Link
               href="/verifications"
-              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700"
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-500 dark:text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700"
             >
               <ArrowLeft className="h-4 w-4" />
             </Link>
-            <figure className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg">
+            <figure className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-slate-900 dark:text-white shadow-lg">
               <Workflow className="h-4 w-4" />
             </figure>
             <hgroup className="min-w-0">
               <h1 className="text-base font-bold text-slate-900 sm:text-lg truncate">
                 Flow Builder
               </h1>
-              <p className="text-xs text-slate-500 sm:text-sm">
+              <p className="text-xs text-slate-500 dark:text-slate-500 sm:text-sm">
                 Table: <span className="font-medium text-indigo-600">{table}</span>
               </p>
             </hgroup>
@@ -977,7 +977,7 @@ export function VerificationFlow({ table }: VerificationFlowProps) {
               type="button"
               onClick={handleSave}
               disabled={isSaving}
-              className="flex h-9 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 px-3 text-sm font-semibold text-white shadow-md transition-all hover:shadow-lg disabled:opacity-50 sm:px-4"
+              className="flex h-9 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 px-3 text-sm font-semibold text-slate-900 dark:text-white shadow-md transition-all hover:shadow-lg disabled:opacity-50 sm:px-4"
             >
               {isSaving ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -1033,10 +1033,10 @@ export function VerificationFlow({ table }: VerificationFlowProps) {
             <article className="pointer-events-none absolute inset-0 flex items-center justify-center">
               <figure className="text-center">
                 <figcaption className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-200">
-                  <Workflow className="h-8 w-8 text-slate-400" />
+                  <Workflow className="h-8 w-8 text-slate-600 dark:text-slate-400" />
                 </figcaption>
                 <h3 className="text-lg font-semibold text-slate-700">Start building your flow</h3>
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-500">
                   Drag components from the left panel to create your verification workflow
                 </p>
               </figure>

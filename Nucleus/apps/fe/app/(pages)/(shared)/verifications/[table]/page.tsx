@@ -23,14 +23,14 @@ export default async function VerificationsPage({ params }: PageProps) {
             <AlertTriangle className="h-8 w-8 text-red-500" />
           </div>
           <h1 className="mb-2 text-xl font-bold text-slate-900">Invalid Table</h1>
-          <p className="mb-6 text-slate-500">
+          <p className="mb-6 text-slate-500 dark:text-slate-500">
             The table{' '}
             <span className="font-mono text-red-600">&quot;{table || 'undefined'}&quot;</span> is
             not available for verification flows.
           </p>
           <Link
             href="/verifications"
-            className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-slate-800"
+            className="inline-flex items-center gap-2 rounded-xl bg-white dark:bg-slate-900 px-5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white transition-colors hover:bg-slate-200 hover:dark:bg-slate-800"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Verifications

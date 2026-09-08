@@ -40,9 +40,9 @@ interface StatusBadgeProps {
 
 function StatusBadge({ icon, label, variant }: StatusBadgeProps) {
   const variants = {
-    success: 'bg-emerald-500/15 text-emerald-200 border-emerald-500/25',
-    error: 'bg-rose-500/15 text-rose-200 border-rose-500/25',
-    warning: 'bg-amber-500/15 text-amber-200 border-amber-500/25',
+    success: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200 border-emerald-500/25',
+    error: 'bg-rose-500/15 text-rose-700 dark:text-rose-200 border-rose-500/25',
+    warning: 'bg-amber-500/15 text-amber-700 dark:text-amber-200 border-amber-500/25',
     premium: 'bg-purple-500/15 text-purple-200 border-purple-500/25',
   }
 
@@ -166,30 +166,30 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
 
       {/* Drawer */}
       <div
-        className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-2xl transform flex-col border-l border-slate-800 bg-slate-950 text-slate-50 shadow-2xl shadow-slate-950/60 transition-all duration-300 ease-out ${
+        className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-2xl transform flex-col border-l border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-50 shadow-2xl shadow-slate-950/60 transition-all duration-300 ease-out ${
           isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
         }`}
       >
         {/* Header */}
-        <div className="relative px-6 py-6 text-white bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-b border-slate-800">
+        <div className="relative px-6 py-6 text-slate-900 dark:text-white bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-b border-slate-300 dark:border-slate-800">
           <div className="absolute inset-0 opacity-5 bg-grid-pattern" />
           <div className="relative z-10">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-4">
                 <div className="relative">
                   <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-lg">
-                    <User size={28} className="text-white" />
+                    <User size={28} className="text-slate-900 dark:text-white" />
                   </div>
                   {user.verified_at ? (
                     <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 border-2 border-slate-950">
-                      <CheckCircle2 size={12} className="text-white" />
+                      <CheckCircle2 size={12} className="text-slate-900 dark:text-white" />
                     </div>
                   ) : null}
                 </div>
 
                 <div>
                   <h2 className="text-2xl font-bold">{fullName}</h2>
-                  <p className="mt-1 flex items-center gap-2 text-slate-200">
+                  <p className="mt-1 flex items-center gap-2 text-slate-800 dark:text-slate-200">
                     <Mail size={14} />
                     {user.email}
                   </p>
@@ -213,7 +213,7 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
               <button
                 type="button"
                 onClick={handleClose}
-                className="rounded-lg p-2 transition-all duration-200 hover:scale-110 hover:bg-white/10"
+                className="rounded-lg p-2 transition-all duration-200 hover:scale-110 hover:bg-slate-200 hover:dark:bg-white/10"
                 aria-label="Close user details"
               >
                 <X size={20} />
@@ -231,7 +231,7 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
           {/* Account Information */}
           <InfoSection
             title="Hesap Bilgileri"
-            icon={<User size={16} className="text-slate-300" />}
+            icon={<User size={16} className="text-slate-700 dark:text-slate-300" />}
           >
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <InfoCard icon={<Key size={16} />} label="Kullanıcı ID" value={user.id} />
@@ -258,7 +258,7 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
           {/* Security */}
           <InfoSection
             title="Güvenlik ve Erişim"
-            icon={<Shield size={16} className="text-slate-300" />}
+            icon={<Shield size={16} className="text-slate-700 dark:text-slate-300" />}
           >
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <InfoCard
@@ -309,31 +309,31 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
           </InfoSection>
 
           {/* Addresses */}
-          <InfoSection title="Adresler" icon={<MapPin size={16} className="text-slate-300" />}>
+          <InfoSection title="Adresler" icon={<MapPin size={16} className="text-slate-700 dark:text-slate-300" />}>
             <CollectionGrid
               emptyMessage="Kayıtlı adres yok"
               items={user.address}
               renderItem={(address) => (
                 <div
                   key={address.id}
-                  className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 transition-shadow hover:shadow-md hover:shadow-slate-950/40"
+                  className="rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 p-4 transition-shadow hover:shadow-md hover:shadow-slate-950/40"
                 >
                   <div className="flex items-start gap-3">
-                    <div className="rounded-lg bg-slate-950/50 p-2">
-                      <MapPin size={16} className="text-sky-300" />
+                    <div className="rounded-lg bg-white dark:bg-slate-950/50 p-2">
+                      <MapPin size={16} className="text-sky-600 dark:text-sky-300" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h4 className="truncate font-semibold text-slate-100">{address.name}</h4>
+                      <h4 className="truncate font-semibold text-slate-900 dark:text-slate-100">{address.name}</h4>
                       {address.street ? (
-                        <p className="mt-1 text-sm text-slate-300">{address.street}</p>
+                        <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">{address.street}</p>
                       ) : null}
-                      <p className="text-sm text-slate-300">
+                      <p className="text-sm text-slate-700 dark:text-slate-300">
                         {[address.city, address.province, address.country]
                           .filter(Boolean)
                           .join(' / ') || '—'}
                       </p>
                       {address.zip ? (
-                        <p className="mt-1 text-xs text-slate-400">Posta Kodu: {address.zip}</p>
+                        <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">Posta Kodu: {address.zip}</p>
                       ) : null}
                     </div>
                   </div>
@@ -343,29 +343,29 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
           </InfoSection>
 
           {/* Phones */}
-          <InfoSection title="Telefon Numaraları" icon={<Phone size={16} className="text-slate-300" />}>
+          <InfoSection title="Telefon Numaraları" icon={<Phone size={16} className="text-slate-700 dark:text-slate-300" />}>
             <CollectionGrid
               emptyMessage="Kayıtlı telefon yok"
               items={user.phone}
               renderItem={(phone) => (
                 <div
                   key={phone.id}
-                  className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 transition-shadow hover:shadow-md hover:shadow-slate-950/40"
+                  className="rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 p-4 transition-shadow hover:shadow-md hover:shadow-slate-950/40"
                 >
                   <div className="flex items-start gap-3">
-                    <div className="rounded-lg bg-slate-950/50 p-2">
-                      <Phone size={16} className="text-emerald-300" />
+                    <div className="rounded-lg bg-white dark:bg-slate-950/50 p-2">
+                      <Phone size={16} className="text-emerald-600 dark:text-emerald-300" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h4 className="truncate font-semibold text-slate-100">{phone.name}</h4>
-                      <p className="mt-1 text-sm text-slate-300">
+                      <h4 className="truncate font-semibold text-slate-900 dark:text-slate-100">{phone.name}</h4>
+                      <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
                         {[phone.country_code, phone.number].filter(Boolean).join(' ')}
                       </p>
                       {phone.type ? (
-                        <p className="text-xs text-slate-400">Tür: {phone.type}</p>
+                        <p className="text-xs text-slate-600 dark:text-slate-400">Tür: {phone.type}</p>
                       ) : null}
                       {phone.extension ? (
-                        <p className="text-xs text-slate-400">Dahili: {phone.extension}</p>
+                        <p className="text-xs text-slate-600 dark:text-slate-400">Dahili: {phone.extension}</p>
                       ) : null}
                     </div>
                   </div>
@@ -375,24 +375,24 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
           </InfoSection>
 
           {/* Files */}
-          <InfoSection title="Dosyalar" icon={<FileText size={16} className="text-slate-300" />}>
+          <InfoSection title="Dosyalar" icon={<FileText size={16} className="text-slate-700 dark:text-slate-300" />}>
             <CollectionGrid
               emptyMessage="Kayıtlı dosya yok"
               items={user.files}
               renderItem={(file) => (
                 <div
                   key={file.id}
-                  className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 transition-shadow hover:shadow-md hover:shadow-slate-950/40"
+                  className="rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 p-4 transition-shadow hover:shadow-md hover:shadow-slate-950/40"
                 >
                   <div className="flex items-start gap-3">
-                    <div className="rounded-lg bg-slate-950/50 p-2">
+                    <div className="rounded-lg bg-white dark:bg-slate-950/50 p-2">
                       <FileText size={16} className="text-fuchsia-300" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h4 className="truncate font-semibold text-slate-100">
+                      <h4 className="truncate font-semibold text-slate-900 dark:text-slate-100">
                         {file.name ?? file.id}
                       </h4>
-                      <p className="mt-1 text-xs text-slate-400">
+                      <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
                         Tür: {file.mime_type ?? 'Bilinmiyor'}
                       </p>
                     </div>
@@ -403,15 +403,15 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
           </InfoSection>
 
           {/* Roles */}
-          <InfoSection title="Roller" icon={<Key size={16} className="text-slate-300" />}>
+          <InfoSection title="Roller" icon={<Key size={16} className="text-slate-700 dark:text-slate-300" />}>
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm text-slate-300">
+              <p className="text-sm text-slate-700 dark:text-slate-300">
                 Bu kullanıcıya atanan rolleri ve sağladıkları izinleri görüntüleyin.
               </p>
 
               <button
                 type="button"
-                className="inline-flex items-center gap-2 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/20"
+                className="inline-flex items-center gap-2 rounded-full border border-emerald-500/40 bg-emerald-100 dark:bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-700 dark:text-emerald-200 transition hover:bg-emerald-500/20"
                 onClick={() => usersStore.setModalVisibility('manageClaims', true)}
                 aria-label="Manage user roles and claims"
               >
@@ -420,12 +420,12 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
             </div>
 
             {isLoadingRoles ? (
-              <div className="mt-4 flex items-center justify-center gap-2 text-sm text-slate-300">
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-600 border-t-emerald-400" />
+              <div className="mt-4 flex items-center justify-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-400 dark:border-slate-600 border-t-emerald-400" />
                 Roller yükleniyor...
               </div>
             ) : rolesErrorCode === 403 ? (
-              <div className="mt-4 text-sm text-rose-300">
+              <div className="mt-4 text-sm text-rose-600 dark:text-rose-300">
                 Bu kullanıcının rollerini görüntüleme izniniz yok.
               </div>
             ) : (
@@ -435,37 +435,37 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
                 renderItem={(role) => (
                   <div
                     key={role.id}
-                    className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 transition-shadow hover:shadow-md hover:shadow-slate-950/40"
+                    className="rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 p-4 transition-shadow hover:shadow-md hover:shadow-slate-950/40"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <h4 className="truncate font-semibold text-slate-100">{role.name}</h4>
+                        <h4 className="truncate font-semibold text-slate-900 dark:text-slate-100">{role.name}</h4>
                         {role.description ? (
-                          <p className="mt-1 text-xs text-slate-400">{role.description}</p>
+                          <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">{role.description}</p>
                         ) : null}
                       </div>
 
                       {role.is_system ? (
-                        <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200">
+                        <span className="rounded-full border border-amber-500/30 bg-amber-100 dark:bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-200">
                           Sistem
                         </span>
                       ) : null}
                     </div>
 
-                    <div className="mt-3 border-t border-slate-800 pt-3">
+                    <div className="mt-3 border-t border-slate-300 dark:border-slate-800 pt-3">
                       {role.claims && role.claims.length > 0 ? (
                         <ul className="space-y-1">
                           {role.claims.map((claim) => (
-                            <li key={claim.id} className="text-xs text-slate-300">
-                              <span className="font-semibold text-slate-200">{claim.action}</span>
+                            <li key={claim.id} className="text-xs text-slate-700 dark:text-slate-300">
+                              <span className="font-semibold text-slate-800 dark:text-slate-200">{claim.action}</span>
                               {' · '}
-                              <span className="text-slate-300">{claim.method}</span>{' '}
-                              <span className="text-slate-400">{claim.path}</span>
+                              <span className="text-slate-700 dark:text-slate-300">{claim.method}</span>{' '}
+                              <span className="text-slate-600 dark:text-slate-400">{claim.path}</span>
                             </li>
                           ))}
                         </ul>
                       ) : (
-                        <p className="text-xs text-slate-400">Bu role atanmış izin yok.</p>
+                        <p className="text-xs text-slate-600 dark:text-slate-400">Bu role atanmış izin yok.</p>
                       )}
                     </div>
                   </div>
@@ -494,9 +494,9 @@ interface InfoSectionProps {
 function InfoSection({ title, icon, children }: InfoSectionProps) {
   return (
     <section className="space-y-4">
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
+      <div className="flex items-center gap-2 border-b border-slate-300 dark:border-slate-800 pb-2">
         {icon}
-        <h3 className="text-lg font-semibold text-slate-100">{title}</h3>
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{title}</h3>
       </div>
       {children}
     </section>
@@ -511,12 +511,12 @@ interface InfoCardProps {
 
 function InfoCard({ icon, label, value }: InfoCardProps) {
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 transition-shadow hover:shadow-md hover:shadow-slate-950/40">
+    <div className="rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 p-4 transition-shadow hover:shadow-md hover:shadow-slate-950/40">
       <div className="flex items-start gap-3">
-        <div className="rounded-lg bg-slate-950/50 p-2 text-slate-200">{icon}</div>
+        <div className="rounded-lg bg-white dark:bg-slate-950/50 p-2 text-slate-800 dark:text-slate-200">{icon}</div>
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</p>
-          <p className="mt-1 truncate text-sm font-semibold text-slate-100" title={value}>
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-600 dark:text-slate-400">{label}</p>
+          <p className="mt-1 truncate text-sm font-semibold text-slate-900 dark:text-slate-100" title={value}>
             {value}
           </p>
         </div>
@@ -535,7 +535,7 @@ function CollectionGrid<Item>({ items, emptyMessage, renderItem }: CollectionGri
   if (!items || items.length === 0) {
     return (
       <div className="py-8 text-center">
-        <p className="text-slate-400">{emptyMessage}</p>
+        <p className="text-slate-600 dark:text-slate-400">{emptyMessage}</p>
       </div>
     )
   }

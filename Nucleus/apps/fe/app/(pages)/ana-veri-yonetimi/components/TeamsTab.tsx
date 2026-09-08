@@ -426,13 +426,13 @@ export function TeamsTab({
   return (
     <div className="grid gap-4 lg:grid-cols-5">
       {/* Builder */}
-      <div className="lg:col-span-2 rounded-xl border border-slate-800 bg-slate-900/40 p-4">
+      <div className="lg:col-span-2 rounded-xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900/40 p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="text-sm font-semibold">
               {editingTeamId ? "Takımı Düzenle" : "Yeni Takım Oluştur"}
             </div>
-            <div className="mt-1 text-xs text-slate-400">
+            <div className="mt-1 text-xs text-slate-600 dark:text-slate-400">
               1 lider + denetçiler seçip kaydet.
             </div>
 
@@ -445,7 +445,7 @@ export function TeamsTab({
 
           <div className="flex items-center gap-2">
             <button
-              className="rounded-md border border-slate-700 bg-slate-950/60 px-3 py-1 text-xs hover:bg-slate-950"
+              className="rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/60 px-3 py-1 text-xs hover:bg-slate-100 hover:dark:bg-slate-950"
               onClick={() => {
                 fetchUsers();
                 fetchTeamsAndMembers();
@@ -456,7 +456,7 @@ export function TeamsTab({
 
             {editingTeamId ? (
               <button
-                className="rounded-md border border-slate-700 bg-slate-950/60 px-3 py-1 text-xs hover:bg-slate-950"
+                className="rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/60 px-3 py-1 text-xs hover:bg-slate-100 hover:dark:bg-slate-950"
                 onClick={resetDraft}
               >
                 İptal
@@ -468,9 +468,9 @@ export function TeamsTab({
         <div className="mt-4 space-y-4">
           {/* Team name */}
           <div>
-            <div className="text-xs text-slate-400 mb-1">Ekip Adı (opsiyonel)</div>
+            <div className="text-xs text-slate-600 dark:text-slate-400 mb-1">Ekip Adı (opsiyonel)</div>
             <input
-              className="w-full rounded-md border border-slate-700 bg-slate-950/60 text-slate-50 px-3 py-2 text-sm"
+              className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/60 text-slate-900 dark:text-slate-50 px-3 py-2 text-sm"
               value={draftName}
               onChange={(e) => setDraftName(e.target.value)}
               placeholder="Örn: Denetim Ekibi - A"
@@ -479,9 +479,9 @@ export function TeamsTab({
 
           {/* Leader */}
           <div>
-            <div className="text-xs text-slate-400 mb-1">Denetim Ekip Lideri </div>
+            <div className="text-xs text-slate-600 dark:text-slate-400 mb-1">Denetim Ekip Lideri </div>
             <select
-              className="w-full rounded-md border border-slate-700 bg-slate-950/60 text-slate-50 px-3 py-2 text-sm"
+              className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/60 text-slate-900 dark:text-slate-50 px-3 py-2 text-sm"
               value={draftLeaderId}
               onChange={(e) => setDraftLeaderId(e.target.value)}
             >
@@ -493,17 +493,17 @@ export function TeamsTab({
               ))}
             </select>
 
-            <div className="mt-1 text-[11px] text-slate-500">
+            <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-500">
               Lider adayları: {leaderUsers.length} • Denetçi adayları: {auditorUsers.length}
             </div>
           </div>
 
           {/* Auditor add */}
           <div>
-            <div className="text-xs text-slate-400 mb-1">Denetçi Ekle</div>
+            <div className="text-xs text-slate-600 dark:text-slate-400 mb-1">Denetçi Ekle</div>
             <div className="flex gap-2">
               <select
-                className="flex-1 rounded-md border border-slate-700 bg-slate-950/60 text-slate-50 px-3 py-2 text-sm"
+                className="flex-1 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/60 text-slate-900 dark:text-slate-50 px-3 py-2 text-sm"
                 value={draftMemberId}
                 onChange={(e) => setDraftMemberId(e.target.value)}
               >
@@ -529,9 +529,9 @@ export function TeamsTab({
 
           {/* Members list */}
           <div>
-            <div className="text-xs text-slate-400 mb-2">Takım Denetçileri</div>
+            <div className="text-xs text-slate-600 dark:text-slate-400 mb-2">Takım Denetçileri</div>
             {draftMembers.length === 0 ? (
-              <div className="rounded-md border border-dashed border-slate-700 bg-slate-950/30 p-3 text-sm text-slate-500">
+              <div className="rounded-md border border-dashed border-slate-300 dark:border-slate-700 bg-slate-950/30 p-3 text-sm text-slate-500 dark:text-slate-500">
                 Henüz denetçi eklenmedi.
               </div>
             ) : (
@@ -539,11 +539,11 @@ export function TeamsTab({
                 {draftMembers.map((id) => (
                   <div
                     key={id}
-                    className="flex items-center justify-between rounded-md border border-slate-800 bg-slate-950/40 px-3 py-2"
+                    className="flex items-center justify-between rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/40 px-3 py-2"
                   >
                     <div className="text-sm">{userNameById.get(id) ?? id}</div>
                     <button
-                      className="text-xs text-rose-300 hover:text-rose-200"
+                      className="text-xs text-rose-600 dark:text-rose-300 hover:text-rose-700 hover:dark:text-rose-200"
                       onClick={() => removeDraftMember(id)}
                     >
                       Çıkar
@@ -564,7 +564,7 @@ export function TeamsTab({
               {editingTeamId ? "Kaydet" : "Takımı Oluştur"}
             </button>
 
-            <div className="text-[11px] text-slate-500">
+            <div className="text-[11px] text-slate-500 dark:text-slate-500">
               {teamsLoading ? "Yükleniyor..." : `Tanımlı ekip: ${teams.length}`}
             </div>
           </div>
@@ -572,21 +572,21 @@ export function TeamsTab({
       </div>
 
       {/* List */}
-      <div className="lg:col-span-3 rounded-xl border border-slate-800 bg-slate-900/40 p-4">
+      <div className="lg:col-span-3 rounded-xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900/40 p-4">
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm font-semibold">Tanımlı Ekipler</div>
-            <div className="mt-1 text-xs text-slate-400">Ekipleri burada yönetebilirsin.</div>
+            <div className="mt-1 text-xs text-slate-600 dark:text-slate-400">Ekipleri burada yönetebilirsin.</div>
           </div>
 
-          <div className="text-xs text-slate-500">
+          <div className="text-xs text-slate-500 dark:text-slate-500">
             Teams: {String(teamsLoading)} • Users: {String(usersLoading)}
           </div>
         </div>
 
         <div className="mt-4 space-y-3">
           {teams.length === 0 ? (
-            <div className="rounded-md border border-dashed border-slate-700 bg-slate-950/30 p-4 text-sm text-slate-500">
+            <div className="rounded-md border border-dashed border-slate-300 dark:border-slate-700 bg-slate-950/30 p-4 text-sm text-slate-500 dark:text-slate-500">
               Henüz ekip yok.
             </div>
           ) : (
@@ -598,39 +598,39 @@ export function TeamsTab({
                 .map((m) => userNameById.get(m.userId) ?? m.userId);
 
               return (
-                <div key={t.id} className="rounded-lg border border-slate-800 bg-slate-950/40 p-3">
+                <div key={t.id} className="rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/40 p-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1">
                       <div className="text-sm font-semibold">
                         {t.name ? (
                           <>
-                            {t.name} <span className="text-slate-500 font-normal">•</span>{" "}
+                            {t.name} <span className="text-slate-500 dark:text-slate-500 font-normal">•</span>{" "}
                           </>
                         ) : null}
-                        Lider: <span className="font-normal text-slate-200">{leaderName}</span>
+                        Lider: <span className="font-normal text-slate-800 dark:text-slate-200">{leaderName}</span>
                       </div>
 
-                      <div className="text-xs text-slate-400">
+                      <div className="text-xs text-slate-600 dark:text-slate-400">
                         Denetçiler ({members.length}):{" "}
-                        <span className="text-slate-300">
+                        <span className="text-slate-700 dark:text-slate-300">
                           {members.length ? members.join(", ") : "—"}
                         </span>
                       </div>
 
-                      <div className="text-[11px] text-slate-600">
+                      <div className="text-[11px] text-slate-400 dark:text-slate-600">
                         {t.isActive ? "Aktif" : "Pasif"} • Oluşturma: {t.createdAt}
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2">
                       <button
-                        className="rounded-md border border-slate-700 bg-slate-950/60 px-3 py-1 text-xs hover:bg-slate-950"
+                        className="rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/60 px-3 py-1 text-xs hover:bg-slate-100 hover:dark:bg-slate-950"
                         onClick={() => startEditTeam(t)}
                       >
                         Düzenle
                       </button>
                       <button
-                        className="rounded-md border border-rose-900/40 bg-rose-950/30 px-3 py-1 text-xs text-rose-200 hover:bg-rose-950/50"
+                        className="rounded-md border border-rose-900/40 bg-rose-100 dark:bg-rose-950/30 px-3 py-1 text-xs text-rose-700 dark:text-rose-200 hover:bg-rose-950/50"
                         onClick={() => deleteTeam(t.id)}
                       >
                         Sil

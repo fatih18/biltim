@@ -61,13 +61,13 @@ function formatDate(value?: string | null) {
 function statusBadgeClass(status: string) {
   switch (status) {
     case "open":
-      return "bg-rose-500/10 text-rose-300 border border-rose-500/40";
+      return "bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-300 border border-rose-500/40";
     case "in_progress":
-      return "bg-amber-500/10 text-amber-300 border border-amber-500/40";
+      return "bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-300 border border-amber-500/40";
     case "closed":
-      return "bg-emerald-500/10 text-emerald-300 border border-emerald-500/40";
+      return "bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-300 border border-emerald-500/40";
     default:
-      return "bg-slate-700/40 text-slate-200 border border-slate-600/60";
+      return "bg-slate-700/40 text-slate-800 dark:text-slate-200 border border-slate-600/60";
   }
 }
 
@@ -599,22 +599,22 @@ export default function FiveSFindingsListPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-50 px-4 py-6 md:px-8">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-50 px-4 py-6 md:px-8">
       <div className="mx-auto max-w-6xl space-y-6">
-        <header className="flex flex-col gap-3 rounded-2xl p-4 border-b border-slate-800 pb-4 md:flex-row md:items-center md:justify-between">
+        <header className="flex flex-col gap-3 rounded-2xl p-4 border-b border-slate-300 dark:border-slate-800 pb-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-xl font-semibold md:text-2xl">5S Bulguları</h1>
-            <p className="mt-1 text-sm text-slate-400">
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
               Denetimlerde tespit edilen bulguların listesini burada görüntüleyebilirsiniz.
             </p>
           </div>
 
-          <div className="flex flex-col items-start gap-2 text-xs text-slate-400 md:items-end">
+          <div className="flex flex-col items-start gap-2 text-xs text-slate-600 dark:text-slate-400 md:items-end">
             <button
               type="button"
               onClick={handleDownloadExcel}
               disabled={downloadingExcel}
-              className="inline-flex items-center gap-1.5 rounded-md border border-emerald-600/60 bg-emerald-950/30 px-3 py-2 text-xs font-semibold text-emerald-200 hover:bg-emerald-950/60 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-md border border-emerald-600/60 bg-emerald-100 dark:bg-emerald-950/30 px-3 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-200 hover:bg-emerald-200 hover:dark:bg-emerald-950/60 disabled:opacity-50"
             >
               {downloadingExcel ? (
                 <Loader2 size={13} className="animate-spin" />
@@ -631,15 +631,15 @@ export default function FiveSFindingsListPage() {
         </header>
 
         {/* Filtreler */}
-        <section className="rounded-2xl bg-slate-900/60 p-4 shadow-lg shadow-slate-950/50 space-y-4">
+        <section className="rounded-2xl bg-slate-50 dark:bg-slate-900/60 p-4 shadow-lg shadow-slate-950/50 space-y-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 flex-1">
               <div className="space-y-1">
-                <label className="block text-[11px] font-medium text-slate-300">Lokasyon</label>
+                <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300">Lokasyon</label>
                 <select
                   value={locationFilter}
                   onChange={(e) => setLocationFilter(e.target.value)}
-                  className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+                  className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
                 >
                   <option value="">Tümü</option>
                   {locations.map((loc) => (
@@ -649,11 +649,11 @@ export default function FiveSFindingsListPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="block text-[11px] font-medium text-slate-300">Durum</label>
+                <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300">Durum</label>
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value as FindingStatus | "")}
-                  className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+                  className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
                 >
                   <option value="">Tümü</option>
                   <option value="open">Açık</option>
@@ -663,24 +663,24 @@ export default function FiveSFindingsListPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="block text-[11px] font-medium text-slate-300">
+                <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300">
                   Tespit Tarihi (Başlangıç)
                 </label>
                 <DateInput
                   value={dateFrom}
                   onChange={(value) => setDateFrom(value)}
-                  className="date-dark w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+                  className="date-dark w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="block text-[11px] font-medium text-slate-300">
+                <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300">
                   Tespit Tarihi (Bitiş)
                 </label>
                 <DateInput
                   value={dateTo}
                   onChange={(value) => setDateTo(value)}
-                  className="date-dark w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+                  className="date-dark w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
                 />
               </div>
             </div>
@@ -699,7 +699,7 @@ export default function FiveSFindingsListPage() {
                   type="button"
                   onClick={() => fetchFindings()}
                   disabled={loading}
-                  className="flex-1 rounded-md border border-slate-600 px-4 py-2 text-xs font-medium text-slate-200 hover:bg-slate-800 disabled:opacity-60"
+                  className="flex-1 rounded-md border border-slate-400 dark:border-slate-600 px-4 py-2 text-xs font-medium text-slate-800 dark:text-slate-200 hover:bg-slate-200 hover:dark:bg-slate-800 disabled:opacity-60"
                 >
                   {loading ? "Yükleniyor..." : "Yenile"}
                 </button>
@@ -708,7 +708,7 @@ export default function FiveSFindingsListPage() {
               <button
                 type="button"
                 onClick={handleClearFilters}
-                className="w-full rounded-md border border-slate-600 px-4 py-2 text-xs font-medium text-slate-200 hover:bg-slate-800"
+                className="w-full rounded-md border border-slate-400 dark:border-slate-600 px-4 py-2 text-xs font-medium text-slate-800 dark:text-slate-200 hover:bg-slate-200 hover:dark:bg-slate-800"
               >
                 Temizle
               </button>
@@ -717,8 +717,8 @@ export default function FiveSFindingsListPage() {
         </section>
 
         {/* Liste */}
-        <section className="rounded-2xl bg-slate-900/60 p-4 shadow-lg shadow-slate-950/50 space-y-4">
-          <div className="flex items-center justify-between gap-2 text-xs text-slate-400">
+        <section className="rounded-2xl bg-slate-50 dark:bg-slate-900/60 p-4 shadow-lg shadow-slate-950/50 space-y-4">
+          <div className="flex items-center justify-between gap-2 text-xs text-slate-600 dark:text-slate-400">
             <span>{loading ? "Yükleniyor..." : `${pagination.totalCount} bulgu listeleniyor`}</span>
             <div className="flex items-center gap-2">
               <span>Sayfa başına:</span>
@@ -731,7 +731,7 @@ export default function FiveSFindingsListPage() {
                     limit: Number(e.target.value) || 20,
                   }))
                 }
-                className="rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+                className="rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-2 py-1 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
               >
                 <option value={10}>10</option>
                 <option value={20}>20</option>
@@ -741,14 +741,14 @@ export default function FiveSFindingsListPage() {
           </div>
 
           {errorMsg && (
-            <div className="rounded-md border border-rose-600/60 bg-rose-950/40 px-3 py-2 text-xs text-rose-200">
+            <div className="rounded-md border border-rose-600/60 bg-rose-200 dark:bg-rose-950/40 px-3 py-2 text-xs text-rose-700 dark:text-rose-200">
               {errorMsg}
             </div>
           )}
 
-          <div className="overflow-x-auto rounded-xl border border-slate-800">
-            <table className="min-w-full text-left text-xs text-slate-100">
-              <thead className="bg-slate-950/80 text-[11px] uppercase tracking-wide text-slate-400">
+          <div className="overflow-x-auto rounded-xl border border-slate-300 dark:border-slate-800">
+            <table className="min-w-full text-left text-xs text-slate-900 dark:text-slate-100">
+              <thead className="bg-slate-50 dark:bg-slate-950/80 text-[11px] uppercase tracking-wide text-slate-600 dark:text-slate-400">
                 <tr>
                   <th className="px-4 py-2">No</th>
                   <th className="px-4 py-2">Tespit Tarihi</th>
@@ -768,7 +768,7 @@ export default function FiveSFindingsListPage() {
               <tbody>
                 {rows.length === 0 && !loading && (
                   <tr>
-                    <td colSpan={canDeleteFinding ? 12 : 11} className="px-4 py-6 text-center text-xs text-slate-400">
+                    <td colSpan={canDeleteFinding ? 12 : 11} className="px-4 py-6 text-center text-xs text-slate-600 dark:text-slate-400">
                       Gösterilecek bulgu bulunamadı.
                     </td>
                   </tr>
@@ -789,25 +789,25 @@ export default function FiveSFindingsListPage() {
                   return (
                     <tr
                       key={f.id}
-                      className="border-t border-slate-800/80 hover:bg-slate-900/80 align-top"
+                      className="border-t border-slate-300 dark:border-slate-800/80 hover:bg-slate-50 hover:dark:bg-slate-900/80 align-top"
                     >
-                      <td className="px-4 py-2 text-[11px] text-slate-400">{f.finding_no ?? "-"}</td>
+                      <td className="px-4 py-2 text-[11px] text-slate-600 dark:text-slate-400">{f.finding_no ?? "-"}</td>
                       <td className="px-4 py-2 text-[11px]">{formatDate(f.detected_date)}</td>
 
                       <td className="px-4 py-2 text-xs">
                         <div className="max-w-[180px] truncate">{f.location_name}</div>
                         {f.form_title && (
-                          <div className="mt-0.5 text-[10px] text-slate-500 truncate max-w-[220px]">
+                          <div className="mt-0.5 text-[10px] text-slate-500 dark:text-slate-500 truncate max-w-[220px]">
                             {f.form_title}
                           </div>
                         )}
                       </td>
 
-                      <td className="px-4 py-2 text-[11px] text-sky-300">
+                      <td className="px-4 py-2 text-[11px] text-sky-600 dark:text-sky-300">
                         {f.finding_type}
                         {duplicateCount > 0 && (
                           <span
-                            className="ml-1 inline-flex items-center rounded-sm bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300"
+                            className="ml-1 inline-flex items-center rounded-sm bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-300"
                             title="Aynı soru ve lokasyon için tekrar eden açık bulgular tekilleştirildi"
                           >
                             +{duplicateCount} tekrar
@@ -848,13 +848,13 @@ export default function FiveSFindingsListPage() {
                             </span>
                           )}
                           {!isAuditor && f.status !== "closed" && !canCloseFinding && (
-                            <span className="text-[10px] text-slate-500">
+                            <span className="text-[10px] text-slate-500 dark:text-slate-500">
                               Yalnızca Saha Sorumlusu kapatabilir.
                             </span>
                           )}
 
                           {savingStatusForId === f.id && (
-                            <span className="text-[10px] text-slate-500">Kaydediliyor...</span>
+                            <span className="text-[10px] text-slate-500 dark:text-slate-500">Kaydediliyor...</span>
                           )}
                         </div>
                       </td>
@@ -868,16 +868,16 @@ export default function FiveSFindingsListPage() {
                         <DateInput
                           value={f.due_date ? f.due_date.slice(0, 10) : ""}
                           onChange={(value) => handleDueDateChange(f, value)}
-                          className="date-dark w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+                          className="date-dark w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
                         />
                         {savingDueForId === f.id && (
-                          <span className="mt-1 block text-[10px] text-slate-500">Kaydediliyor...</span>
+                          <span className="mt-1 block text-[10px] text-slate-500 dark:text-slate-500">Kaydediliyor...</span>
                         )}
                       </td>
 
                       <td className="px-4 py-2 text-[11px]">{f.responsible_name || "-"}</td>
 
-                      <td className="px-4 py-2 text-[11px] text-slate-300">{f.auditor_name || "-"}</td>
+                      <td className="px-4 py-2 text-[11px] text-slate-700 dark:text-slate-300">{f.auditor_name || "-"}</td>
 
                       {/* Foto (Önce) */}
                       <td className="px-3 py-2">
@@ -888,7 +888,7 @@ export default function FiveSFindingsListPage() {
                               href={beforeSingleUrl ?? "#"}
                               target="_blank"
                               rel="noreferrer"
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-sky-500/40 bg-sky-500/10 px-2.5 py-1 text-[11px] font-medium text-sky-300 hover:bg-sky-500/20 transition-colors"
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-sky-500/40 bg-sky-500/10 px-2.5 py-1 text-[11px] font-medium text-sky-600 dark:text-sky-300 hover:bg-sky-500/20 transition-colors"
                             >
                               <Eye size={11} />
                               Görüntüle
@@ -899,14 +899,14 @@ export default function FiveSFindingsListPage() {
                               <button
                                 type="button"
                                 onClick={() => toggleExpanded("before", f.id)}
-                                className="inline-flex items-center gap-1.5 rounded-lg border border-sky-500/40 bg-sky-500/10 px-2.5 py-1 text-[11px] font-medium text-sky-300 hover:bg-sky-500/20 transition-colors"
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-sky-500/40 bg-sky-500/10 px-2.5 py-1 text-[11px] font-medium text-sky-600 dark:text-sky-300 hover:bg-sky-500/20 transition-colors"
                               >
                                 <Eye size={11} />
                                 {beforeCount} Foto
                                 {isBeforeOpen ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
                               </button>
                               {isBeforeOpen && (
-                                <div className="rounded-lg border border-slate-700 bg-slate-900/80 p-1.5 space-y-0.5">
+                                <div className="rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/80 p-1.5 space-y-0.5">
                                   {before.map((p, idx) => {
                                     const url = resolvePhotoUrl(p);
                                     return (
@@ -915,7 +915,7 @@ export default function FiveSFindingsListPage() {
                                           href={url ?? "#"}
                                           target="_blank"
                                           rel="noreferrer"
-                                          className="flex flex-1 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-sky-300 hover:bg-slate-800"
+                                          className="flex flex-1 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-sky-600 dark:text-sky-300 hover:bg-slate-200 hover:dark:bg-slate-800"
                                         >
                                           <ImageIcon size={9} />
                                           Foto {idx + 1}
@@ -935,7 +935,7 @@ export default function FiveSFindingsListPage() {
                       <td className="px-3 py-2">
                         <div className="flex flex-col gap-1.5 min-w-[96px]">
                           {f.status === "closed" && afterCount === 0 && (
-                            <div className="rounded-lg border border-rose-500/40 bg-rose-500/10 px-2 py-1 text-[10px] text-rose-300">
+                            <div className="rounded-lg border border-rose-500/40 bg-rose-100 dark:bg-rose-500/10 px-2 py-1 text-[10px] text-rose-600 dark:text-rose-300">
                               Sonrası foto zorunlu
                             </div>
                           )}
@@ -946,7 +946,7 @@ export default function FiveSFindingsListPage() {
                               href={afterSingleUrl ?? "#"}
                               target="_blank"
                               rel="noreferrer"
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-300 hover:bg-emerald-500/20 transition-colors"
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-100 dark:bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-300 hover:bg-emerald-500/20 transition-colors"
                             >
                               <Eye size={11} />
                               Görüntüle
@@ -957,14 +957,14 @@ export default function FiveSFindingsListPage() {
                               <button
                                 type="button"
                                 onClick={() => toggleExpanded("after", f.id)}
-                                className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-300 hover:bg-emerald-500/20 transition-colors"
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-100 dark:bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-300 hover:bg-emerald-500/20 transition-colors"
                               >
                                 <Eye size={11} />
                                 {afterCount} Foto
                                 {isAfterOpen ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
                               </button>
                               {isAfterOpen && (
-                                <div className="rounded-lg border border-slate-700 bg-slate-900/80 p-1.5 space-y-0.5">
+                                <div className="rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/80 p-1.5 space-y-0.5">
                                   {after.map((p, idx) => {
                                     const url = resolvePhotoUrl(p);
                                     return (
@@ -973,7 +973,7 @@ export default function FiveSFindingsListPage() {
                                           href={url ?? "#"}
                                           target="_blank"
                                           rel="noreferrer"
-                                          className="flex flex-1 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-emerald-300 hover:bg-slate-800"
+                                          className="flex flex-1 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-emerald-600 dark:text-emerald-300 hover:bg-slate-200 hover:dark:bg-slate-800"
                                         >
                                           <ImageIcon size={9} />
                                           Foto {idx + 1}
@@ -981,7 +981,7 @@ export default function FiveSFindingsListPage() {
                                         <button
                                           type="button"
                                           onClick={() => handleRemovePhoto(f, "after", idx)}
-                                          className="rounded p-0.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                                          className="rounded p-0.5 text-slate-500 dark:text-slate-500 hover:text-rose-400 hover:bg-rose-100 hover:dark:bg-rose-500/10 transition-colors"
                                         >
                                           <X size={11} />
                                         </button>
@@ -997,8 +997,8 @@ export default function FiveSFindingsListPage() {
                           <label
                             className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-colors ${
                               uploadingFindingId === f.id
-                                ? "border-slate-700 bg-slate-800/60 text-slate-500 cursor-not-allowed"
-                                : "border-slate-600 bg-slate-900/60 text-slate-300 hover:border-emerald-500/50 hover:text-emerald-300 hover:bg-emerald-500/10"
+                                ? "border-slate-300 dark:border-slate-700 bg-slate-200 dark:bg-slate-800/60 text-slate-500 dark:text-slate-500 cursor-not-allowed"
+                                : "border-slate-400 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/60 text-slate-700 dark:text-slate-300 hover:border-emerald-500/50 hover:text-emerald-600 hover:dark:text-emerald-300 hover:bg-emerald-100 hover:dark:bg-emerald-500/10"
                             }`}
                           >
                             {uploadingFindingId === f.id ? (
@@ -1019,7 +1019,7 @@ export default function FiveSFindingsListPage() {
 
                           {(afterUploadQueue[f.id]?.length ?? 0) > 0 && (
                             <div className="flex items-center gap-1.5">
-                              <span className="rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-medium text-emerald-300">
+                              <span className="rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-300">
                                 {afterUploadQueue[f.id]!.length} seçildi
                               </span>
                               <button
@@ -1038,7 +1038,7 @@ export default function FiveSFindingsListPage() {
                             <button
                               type="button"
                               onClick={() => handleRemoveAllAfterPhotos(f)}
-                              className="inline-flex items-center gap-1 rounded-lg border border-rose-600/40 bg-rose-950/20 px-2 py-0.5 text-[10px] font-medium text-rose-300 hover:bg-rose-950/50 transition-colors"
+                              className="inline-flex items-center gap-1 rounded-lg border border-rose-600/40 bg-rose-950/20 px-2 py-0.5 text-[10px] font-medium text-rose-600 dark:text-rose-300 hover:bg-rose-950/50 transition-colors"
                               title="Tüm sonrası fotoğrafları sil"
                             >
                               <X size={10} />
@@ -1054,7 +1054,7 @@ export default function FiveSFindingsListPage() {
                             type="button"
                             onClick={() => handleDeleteFinding(f)}
                             disabled={deletingFindingId === f.id}
-                            className="inline-flex items-center gap-1 rounded-lg border border-rose-600/50 bg-rose-950/30 px-2.5 py-1 text-[11px] font-medium text-rose-300 hover:bg-rose-950/60 disabled:opacity-50 transition-colors"
+                            className="inline-flex items-center gap-1 rounded-lg border border-rose-600/50 bg-rose-100 dark:bg-rose-950/30 px-2.5 py-1 text-[11px] font-medium text-rose-600 dark:text-rose-300 hover:bg-rose-300 hover:dark:bg-rose-950/60 disabled:opacity-50 transition-colors"
                             title="Bulguyu sil (Merkez Ekip)"
                           >
                             {deletingFindingId === f.id ? (
@@ -1074,7 +1074,7 @@ export default function FiveSFindingsListPage() {
           </div>
 
           {/* Pagination */}
-          <div className="flex items-center justify-between gap-3 pt-2 text-xs text-slate-400">
+          <div className="flex items-center justify-between gap-3 pt-2 text-xs text-slate-600 dark:text-slate-400">
             <span>
               {(pagination.page - 1) * pagination.limit + 1} -{" "}
               {Math.min(pagination.page * pagination.limit, pagination.totalCount)} arası gösteriliyor
@@ -1091,8 +1091,8 @@ export default function FiveSFindingsListPage() {
                 }
                 className={`rounded-md border px-3 py-1 text-xs ${
                   canPrev && !loading
-                    ? "border-slate-600 text-slate-100 hover:bg-slate-800"
-                    : "border-slate-800 text-slate-600 cursor-not-allowed"
+                    ? "border-slate-400 dark:border-slate-600 text-slate-900 dark:text-slate-100 hover:bg-slate-200 hover:dark:bg-slate-800"
+                    : "border-slate-300 dark:border-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed"
                 }`}
               >
                 Önceki
@@ -1108,8 +1108,8 @@ export default function FiveSFindingsListPage() {
                 }
                 className={`rounded-md border px-3 py-1 text-xs ${
                   canNext && !loading
-                    ? "border-slate-600 text-slate-100 hover:bg-slate-800"
-                    : "border-slate-800 text-slate-600 cursor-not-allowed"
+                    ? "border-slate-400 dark:border-slate-600 text-slate-900 dark:text-slate-100 hover:bg-slate-200 hover:dark:bg-slate-800"
+                    : "border-slate-300 dark:border-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed"
                 }`}
               >
                 Sonraki

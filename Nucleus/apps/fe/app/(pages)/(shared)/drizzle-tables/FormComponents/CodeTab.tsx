@@ -224,18 +224,18 @@ ${schema.relations
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-lg font-semibold text-slate-800">Generated Code</h3>
-          <p className="text-sm text-slate-500">Preview and copy your schema file</p>
+          <p className="text-sm text-slate-500 dark:text-slate-500">Preview and copy your schema file</p>
         </div>
         <button
           type="button"
           onClick={copyCode}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-slate-900 dark:text-white rounded-lg hover:bg-green-700 transition-colors"
         >
           {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
           {copied ? 'Copied!' : 'Copy Code'}
         </button>
       </div>
-      <pre className="bg-slate-900 text-green-400 p-6 rounded-xl text-sm overflow-auto max-h-[600px] font-mono leading-relaxed">
+      <pre className="bg-white dark:bg-slate-900 text-green-400 p-6 rounded-xl text-sm overflow-auto max-h-[600px] font-mono leading-relaxed">
         {generateCode()}
       </pre>
     </div>

@@ -207,14 +207,14 @@ export default function BoardMeetingDecisionsPage() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-50 px-4 py-6 md:px-8">
+        <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-50 px-4 py-6 md:px-8">
             <div className="mx-auto max-w-5xl space-y-6">
                 {/* Header */}
-                <header className="border-b border-slate-800 rounded-2xl pb-4">
+                <header className="border-b border-slate-300 dark:border-slate-800 rounded-2xl pb-4">
                     <div className="flex flex-col gap-3 p-4   md:flex-row md:items-start md:justify-between">
                         <div>
                             <h1 className="text-xl font-semibold md:text-2xl">Kurul Toplantı Kararları</h1>
-                            <p className="mt-1 text-sm text-slate-400">
+                            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
                                 3 ayda bir yapılan kurul toplantılarında alınan kararları burada kaydedebilir ve geçmiş toplantı
                                 kararlarını görüntüleyebilirsiniz.
                             </p>
@@ -236,7 +236,7 @@ export default function BoardMeetingDecisionsPage() {
                                     fetchDecisions();
                                 }}
                                 disabled={listLoading || usersLoading}
-                                className="rounded-md border border-slate-600 px-3 py-2 text-[11px] text-slate-200 hover:bg-slate-800 disabled:opacity-60"
+                                className="rounded-md border border-slate-400 dark:border-slate-600 px-3 py-2 text-[11px] text-slate-800 dark:text-slate-200 hover:bg-slate-200 hover:dark:bg-slate-800 disabled:opacity-60"
                             >
                                 {listLoading || usersLoading ? "Yükleniyor..." : "Yenile"}
                             </button>
@@ -245,21 +245,21 @@ export default function BoardMeetingDecisionsPage() {
                 </header>
 
                 {/* Liste */}
-                <section className="space-y-3 rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
+                <section className="space-y-3 rounded-2xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 p-4">
                     <div className="flex items-center justify-between gap-2">
-                        <h2 className="text-sm font-semibold text-slate-100">Geçmiş Toplantı Kararları</h2>
+                        <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Geçmiş Toplantı Kararları</h2>
                         <div className="flex items-center gap-3">
-                            {usersLoading ? <span className="text-[11px] text-slate-500">Kullanıcılar…</span> : null}
-                            {listLoading ? <span className="text-[11px] text-slate-400">Yükleniyor…</span> : null}
+                            {usersLoading ? <span className="text-[11px] text-slate-500 dark:text-slate-500">Kullanıcılar…</span> : null}
+                            {listLoading ? <span className="text-[11px] text-slate-600 dark:text-slate-400">Yükleniyor…</span> : null}
                         </div>
                     </div>
 
                     {decisions.length === 0 ? (
-                        <p className="text-xs text-slate-400">Henüz kayıtlı kurul toplantı kararı bulunmuyor.</p>
+                        <p className="text-xs text-slate-600 dark:text-slate-400">Henüz kayıtlı kurul toplantı kararı bulunmuyor.</p>
                     ) : (
                         <div className="overflow-x-auto">
-                            <table className="min-w-full text-left text-xs text-slate-200">
-                                <thead className="bg-slate-900/90 text-[11px] uppercase tracking-wide text-slate-400">
+                            <table className="min-w-full text-left text-xs text-slate-800 dark:text-slate-200">
+                                <thead className="bg-slate-50 dark:bg-slate-900/90 text-[11px] uppercase tracking-wide text-slate-600 dark:text-slate-400">
                                     <tr>
                                         <th className="px-4 py-2 whitespace-nowrap">Toplantı Tarihi</th>
                                         <th className="px-4 py-2 whitespace-nowrap">Madde No</th>
@@ -278,17 +278,17 @@ export default function BoardMeetingDecisionsPage() {
                                             : "—";
 
                                         return (
-                                            <tr key={row.id} className="border-t border-slate-800/80 align-top">
+                                            <tr key={row.id} className="border-t border-slate-300 dark:border-slate-800/80 align-top">
                                                 <td className="px-4 py-2 whitespace-nowrap">{dateStr}</td>
                                                 <td className="px-4 py-2 whitespace-nowrap">{row.item_no ?? "-"}</td>
                                                 <td className="px-4 py-2 text-[11px]">{row.item_description}</td>
-                                                <td className="px-4 py-2 whitespace-nowrap text-[11px] text-slate-200">{assignedName}</td>
+                                                <td className="px-4 py-2 whitespace-nowrap text-[11px] text-slate-800 dark:text-slate-200">{assignedName}</td>
 
                                                 <td className="px-4 py-2 whitespace-nowrap">
                                                     <select
                                                         value={row.status}
                                                         onChange={(e) => updateStatus(row.id, e.target.value as DecisionStatus)}
-                                                        className="rounded-md border border-slate-700 bg-slate-950/60 px-2 py-1 text-[11px] text-slate-200 outline-none hover:bg-slate-950/80 focus:border-sky-400"
+                                                        className="rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/60 px-2 py-1 text-[11px] text-slate-800 dark:text-slate-200 outline-none hover:bg-slate-50 hover:dark:bg-slate-950/80 focus:border-sky-400"
                                                     >
                                                         {STATUS_OPTIONS.map((opt) => (
                                                             <option key={opt.value} value={opt.value}>
@@ -309,11 +309,11 @@ export default function BoardMeetingDecisionsPage() {
                 {/* CREATE MODAL */}
                 {createOpen ? (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-                        <div className="w-full max-w-2xl rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-2xl md:p-6">
+                        <div className="w-full max-w-2xl rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-2xl md:p-6">
                             <div className="flex items-start justify-between gap-3">
                                 <div>
-                                    <h2 className="text-sm font-semibold text-slate-100">Yeni Toplantı Kararı Ekle</h2>
-                                    <p className="mt-1 text-xs text-slate-400">
+                                    <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Yeni Toplantı Kararı Ekle</h2>
+                                    <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
                                         Madde açıklaması, durum ve sorumlu müdür ile birlikte tarih bilgisini giriniz.
                                     </p>
                                 </div>
@@ -321,7 +321,7 @@ export default function BoardMeetingDecisionsPage() {
                                 <button
                                     type="button"
                                     onClick={closeCreateModal}
-                                    className="text-sm text-slate-400 hover:text-slate-200"
+                                    className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-800 hover:dark:text-slate-200"
                                     aria-label="Kapat"
                                 >
                                     ✕
@@ -330,24 +330,24 @@ export default function BoardMeetingDecisionsPage() {
 
                             <form onSubmit={handleSubmit} className="mt-5 grid gap-4 md:grid-cols-2">
                                 <div className="space-y-1 md:col-span-2">
-                                    <label className="block text-xs font-medium text-slate-300">
+                                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
                                         Toplantı Tarihi <span className="text-rose-400">*</span>
                                     </label>
                                    <DateInput 
-                                    className="date-dark w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+                                    className="date-dark w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
                                     value={form.meetingDate} 
                                     onChange={(value) => handleFormChange("meetingDate", value)}/>
                                 </div>
 
                                 <div className="space-y-1 md:col-span-2">
-                                    <label className="block text-xs font-medium text-slate-300">
+                                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
                                         Sorumlu Müdür <span className="text-rose-400">*</span>
                                     </label>
                                     <select
                                         value={form.assignedUserId}
                                         onChange={(e) => handleFormChange("assignedUserId", e.target.value)}
                                         disabled={usersLoading || managerUsers.length === 0}
-                                        className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2 disabled:opacity-60"
+                                        className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2 text-sm outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2 disabled:opacity-60"
                                     >
                                         <option value="">
                                             {usersLoading
@@ -364,32 +364,32 @@ export default function BoardMeetingDecisionsPage() {
                                         ))}
                                     </select>
 
-                                    <div className="text-[11px] text-slate-500">
-                                        Yalnızca rolü <span className="text-slate-300">müdür</span> olan kullanıcılar listelenir.
+                                    <div className="text-[11px] text-slate-500 dark:text-slate-500">
+                                        Yalnızca rolü <span className="text-slate-700 dark:text-slate-300">müdür</span> olan kullanıcılar listelenir.
                                     </div>
                                 </div>
 
                                 <div className="space-y-1 md:col-span-2">
-                                    <label className="block text-xs font-medium text-slate-300">
+                                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
                                         Madde Açıklaması <span className="text-rose-400">*</span>
                                     </label>
                                     <textarea
                                         rows={3}
                                         value={form.itemDescription}
                                         onChange={(e) => handleFormChange("itemDescription", e.target.value)}
-                                        className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+                                        className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2 text-sm outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
                                         placeholder="Örn: X konusundaki süreçlerin yeniden değerlendirilmesine..."
                                     />
                                 </div>
 
                                 <div className="space-y-1">
-                                    <label className="block text-xs font-medium text-slate-300">
+                                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
                                         Durum <span className="text-rose-400">*</span>
                                     </label>
                                     <select
                                         value={form.status}
                                         onChange={(e) => handleFormChange("status", e.target.value as DecisionStatus)}
-                                        className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+                                        className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2 text-sm outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
                                     >
                                         {STATUS_OPTIONS.map((opt) => (
                                             <option key={opt.value} value={opt.value}>
@@ -404,7 +404,7 @@ export default function BoardMeetingDecisionsPage() {
                                         type="button"
                                         onClick={closeCreateModal}
                                         disabled={loading}
-                                        className="rounded-md border border-slate-600 px-4 py-2 text-xs font-medium text-slate-200 hover:bg-slate-800 disabled:opacity-60"
+                                        className="rounded-md border border-slate-400 dark:border-slate-600 px-4 py-2 text-xs font-medium text-slate-800 dark:text-slate-200 hover:bg-slate-200 hover:dark:bg-slate-800 disabled:opacity-60"
                                     >
                                         Vazgeç
                                     </button>

@@ -39,7 +39,7 @@ export function PerformanceMetrics({ data }: PerformanceMetricsProps) {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-slate-900">Başarı Oranı</h3>
             <div className="bg-gradient-to-br from-slate-600 to-slate-700 p-3 rounded-xl shadow-lg">
-              <Award className="text-white" size={20} />
+              <Award className="text-slate-900 dark:text-white" size={20} />
             </div>
           </div>
           <div className="space-y-3">
@@ -63,7 +63,7 @@ export function PerformanceMetrics({ data }: PerformanceMetricsProps) {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-slate-900">Ortalama Yanıt Süresi</h3>
             <div className="bg-gradient-to-br from-slate-600 to-slate-700 p-3 rounded-xl shadow-lg">
-              <Clock className="text-white" size={20} />
+              <Clock className="text-slate-900 dark:text-white" size={20} />
             </div>
           </div>
           <div className="space-y-3">
@@ -87,7 +87,7 @@ export function PerformanceMetrics({ data }: PerformanceMetricsProps) {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-slate-900">Uyum Oranı</h3>
             <div className="bg-gradient-to-br from-slate-600 to-slate-700 p-3 rounded-xl shadow-lg">
-              <Shield className="text-white" size={20} />
+              <Shield className="text-slate-900 dark:text-white" size={20} />
             </div>
           </div>
           <div className="space-y-3">

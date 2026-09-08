@@ -95,7 +95,7 @@ function NotificationRuleNodeComponent({
         className={`flex items-center gap-2 rounded-t-[10px] bg-gradient-to-r px-3 py-2 ${getTriggerColor()}`}
       >
         <div
-          className={`flex h-6 w-6 items-center justify-center rounded-md text-white shadow-sm ${getIconBg()}`}
+          className={`flex h-6 w-6 items-center justify-center rounded-md text-slate-900 dark:text-white shadow-sm ${getIconBg()}`}
         >
           {getTriggerIcon()}
         </div>
@@ -111,11 +111,11 @@ function NotificationRuleNodeComponent({
       <div className="px-3 py-1.5 space-y-0.5">
         <div className="flex items-center gap-1.5">
           <Flag className="h-2.5 w-2.5 text-amber-500 flex-shrink-0" />
-          <span className="text-[10px] text-slate-600">
+          <span className="text-[10px] text-slate-400 dark:text-slate-600">
             {data.recipientType === 'role' ? 'Role recipient' : 'User recipient'}
           </span>
         </div>
-        <div className="text-[9px] text-slate-400">Channel: Platform</div>
+        <div className="text-[9px] text-slate-600 dark:text-slate-400">Channel: Platform</div>
       </div>
 
       <Handle

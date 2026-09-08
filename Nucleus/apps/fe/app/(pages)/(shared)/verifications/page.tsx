@@ -26,12 +26,12 @@ export default function Verifications() {
       <div className="border-b border-slate-200 bg-white/80 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-6 py-8">
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-200">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-slate-900 dark:text-white shadow-lg shadow-indigo-200">
               <Shield className="h-7 w-7" />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-slate-900">Verification Flows</h1>
-              <p className="text-slate-500">Design and manage approval workflows for your data</p>
+              <p className="text-slate-500 dark:text-slate-500">Design and manage approval workflows for your data</p>
             </div>
           </div>
         </div>
@@ -46,7 +46,7 @@ export default function Verifications() {
             </div>
             <div>
               <div className="text-sm font-semibold text-slate-900">Multi-step Approval</div>
-              <div className="text-xs text-slate-500">Sequential or parallel verifiers</div>
+              <div className="text-xs text-slate-500 dark:text-slate-500">Sequential or parallel verifiers</div>
             </div>
           </div>
           <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -55,7 +55,7 @@ export default function Verifications() {
             </div>
             <div>
               <div className="text-sm font-semibold text-slate-900">Smart Notifications</div>
-              <div className="text-xs text-slate-500">Trigger-based alerts</div>
+              <div className="text-xs text-slate-500 dark:text-slate-500">Trigger-based alerts</div>
             </div>
           </div>
           <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -64,7 +64,7 @@ export default function Verifications() {
             </div>
             <div>
               <div className="text-sm font-semibold text-slate-900">Digital Signatures</div>
-              <div className="text-xs text-slate-500">Optional signature requirements</div>
+              <div className="text-xs text-slate-500 dark:text-slate-500">Optional signature requirements</div>
             </div>
           </div>
         </div>
@@ -86,17 +86,17 @@ export default function Verifications() {
                   <div className="relative">
                     <div className="mb-4 flex items-start justify-between">
                       <div
-                        className={`flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${table.color} text-white shadow-lg`}
+                        className={`flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${table.color} text-slate-900 dark:text-white shadow-lg`}
                       >
                         <Icon className="h-6 w-6" />
                       </div>
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-400 transition-all group-hover:bg-indigo-500 group-hover:text-white">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-600 dark:text-slate-400 transition-all group-hover:bg-indigo-500 group-hover:text-slate-900 group-hover:dark:text-white">
                         <ArrowRight className="h-4 w-4" />
                       </div>
                     </div>
 
                     <h3 className="mb-1 text-lg font-semibold text-slate-900">{table.name}</h3>
-                    <p className="text-sm text-slate-500">{table.description}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-500">{table.description}</p>
                   </div>
                 </Link>
               )
@@ -106,7 +106,7 @@ export default function Verifications() {
 
         {/* Coming soon */}
         <div>
-          <h2 className="mb-4 text-lg font-semibold text-slate-500">Coming Soon</h2>
+          <h2 className="mb-4 text-lg font-semibold text-slate-500 dark:text-slate-500">Coming Soon</h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {comingSoonTables.map((table) => {
               const Icon = table.icon
@@ -116,11 +116,11 @@ export default function Verifications() {
                   className="flex items-center gap-3 rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-4 opacity-60"
                 >
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-200">
-                    <Icon className="h-5 w-5 text-slate-400" />
+                    <Icon className="h-5 w-5 text-slate-600 dark:text-slate-400" />
                   </div>
                   <div>
-                    <div className="text-sm font-medium text-slate-500">{table.name}</div>
-                    <div className="text-xs text-slate-400">Not available yet</div>
+                    <div className="text-sm font-medium text-slate-500 dark:text-slate-500">{table.name}</div>
+                    <div className="text-xs text-slate-600 dark:text-slate-400">Not available yet</div>
                   </div>
                 </div>
               )

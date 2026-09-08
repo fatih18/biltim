@@ -123,14 +123,14 @@ export function BasicInfoTab({
                   }}
                   className="w-4 h-4 text-blue-600 rounded"
                 />
-                <span className="uppercase tracking-wide text-slate-600 text-xs font-semibold">
+                <span className="uppercase tracking-wide text-slate-400 dark:text-slate-600 text-xs font-semibold">
                   {method}
                 </span>
               </label>
             )
           })}
         </div>
-        <p className="mt-2 text-xs text-slate-500">
+        <p className="mt-2 text-xs text-slate-500 dark:text-slate-500">
           Selected methods will be excluded from auto-generated endpoints.
         </p>
       </div>

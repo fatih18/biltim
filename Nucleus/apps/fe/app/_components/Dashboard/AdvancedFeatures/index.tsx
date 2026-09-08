@@ -74,7 +74,7 @@ export function AdvancedFeatures() {
         <h2 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-blue-800 to-purple-800 bg-clip-text text-transparent mb-4">
           🚀 İleri Seviye Özellikler
         </h2>
-        <p className="text-xl text-slate-600 max-w-4xl mx-auto">
+        <p className="text-xl text-slate-400 dark:text-slate-600 max-w-4xl mx-auto">
           Gerçek zamanlı demo alanlarımızla platformun gücünü deneyimleyin
         </p>
       </div>
@@ -86,8 +86,8 @@ export function AdvancedFeatures() {
           onClick={() => setActiveDemo('ai-writer')}
           className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2 ${
             activeDemo === 'ai-writer'
-              ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg'
-              : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+              ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-slate-900 dark:text-white shadow-lg'
+              : 'bg-white text-slate-400 dark:text-slate-600 hover:bg-slate-50 border border-slate-200'
           }`}
         >
           <Bot size={20} />
@@ -98,8 +98,8 @@ export function AdvancedFeatures() {
           onClick={() => setActiveDemo('analytics')}
           className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2 ${
             activeDemo === 'analytics'
-              ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg'
-              : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+              ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-slate-900 dark:text-white shadow-lg'
+              : 'bg-white text-slate-400 dark:text-slate-600 hover:bg-slate-50 border border-slate-200'
           }`}
         >
           <BarChart3 size={20} />
@@ -110,8 +110,8 @@ export function AdvancedFeatures() {
           onClick={() => setActiveDemo('vendor-scoring')}
           className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2 ${
             activeDemo === 'vendor-scoring'
-              ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg'
-              : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+              ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-slate-900 dark:text-white shadow-lg'
+              : 'bg-white text-slate-400 dark:text-slate-600 hover:bg-slate-50 border border-slate-200'
           }`}
         >
           <Target size={20} />
@@ -124,11 +124,11 @@ export function AdvancedFeatures() {
         <div className="demo-card bg-white rounded-2xl shadow-xl border border-slate-200 p-8">
           <div className="flex items-center gap-4 mb-6">
             <div className="w-12 h-12 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl flex items-center justify-center">
-              <Bot className="text-white" size={24} />
+              <Bot className="text-slate-900 dark:text-white" size={24} />
             </div>
             <div>
               <h3 className="text-2xl font-bold text-slate-900">AI Destekli Teklif Yazıcı</h3>
-              <p className="text-slate-600">GPT-4 ile profesyonel teklifler oluşturun</p>
+              <p className="text-slate-400 dark:text-slate-600">GPT-4 ile profesyonel teklifler oluşturun</p>
             </div>
           </div>
 
@@ -180,7 +180,7 @@ export function AdvancedFeatures() {
                 type="button"
                 onClick={generateAIText}
                 disabled={isGenerating}
-                className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 rounded-lg font-medium hover:shadow-lg transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-slate-900 dark:text-white py-3 rounded-lg font-medium hover:shadow-lg transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isGenerating ? (
                   <>
@@ -198,7 +198,7 @@ export function AdvancedFeatures() {
 
             <div className="bg-slate-50 rounded-lg p-6">
               <div className="flex items-center gap-2 mb-4">
-                <FileText className="text-slate-600" size={20} />
+                <FileText className="text-slate-400 dark:text-slate-600" size={20} />
                 <span className="font-medium text-slate-700">Oluşturulan Teklif</span>
               </div>
               <div className="bg-white rounded-lg p-4 min-h-[300px] border border-slate-200">
@@ -216,13 +216,13 @@ export function AdvancedFeatures() {
         <div className="demo-card bg-white rounded-2xl shadow-xl border border-slate-200 p-8">
           <div className="flex items-center gap-4 mb-6">
             <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center">
-              <BarChart3 className="text-white" size={24} />
+              <BarChart3 className="text-slate-900 dark:text-white" size={24} />
             </div>
             <div>
               <h3 className="text-2xl font-bold text-slate-900">
                 Gerçek Zamanlı Analitik Dashboard
               </h3>
-              <p className="text-slate-600">Canlı verilerle RFP performansınızı izleyin</p>
+              <p className="text-slate-400 dark:text-slate-600">Canlı verilerle RFP performansınızı izleyin</p>
             </div>
           </div>
 
@@ -230,7 +230,7 @@ export function AdvancedFeatures() {
             <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl border border-blue-200">
               <div className="flex items-center justify-between mb-4">
                 <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <FileText className="text-white" size={20} />
+                  <FileText className="text-slate-900 dark:text-white" size={20} />
                 </div>
                 <span className="text-xs text-blue-600 font-medium">+12% bu ay</span>
               </div>
@@ -241,7 +241,7 @@ export function AdvancedFeatures() {
             <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl border border-green-200">
               <div className="flex items-center justify-between mb-4">
                 <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="text-white" size={20} />
+                  <TrendingUp className="text-slate-900 dark:text-white" size={20} />
                 </div>
                 <span className="text-xs text-green-600 font-medium">+8% bu ay</span>
               </div>
@@ -252,7 +252,7 @@ export function AdvancedFeatures() {
             <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-xl border border-purple-200">
               <div className="flex items-center justify-between mb-4">
                 <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
-                  <Clock className="text-white" size={20} />
+                  <Clock className="text-slate-900 dark:text-white" size={20} />
                 </div>
                 <span className="text-xs text-purple-600 font-medium">-0.3 gün</span>
               </div>
@@ -265,7 +265,7 @@ export function AdvancedFeatures() {
             <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-6 rounded-xl border border-orange-200">
               <div className="flex items-center justify-between mb-4">
                 <div className="w-10 h-10 bg-orange-600 rounded-lg flex items-center justify-center">
-                  <Award className="text-white" size={20} />
+                  <Award className="text-slate-900 dark:text-white" size={20} />
                 </div>
                 <span className="text-xs text-orange-600 font-medium">+5% bu ay</span>
               </div>
@@ -283,7 +283,7 @@ export function AdvancedFeatures() {
                   <div className="w-32 bg-slate-200 rounded-full h-2">
                     <div className="bg-green-500 h-2 rounded-full" style={{ width: '65%' }}></div>
                   </div>
-                  <span className="text-sm font-medium text-slate-600">65%</span>
+                  <span className="text-sm font-medium text-slate-400 dark:text-slate-600">65%</span>
                 </div>
               </div>
               <div className="flex items-center justify-between">
@@ -292,7 +292,7 @@ export function AdvancedFeatures() {
                   <div className="w-32 bg-slate-200 rounded-full h-2">
                     <div className="bg-yellow-500 h-2 rounded-full" style={{ width: '25%' }}></div>
                   </div>
-                  <span className="text-sm font-medium text-slate-600">25%</span>
+                  <span className="text-sm font-medium text-slate-400 dark:text-slate-600">25%</span>
                 </div>
               </div>
               <div className="flex items-center justify-between">
@@ -301,7 +301,7 @@ export function AdvancedFeatures() {
                   <div className="w-32 bg-slate-200 rounded-full h-2">
                     <div className="bg-red-500 h-2 rounded-full" style={{ width: '10%' }}></div>
                   </div>
-                  <span className="text-sm font-medium text-slate-600">10%</span>
+                  <span className="text-sm font-medium text-slate-400 dark:text-slate-600">10%</span>
                 </div>
               </div>
             </div>
@@ -314,11 +314,11 @@ export function AdvancedFeatures() {
         <div className="demo-card bg-white rounded-2xl shadow-xl border border-slate-200 p-8">
           <div className="flex items-center gap-4 mb-6">
             <div className="w-12 h-12 bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl flex items-center justify-center">
-              <Target className="text-white" size={24} />
+              <Target className="text-slate-900 dark:text-white" size={24} />
             </div>
             <div>
               <h3 className="text-2xl font-bold text-slate-900">AI Destekli Tedarikçi Puanlama</h3>
-              <p className="text-slate-600">Otomatik risk analizi ve performans değerlendirmesi</p>
+              <p className="text-slate-400 dark:text-slate-600">Otomatik risk analizi ve performans değerlendirmesi</p>
             </div>
           </div>
 
@@ -420,7 +420,7 @@ export function AdvancedFeatures() {
 
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="text-slate-600">Risk Seviyesi:</span>
+                      <span className="text-slate-400 dark:text-slate-600">Risk Seviyesi:</span>
                       <div
                         className={`inline-block ml-2 px-2 py-1 rounded-full text-xs font-medium ${
                           vendor.risk === 'Düşük'
@@ -434,13 +434,13 @@ export function AdvancedFeatures() {
                       </div>
                     </div>
                     <div>
-                      <span className="text-slate-600">Tamamlanan Proje:</span>
+                      <span className="text-slate-400 dark:text-slate-600">Tamamlanan Proje:</span>
                       <span className="ml-2 font-medium">{vendor.projects}</span>
                     </div>
                   </div>
 
                   <div className="mt-4">
-                    <div className="flex justify-between text-xs text-slate-600 mb-1">
+                    <div className="flex justify-between text-xs text-slate-400 dark:text-slate-600 mb-1">
                       <span>Genel Puan</span>
                       <span>{vendor.score}/100</span>
                     </div>
@@ -459,24 +459,24 @@ export function AdvancedFeatures() {
       )}
 
       {/* Call to Action */}
-      <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 rounded-2xl p-8 text-center text-white relative overflow-hidden">
+      <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 rounded-2xl p-8 text-center text-slate-900 dark:text-white relative overflow-hidden">
         <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
         <div className="relative z-10">
           <h3 className="text-3xl font-bold mb-4">🎯 Bu Özellikleri Deneyimleyin!</h3>
-          <p className="text-xl text-slate-300 mb-6 max-w-2xl mx-auto">
+          <p className="text-xl text-slate-700 dark:text-slate-300 mb-6 max-w-2xl mx-auto">
             Gerçek çalışan demo'larımızla platformun gücünü hemen test edin
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
               type="button"
-              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl font-semibold hover:shadow-2xl transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 text-slate-900 dark:text-white px-8 py-4 rounded-xl font-semibold hover:shadow-2xl transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2"
             >
               <Play size={20} />
               Canlı Demo İzle
             </button>
             <button
               type="button"
-              className="bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-xl font-semibold hover:bg-white/20 transition-all duration-300 border border-white/20"
+              className="bg-slate-200 dark:bg-white/10 backdrop-blur-sm text-slate-900 dark:text-white px-8 py-4 rounded-xl font-semibold hover:bg-slate-300 hover:dark:bg-white/20 transition-all duration-300 border border-slate-300 dark:border-white/20"
             >
               Ücretsiz Deneme
             </button>

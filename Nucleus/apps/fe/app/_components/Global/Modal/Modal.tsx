@@ -27,7 +27,7 @@ export function Modal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4 py-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white dark:bg-slate-900/40 px-4 py-6">
       <div
         className={cn('w-full rounded-3xl bg-white shadow-2xl', getSizeClasses(size), className)}
         role="dialog"
@@ -41,14 +41,14 @@ export function Modal({
                 <h2 className="text-xl font-semibold text-slate-900">{title}</h2>
                 <button
                   type="button"
-                  className="rounded-full p-1 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                  className="rounded-full p-1 text-slate-500 dark:text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
                   onClick={onClose}
                   aria-label="Modali kapat"
                 >
                   <span aria-hidden="true">×</span>
                 </button>
               </div>
-              {description ? <p className="text-sm text-slate-600">{description}</p> : null}
+              {description ? <p className="text-sm text-slate-400 dark:text-slate-600">{description}</p> : null}
             </header>
           ) : null}
           <div className="text-slate-700">{children}</div>

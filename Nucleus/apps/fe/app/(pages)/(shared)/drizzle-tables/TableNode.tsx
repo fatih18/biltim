@@ -43,7 +43,7 @@ export function TableNode({ data }: NodeProps) {
       style={{ height: `${calculatedHeight}px` }}
     >
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-3 rounded-t-lg">
+      <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-slate-900 dark:text-white px-4 py-3 rounded-t-lg">
         <div className="flex items-center gap-2">
           <Database className="w-5 h-5" />
           <div>

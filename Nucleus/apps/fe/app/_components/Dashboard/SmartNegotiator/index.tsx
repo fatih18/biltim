@@ -151,7 +151,7 @@ export function SmartNegotiator() {
         <h2 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-blue-800 to-purple-800 bg-clip-text text-transparent mb-4">
           🧠 Akıllı Müzakere Asistanı
         </h2>
-        <p className="text-xl text-slate-600 max-w-4xl mx-auto">
+        <p className="text-xl text-slate-400 dark:text-slate-600 max-w-4xl mx-auto">
           AI destekli müzakere stratejileri ile daha iyi anlaşmalar yapın
         </p>
       </div>
@@ -169,28 +169,28 @@ export function SmartNegotiator() {
 
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-slate-600">Mevcut Teklif:</span>
+                <span className="text-slate-400 dark:text-slate-600">Mevcut Teklif:</span>
                 <span className="font-bold text-slate-900">
                   {(mockNegotiationData.currentOffer / 1000000).toFixed(2)}M TL
                 </span>
               </div>
 
               <div className="flex justify-between items-center">
-                <span className="text-slate-600">Hedef Fiyat:</span>
+                <span className="text-slate-400 dark:text-slate-600">Hedef Fiyat:</span>
                 <span className="font-bold text-green-600">
                   {(mockNegotiationData.targetPrice / 1000000).toFixed(2)}M TL
                 </span>
               </div>
 
               <div className="flex justify-between items-center">
-                <span className="text-slate-600">Piyasa Ortalaması:</span>
+                <span className="text-slate-400 dark:text-slate-600">Piyasa Ortalaması:</span>
                 <span className="font-bold text-blue-600">
                   {(mockNegotiationData.marketAverage / 1000000).toFixed(2)}M TL
                 </span>
               </div>
 
               <div className="bg-slate-50 rounded-lg p-4">
-                <div className="flex justify-between text-sm text-slate-600 mb-2">
+                <div className="flex justify-between text-sm text-slate-400 dark:text-slate-600 mb-2">
                   <span>Başarı Olasılığı</span>
                   <span>{mockNegotiationData.successProbability}%</span>
                 </div>
@@ -204,7 +204,7 @@ export function SmartNegotiator() {
 
               <div className="flex items-center gap-2 text-sm">
                 <Clock className="text-orange-500" size={16} />
-                <span className="text-slate-600">
+                <span className="text-slate-400 dark:text-slate-600">
                   Kalan Süre: {mockNegotiationData.timeRemaining}
                 </span>
               </div>
@@ -228,18 +228,18 @@ export function SmartNegotiator() {
                     <div
                       className={`w-8 h-8 rounded-lg bg-gradient-to-r ${tactic.color} p-2 flex items-center justify-center`}
                     >
-                      <tactic.icon className="text-white" size={16} />
+                      <tactic.icon className="text-slate-900 dark:text-white" size={16} />
                     </div>
                     <div className="flex-1">
                       <h4 className="font-semibold text-slate-900 text-sm">{tactic.title}</h4>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-slate-600">
+                        <span className="text-xs text-slate-400 dark:text-slate-600">
                           Başarı: {tactic.successRate}%
                         </span>
                       </div>
                     </div>
                   </div>
-                  <p className="text-xs text-slate-600 leading-relaxed">{tactic.description}</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-600 leading-relaxed">{tactic.description}</p>
                 </div>
               ))}
             </div>
@@ -255,7 +255,7 @@ export function SmartNegotiator() {
                 <MessageSquare className="text-blue-600" size={24} />
                 Canlı Müzakere Asistanı
               </h3>
-              <p className="text-slate-600 text-sm mt-1">
+              <p className="text-slate-400 dark:text-slate-600 text-sm mt-1">
                 AI size gerçek zamanlı müzakere önerileri sunuyor
               </p>
             </div>
@@ -289,7 +289,7 @@ export function SmartNegotiator() {
                     <div
                       className={`rounded-2xl p-4 ${
                         message.sender === 'admin'
-                          ? 'bg-blue-600 text-white'
+                          ? 'bg-blue-600 text-slate-900 dark:text-white'
                           : message.sender === 'ai'
                             ? 'bg-purple-50 text-purple-900 border border-purple-200'
                             : 'bg-slate-50 text-slate-900 border border-slate-200'
@@ -299,7 +299,7 @@ export function SmartNegotiator() {
                       <div className="flex items-center justify-between mt-2">
                         <span
                           className={`text-xs ${
-                            message.sender === 'admin' ? 'text-blue-100' : 'text-slate-500'
+                            message.sender === 'admin' ? 'text-blue-100' : 'text-slate-500 dark:text-slate-500'
                           }`}
                         >
                           {message.timestamp}
@@ -337,14 +337,14 @@ export function SmartNegotiator() {
                 <button
                   type="button"
                   onClick={sendMessage}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all duration-300 flex items-center gap-2"
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 text-slate-900 dark:text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all duration-300 flex items-center gap-2"
                 >
                   <Send size={16} />
                   Gönder
                 </button>
               </div>
 
-              <div className="flex items-center gap-4 mt-3 text-xs text-slate-500">
+              <div className="flex items-center gap-4 mt-3 text-xs text-slate-500 dark:text-slate-500">
                 <div className="flex items-center gap-1">
                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                   AI Asistan Aktif
@@ -360,44 +360,44 @@ export function SmartNegotiator() {
       </div>
 
       {/* Alt Panel - Hızlı Aksiyonlar */}
-      <div className="negotiator-card bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 rounded-2xl p-8 text-white">
+      <div className="negotiator-card bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 rounded-2xl p-8 text-slate-900 dark:text-white">
         <div className="text-center mb-6">
           <h3 className="text-2xl font-bold mb-2">🎯 Hızlı Müzakere Aksiyonları</h3>
-          <p className="text-slate-300">Tek tıkla profesyonel müzakere stratejilerini uygulayın</p>
+          <p className="text-slate-700 dark:text-slate-300">Tek tıkla profesyonel müzakere stratejilerini uygulayın</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <button
             type="button"
-            className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 hover:bg-white/20 transition-all duration-300 text-left"
+            className="bg-slate-200 dark:bg-white/10 backdrop-blur-sm border border-slate-300 dark:border-white/20 rounded-xl p-4 hover:bg-slate-300 hover:dark:bg-white/20 transition-all duration-300 text-left"
           >
             <div className="flex items-center gap-3 mb-2">
               <DollarSign className="text-green-400" size={20} />
               <span className="font-semibold">Karşı Teklif Oluştur</span>
             </div>
-            <p className="text-sm text-slate-300">AI ile optimal karşı teklif hesapla</p>
+            <p className="text-sm text-slate-700 dark:text-slate-300">AI ile optimal karşı teklif hesapla</p>
           </button>
 
           <button
             type="button"
-            className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 hover:bg-white/20 transition-all duration-300 text-left"
+            className="bg-slate-200 dark:bg-white/10 backdrop-blur-sm border border-slate-300 dark:border-white/20 rounded-xl p-4 hover:bg-slate-300 hover:dark:bg-white/20 transition-all duration-300 text-left"
           >
             <div className="flex items-center gap-3 mb-2">
               <BarChart3 className="text-blue-400" size={20} />
               <span className="font-semibold">Piyasa Analizi</span>
             </div>
-            <p className="text-sm text-slate-300">Güncel piyasa verilerini analiz et</p>
+            <p className="text-sm text-slate-700 dark:text-slate-300">Güncel piyasa verilerini analiz et</p>
           </button>
 
           <button
             type="button"
-            className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 hover:bg-white/20 transition-all duration-300 text-left"
+            className="bg-slate-200 dark:bg-white/10 backdrop-blur-sm border border-slate-300 dark:border-white/20 rounded-xl p-4 hover:bg-slate-300 hover:dark:bg-white/20 transition-all duration-300 text-left"
           >
             <div className="flex items-center gap-3 mb-2">
               <Brain className="text-purple-400" size={20} />
               <span className="font-semibold">Strateji Öner</span>
             </div>
-            <p className="text-sm text-slate-300">Duruma özel müzakere stratejisi</p>
+            <p className="text-sm text-slate-700 dark:text-slate-300">Duruma özel müzakere stratejisi</p>
           </button>
         </div>
       </div>

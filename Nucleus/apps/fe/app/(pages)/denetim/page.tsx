@@ -1477,12 +1477,12 @@ export default function FiveSAuditFormPage() {
   )
 
   const FindingsPanel = (
-    <section className="mt-6 rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+    <section className="mt-6 rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-sm font-semibold text-slate-100">Bu Lokasyondaki Bulgular</div>
-          <div className="mt-1 text-[11px] text-slate-400">
-            Lokasyon: <span className="text-slate-200">{header.department || '-'}</span>
+          <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">Bu Lokasyondaki Bulgular</div>
+          <div className="mt-1 text-[11px] text-slate-600 dark:text-slate-400">
+            Lokasyon: <span className="text-slate-800 dark:text-slate-200">{header.department || '-'}</span>
           </div>
         </div>
 
@@ -1492,7 +1492,7 @@ export default function FiveSAuditFormPage() {
               type="button"
               onClick={syncOfflineQueue}
               disabled={!isOnline || syncing}
-              className="inline-flex items-center justify-center rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 text-[11px] hover:bg-slate-950 disabled:opacity-50"
+              className="inline-flex items-center justify-center rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/60 px-3 py-2 text-[11px] hover:bg-slate-100 hover:dark:bg-slate-950 disabled:opacity-50"
               title={!isOnline ? 'Offline iken senkron yapılamaz' : 'Kuyruğu senkronla'}
             >
               {syncing ? 'Senkron...' : `Senkronla (${queuedCount})`}
@@ -1502,7 +1502,7 @@ export default function FiveSAuditFormPage() {
           <button
             type="button"
             onClick={() => fetchFindings(header.department)}
-            className="inline-flex items-center justify-center rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 text-[11px] hover:bg-slate-950"
+            className="inline-flex items-center justify-center rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/60 px-3 py-2 text-[11px] hover:bg-slate-100 hover:dark:bg-slate-950"
           >
             Yenile
           </button>
@@ -1511,13 +1511,13 @@ export default function FiveSAuditFormPage() {
       </div>
 
       {findingsLoading ? (
-        <div className="mt-3 text-xs text-slate-400">Bulgular yükleniyor...</div>
+        <div className="mt-3 text-xs text-slate-600 dark:text-slate-400">Bulgular yükleniyor...</div>
       ) : findings.length === 0 ? (
-        <div className="mt-3 text-xs text-slate-400">Bu lokasyonda kayıtlı bulgu bulunamadı.</div>
+        <div className="mt-3 text-xs text-slate-600 dark:text-slate-400">Bu lokasyonda kayıtlı bulgu bulunamadı.</div>
       ) : (
         <div className="mt-3 overflow-x-auto">
-          <table className="min-w-full text-left text-xs text-slate-200">
-            <thead className="bg-slate-900/80 text-[11px] uppercase tracking-wide text-slate-400">
+          <table className="min-w-full text-left text-xs text-slate-800 dark:text-slate-200">
+            <thead className="bg-slate-50 dark:bg-slate-900/80 text-[11px] uppercase tracking-wide text-slate-600 dark:text-slate-400">
               <tr>
                 <th className="px-3 py-2">No</th>
                 <th className="px-3 py-2">Tarih</th>
@@ -1530,18 +1530,18 @@ export default function FiveSAuditFormPage() {
             </thead>
             <tbody>
               {findings.map((f, idx) => (
-                <tr key={f.id} className="border-t border-slate-800/80">
-                  <td className="px-3 py-2 text-[11px] text-slate-400">{f.finding_no ?? idx + 1}</td>
-                  <td className="px-3 py-2 text-[11px] text-slate-300">{String(f.detected_date ?? '-')}</td>
+                <tr key={f.id} className="border-t border-slate-300 dark:border-slate-800/80">
+                  <td className="px-3 py-2 text-[11px] text-slate-600 dark:text-slate-400">{f.finding_no ?? idx + 1}</td>
+                  <td className="px-3 py-2 text-[11px] text-slate-700 dark:text-slate-300">{String(f.detected_date ?? '-')}</td>
                   <td className="px-3 py-2">{String(f.finding_type ?? '-')}</td>
-                  <td className="px-3 py-2 text-[11px] text-slate-300">{findingStatusLabelTr(f.status)}</td>
-                  <td className="px-3 py-2 text-[11px] text-slate-300">{String(f.due_date ?? '-')}</td>
-                  <td className="px-3 py-2 text-[11px] text-slate-300">{String(f.responsible_name ?? '-')}</td>
+                  <td className="px-3 py-2 text-[11px] text-slate-700 dark:text-slate-300">{findingStatusLabelTr(f.status)}</td>
+                  <td className="px-3 py-2 text-[11px] text-slate-700 dark:text-slate-300">{String(f.due_date ?? '-')}</td>
+                  <td className="px-3 py-2 text-[11px] text-slate-700 dark:text-slate-300">{String(f.responsible_name ?? '-')}</td>
                   <td className="px-3 py-2">
                     <button
                       type="button"
                       onClick={() => setActiveFinding(f)}
-                      className="inline-flex items-center rounded-md border border-slate-600 bg-slate-950/60 px-2 py-1 text-[11px] hover:bg-slate-800"
+                      className="inline-flex items-center rounded-md border border-slate-400 dark:border-slate-600 bg-white dark:bg-slate-950/60 px-2 py-1 text-[11px] hover:bg-slate-200 hover:dark:bg-slate-800"
                     >
                       Gör
                     </button>
@@ -2089,18 +2089,18 @@ export default function FiveSAuditFormPage() {
 
   const singleFindingModal = singleFindingOpen && (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="w-full max-w-lg rounded-xl border border-slate-700 bg-slate-900 p-4 shadow-2xl md:p-6 max-h-[90vh] overflow-y-auto">
+      <div className="w-full max-w-lg rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-2xl md:p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h3 className="text-sm font-semibold text-slate-100">Tekil Bulgu Girişi</h3>
-            <p className="mt-1 text-[11px] text-slate-400">
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Tekil Bulgu Girişi</h3>
+            <p className="mt-1 text-[11px] text-slate-600 dark:text-slate-400">
               {assignedPlan
                 ? 'Denetim sırasında ek tekil bulgu kaydedebilirsiniz. Bir soruya bağlamak opsiyoneldir.'
                 : 'Denetim planı olmasa bile (sadece yetkili rol) tekil bir 5S bulgusunu burada kaydedebilirsiniz.'}
             </p>
-            <p className="mt-1 text-[11px] text-slate-500">
+            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-500">
               Durum:{' '}
-              <span className={isOnline ? 'text-emerald-300' : 'text-amber-300'}>
+              <span className={isOnline ? 'text-emerald-600 dark:text-emerald-300' : 'text-amber-600 dark:text-amber-300'}>
                 {isOnline ? 'Online' : 'Offline'}
               </span>
               {queuedCount > 0 ? <span className="ml-2">• Kuyruk: {queuedCount}</span> : null}
@@ -2109,7 +2109,7 @@ export default function FiveSAuditFormPage() {
           <button
             type="button"
             onClick={closeSingleFindingModal}
-            className="text-sm text-slate-400 hover:text-slate-200"
+            className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-800 hover:dark:text-slate-200"
           >
             ✕
           </button>
@@ -2117,38 +2117,38 @@ export default function FiveSAuditFormPage() {
 
         <div className="mt-4 space-y-4 text-xs">
           <div>
-            <label className="mb-1 block font-medium text-slate-300">
+            <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">
               Denetimi Yapan <span className="text-rose-400">(zorunlu)</span>
             </label>
             <input
               type="text"
               value={header.auditorName}
               onChange={(e) => handleHeaderChange('auditorName', e.target.value)}
-              className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+              className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
               placeholder="İsim Soyisim"
             />
           </div>
 
           <div>
-            <label className="mb-1 block font-medium text-slate-300">Ekip</label>
+            <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">Ekip</label>
             <input
               type="text"
               value={header.teamName || 'Content Manager Core Team'}
               readOnly
-              className="w-full rounded-md border border-slate-700 bg-slate-950/40 px-2 py-1.5 text-xs text-slate-200 opacity-90"
+              className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-2 py-1.5 text-xs text-slate-800 dark:text-slate-200 opacity-90"
             />
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <label className="mb-1 block font-medium text-slate-300">
+              <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">
                 Lokasyon <span className="text-rose-400">(zorunlu)</span>
               </label>
 
               <select
                 value={header.department}
                 onChange={(e) => handleHeaderChange('department', e.target.value)}
-                className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+                className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
               >
                 <option value="">Seçiniz</option>
                 {locationNameOptions.length === 0 ? (
@@ -2166,25 +2166,25 @@ export default function FiveSAuditFormPage() {
             </div>
 
             <div>
-              <label className="mb-1 block font-medium text-slate-300">
+              <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">
                 Tarih <span className="text-rose-400">(zorunlu)</span>
               </label>
               <DateInput
                 value={header.date}
                 onChange={(value) => handleHeaderChange('date', value)}
-                className="date-dark w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+                className="date-dark w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
               />
             </div>
           </div>
 
           <div>
-            <label className="mb-1 block font-medium text-slate-300">
+            <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">
               Bulgu Tipi <span className="text-rose-400">(zorunlu)</span>
             </label>
             <select
               value={singleFinding.findingType}
               onChange={(e) => handleSingleFindingFieldChange('findingType', e.target.value as FindingType | '')}
-              className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+              className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
             >
               <option value="">Seçiniz</option>
               {findingTypeOptions.length === 0 ? (
@@ -2202,13 +2202,13 @@ export default function FiveSAuditFormPage() {
           </div>
 
           <div>
-            <label className="mb-1 block font-medium text-slate-300">
-              Bağlı Soru <span className="text-slate-500">(opsiyonel)</span>
+            <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">
+              Bağlı Soru <span className="text-slate-500 dark:text-slate-500">(opsiyonel)</span>
             </label>
             <select
               value={singleFinding.linkedQuestionId}
               onChange={(e) => handleSingleFindingFieldChange('linkedQuestionId', e.target.value)}
-              className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+              className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
             >
               <option value="">Seçiniz (bağlamak istemiyorsanız boş bırakın)</option>
               {questions.map((q) => (
@@ -2220,23 +2220,23 @@ export default function FiveSAuditFormPage() {
           </div>
 
           <div>
-            <label className="mb-1 block font-medium text-slate-300">
+            <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">
               Açıklama <span className="text-rose-400">(zorunlu)</span>
             </label>
             <textarea
               rows={3}
               value={singleFinding.explanation}
               onChange={(e) => handleSingleFindingFieldChange('explanation', e.target.value)}
-              className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+              className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
               placeholder="Kısa açıklama girin..."
             />
           </div>
 
           <div>
-            <label className="mb-1 block font-medium text-slate-300">Fotoğraflar</label>
+            <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">Fotoğraflar</label>
 
             <div className="flex items-center gap-2">
-              <label className="inline-flex flex-1 cursor-pointer items-center justify-center rounded-md border border-slate-600 bg-slate-950/70 px-3 py-1.5 text-[11px] hover:bg-slate-800">
+              <label className="inline-flex flex-1 cursor-pointer items-center justify-center rounded-md border border-slate-400 dark:border-slate-600 bg-white dark:bg-slate-950/70 px-3 py-1.5 text-[11px] hover:bg-slate-200 hover:dark:bg-slate-800">
                 Fotoğraf(lar) Ekle
                 <input
                   type="file"
@@ -2257,15 +2257,15 @@ export default function FiveSAuditFormPage() {
                 {singleFinding.photos.map((f, i) => (
                   <li
                     key={`${f.name}-${f.size}-${f.lastModified}-${i}`}
-                    className="flex items-center justify-between gap-2 rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1"
+                    className="flex items-center justify-between gap-2 rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/40 px-2 py-1"
                   >
-                    <span className="truncate text-[11px] text-slate-300">
+                    <span className="truncate text-[11px] text-slate-700 dark:text-slate-300">
                       {i + 1}. {f.name}
                     </span>
                     <button
                       type="button"
                       onClick={() => handleSingleFindingPhotoRemove(i)}
-                      className="rounded-md border border-slate-700 px-2 py-0.5 text-[10px] text-slate-200 hover:bg-slate-800"
+                      className="rounded-md border border-slate-300 dark:border-slate-700 px-2 py-0.5 text-[10px] text-slate-800 dark:text-slate-200 hover:bg-slate-200 hover:dark:bg-slate-800"
                     >
                       Sil
                     </button>
@@ -2273,12 +2273,12 @@ export default function FiveSAuditFormPage() {
                 ))}
               </ul>
             ) : (
-              <p className="mt-2 text-[11px] text-slate-500">Henüz fotoğraf eklenmedi.</p>
+              <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-500">Henüz fotoğraf eklenmedi.</p>
             )}
           </div>
 
           <div>
-            <label className="mb-1 block font-medium text-slate-300">
+            <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">
               Alınacak Faaliyet <span className="text-rose-400">(zorunlu)</span>
             </label>
             <select
@@ -2286,7 +2286,7 @@ export default function FiveSAuditFormPage() {
               onChange={(e) =>
                 handleSingleFindingFieldChange('actionToTake', e.target.value as ActionToTake | '')
               }
-              className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+              className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
             >
               <option value="">Seçiniz</option>
               {actionToTakeOptions.length === 0 ? (
@@ -2304,13 +2304,13 @@ export default function FiveSAuditFormPage() {
           </div>
 
           <div>
-            <label className="mb-1 block font-medium text-slate-300">
+            <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">
               Termin Tarihi <span className="text-rose-400">(zorunlu)</span>
             </label>
             <DateInput
               value={singleFinding.dueDate || header.date}
               onChange={(value) => handleSingleFindingFieldChange('dueDate', value)}
-              className="date-dark w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+              className="date-dark w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
             />
           </div>
         </div>
@@ -2319,7 +2319,7 @@ export default function FiveSAuditFormPage() {
           <button
             type="button"
             onClick={closeSingleFindingModal}
-            className="rounded-md border border-slate-600 px-4 py-1.5 text-slate-200 hover:bg-slate-800"
+            className="rounded-md border border-slate-400 dark:border-slate-600 px-4 py-1.5 text-slate-800 dark:text-slate-200 hover:bg-slate-200 hover:dark:bg-slate-800"
           >
             İptal
           </button>
@@ -2338,8 +2338,8 @@ export default function FiveSAuditFormPage() {
   /* ───────────────────────────── Render ───────────────────────────── */
   if (assignmentLoading) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-50 px-4 py-10 md:px-8">
-        <div className="mx-auto max-w-3xl rounded-xl border border-slate-800 bg-slate-900/60 p-6 text-sm text-slate-300">
+      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-50 px-4 py-10 md:px-8">
+        <div className="mx-auto max-w-3xl rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 p-6 text-sm text-slate-700 dark:text-slate-300">
           Planlanan denetimler kontrol ediliyor...
         </div>
       </div>
@@ -2348,10 +2348,10 @@ export default function FiveSAuditFormPage() {
 
   if (planSelectionMode && availablePlans.length > 1) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-50 px-4 py-10 md:px-8">
-        <div className="mx-auto max-w-2xl rounded-xl border border-slate-800 bg-slate-900/60 p-6">
-          <h2 className="text-base font-semibold text-slate-100">Denetim Seç</h2>
-          <p className="mt-1 text-sm text-slate-400">
+      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-50 px-4 py-10 md:px-8">
+        <div className="mx-auto max-w-2xl rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 p-6">
+          <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">Denetim Seç</h2>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
             Ekibinize atanmış birden fazla planlı denetim var. Lütfen hangi denetimi yapacağınızı seçin.
           </p>
 
@@ -2363,18 +2363,18 @@ export default function FiveSAuditFormPage() {
                   key={p.id}
                   type="button"
                   onClick={() => selectPlan(p)}
-                  className="w-full rounded-xl border border-slate-700 bg-slate-950/50 px-4 py-3 text-left hover:border-sky-500/60 hover:bg-sky-500/5 transition-colors"
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/50 px-4 py-3 text-left hover:border-sky-500/60 hover:bg-sky-500/5 transition-colors"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <div className="text-sm font-medium text-slate-100">{meta.locationName || 'Bilinmeyen Lokasyon'}</div>
-                      <div className="mt-0.5 text-[11px] text-slate-400">
-                        Ekip: <span className="text-slate-300">{meta.teamName || '-'}</span>
+                      <div className="text-sm font-medium text-slate-900 dark:text-slate-100">{meta.locationName || 'Bilinmeyen Lokasyon'}</div>
+                      <div className="mt-0.5 text-[11px] text-slate-600 dark:text-slate-400">
+                        Ekip: <span className="text-slate-700 dark:text-slate-300">{meta.teamName || '-'}</span>
                         {' · '}
-                        Tarih: <span className="text-slate-300">{p.planned_date || '-'}</span>
+                        Tarih: <span className="text-slate-700 dark:text-slate-300">{p.planned_date || '-'}</span>
                       </div>
                     </div>
-                    <span className="text-xs text-sky-400">Seç →</span>
+                    <span className="text-xs text-sky-600 dark:text-sky-400">Seç →</span>
                   </div>
                 </button>
               )
@@ -2388,24 +2388,24 @@ export default function FiveSAuditFormPage() {
   // No plan flow (tekil bulgu + bulgu paneli)
   if (!assignedPlan) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-50 px-4 py-10 md:px-8">
+      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-50 px-4 py-10 md:px-8">
         {LocationsDatalist}
 
-        <div className="mx-auto max-w-3xl rounded-xl border border-slate-800 bg-slate-900/60 p-6">
+        <div className="mx-auto max-w-3xl rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 p-6">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <div className="text-base font-semibold text-slate-100">Ekibinize planlanan bir denetim yoktur</div>
-              <div className="mt-2 text-sm text-slate-400">
+              <div className="text-base font-semibold text-slate-900 dark:text-slate-100">Ekibinize planlanan bir denetim yoktur</div>
+              <div className="mt-2 text-sm text-slate-600 dark:text-slate-400">
                 Planlama ekranından ekibinize bir denetim planlandığında bu form otomatik açılacaktır.
               </div>
 
-              <div className="mt-2 text-[11px] text-slate-400">
+              <div className="mt-2 text-[11px] text-slate-600 dark:text-slate-400">
                 Durum:{' '}
-                <span className={isOnline ? 'text-emerald-300' : 'text-amber-300'}>
+                <span className={isOnline ? 'text-emerald-600 dark:text-emerald-300' : 'text-amber-600 dark:text-amber-300'}>
                   {isOnline ? 'Online' : 'Offline'}
                 </span>
                 {queuedCount > 0 ? (
-                  <span className="ml-2 text-slate-500">• Kuyruk: {queuedCount}</span>
+                  <span className="ml-2 text-slate-500 dark:text-slate-500">• Kuyruk: {queuedCount}</span>
                 ) : null}
               </div>
             </div>
@@ -2415,7 +2415,7 @@ export default function FiveSAuditFormPage() {
                 type="button"
                 onClick={syncOfflineQueue}
                 disabled={!isOnline || syncing}
-                className="inline-flex items-center justify-center rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 text-[11px] hover:bg-slate-950 disabled:opacity-50"
+                className="inline-flex items-center justify-center rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/60 px-3 py-2 text-[11px] hover:bg-slate-100 hover:dark:bg-slate-950 disabled:opacity-50"
               >
                 {syncing ? 'Senkron...' : `Senkronla (${queuedCount})`}
               </button>
@@ -2426,7 +2426,7 @@ export default function FiveSAuditFormPage() {
             <button
               type="button"
               onClick={fetchAssignment}
-              className="inline-flex items-center justify-center rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 text-xs hover:bg-slate-950"
+              className="inline-flex items-center justify-center rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/60 px-3 py-2 text-xs hover:bg-slate-100 hover:dark:bg-slate-950"
             >
               Tekrar Kontrol Et
             </button>
@@ -2450,50 +2450,50 @@ export default function FiveSAuditFormPage() {
         {/* Bulgu Detay Modal */}
         {activeFinding && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-            <div className="w-full max-w-lg rounded-xl border border-slate-700 bg-slate-900 p-4 shadow-2xl md:p-6">
+            <div className="w-full max-w-lg rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-2xl md:p-6">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-100">Bulgu Detayı</h3>
-                  <p className="mt-1 text-[11px] text-slate-400">
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Bulgu Detayı</h3>
+                  <p className="mt-1 text-[11px] text-slate-600 dark:text-slate-400">
                     {String(activeFinding.finding_type ?? '-')} • {String(activeFinding.detected_date ?? '-')}
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setActiveFinding(null)}
-                  className="text-sm text-slate-400 hover:text-slate-200"
+                  className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-800 hover:dark:text-slate-200"
                 >
                   ✕
                 </button>
               </div>
 
-              <div className="mt-4 space-y-3 text-xs text-slate-200">
-                <div className="rounded-md border border-slate-800 bg-slate-950/40 p-3 whitespace-pre-wrap">
+              <div className="mt-4 space-y-3 text-xs text-slate-800 dark:text-slate-200">
+                <div className="rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/40 p-3 whitespace-pre-wrap">
                   {activeFinding.description || '-'}
                 </div>
 
-                <div className="grid gap-2 sm:grid-cols-2 text-[11px] text-slate-300">
+                <div className="grid gap-2 sm:grid-cols-2 text-[11px] text-slate-700 dark:text-slate-300">
                   <div>
-                    <span className="text-slate-500">Termin:</span> {String(activeFinding.due_date ?? '-')}
+                    <span className="text-slate-500 dark:text-slate-500">Termin:</span> {String(activeFinding.due_date ?? '-')}
                   </div>
                   <div>
-                    <span className="text-slate-500">Sorumlu:</span> {String(activeFinding.responsible_name ?? '-')}
+                    <span className="text-slate-500 dark:text-slate-500">Sorumlu:</span> {String(activeFinding.responsible_name ?? '-')}
                   </div>
                   <div className="sm:col-span-2">
-                    <span className="text-slate-500">Lokasyon:</span> {String(activeFinding.location_name ?? '-')}
+                    <span className="text-slate-500 dark:text-slate-500">Lokasyon:</span> {String(activeFinding.location_name ?? '-')}
                   </div>
                 </div>
 
                 {getBeforePhotoResolvedUrls(activeFinding).length > 0 ? (
-                  <div className="rounded-md border border-slate-800 bg-slate-950/30 p-3">
-                    <div className="mb-2 text-[11px] font-semibold text-slate-200">Öncesi Fotoğraflar</div>
+                  <div className="rounded-md border border-slate-300 dark:border-slate-800 bg-slate-950/30 p-3">
+                    <div className="mb-2 text-[11px] font-semibold text-slate-800 dark:text-slate-200">Öncesi Fotoğraflar</div>
                     <div className="grid grid-cols-3 gap-2">
                       {getBeforePhotoResolvedUrls(activeFinding).map((url, idx) => (
                         <button
                           key={`${url}-${idx}`}
                           type="button"
                           onClick={() => setPreviewUrl(url)}
-                          className="group relative overflow-hidden rounded-md border border-slate-800 bg-slate-950/40 hover:border-slate-600"
+                          className="group relative overflow-hidden rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/40 hover:border-slate-400 hover:dark:border-slate-600"
                           title="Büyüt"
                         >
                           <img
@@ -2502,16 +2502,16 @@ export default function FiveSAuditFormPage() {
                             className="h-20 w-full object-cover transition-transform group-hover:scale-[1.03]"
                             loading="lazy"
                           />
-                          <span className="absolute bottom-1 right-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-slate-100">
+                          <span className="absolute bottom-1 right-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-slate-900 dark:text-slate-100">
                             {idx + 1}
                           </span>
                         </button>
                       ))}
                     </div>
-                    <div className="mt-2 text-[10px] text-slate-400">Fotoğrafa tıklayınca büyür.</div>
+                    <div className="mt-2 text-[10px] text-slate-600 dark:text-slate-400">Fotoğrafa tıklayınca büyür.</div>
                   </div>
                 ) : (
-                  <div className="text-[11px] text-slate-500">Öncesi fotoğraf yok.</div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-500">Öncesi fotoğraf yok.</div>
                 )}
               </div>
 
@@ -2519,7 +2519,7 @@ export default function FiveSAuditFormPage() {
                 <button
                   type="button"
                   onClick={() => setActiveFinding(null)}
-                  className="rounded-md border border-slate-600 px-4 py-1.5 text-xs text-slate-200 hover:bg-slate-800"
+                  className="rounded-md border border-slate-400 dark:border-slate-600 px-4 py-1.5 text-xs text-slate-800 dark:text-slate-200 hover:bg-slate-200 hover:dark:bg-slate-800"
                 >
                   Kapat
                 </button>
@@ -2537,7 +2537,7 @@ export default function FiveSAuditFormPage() {
               <button
                 type="button"
                 onClick={() => setPreviewUrl(null)}
-                className="absolute -top-10 right-0 rounded-md border border-slate-600 bg-slate-900/60 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-900"
+                className="absolute -top-10 right-0 rounded-md border border-slate-400 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/60 px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 hover:bg-white hover:dark:bg-slate-900"
               >
                 ✕ Kapat
               </button>
@@ -2545,7 +2545,7 @@ export default function FiveSAuditFormPage() {
               <img
                 src={previewUrl}
                 alt="preview"
-                className="max-h-[80vh] w-full rounded-xl border border-slate-700 object-contain bg-slate-950"
+                className="max-h-[80vh] w-full rounded-xl border border-slate-300 dark:border-slate-700 object-contain bg-slate-100 dark:bg-slate-950"
                 onClick={(e) => e.stopPropagation()}
               />
             </div>
@@ -2557,35 +2557,35 @@ export default function FiveSAuditFormPage() {
 
   // Assigned plan flow (full audit form)
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-50 px-4 py-6 md:px-8">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-50 px-4 py-6 md:px-8">
       {LocationsDatalist}
 
       <div className="mx-auto max-w-5xl space-y-6">
         {/* Header */}
-        <header className="border-b border-slate-800 pb-4">
+        <header className="border-b border-slate-300 dark:border-slate-800 pb-4">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <h1 className="text-xl font-semibold md:text-2xl">5S Denetim Formu (Sahalar)</h1>
-              <p className="mt-1 text-sm text-slate-400">
-                Minimum hedef puan: <span className="font-semibold text-emerald-300">75</span>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                Minimum hedef puan: <span className="font-semibold text-emerald-600 dark:text-emerald-300">75</span>
               </p>
-              <p className="mt-1 text-[11px] text-slate-500">
-                Plan: <span className="text-slate-300">{header.teamName}</span> •{' '}
-                <span className="text-slate-300">{header.department}</span> •{' '}
-                <span className="text-slate-300">{header.date}</span>
+              <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-500">
+                Plan: <span className="text-slate-700 dark:text-slate-300">{header.teamName}</span> •{' '}
+                <span className="text-slate-700 dark:text-slate-300">{header.department}</span> •{' '}
+                <span className="text-slate-700 dark:text-slate-300">{header.date}</span>
               </p>
-              <p className="mt-2 text-[11px] text-slate-400">
+              <p className="mt-2 text-[11px] text-slate-600 dark:text-slate-400">
                 Durum:{' '}
-                <span className={isOnline ? 'text-emerald-300' : 'text-amber-300'}>
+                <span className={isOnline ? 'text-emerald-600 dark:text-emerald-300' : 'text-amber-600 dark:text-amber-300'}>
                   {isOnline ? 'Online' : 'Offline'}
                 </span>
-                {queuedCount > 0 ? <span className="ml-2 text-slate-500">• Kuyruk: {queuedCount}</span> : null}
+                {queuedCount > 0 ? <span className="ml-2 text-slate-500 dark:text-slate-500">• Kuyruk: {queuedCount}</span> : null}
                 {queuedCount > 0 ? (
                   <button
                     type="button"
                     onClick={syncOfflineQueue}
                     disabled={!isOnline || syncing}
-                    className="ml-3 inline-flex items-center justify-center rounded-md border border-slate-700 bg-slate-950/60 px-2 py-1 text-[10px] hover:bg-slate-950 disabled:opacity-50"
+                    className="ml-3 inline-flex items-center justify-center rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/60 px-2 py-1 text-[10px] hover:bg-slate-100 hover:dark:bg-slate-950 disabled:opacity-50"
                   >
                     {syncing ? 'Senkron...' : 'Senkronla'}
                   </button>
@@ -2604,12 +2604,12 @@ export default function FiveSAuditFormPage() {
                 </button>
               )}
               <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end">
-                <div className="flex flex-col items-start gap-1 rounded-xl bg-slate-900/70 px-4 py-3 text-sm sm:items-end">
-                  <span className="text-slate-400">Toplam Puan</span>
+                <div className="flex flex-col items-start gap-1 rounded-xl bg-white dark:bg-slate-900/70 px-4 py-3 text-sm sm:items-end">
+                  <span className="text-slate-600 dark:text-slate-400">Toplam Puan</span>
                   <span className={`text-2xl font-bold ${totalScore >= 75 ? 'text-emerald-400' : 'text-amber-400'}`}>
                     {formatScore(totalScore)} / 100
                   </span>
-                  <span className="text-xs text-slate-500">{totalScore >= 75 ? 'Hedef üstü' : 'Hedef altında'}</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-500">{totalScore >= 75 ? 'Hedef üstü' : 'Hedef altında'}</span>
                 </div>
               </div>
             </div>
@@ -2621,58 +2621,58 @@ export default function FiveSAuditFormPage() {
         {/* Form */}
         <form
           onSubmit={handleSubmit}
-          className="space-y-6 rounded-2xl bg-slate-900/60 p-4 shadow-xl shadow-slate-950/60 md:p-6"
+          className="space-y-6 rounded-2xl bg-slate-50 dark:bg-slate-900/60 p-4 shadow-xl shadow-slate-950/60 md:p-6"
         >
           {/* Genel Bilgiler */}
           <section className="grid gap-4 md:grid-cols-3">
             <div className="md:col-span-1">
-              <h2 className="text-sm font-semibold text-slate-200">Genel Bilgiler</h2>
-              <p className="mt-1 text-xs text-slate-400">Ekip, lokasyon ve tarih plan üzerinden otomatik gelir.</p>
+              <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Genel Bilgiler</h2>
+              <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">Ekip, lokasyon ve tarih plan üzerinden otomatik gelir.</p>
             </div>
 
             <div className="md:col-span-2 grid gap-4 sm:grid-cols-2">
               <div className="space-y-1">
-                <label className="block text-xs font-medium text-slate-300">Ekip</label>
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Ekip</label>
                 <input
                   type="text"
                   value={header.teamName}
                   readOnly
-                  className="w-full rounded-md border border-slate-700 bg-slate-950/40 px-3 py-2 text-sm text-slate-200 opacity-90"
+                  className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-sm text-slate-800 dark:text-slate-200 opacity-90"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="block text-xs font-medium text-slate-300">Lokasyon</label>
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Lokasyon</label>
                 <input
                   type="text"
                   value={header.department}
                   readOnly
-                  className="w-full rounded-md border border-slate-700 bg-slate-950/40 px-3 py-2 text-sm text-slate-200 opacity-90"
+                  className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-sm text-slate-800 dark:text-slate-200 opacity-90"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="block text-xs font-medium text-slate-300">Denetimi Yapan</label>
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Denetimi Yapan</label>
                 {teamMemberOptions.length > 0 ? (
                   <div className="relative">
                     <button
                       type="button"
                       onClick={() => setAuditorMenuOpen((o) => !o)}
-                      className="flex w-full items-center justify-between rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-left text-sm outline-none focus:border-sky-400"
+                      className="flex w-full items-center justify-between rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2 text-left text-sm outline-none focus:border-sky-400"
                     >
-                      <span className={selectedAuditors.length ? 'text-slate-100' : 'text-slate-500'}>
+                      <span className={selectedAuditors.length ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-500'}>
                         {selectedAuditors.length ? selectedAuditors.join(', ') : 'Seçiniz'}
                       </span>
-                      <span className="ml-2 text-slate-500">▾</span>
+                      <span className="ml-2 text-slate-500 dark:text-slate-500">▾</span>
                     </button>
                     {auditorMenuOpen && (
                       <>
                         <div className="fixed inset-0 z-10" onClick={() => setAuditorMenuOpen(false)} />
-                        <div className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-md border border-slate-700 bg-slate-900 shadow-xl">
+                        <div className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl">
                           {teamMemberOptions.map((m) => (
                             <label
                               key={m.id}
-                              className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-slate-800"
+                              className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-slate-200 hover:dark:bg-slate-800"
                             >
                               <input
                                 type="checkbox"
@@ -2692,20 +2692,20 @@ export default function FiveSAuditFormPage() {
                     type="text"
                     value={header.auditorName}
                     onChange={(e) => handleHeaderChange('auditorName', e.target.value)}
-                    className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+                    className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2 text-sm outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
                     placeholder="İsim Soyisim"
                   />
                 )}
-                <p className="text-[10px] text-slate-500">Denetime aktif katılan denetçileri seçin (birden fazla seçilebilir).</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-500">Denetime aktif katılan denetçileri seçin (birden fazla seçilebilir).</p>
               </div>
 
               <div className="space-y-1">
-                <label className="block text-xs font-medium text-slate-300">Tarih</label>
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Tarih</label>
                 <input
                   type="date"
                   value={header.date}
                   readOnly
-                  className="date-dark w-full rounded-md border border-slate-700 bg-slate-950/40 px-3 py-2 text-sm text-slate-200 opacity-90"
+                  className="date-dark w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-sm text-slate-800 dark:text-slate-200 opacity-90"
                 />
               </div>
             </div>
@@ -2724,22 +2724,22 @@ export default function FiveSAuditFormPage() {
             })
 
             return (
-              <section key={step.code} className="rounded-xl border border-slate-800 bg-slate-900/80">
-                <div className="flex flex-col gap-3 border-b border-slate-800 px-4 py-3 md:flex-row md:items-center md:justify-between">
+              <section key={step.code} className="rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80">
+                <div className="flex flex-col gap-3 border-b border-slate-300 dark:border-slate-800 px-4 py-3 md:flex-row md:items-center md:justify-between">
                   <div>
-                    <h3 className="text-sm font-semibold text-slate-100">{step.title}</h3>
-                    <p className="text-xs text-slate-400">Maksimum Puan: {step.maxScore.toFixed(2)}</p>
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{step.title}</h3>
+                    <p className="text-xs text-slate-600 dark:text-slate-400">Maksimum Puan: {step.maxScore.toFixed(2)}</p>
                   </div>
 
                   <div className="flex flex-col items-start gap-1 md:items-end">
                     <div className="flex items-baseline gap-2 text-sm">
-                      <span className="text-slate-400">Adım Puanı:</span>
-                      <span className="font-semibold text-sky-300">
+                      <span className="text-slate-600 dark:text-slate-400">Adım Puanı:</span>
+                      <span className="font-semibold text-sky-600 dark:text-sky-300">
                         {formatScore(stepScore)} / {step.maxScore.toFixed(2)}
                       </span>
                     </div>
 
-                    <div className="h-1.5 w-40 overflow-hidden rounded-full bg-slate-800">
+                    <div className="h-1.5 w-40 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
                       <div
                         className={`h-full rounded-full ${stepRatio >= 0.75 ? 'bg-emerald-400' : stepRatio >= 0.5 ? 'bg-amber-400' : 'bg-rose-500'
                           }`}
@@ -2752,8 +2752,8 @@ export default function FiveSAuditFormPage() {
                 {/* Desktop TABLE */}
                 <div className="hidden md:block">
                   <div className="overflow-x-auto">
-                    <table className="min-w-full text-left text-xs text-slate-200">
-                      <thead className="bg-slate-900/90 text-[11px] uppercase tracking-wide text-slate-400">
+                    <table className="min-w-full text-left text-xs text-slate-800 dark:text-slate-200">
+                      <thead className="bg-slate-50 dark:bg-slate-900/90 text-[11px] uppercase tracking-wide text-slate-600 dark:text-slate-400">
                         <tr>
                           <th className="px-4 py-2">Madde</th>
                           <th className="px-4 py-2 w-full">Soru</th>
@@ -2771,13 +2771,13 @@ export default function FiveSAuditFormPage() {
                           const isMissing = hasAttempted && liveUnanswered.has(q.id)
 
                           return (
-                            <tr key={q.id} className={`border-t border-slate-800/80 align-top ${isMissing ? 'bg-rose-950/40 border-l-4 border-l-rose-500' : ''}`}>
-                              <td className="px-4 py-2 text-[11px] text-slate-400">
+                            <tr key={q.id} className={`border-t border-slate-300 dark:border-slate-800/80 align-top ${isMissing ? 'bg-rose-200 dark:bg-rose-950/40 border-l-4 border-l-rose-500' : ''}`}>
+                              <td className="px-4 py-2 text-[11px] text-slate-600 dark:text-slate-400">
                                 {step.order}.{q.order}
                               </td>
 
                               <td className="px-4 py-2 text-xs">
-                                <span className={isMissing ? 'font-semibold text-rose-200' : ''}>{q.text}</span>
+                                <span className={isMissing ? 'font-semibold text-rose-700 dark:text-rose-200' : ''}>{q.text}</span>
                                 {isMissing && (
                                   <span className="ml-2 inline-flex items-center rounded-sm bg-rose-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-rose-400 ring-1 ring-rose-500/40">
                                     ⚠ Yanıt Gerekli
@@ -2785,7 +2785,7 @@ export default function FiveSAuditFormPage() {
                                 )}
                                 {openFindingsByQuestion.has(q.id) && (
                                   <span
-                                    className="ml-2 inline-flex items-center rounded-sm bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300 ring-1 ring-amber-500/40"
+                                    className="ml-2 inline-flex items-center rounded-sm bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-300 ring-1 ring-amber-500/40"
                                     title="Bu soruya bağlı henüz kapanmamış bulgu var"
                                   >
                                     ⚠ Açık bulgu ({openFindingsByQuestion.get(q.id)})
@@ -2799,7 +2799,7 @@ export default function FiveSAuditFormPage() {
                                     <button
                                       type="button"
                                       onClick={() => openDetailModal(q.id)}
-                                      className="inline-flex items-center rounded-md border border-slate-600 bg-slate-950/70 px-2 py-1 text-[11px] hover:bg-slate-800"
+                                      className="inline-flex items-center rounded-md border border-slate-400 dark:border-slate-600 bg-white dark:bg-slate-950/70 px-2 py-1 text-[11px] hover:bg-slate-200 hover:dark:bg-slate-800"
                                     >
                                       {ans?.findingType ||
                                         ans?.explanation ||
@@ -2821,7 +2821,7 @@ export default function FiveSAuditFormPage() {
                                       value="good"
                                       checked={rating === 'good'}
                                       onChange={() => handleRatingChange(q.id, 'good')}
-                                      className="h-3 w-3 border-slate-500 bg-slate-900 text-sky-400 focus:ring-sky-500"
+                                      className="h-3 w-3 border-slate-500 bg-white dark:bg-slate-900 text-sky-600 dark:text-sky-400 focus:ring-sky-500"
                                     />
                                     <span>İyi</span>
                                   </label>
@@ -2832,7 +2832,7 @@ export default function FiveSAuditFormPage() {
                                       value="medium"
                                       checked={rating === 'medium'}
                                       onChange={() => handleRatingChange(q.id, 'medium')}
-                                      className="h-3 w-3 border-slate-500 bg-slate-900 text-sky-400 focus:ring-sky-500"
+                                      className="h-3 w-3 border-slate-500 bg-white dark:bg-slate-900 text-sky-600 dark:text-sky-400 focus:ring-sky-500"
                                     />
                                     <span>Orta</span>
                                   </label>
@@ -2843,14 +2843,14 @@ export default function FiveSAuditFormPage() {
                                       value="bad"
                                       checked={rating === 'bad'}
                                       onChange={() => handleRatingChange(q.id, 'bad')}
-                                      className="h-3 w-3 border-slate-500 bg-slate-900 text-sky-400 focus:ring-sky-500"
+                                      className="h-3 w-3 border-slate-500 bg-white dark:bg-slate-900 text-sky-600 dark:text-sky-400 focus:ring-sky-500"
                                     />
                                     <span>Kötü</span>
                                   </label>
                                 </div>
                               </td>
 
-                              <td className="px-4 py-2 text-xs font-semibold text-sky-300">{formatScore(point)}</td>
+                              <td className="px-4 py-2 text-xs font-semibold text-sky-600 dark:text-sky-300">{formatScore(point)}</td>
                             </tr>
                           )
                         })}
@@ -2873,41 +2873,41 @@ export default function FiveSAuditFormPage() {
                     const isMissingMobile = hasAttempted && liveUnanswered.has(q.id)
 
                     return (
-                      <div key={q.id} className={`px-3 py-2 ${isMissingMobile ? 'bg-rose-950/40 border-l-4 border-rose-500' : ''}`}>
+                      <div key={q.id} className={`px-3 py-2 ${isMissingMobile ? 'bg-rose-200 dark:bg-rose-950/40 border-l-4 border-rose-500' : ''}`}>
                         <button
                           type="button"
                           onClick={() => toggleExpanded(q.id)}
                           className="flex w-full items-center justify-between gap-3 text-left"
                         >
                           <div className="flex-1">
-                            <div className="text-[11px] text-slate-400">
+                            <div className="text-[11px] text-slate-600 dark:text-slate-400">
                               {step.order}.{q.order}
                             </div>
                             <div className="mt-0.5 text-xs">
-                              <span className={isMissingMobile ? 'font-semibold text-rose-200' : 'text-slate-100'}>{q.text}</span>
+                              <span className={isMissingMobile ? 'font-semibold text-rose-700 dark:text-rose-200' : 'text-slate-900 dark:text-slate-100'}>{q.text}</span>
                               {isMissingMobile && (
                                 <span className="ml-1 inline-flex items-center rounded-sm bg-rose-500/20 px-1 py-0.5 text-[10px] font-semibold text-rose-400">⚠</span>
                               )}
                               {openFindingsByQuestion.has(q.id) && (
-                                <span className="ml-1 inline-flex items-center rounded-sm bg-amber-500/20 px-1 py-0.5 text-[10px] font-semibold text-amber-300">
+                                <span className="ml-1 inline-flex items-center rounded-sm bg-amber-500/20 px-1 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-300">
                                   ⚠ Açık bulgu ({openFindingsByQuestion.get(q.id)})
                                 </span>
                               )}
                             </div>
-                            <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-400">
-                              <span className="inline-flex items-center gap-1 rounded-full bg-slate-800/80 px-2 py-0.5">
+                            <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-600 dark:text-slate-400">
+                              <span className="inline-flex items-center gap-1 rounded-full bg-slate-200 dark:bg-slate-800/80 px-2 py-0.5">
                                 <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
                                 {ratingLabel}
                               </span>
-                              <span className="font-semibold text-sky-300">{formatScore(point)}</span>
-                              <span className="text-[10px] text-slate-500">/ {q.maxScore.toFixed(2)}</span>
+                              <span className="font-semibold text-sky-600 dark:text-sky-300">{formatScore(point)}</span>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-500">/ {q.maxScore.toFixed(2)}</span>
                             </div>
                           </div>
 
                           <div className="ml-2 flex items-center">
-                            <span className="mr-1 text-[10px] text-slate-500">{isOpen ? 'Kapat' : 'Aç'}</span>
+                            <span className="mr-1 text-[10px] text-slate-500 dark:text-slate-500">{isOpen ? 'Kapat' : 'Aç'}</span>
                             <span
-                              className={`inline-block transform text-slate-400 transition-transform ${isOpen ? 'rotate-90' : 'rotate-0'
+                              className={`inline-block transform text-slate-600 dark:text-slate-400 transition-transform ${isOpen ? 'rotate-90' : 'rotate-0'
                                 }`}
                             >
                               ▸
@@ -2922,7 +2922,7 @@ export default function FiveSAuditFormPage() {
                                 <button
                                   type="button"
                                   onClick={() => openDetailModal(q.id)}
-                                  className="inline-flex items-center rounded-md border border-slate-600 bg-slate-950/70 px-3 py-1.5 text-[11px] hover:bg-slate-800"
+                                  className="inline-flex items-center rounded-md border border-slate-400 dark:border-slate-600 bg-white dark:bg-slate-950/70 px-3 py-1.5 text-[11px] hover:bg-slate-200 hover:dark:bg-slate-800"
                                 >
                                   {ans?.findingType ||
                                     ans?.explanation ||
@@ -2935,7 +2935,7 @@ export default function FiveSAuditFormPage() {
                             )}
 
                             <div>
-                              <span className="mb-1 block text-[11px] font-medium text-slate-300">Değerlendirme</span>
+                              <span className="mb-1 block text-[11px] font-medium text-slate-700 dark:text-slate-300">Değerlendirme</span>
                               <div className="flex flex-wrap gap-3 text-[11px]">
                                 <label className="inline-flex items-center gap-1">
                                   <input
@@ -2944,7 +2944,7 @@ export default function FiveSAuditFormPage() {
                                     value="good"
                                     checked={rating === 'good'}
                                     onChange={() => handleRatingChange(q.id, 'good')}
-                                    className="h-3 w-3 border-slate-500 bg-slate-900 text-sky-400 focus:ring-sky-500"
+                                    className="h-3 w-3 border-slate-500 bg-white dark:bg-slate-900 text-sky-600 dark:text-sky-400 focus:ring-sky-500"
                                   />
                                   <span>İyi</span>
                                 </label>
@@ -2955,7 +2955,7 @@ export default function FiveSAuditFormPage() {
                                     value="medium"
                                     checked={rating === 'medium'}
                                     onChange={() => handleRatingChange(q.id, 'medium')}
-                                    className="h-3 w-3 border-slate-500 bg-slate-900 text-sky-400 focus:ring-sky-500"
+                                    className="h-3 w-3 border-slate-500 bg-white dark:bg-slate-900 text-sky-600 dark:text-sky-400 focus:ring-sky-500"
                                   />
                                   <span>Orta</span>
                                 </label>
@@ -2966,7 +2966,7 @@ export default function FiveSAuditFormPage() {
                                     value="bad"
                                     checked={rating === 'bad'}
                                     onChange={() => handleRatingChange(q.id, 'bad')}
-                                    className="h-3 w-3 border-slate-500 bg-slate-900 text-sky-400 focus:ring-sky-500"
+                                    className="h-3 w-3 border-slate-500 bg-white dark:bg-slate-900 text-sky-600 dark:text-sky-400 focus:ring-sky-500"
                                   />
                                   <span>Kötü</span>
                                 </label>
@@ -2983,12 +2983,12 @@ export default function FiveSAuditFormPage() {
           })}
 
           {/* Özet & Aksiyonlar */}
-          <section className="space-y-4 rounded-xl border border-slate-800 bg-slate-900/80 p-4">
-            <h2 className="text-sm font-semibold text-slate-100">Değerlendirme Özeti</h2>
+          <section className="space-y-4 rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 p-4">
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Değerlendirme Özeti</h2>
 
             <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-xs text-slate-200">
-                <thead className="bg-slate-900/90 text-[11px] uppercase tracking-wide text-slate-400">
+              <table className="min-w-full text-left text-xs text-slate-800 dark:text-slate-200">
+                <thead className="bg-slate-50 dark:bg-slate-900/90 text-[11px] uppercase tracking-wide text-slate-600 dark:text-slate-400">
                   <tr>
                     <th className="px-4 py-2">Adım</th>
                     <th className="px-4 py-2">Puan</th>
@@ -2996,29 +2996,29 @@ export default function FiveSAuditFormPage() {
                 </thead>
                 <tbody>
                   {steps.map((step) => (
-                    <tr key={step.code} className="border-t border-slate-800/80">
+                    <tr key={step.code} className="border-t border-slate-300 dark:border-slate-800/80">
                       <td className="px-4 py-2 text-xs">{step.title}</td>
-                      <td className="px-4 py-2 text-xs font-semibold text-sky-300">
+                      <td className="px-4 py-2 text-xs font-semibold text-sky-600 dark:text-sky-300">
                         {formatScore(stepScores[step.code])}
                       </td>
                     </tr>
                   ))}
                   <tr className="border-t border-slate-700/80">
                     <td className="px-4 py-2 text-xs font-semibold">Toplam (100)</td>
-                    <td className="px-4 py-2 text-xs font-bold text-emerald-300">{formatScore(totalScore)}</td>
+                    <td className="px-4 py-2 text-xs font-bold text-emerald-600 dark:text-emerald-300">{formatScore(totalScore)}</td>
                   </tr>
                 </tbody>
               </table>
             </div>
 
             {submitted && (
-              <p className="text-xs text-emerald-300">
+              <p className="text-xs text-emerald-600 dark:text-emerald-300">
                 {isOnline ? 'Form başarıyla gönderildi.' : 'Form offline kuyruğa alındı (internet gelince gönderilecek).'}
               </p>
             )}
 
             <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:justify-between">
-              <div className="text-[11px] text-slate-400">
+              <div className="text-[11px] text-slate-600 dark:text-slate-400">
                 <p>* Puanlama; İyi / Orta / Kötü seçimine göre otomatik hesaplanır.</p>
                 <p>* Orta / Kötü seçimlerinde bulgu tipi, açıklama ve aksiyon alanları zorunludur.</p>
                 <p>* Offline iken kayıt kuyruğa alınır.</p>
@@ -3033,7 +3033,7 @@ export default function FiveSAuditFormPage() {
                   <button
                     type="button"
                     onClick={handleReset}
-                    className="inline-flex items-center justify-center rounded-md border border-slate-600 px-4 py-2 text-xs font-medium text-slate-200 hover:bg-slate-800"
+                    className="inline-flex items-center justify-center rounded-md border border-slate-400 dark:border-slate-600 px-4 py-2 text-xs font-medium text-slate-800 dark:text-slate-200 hover:bg-slate-200 hover:dark:bg-slate-800"
                   >
                     Temizle
                   </button>
@@ -3043,13 +3043,13 @@ export default function FiveSAuditFormPage() {
                     title={hasAttempted && liveUnanswered.size > 0 ? `${liveUnanswered.size} soru yanıtlanmadan form kaydedilemez.` : undefined}
                     className={`inline-flex items-center gap-1.5 justify-center rounded-md px-4 py-2 text-xs font-semibold transition-colors ${
                       hasAttempted && liveUnanswered.size > 0
-                        ? 'cursor-not-allowed bg-slate-700 text-slate-400'
+                        ? 'cursor-not-allowed bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
                         : 'bg-sky-500 text-slate-950 hover:bg-sky-400'
                     }`}
                   >
                     Formu Kaydet
                     {hasAttempted && liveUnanswered.size > 0 && (
-                      <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white">
+                      <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-slate-900 dark:text-white">
                         {liveUnanswered.size}
                       </span>
                     )}
@@ -3063,22 +3063,22 @@ export default function FiveSAuditFormPage() {
         {/* Soru bazlı Detay Modal */}
         {activeQuestion && activeAnswer && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-            <div className="w-full max-w-lg rounded-xl border border-slate-700 bg-slate-900 p-4 shadow-2xl md:p-6">
+            <div className="w-full max-w-lg rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-2xl md:p-6">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-100">
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                     {activeQuestion.stepCode} - {activeQuestion.text}
                   </h3>
-                  <p className="mt-1 text-[11px] text-slate-400">Orta / Kötü değerlendirmeler için detayları doldurun.</p>
+                  <p className="mt-1 text-[11px] text-slate-600 dark:text-slate-400">Orta / Kötü değerlendirmeler için detayları doldurun.</p>
                 </div>
-                <button type="button" onClick={closeDetailModal} className="text-sm text-slate-400 hover:text-slate-200">
+                <button type="button" onClick={closeDetailModal} className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-800 hover:dark:text-slate-200">
                   ✕
                 </button>
               </div>
 
               <div className="mt-4 space-y-4 text-xs">
                 <div>
-                  <label className="mb-1 block font-medium text-slate-300">
+                  <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">
                     Bulgu Tipi <span className="text-rose-400">(zorunlu)</span>
                   </label>
                   <select
@@ -3092,7 +3092,7 @@ export default function FiveSAuditFormPage() {
                         },
                       }))
                     }
-                    className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+                    className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
                   >
                     <option value="">Seçiniz</option>
                     {findingTypeOptions.length === 0 ? (
@@ -3110,23 +3110,23 @@ export default function FiveSAuditFormPage() {
                 </div>
 
                 <div>
-                  <label className="mb-1 block font-medium text-slate-300">
+                  <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">
                     Açıklama <span className="text-rose-400">(Orta/Kötü için zorunlu)</span>
                   </label>
                   <textarea
                     rows={3}
                     value={activeAnswer.explanation ?? ''}
                     onChange={(e) => handleExplanationChange(activeQuestion.id, e.target.value)}
-                    className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+                    className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
                     placeholder="Kısa açıklama girin..."
                   />
                 </div>
 
                 <div>
-                  <label className="mb-1 block font-medium text-slate-300">Fotoğraflar</label>
+                  <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">Fotoğraflar</label>
 
                   <div className="flex items-center gap-2">
-                    <label className="inline-flex flex-1 cursor-pointer items-center justify-center rounded-md border border-slate-600 bg-slate-950/70 px-3 py-1.5 text-[11px] hover:bg-slate-800">
+                    <label className="inline-flex flex-1 cursor-pointer items-center justify-center rounded-md border border-slate-400 dark:border-slate-600 bg-white dark:bg-slate-950/70 px-3 py-1.5 text-[11px] hover:bg-slate-200 hover:dark:bg-slate-800">
                       Fotoğraf(lar) Ekle
                       <input
                         type="file"
@@ -3147,15 +3147,15 @@ export default function FiveSAuditFormPage() {
                       {activeAnswer.photos.map((f, i) => (
                         <li
                           key={`${f.name}-${f.size}-${f.lastModified}-${i}`}
-                          className="flex items-center justify-between gap-2 rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1"
+                          className="flex items-center justify-between gap-2 rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/40 px-2 py-1"
                         >
-                          <span className="truncate text-[11px] text-slate-300">
+                          <span className="truncate text-[11px] text-slate-700 dark:text-slate-300">
                             {i + 1}. {f.name}
                           </span>
                           <button
                             type="button"
                             onClick={() => handlePhotoRemove(activeQuestion.id, i)}
-                            className="rounded-md border border-slate-700 px-2 py-0.5 text-[10px] text-slate-200 hover:bg-slate-800"
+                            className="rounded-md border border-slate-300 dark:border-slate-700 px-2 py-0.5 text-[10px] text-slate-800 dark:text-slate-200 hover:bg-slate-200 hover:dark:bg-slate-800"
                           >
                             Sil
                           </button>
@@ -3163,12 +3163,12 @@ export default function FiveSAuditFormPage() {
                       ))}
                     </ul>
                   ) : (
-                    <p className="mt-2 text-[11px] text-slate-500">Henüz fotoğraf eklenmedi.</p>
+                    <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-500">Henüz fotoğraf eklenmedi.</p>
                   )}
                 </div>
 
                 <div>
-                  <label className="mb-1 block font-medium text-slate-300">
+                  <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">
                     Alınacak Faaliyet <span className="text-rose-400">(zorunlu)</span>
                   </label>
                   <select
@@ -3176,7 +3176,7 @@ export default function FiveSAuditFormPage() {
                     onChange={(e) =>
                       handleActionToTakeChange(activeQuestion.id, (e.target.value as ActionToTake) || null)
                     }
-                    className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+                    className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
                   >
                     <option value="">Seçiniz</option>
                     {actionToTakeOptions.length === 0 ? (
@@ -3194,19 +3194,19 @@ export default function FiveSAuditFormPage() {
                 </div>
 
                 <div>
-                  <label className="mb-1 block font-medium text-slate-300">
+                  <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">
                     Termin Tarihi <span className="text-rose-400">(zorunlu)</span>
                   </label>
                   <DateInput
                    
                     value={activeAnswer.dueDate ?? header.date}
                     onChange={(value) => handleDueDateChange(activeQuestion.id,  value)}
-                   className="date-dark w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+                   className="date-dark w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
 />
                 </div>
 
                 <div>
-                  <label className="mb-1 block font-medium text-slate-300">
+                  <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">
                     Tespit Edildiği Yer <span className="text-rose-400">(zorunlu)</span>
                   </label>
                   <input
@@ -3214,7 +3214,7 @@ export default function FiveSAuditFormPage() {
                     list="five-s-location-options"
                     value={activeAnswer.locationName ?? header.department}
                     onChange={(e) => handleLocationChange(activeQuestion.id, e.target.value)}
-                    className="w-full rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+                    className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
                     placeholder="Örn: Bakım Onarım, Ofis girişi..."
                   />
                 </div>
@@ -3224,7 +3224,7 @@ export default function FiveSAuditFormPage() {
                 <button
                   type="button"
                   onClick={closeDetailModal}
-                  className="rounded-md border border-slate-600 px-4 py-1.5 text-slate-200 hover:bg-slate-800"
+                  className="rounded-md border border-slate-400 dark:border-slate-600 px-4 py-1.5 text-slate-800 dark:text-slate-200 hover:bg-slate-200 hover:dark:bg-slate-800"
                 >
                   Kapat
                 </button>
@@ -3243,50 +3243,50 @@ export default function FiveSAuditFormPage() {
         {/* Bulgu Detay Modal (plan varken de aynı) */}
         {activeFinding && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-            <div className="w-full max-w-lg rounded-xl border border-slate-700 bg-slate-900 p-4 shadow-2xl md:p-6">
+            <div className="w-full max-w-lg rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-2xl md:p-6">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-100">Bulgu Detayı</h3>
-                  <p className="mt-1 text-[11px] text-slate-400">
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Bulgu Detayı</h3>
+                  <p className="mt-1 text-[11px] text-slate-600 dark:text-slate-400">
                     {String(activeFinding.finding_type ?? '-')} • {String(activeFinding.detected_date ?? '-')}
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setActiveFinding(null)}
-                  className="text-sm text-slate-400 hover:text-slate-200"
+                  className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-800 hover:dark:text-slate-200"
                 >
                   ✕
                 </button>
               </div>
 
-              <div className="mt-4 space-y-3 text-xs text-slate-200">
-                <div className="rounded-md border border-slate-800 bg-slate-950/40 p-3 whitespace-pre-wrap">
+              <div className="mt-4 space-y-3 text-xs text-slate-800 dark:text-slate-200">
+                <div className="rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/40 p-3 whitespace-pre-wrap">
                   {activeFinding.description || '-'}
                 </div>
 
-                <div className="grid gap-2 sm:grid-cols-2 text-[11px] text-slate-300">
+                <div className="grid gap-2 sm:grid-cols-2 text-[11px] text-slate-700 dark:text-slate-300">
                   <div>
-                    <span className="text-slate-500">Termin:</span> {String(activeFinding.due_date ?? '-')}
+                    <span className="text-slate-500 dark:text-slate-500">Termin:</span> {String(activeFinding.due_date ?? '-')}
                   </div>
                   <div>
-                    <span className="text-slate-500">Sorumlu:</span> {String(activeFinding.responsible_name ?? '-')}
+                    <span className="text-slate-500 dark:text-slate-500">Sorumlu:</span> {String(activeFinding.responsible_name ?? '-')}
                   </div>
                   <div className="sm:col-span-2">
-                    <span className="text-slate-500">Lokasyon:</span> {String(activeFinding.location_name ?? '-')}
+                    <span className="text-slate-500 dark:text-slate-500">Lokasyon:</span> {String(activeFinding.location_name ?? '-')}
                   </div>
                 </div>
 
                 {getBeforePhotoResolvedUrls(activeFinding).length > 0 ? (
-                  <div className="rounded-md border border-slate-800 bg-slate-950/30 p-3">
-                    <div className="mb-2 text-[11px] font-semibold text-slate-200">Öncesi Fotoğraflar</div>
+                  <div className="rounded-md border border-slate-300 dark:border-slate-800 bg-slate-950/30 p-3">
+                    <div className="mb-2 text-[11px] font-semibold text-slate-800 dark:text-slate-200">Öncesi Fotoğraflar</div>
                     <div className="grid grid-cols-3 gap-2">
                       {getBeforePhotoResolvedUrls(activeFinding).map((url, idx) => (
                         <button
                           key={`${url}-${idx}`}
                           type="button"
                           onClick={() => setPreviewUrl(url)}
-                          className="group relative overflow-hidden rounded-md border border-slate-800 bg-slate-950/40 hover:border-slate-600"
+                          className="group relative overflow-hidden rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/40 hover:border-slate-400 hover:dark:border-slate-600"
                           title="Büyüt"
                         >
                           <img
@@ -3295,16 +3295,16 @@ export default function FiveSAuditFormPage() {
                             className="h-20 w-full object-cover transition-transform group-hover:scale-[1.03]"
                             loading="lazy"
                           />
-                          <span className="absolute bottom-1 right-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-slate-100">
+                          <span className="absolute bottom-1 right-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-slate-900 dark:text-slate-100">
                             {idx + 1}
                           </span>
                         </button>
                       ))}
                     </div>
-                    <div className="mt-2 text-[10px] text-slate-400">Fotoğrafa tıklayınca büyür.</div>
+                    <div className="mt-2 text-[10px] text-slate-600 dark:text-slate-400">Fotoğrafa tıklayınca büyür.</div>
                   </div>
                 ) : (
-                  <div className="text-[11px] text-slate-500">Öncesi fotoğraf yok.</div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-500">Öncesi fotoğraf yok.</div>
                 )}
               </div>
 
@@ -3312,7 +3312,7 @@ export default function FiveSAuditFormPage() {
                 <button
                   type="button"
                   onClick={() => setActiveFinding(null)}
-                  className="rounded-md border border-slate-600 px-4 py-1.5 text-xs text-slate-200 hover:bg-slate-800"
+                  className="rounded-md border border-slate-400 dark:border-slate-600 px-4 py-1.5 text-xs text-slate-800 dark:text-slate-200 hover:bg-slate-200 hover:dark:bg-slate-800"
                 >
                   Kapat
                 </button>
@@ -3330,7 +3330,7 @@ export default function FiveSAuditFormPage() {
               <button
                 type="button"
                 onClick={() => setPreviewUrl(null)}
-                className="absolute -top-10 right-0 rounded-md border border-slate-600 bg-slate-900/60 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-900"
+                className="absolute -top-10 right-0 rounded-md border border-slate-400 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/60 px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 hover:bg-white hover:dark:bg-slate-900"
               >
                 ✕ Kapat
               </button>
@@ -3338,7 +3338,7 @@ export default function FiveSAuditFormPage() {
               <img
                 src={previewUrl}
                 alt="preview"
-                className="max-h-[80vh] w-full rounded-xl border border-slate-700 object-contain bg-slate-950"
+                className="max-h-[80vh] w-full rounded-xl border border-slate-300 dark:border-slate-700 object-contain bg-slate-100 dark:bg-slate-950"
                 onClick={(e) => e.stopPropagation()}
               />
             </div>

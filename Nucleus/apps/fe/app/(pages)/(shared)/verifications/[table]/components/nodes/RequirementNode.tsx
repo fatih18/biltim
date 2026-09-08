@@ -57,7 +57,7 @@ function RequirementNodeComponent({ data, selected }: NodeProps & { data: Requir
       />
 
       <div className="flex items-center gap-2 border-b border-slate-100 bg-gradient-to-r from-indigo-50 to-purple-50 px-3 py-2">
-        <div className="flex h-6 w-6 items-center justify-center rounded-md bg-indigo-500 text-white shadow-sm">
+        <div className="flex h-6 w-6 items-center justify-center rounded-md bg-indigo-500 text-slate-900 dark:text-white shadow-sm">
           {getVerifierIcon()}
         </div>
         <div className="flex-1 min-w-0">
@@ -70,19 +70,19 @@ function RequirementNodeComponent({ data, selected }: NodeProps & { data: Requir
 
       <div className="px-3 py-2 space-y-1">
         {data.isSignatureMandatory && (
-          <div className="flex items-center gap-1.5 text-[10px] text-slate-600">
+          <div className="flex items-center gap-1.5 text-[10px] text-slate-400 dark:text-slate-600">
             <PenTool className="h-3 w-3 text-amber-500 flex-shrink-0" />
             <span>Signature required</span>
           </div>
         )}
         {data.verifierType === 'role' && data.isAllRequired && (
-          <div className="flex items-center gap-1.5 text-[10px] text-slate-600">
+          <div className="flex items-center gap-1.5 text-[10px] text-slate-400 dark:text-slate-600">
             <Users className="h-3 w-3 text-blue-500 flex-shrink-0" />
             <span>All users with this role must approve</span>
           </div>
         )}
         {!data.isSignatureMandatory && !data.isAllRequired && (
-          <div className="text-[10px] text-slate-400">Click to configure</div>
+          <div className="text-[10px] text-slate-600 dark:text-slate-400">Click to configure</div>
         )}
       </div>
 

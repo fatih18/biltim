@@ -11,7 +11,7 @@ export function ClaimsPagination({
 
   return (
     <div className="mt-4 flex items-center justify-between border-t border-slate-200 pt-4">
-      <div className="text-sm text-slate-600">
+      <div className="text-sm text-slate-400 dark:text-slate-600">
         Showing <span className="font-medium">{currentCount}</span> of{' '}
         <span className="font-medium">{totalItems}</span> claims
       </div>
@@ -24,7 +24,7 @@ export function ClaimsPagination({
         >
           Previous
         </button>
-        <span className="text-xs text-slate-600">
+        <span className="text-xs text-slate-400 dark:text-slate-600">
           Page <span className="font-semibold">{currentPage}</span> of{' '}
           <span className="font-semibold">{totalPages}</span>
         </span>

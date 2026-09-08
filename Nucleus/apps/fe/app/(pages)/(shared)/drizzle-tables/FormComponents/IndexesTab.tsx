@@ -37,12 +37,12 @@ export function IndexesTab({
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-lg font-semibold text-slate-800">Indexes</h3>
-          <p className="text-sm text-slate-500">Define database indexes for performance</p>
+          <p className="text-sm text-slate-500 dark:text-slate-500">Define database indexes for performance</p>
         </div>
         <button
           type="button"
           onClick={addIndex}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-slate-900 dark:text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           <Plus className="w-4 h-4" />
           Add Index
@@ -100,7 +100,7 @@ export function IndexesTab({
         ))}
 
         {schema.indexes.length === 0 && (
-          <div className="text-center py-12 text-slate-500">
+          <div className="text-center py-12 text-slate-500 dark:text-slate-500">
             No indexes yet. Click "Add Index" to create one.
           </div>
         )}

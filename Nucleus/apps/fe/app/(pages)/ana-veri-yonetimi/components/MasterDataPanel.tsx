@@ -71,12 +71,12 @@ export function MasterDataPanel(props: {
     }
 
     return (
-        <section className="rounded-xl border border-slate-800 bg-slate-900/80">
-            <div className="border-b border-slate-800 px-4 py-3">
+        <section className="rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80">
+            <div className="border-b border-slate-300 dark:border-slate-800 px-4 py-3">
                 <div className="flex items-center justify-between gap-3">
                     <div>
-                        <h2 className="text-sm font-semibold text-slate-100">{title}</h2>
-                        <p className="mt-1 text-xs text-slate-400"></p>
+                        <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{title}</h2>
+                        <p className="mt-1 text-xs text-slate-600 dark:text-slate-400"></p>
                     </div>
                     <button
                         type="button"
@@ -97,27 +97,27 @@ export function MasterDataPanel(props: {
             </div>
 
             <div className="p-4">
-                <div className="overflow-hidden rounded-lg border border-slate-800">
+                <div className="overflow-hidden rounded-lg border border-slate-300 dark:border-slate-800">
                     {/* HEADER */}
-                    <div className="grid grid-cols-12 bg-slate-900/90 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                    <div className="grid grid-cols-12 bg-slate-50 dark:bg-slate-900/90 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-slate-600 dark:text-slate-400">
                         <div className="col-span-10 text-center">İsim</div>
                         <div className="col-span-2 text-center">İşlem</div>
                     </div>
 
                     {filtered.length === 0 ? (
-                        <div className="px-3 py-6 text-sm text-slate-400 text-center">
+                        <div className="px-3 py-6 text-sm text-slate-600 dark:text-slate-400 text-center">
                             Kayıt yok.
                         </div>
                     ) : (
                         filtered.map((it) => {
                             const nameClass = it.isActive
-                                ? "text-emerald-300"
+                                ? "text-emerald-600 dark:text-emerald-300"
                                 : "text-rose-300/60 line-through";
 
                             return (
                                 <div
                                     key={it.id}
-                                    className="grid grid-cols-12 items-center gap-2 border-t border-slate-800/80 px-3 py-2"
+                                    className="grid grid-cols-12 items-center gap-2 border-t border-slate-300 dark:border-slate-800/80 px-3 py-2"
                                 >
                                     {/* NAME */}
                                     <div
@@ -126,7 +126,7 @@ export function MasterDataPanel(props: {
                                     >
                                         {it.name}
                                         {!it.isActive ? (
-                                            <span className="ml-2 text-[11px] font-medium text-slate-500 no-underline">
+                                            <span className="ml-2 text-[11px] font-medium text-slate-500 dark:text-slate-500 no-underline">
                                                 (Pasif)
                                             </span>
                                         ) : null}
@@ -139,7 +139,7 @@ export function MasterDataPanel(props: {
                                                 type="button"
                                                 onClick={() => openEdit(it)}
                                                 title="Düzenle"
-                                                className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-transparent text-slate-300 hover:bg-slate-800 hover:text-slate-100"
+                                                className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-200 hover:dark:bg-slate-800 hover:text-slate-900 hover:dark:text-slate-100"
                                             >
                                                 <Pencil className="h-4 w-4" />
                                             </button>
@@ -148,7 +148,7 @@ export function MasterDataPanel(props: {
                                                 type="button"
                                                 onClick={() => onDelete(it.id)}
                                                 title="Sil"
-                                                className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-transparent text-rose-300/80 hover:bg-rose-500/10 hover:text-rose-200"
+                                                className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-transparent text-rose-300/80 hover:bg-rose-100 hover:dark:bg-rose-500/10 hover:text-rose-700 hover:dark:text-rose-200"
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </button>
@@ -161,7 +161,7 @@ export function MasterDataPanel(props: {
                 </div>
 
                 {/* Legend */}
-                <div className="mt-2 flex items-center justify-center gap-4 text-[11px] text-slate-400">
+                <div className="mt-2 flex items-center justify-center gap-4 text-[11px] text-slate-600 dark:text-slate-400">
                     <span className="inline-flex items-center gap-2">
                         <span className="h-2 w-2 rounded-full bg-emerald-400" />
                         Aktif
@@ -189,13 +189,13 @@ export function MasterDataPanel(props: {
             >
                 <div className="space-y-4 text-xs">
                     <div>
-                        <label className="mb-1 block font-medium text-slate-300">İsim</label>
+                        <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">İsim</label>
                         <Input value={name} onChange={(e) => setName(e.target.value)} />
                     </div>
 
                     {mode === "edit" ? (
                         <div>
-                            <label className="mb-1 block font-medium text-slate-300">
+                            <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">
                                 Aktiflik
                             </label>
                             <Select
@@ -209,7 +209,7 @@ export function MasterDataPanel(props: {
                     ) : null}
 
                     {error ? (
-                        <div className="rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+                        <div className="rounded-md border border-rose-500/30 bg-rose-100 dark:bg-rose-500/10 px-3 py-2 text-xs text-rose-700 dark:text-rose-200">
                             {error}
                         </div>
                     ) : null}

@@ -173,7 +173,7 @@ export function UsersManageClaimsModal({
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm p-6">
       <div
-        className="relative w-full max-w-3xl overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl"
+        className="relative w-full max-w-3xl overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-900 dark:text-white shadow-2xl"
         aria-busy={isLoading || isLoadingMore}
         aria-live="polite"
       >
@@ -182,18 +182,18 @@ export function UsersManageClaimsModal({
         </div>
 
         {isLoadingInitial ? (
-          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-slate-900/70 backdrop-blur-sm">
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-white dark:bg-slate-900/70 backdrop-blur-sm">
             <Loader2 className="animate-spin" size={28} />
-            <span className="text-sm text-slate-200">İşleniyor, lütfen bekleyin...</span>
+            <span className="text-sm text-slate-800 dark:text-slate-200">İşleniyor, lütfen bekleyin...</span>
           </div>
         ) : null}
 
         <div className="relative z-10">
-          <header className="flex flex-col gap-6 border-b border-white/10 px-8 py-6">
+          <header className="flex flex-col gap-6 border-b border-slate-300 dark:border-white/10 px-8 py-6">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-bold">İzinleri Yönet</h2>
-                <p className="mt-2 text-sm text-slate-300">
+                <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
                   Bu kullanıcı için yetki izinleri atayın veya kaldırın.
                 </p>
               </div>
@@ -203,7 +203,7 @@ export function UsersManageClaimsModal({
                   usersStore.clearClaimModalPendingIds()
                   onClose()
                 }}
-                className="rounded-full border border-white/10 bg-white/5 p-2 text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-full border border-slate-300 dark:border-white/10 bg-slate-100 dark:bg-white/5 p-2 text-slate-900 dark:text-white transition hover:bg-slate-300 hover:dark:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
                 aria-label="Close claim management"
                 disabled={isInteractionLocked}
               >
@@ -213,7 +213,7 @@ export function UsersManageClaimsModal({
 
             <div className="relative">
               <Search
-                className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400"
                 size={18}
               />
               <input
@@ -221,7 +221,7 @@ export function UsersManageClaimsModal({
                 value={usersStore.claimModal.search}
                 onChange={handleSearchChange}
                 placeholder="Aksiyon veya yola göre izin ara..."
-                className="w-full rounded-2xl border border-white/10 bg-white/5 py-3 pl-12 pr-4 text-sm text-white placeholder:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/60 disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full rounded-2xl border border-slate-300 dark:border-white/10 bg-slate-100 dark:bg-white/5 py-3 pl-12 pr-4 text-sm text-slate-900 dark:text-white placeholder:text-slate-600 placeholder:dark:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/60 disabled:cursor-not-allowed disabled:opacity-60"
                 aria-label="Search claims"
                 disabled={isInteractionLocked}
               />
@@ -230,12 +230,12 @@ export function UsersManageClaimsModal({
 
           <div className="max-h-[26rem] overflow-y-auto px-8 py-6">
             {isLoadingInitial ? (
-              <div className="flex flex-col items-center justify-center gap-3 py-16 text-slate-300">
+              <div className="flex flex-col items-center justify-center gap-3 py-16 text-slate-700 dark:text-slate-300">
                 <Loader2 className="animate-spin" size={28} />
                 <span>İzinler yükleniyor...</span>
               </div>
             ) : claims.length === 0 ? (
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-10 text-center text-slate-300">
+              <div className="rounded-2xl border border-slate-300 dark:border-white/10 bg-slate-100 dark:bg-white/5 p-10 text-center text-slate-700 dark:text-slate-300">
                 Mevcut filtrelerle izin bulunamadı.
               </div>
             ) : (
@@ -248,25 +248,25 @@ export function UsersManageClaimsModal({
                       key={claim.id}
                       className={`rounded-2xl border p-4 transition ${
                         isAssigned
-                          ? 'border-emerald-400/60 bg-emerald-500/10 shadow-lg shadow-emerald-500/10'
-                          : 'border-white/10 bg-white/5'
+                          ? 'border-emerald-400/60 bg-emerald-100 dark:bg-emerald-500/10 shadow-lg shadow-emerald-500/10'
+                          : 'border-slate-300 dark:border-white/10 bg-slate-100 dark:bg-white/5'
                       }`}
                     >
                       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                         <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-300">
+                          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">
                             <ShieldCheck size={16} />
                             {claim.mode === 'exact' ? 'Tam Eşleşme' : 'Başlangıç'}
                           </div>
-                          <h3 className="text-lg font-semibold text-white">{claim.action}</h3>
-                          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300">
-                            <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 font-semibold uppercase tracking-wide">
+                          <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{claim.action}</h3>
+                          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-700 dark:text-slate-300">
+                            <span className="rounded-full border border-slate-300 dark:border-white/10 bg-slate-200 dark:bg-white/10 px-3 py-1 font-semibold uppercase tracking-wide">
                               {claim.method}
                             </span>
-                            <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1">
+                            <span className="rounded-full border border-slate-300 dark:border-white/10 bg-slate-200 dark:bg-white/10 px-3 py-1">
                               {claim.path}
                             </span>
-                            <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/10 px-3 py-1">
+                            <span className="inline-flex items-center gap-1 rounded-full border border-slate-300 dark:border-white/10 bg-slate-200 dark:bg-white/10 px-3 py-1">
                               <ChevronDown size={14} /> {claim.mode}
                             </span>
                           </div>
@@ -283,7 +283,7 @@ export function UsersManageClaimsModal({
 
                 <div ref={sentinelRef} className="h-1" />
                 {usersStore.claimModal.isLoadingMore ? (
-                  <div className="flex items-center justify-center gap-2 pb-4 text-sm text-slate-300">
+                  <div className="flex items-center justify-center gap-2 pb-4 text-sm text-slate-700 dark:text-slate-300">
                     <Loader2 className="animate-spin" size={16} />
                     Daha fazla izin yükleniyor...
                   </div>
@@ -292,15 +292,15 @@ export function UsersManageClaimsModal({
             )}
           </div>
 
-          <footer className="flex flex-col gap-4 border-t border-white/10 bg-black/20 px-8 py-6">
-            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300">
-              <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3 py-1">
+          <footer className="flex flex-col gap-4 border-t border-slate-300 dark:border-white/10 bg-black/20 px-8 py-6">
+            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-700 dark:text-slate-300">
+              <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400 dark:border-emerald-400/40 bg-emerald-100 dark:bg-emerald-500/10 px-3 py-1">
                 <Check size={14} /> Atandı
               </span>
               <span className="inline-flex items-center gap-2 rounded-full border border-red-400/40 bg-red-500/10 px-3 py-1">
                 <X size={14} /> Atanmadı
               </span>
-              <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1">
+              <span className="inline-flex items-center gap-2 rounded-full border border-slate-300 dark:border-white/10 bg-slate-100 dark:bg-white/5 px-3 py-1">
                 <Loader2 className="animate-spin" size={14} /> Bekliyor
               </span>
             </div>
@@ -312,7 +312,7 @@ export function UsersManageClaimsModal({
                   usersStore.clearClaimModalPendingIds()
                   onClose()
                 }}
-                className="rounded-full border border-white/10 bg-white/5 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-full border border-slate-300 dark:border-white/10 bg-slate-100 dark:bg-white/5 px-5 py-2 text-sm font-semibold text-slate-900 dark:text-white transition hover:bg-slate-200 hover:dark:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={isInteractionLocked}
               >
                 Kapat

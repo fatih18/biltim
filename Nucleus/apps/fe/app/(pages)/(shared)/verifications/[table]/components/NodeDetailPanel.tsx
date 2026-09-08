@@ -61,20 +61,20 @@ export function NodeDetailPanel({ node, onClose, onUpdate, onDelete }: NodeDetai
       <div className={`bg-gradient-to-r ${headerInfo.color} px-3 py-3`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20 text-white">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-300 dark:bg-white/20 text-slate-900 dark:text-white">
               {headerInfo.icon}
             </div>
             <div>
               <div className="text-[10px] font-medium text-white/70 uppercase tracking-wide">
                 Configure
               </div>
-              <div className="text-sm font-bold text-white">{headerInfo.title}</div>
+              <div className="text-sm font-bold text-slate-900 dark:text-white">{headerInfo.title}</div>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-7 w-7 items-center justify-center rounded-md text-white/70 transition-colors hover:bg-white/20 hover:text-white"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-white/70 transition-colors hover:bg-slate-300 hover:dark:bg-white/20 hover:text-slate-900 hover:dark:text-white"
           >
             <X className="h-4 w-4" />
           </button>
@@ -114,7 +114,7 @@ export function NodeDetailPanel({ node, onClose, onUpdate, onDelete }: NodeDetai
         <button
           type="button"
           onClick={onClose}
-          className="ml-auto flex items-center gap-1.5 rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-slate-800"
+          className="ml-auto flex items-center gap-1.5 rounded-md bg-white dark:bg-slate-900 px-3 py-1.5 text-xs font-medium text-slate-900 dark:text-white transition-colors hover:bg-slate-200 hover:dark:bg-slate-800"
         >
           <Save className="h-3.5 w-3.5" />
           Done
@@ -296,9 +296,9 @@ function VerifierForm({
             onScroll={handleUserScroll}
           >
             {isLoadingUsers && users.length === 0 ? (
-              <div className="px-3 py-2 text-xs text-slate-500">Loading users…</div>
+              <div className="px-3 py-2 text-xs text-slate-500 dark:text-slate-500">Loading users…</div>
             ) : users.length === 0 ? (
-              <div className="px-3 py-2 text-xs text-slate-500">No users found.</div>
+              <div className="px-3 py-2 text-xs text-slate-500 dark:text-slate-500">No users found.</div>
             ) : (
               users.map((user) => {
                 const fullName = `${user.profile?.first_name ?? ''} ${
@@ -324,7 +324,7 @@ function VerifierForm({
                         {fullName || user.email}
                       </span>
                       {fullName && (
-                        <span className="block text-[11px] text-slate-500 truncate">
+                        <span className="block text-[11px] text-slate-500 dark:text-slate-500 truncate">
                           {user.email}
                         </span>
                       )}
@@ -334,7 +334,7 @@ function VerifierForm({
               })
             )}
             {isLoadingUsers && users.length > 0 && (
-              <div className="px-3 py-1 text-[11px] text-slate-400">Loading more…</div>
+              <div className="px-3 py-1 text-[11px] text-slate-600 dark:text-slate-400">Loading more…</div>
             )}
           </div>
         </div>
@@ -365,9 +365,9 @@ function VerifierForm({
             onScroll={handleRoleScroll}
           >
             {isLoadingRoles && roles.length === 0 ? (
-              <div className="px-3 py-2 text-xs text-slate-500">Loading roles…</div>
+              <div className="px-3 py-2 text-xs text-slate-500 dark:text-slate-500">Loading roles…</div>
             ) : roles.length === 0 ? (
-              <div className="px-3 py-2 text-xs text-slate-500">No roles found.</div>
+              <div className="px-3 py-2 text-xs text-slate-500 dark:text-slate-500">No roles found.</div>
             ) : (
               roles.map((role) => {
                 const isSelected = data.verifierId === role.id
@@ -388,7 +388,7 @@ function VerifierForm({
                     <span className="flex-1 min-w-0">
                       <span className="block font-medium text-slate-900 truncate">{role.name}</span>
                       {role.description && (
-                        <span className="block text-[11px] text-slate-500 truncate">
+                        <span className="block text-[11px] text-slate-500 dark:text-slate-500 truncate">
                           {role.description}
                         </span>
                       )}
@@ -398,7 +398,7 @@ function VerifierForm({
               })
             )}
             {isLoadingRoles && roles.length > 0 && (
-              <div className="px-3 py-1 text-[11px] text-slate-400">Loading more…</div>
+              <div className="px-3 py-1 text-[11px] text-slate-600 dark:text-slate-400">Loading more…</div>
             )}
           </div>
         </div>
@@ -414,7 +414,7 @@ function VerifierForm({
           />
           <div>
             <div className="text-sm font-medium text-slate-900">Require Signature</div>
-            <div className="text-xs text-slate-500">Verifier must sign to approve</div>
+            <div className="text-xs text-slate-500 dark:text-slate-500">Verifier must sign to approve</div>
           </div>
         </label>
 
@@ -430,7 +430,7 @@ function VerifierForm({
               <div className="text-sm font-medium text-slate-900">
                 All users with this role must approve
               </div>
-              <div className="text-xs text-slate-500">
+              <div className="text-xs text-slate-500 dark:text-slate-500">
                 Require approval from every user who has this role
               </div>
             </div>
@@ -599,9 +599,9 @@ function NotificationForm({
             onScroll={handleUserScroll}
           >
             {isLoadingUsers && users.length === 0 ? (
-              <div className="px-3 py-2 text-xs text-slate-500">Loading users…</div>
+              <div className="px-3 py-2 text-xs text-slate-500 dark:text-slate-500">Loading users…</div>
             ) : users.length === 0 ? (
-              <div className="px-3 py-2 text-xs text-slate-500">No users found.</div>
+              <div className="px-3 py-2 text-xs text-slate-500 dark:text-slate-500">No users found.</div>
             ) : (
               users.map((user) => {
                 const fullName = `${user.profile?.first_name ?? ''} ${
@@ -626,7 +626,7 @@ function NotificationForm({
                         {fullName || user.email}
                       </span>
                       {fullName && (
-                        <span className="block text-[11px] text-slate-500 truncate">
+                        <span className="block text-[11px] text-slate-500 dark:text-slate-500 truncate">
                           {user.email}
                         </span>
                       )}
@@ -636,7 +636,7 @@ function NotificationForm({
               })
             )}
             {isLoadingUsers && users.length > 0 && (
-              <div className="px-3 py-1 text-[11px] text-slate-400">Loading more…</div>
+              <div className="px-3 py-1 text-[11px] text-slate-600 dark:text-slate-400">Loading more…</div>
             )}
           </div>
         </div>
@@ -667,9 +667,9 @@ function NotificationForm({
             onScroll={handleRoleScroll}
           >
             {isLoadingRoles && roles.length === 0 ? (
-              <div className="px-3 py-2 text-xs text-slate-500">Loading roles…</div>
+              <div className="px-3 py-2 text-xs text-slate-500 dark:text-slate-500">Loading roles…</div>
             ) : roles.length === 0 ? (
-              <div className="px-3 py-2 text-xs text-slate-500">No roles found.</div>
+              <div className="px-3 py-2 text-xs text-slate-500 dark:text-slate-500">No roles found.</div>
             ) : (
               roles.map((role) => {
                 const isSelected = data.recipientId === role.id
@@ -689,7 +689,7 @@ function NotificationForm({
                     <span className="flex-1 min-w-0">
                       <span className="block font-medium text-slate-900 truncate">{role.name}</span>
                       {role.description && (
-                        <span className="block text-[11px] text-slate-500 truncate">
+                        <span className="block text-[11px] text-slate-500 dark:text-slate-500 truncate">
                           {role.description}
                         </span>
                       )}
@@ -699,7 +699,7 @@ function NotificationForm({
               })
             )}
             {isLoadingRoles && roles.length > 0 && (
-              <div className="px-3 py-1 text-[11px] text-slate-400">Loading more…</div>
+              <div className="px-3 py-1 text-[11px] text-slate-600 dark:text-slate-400">Loading more…</div>
             )}
           </div>
         </div>

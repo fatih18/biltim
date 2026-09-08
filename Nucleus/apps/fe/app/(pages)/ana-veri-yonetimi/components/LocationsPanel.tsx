@@ -107,12 +107,12 @@ export function LocationsPanel(props: {
     }
 
     return (
-        <section className="rounded-xl border border-slate-800 bg-slate-900/80">
-            <div className="border-b border-slate-800 px-4 py-3">
+        <section className="rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80">
+            <div className="border-b border-slate-300 dark:border-slate-800 px-4 py-3">
                 <div className="flex items-center justify-between gap-3">
                     <div>
-                        <h2 className="text-sm font-semibold text-slate-100">Lokasyonlar</h2>
-                        <p className="mt-1 text-xs text-slate-400">Müdür ve saha sorumluları atanabilir.</p>
+                        <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Lokasyonlar</h2>
+                        <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">Müdür ve saha sorumluları atanabilir.</p>
                     </div>
                     <button
                         type="button"
@@ -133,8 +133,8 @@ export function LocationsPanel(props: {
             </div>
 
             <div className="p-4">
-                <div className="overflow-hidden rounded-lg border border-slate-800">
-                    <div className="grid grid-cols-12 bg-slate-900/90 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                <div className="overflow-hidden rounded-lg border border-slate-300 dark:border-slate-800">
+                    <div className="grid grid-cols-12 bg-slate-50 dark:bg-slate-900/90 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-slate-600 dark:text-slate-400">
                         <div className="col-span-4">İsim</div>
                         <div className="col-span-3">Müdür</div>
                         <div className="col-span-3">Saha Sorumlusu</div>
@@ -142,10 +142,10 @@ export function LocationsPanel(props: {
                     </div>
 
                     {filtered.length === 0 ? (
-                        <div className="px-3 py-6 text-sm text-slate-400 text-center">Kayıt yok.</div>
+                        <div className="px-3 py-6 text-sm text-slate-600 dark:text-slate-400 text-center">Kayıt yok.</div>
                     ) : (
                         filtered.map((it) => {
-                            const nameClass = it.isActive ? "text-emerald-300" : "text-rose-300/60 line-through";
+                            const nameClass = it.isActive ? "text-emerald-600 dark:text-emerald-300" : "text-rose-300/60 line-through";
                             const managerName = it.managerUserId ? (userById.get(it.managerUserId) ?? it.managerUserId) : "-";
                             const fmNames = (it.fieldManagerUserIds ?? [])
                                 .map((id) => userById.get(id) ?? id)
@@ -154,20 +154,20 @@ export function LocationsPanel(props: {
                             return (
                                 <div
                                     key={it.id}
-                                    className="grid grid-cols-12 items-center gap-2 border-t border-slate-800/80 px-3 py-2"
+                                    className="grid grid-cols-12 items-center gap-2 border-t border-slate-300 dark:border-slate-800/80 px-3 py-2"
                                 >
                                     <div className={`col-span-4 text-sm font-semibold ${nameClass}`} title={it.isActive ? "Aktif" : "Pasif"}>
                                         {it.name}
                                         {!it.isActive && (
-                                            <span className="ml-2 text-[11px] font-medium text-slate-500 no-underline">(Pasif)</span>
+                                            <span className="ml-2 text-[11px] font-medium text-slate-500 dark:text-slate-500 no-underline">(Pasif)</span>
                                         )}
                                     </div>
 
-                                    <div className="col-span-3 text-xs text-slate-300 truncate" title={managerName}>
+                                    <div className="col-span-3 text-xs text-slate-700 dark:text-slate-300 truncate" title={managerName}>
                                         {managerName}
                                     </div>
 
-                                    <div className="col-span-3 text-xs text-slate-300 truncate" title={fmNames}>
+                                    <div className="col-span-3 text-xs text-slate-700 dark:text-slate-300 truncate" title={fmNames}>
                                         {fmNames}
                                     </div>
 
@@ -176,7 +176,7 @@ export function LocationsPanel(props: {
                                             type="button"
                                             onClick={() => openEdit(it)}
                                             title="Düzenle"
-                                            className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-transparent text-slate-300 hover:bg-slate-800 hover:text-slate-100"
+                                            className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-200 hover:dark:bg-slate-800 hover:text-slate-900 hover:dark:text-slate-100"
                                         >
                                             <Pencil className="h-4 w-4" />
                                         </button>
@@ -184,7 +184,7 @@ export function LocationsPanel(props: {
                                             type="button"
                                             onClick={() => onDelete(it.id)}
                                             title="Sil"
-                                            className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-transparent text-rose-300/80 hover:bg-rose-500/10 hover:text-rose-200"
+                                            className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-transparent text-rose-300/80 hover:bg-rose-100 hover:dark:bg-rose-500/10 hover:text-rose-700 hover:dark:text-rose-200"
                                         >
                                             <Trash2 className="h-4 w-4" />
                                         </button>
@@ -195,7 +195,7 @@ export function LocationsPanel(props: {
                     )}
                 </div>
 
-                <div className="mt-2 flex items-center justify-center gap-4 text-[11px] text-slate-400">
+                <div className="mt-2 flex items-center justify-center gap-4 text-[11px] text-slate-600 dark:text-slate-400">
                     <span className="inline-flex items-center gap-2">
                         <span className="h-2 w-2 rounded-full bg-emerald-400" />
                         Aktif
@@ -223,13 +223,13 @@ export function LocationsPanel(props: {
             >
                 <div className="space-y-4 text-xs">
                     <div>
-                        <label className="mb-1 block font-medium text-slate-300">İsim <span className="text-rose-400">*</span></label>
+                        <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">İsim <span className="text-rose-400">*</span></label>
                         <Input value={name} onChange={(e) => setName(e.target.value)} />
                     </div>
 
                     {mode === "edit" ? (
                         <div>
-                            <label className="mb-1 block font-medium text-slate-300">Aktiflik</label>
+                            <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">Aktiflik</label>
                             <Select
                                 value={isActive ? "active" : "passive"}
                                 onChange={(e) => setIsActive(e.target.value === "active")}
@@ -241,7 +241,7 @@ export function LocationsPanel(props: {
                     ) : null}
 
                     <div>
-                        <label className="mb-1 block font-medium text-slate-300">Müdür</label>
+                        <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">Müdür</label>
                         <Select
                             value={managerUserId}
                             onChange={(e) => setManagerUserId(e.target.value)}
@@ -256,11 +256,11 @@ export function LocationsPanel(props: {
                     </div>
 
                     <div ref={fmDropdownRef} className="relative">
-                        <label className="mb-1 block font-medium text-slate-300">Saha Sorumlusu</label>
+                        <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">Saha Sorumlusu</label>
                         <button
                             type="button"
                             onClick={() => setFmDropdownOpen((v) => !v)}
-                            className="w-full flex items-center justify-between gap-2 rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-left text-xs text-slate-200 hover:border-slate-500 focus:outline-none"
+                            className="w-full flex items-center justify-between gap-2 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-200 dark:bg-slate-800 px-3 py-2 text-left text-xs text-slate-800 dark:text-slate-200 hover:border-slate-500 focus:outline-none"
                         >
                             <span className="truncate">
                                 {usersLoading
@@ -271,13 +271,13 @@ export function LocationsPanel(props: {
                                         .map((id) => userById.get(id) ?? id)
                                         .join(", ")}
                             </span>
-                            <svg className={`h-3 w-3 flex-shrink-0 text-slate-400 transition-transform ${fmDropdownOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                            <svg className={`h-3 w-3 flex-shrink-0 text-slate-600 dark:text-slate-400 transition-transform ${fmDropdownOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                         </button>
 
                         {fmDropdownOpen && (
-                            <div className="absolute z-50 mt-1 w-full rounded-md border border-slate-700 bg-slate-800 shadow-xl max-h-48 overflow-y-auto">
+                            <div className="absolute z-50 mt-1 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-slate-200 dark:bg-slate-800 shadow-xl max-h-48 overflow-y-auto">
                                 {users.filter((u) => u.roles?.some((r) => r.name === "Field Manager")).length === 0 ? (
-                                    <div className="px-3 py-2 text-xs text-slate-400">Field Manager rolünde kullanıcı yok.</div>
+                                    <div className="px-3 py-2 text-xs text-slate-600 dark:text-slate-400">Field Manager rolünde kullanıcı yok.</div>
                                 ) : (
                                     users
                                         .filter((u) => u.roles?.some((r) => r.name === "Field Manager"))
@@ -288,15 +288,15 @@ export function LocationsPanel(props: {
                                                     key={u.id}
                                                     type="button"
                                                     onClick={() => toggleFieldManager(u.id)}
-                                                    className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-slate-700 ${
-                                                        checked ? "text-emerald-300" : "text-slate-200"
+                                                    className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-slate-200 hover:dark:bg-slate-700 ${
+                                                        checked ? "text-emerald-600 dark:text-emerald-300" : "text-slate-800 dark:text-slate-200"
                                                     }`}
                                                 >
                                                     <span className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border ${
-                                                        checked ? "border-emerald-500 bg-emerald-500" : "border-slate-600 bg-transparent"
+                                                        checked ? "border-emerald-500 bg-emerald-500" : "border-slate-400 dark:border-slate-600 bg-transparent"
                                                     }`}>
                                                         {checked && (
-                                                            <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                                                            <svg className="h-2.5 w-2.5 text-slate-900 dark:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                                                         )}
                                                     </span>
                                                     {u.name}
@@ -310,9 +310,9 @@ export function LocationsPanel(props: {
                         {fieldManagerUserIds.length > 0 && (
                             <div className="mt-1.5 flex flex-wrap gap-1">
                                 {fieldManagerUserIds.map((id) => (
-                                    <span key={id} className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] text-emerald-300">
+                                    <span key={id} className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] text-emerald-600 dark:text-emerald-300">
                                         {userById.get(id) ?? id}
-                                        <button type="button" onClick={() => toggleFieldManager(id)} className="text-emerald-400 hover:text-emerald-200">×</button>
+                                        <button type="button" onClick={() => toggleFieldManager(id)} className="text-emerald-400 hover:text-emerald-700 hover:dark:text-emerald-200">×</button>
                                     </span>
                                 ))}
                             </div>
@@ -320,7 +320,7 @@ export function LocationsPanel(props: {
                     </div>
 
                     {error ? (
-                        <div className="rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+                        <div className="rounded-md border border-rose-500/30 bg-rose-100 dark:bg-rose-500/10 px-3 py-2 text-xs text-rose-700 dark:text-rose-200">
                             {error}
                         </div>
                     ) : null}

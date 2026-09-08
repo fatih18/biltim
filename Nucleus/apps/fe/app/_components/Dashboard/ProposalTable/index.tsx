@@ -68,9 +68,9 @@ export function ProposalTable({ proposals }: ProposalTableProps) {
       className="bg-white rounded-2xl shadow-lg border border-slate-200/50 overflow-hidden"
     >
       <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 p-6 border-b border-slate-600/50">
-        <h2 className="text-xl font-semibold text-white flex items-center gap-3">
-          <div className="bg-white/10 p-2 rounded-lg backdrop-blur-sm">
-            <Users className="text-white" size={24} />
+        <h2 className="text-xl font-semibold text-slate-900 dark:text-white flex items-center gap-3">
+          <div className="bg-slate-200 dark:bg-white/10 p-2 rounded-lg backdrop-blur-sm">
+            <Users className="text-slate-900 dark:text-white" size={24} />
           </div>
           Tekliflerim
         </h2>
@@ -98,7 +98,7 @@ export function ProposalTable({ proposals }: ProposalTableProps) {
                   <td className="py-4 px-4">
                     <div className="space-y-1">
                       <p className="font-semibold text-slate-900">{proposal.rfpTitle}</p>
-                      <p className="text-sm text-slate-500">Sürüm: {proposal.lastVersion}</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-500">Sürüm: {proposal.lastVersion}</p>
                     </div>
                   </td>
                   <td className="py-4 px-4">
@@ -120,7 +120,7 @@ export function ProposalTable({ proposals }: ProposalTableProps) {
                   <td className="py-4 px-4">
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-2">
-                        <Brain className="text-slate-600" size={16} />
+                        <Brain className="text-slate-400 dark:text-slate-600" size={16} />
                         <span className="font-semibold text-slate-900">{proposal.score}</span>
                       </div>
                       <div className="w-16 bg-slate-200 rounded-full h-2">
@@ -132,19 +132,19 @@ export function ProposalTable({ proposals }: ProposalTableProps) {
                     </div>
                   </td>
                   <td className="py-4 px-4">
-                    <p className="text-sm text-slate-600">{proposal.lastUpdated}</p>
+                    <p className="text-sm text-slate-400 dark:text-slate-600">{proposal.lastUpdated}</p>
                   </td>
                   <td className="py-4 px-4">
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                        className="p-2 text-slate-600 dark:text-slate-400 hover:text-slate-400 hover:dark:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
                       >
                         <Eye size={16} />
                       </button>
                       <button
                         type="button"
-                        className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                        className="p-2 text-slate-600 dark:text-slate-400 hover:text-slate-400 hover:dark:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
                       >
                         <Upload size={16} />
                       </button>

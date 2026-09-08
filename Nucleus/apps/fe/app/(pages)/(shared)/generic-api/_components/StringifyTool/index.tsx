@@ -75,7 +75,7 @@ export function StringifyTool({ isOpen, onClose }: StringifyToolProps) {
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-violet-50 to-purple-50">
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
-              <Braces className="h-4 w-4 text-white" />
+              <Braces className="h-4 w-4 text-slate-900 dark:text-white" />
             </div>
             <span className="font-semibold text-gray-700">JSON Stringify Tool</span>
           </div>
@@ -106,7 +106,7 @@ export function StringifyTool({ isOpen, onClose }: StringifyToolProps) {
             <button
               type="button"
               onClick={handleStringify}
-              className="flex-1 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 rounded-xl transition-all shadow-md shadow-violet-500/20"
+              className="flex-1 px-4 py-2 text-sm font-medium text-slate-900 dark:text-white bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 rounded-xl transition-all shadow-md shadow-violet-500/20"
             >
               Stringify →
             </button>

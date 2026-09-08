@@ -64,13 +64,13 @@ export function ProposalComparison({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-gradient-to-r from-slate-600 to-slate-700 rounded-xl flex items-center justify-center shadow-lg">
-            <CheckCircle className="text-white" size={20} />
+            <CheckCircle className="text-slate-900 dark:text-white" size={20} />
           </div>
           <div>
             <h3 className="font-semibold text-slate-800">
               {selectedProposals.length} teklif seçildi
             </h3>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-slate-400 dark:text-slate-600">
               Seçili teklifleri karşılaştırabilir veya toplu işlem yapabilirsiniz
             </p>
           </div>
@@ -80,7 +80,7 @@ export function ProposalComparison({
           <button
             type="button"
             onClick={onCompare}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-lg hover:from-slate-700 hover:to-slate-800 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105"
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-slate-600 to-slate-700 text-slate-900 dark:text-white rounded-lg hover:from-slate-700 hover:to-slate-800 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105"
           >
             <BarChart3 size={16} />
             Detaylı Karşılaştır
@@ -91,8 +91,8 @@ export function ProposalComparison({
             onClick={handleQuickView}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 ${
               showQuickView
-                ? 'bg-gradient-to-r from-slate-700 to-slate-800 text-white'
-                : 'bg-gradient-to-r from-slate-500 to-slate-600 text-white hover:from-slate-600 hover:to-slate-700'
+                ? 'bg-gradient-to-r from-slate-700 to-slate-800 text-slate-900 dark:text-white'
+                : 'bg-gradient-to-r from-slate-500 to-slate-600 text-slate-900 dark:text-white hover:from-slate-600 hover:to-slate-700'
             }`}
           >
             <Eye size={16} />
@@ -103,7 +103,7 @@ export function ProposalComparison({
             type="button"
             onClick={handleExportReport}
             disabled={isExporting}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-slate-500 to-slate-600 text-white rounded-lg hover:from-slate-600 hover:to-slate-700 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-slate-500 to-slate-600 text-slate-900 dark:text-white rounded-lg hover:from-slate-600 hover:to-slate-700 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
           >
             {isExporting ? (
               <>
@@ -121,7 +121,7 @@ export function ProposalComparison({
           <button
             type="button"
             onClick={onClearSelection}
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all duration-200 hover:scale-105"
+            className="px-4 py-2 bg-gray-600 text-slate-900 dark:text-white rounded-lg hover:bg-gray-700 transition-all duration-200 hover:scale-105"
           >
             Temizle
           </button>
@@ -180,7 +180,7 @@ export function ProposalComparison({
                   className="bg-slate-50 rounded-lg p-4 border border-slate-200"
                 >
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-medium text-slate-600">{proposal.vendor}</span>
+                    <span className="text-sm font-medium text-slate-400 dark:text-slate-600">{proposal.vendor}</span>
                     <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
                       #{index + 1}
                     </span>
@@ -188,7 +188,7 @@ export function ProposalComparison({
 
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Durum:</span>
+                      <span className="text-slate-400 dark:text-slate-600">Durum:</span>
                       <span className="font-medium text-slate-900">
                         {proposal.status === 'pending'
                           ? 'Beklemede'
@@ -200,11 +200,11 @@ export function ProposalComparison({
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Puan:</span>
+                      <span className="text-slate-400 dark:text-slate-600">Puan:</span>
                       <span className="font-medium text-slate-900">{proposal.score}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Risk:</span>
+                      <span className="text-slate-400 dark:text-slate-600">Risk:</span>
                       <span className="font-medium text-slate-900">
                         {proposal.riskLevel === 'low'
                           ? 'Düşük'
@@ -214,7 +214,7 @@ export function ProposalComparison({
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Tutar:</span>
+                      <span className="text-slate-400 dark:text-slate-600">Tutar:</span>
                       <span className="font-medium text-slate-900">
                         {(proposal.amount / 1000000).toFixed(1)}M TL
                       </span>
@@ -225,7 +225,7 @@ export function ProposalComparison({
                     <button
                       type="button"
                       onClick={() => handleViewDetails(proposal)}
-                      className="w-full px-3 py-2 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-lg hover:from-slate-700 hover:to-slate-800 transition-all duration-200 text-sm font-medium shadow-md hover:shadow-lg hover:scale-105"
+                      className="w-full px-3 py-2 bg-gradient-to-r from-slate-600 to-slate-700 text-slate-900 dark:text-white rounded-lg hover:from-slate-700 hover:to-slate-800 transition-all duration-200 text-sm font-medium shadow-md hover:shadow-lg hover:scale-105"
                     >
                       Detayları Görüntüle
                     </button>
@@ -249,7 +249,7 @@ export function ProposalComparison({
               <button
                 type="button"
                 onClick={onCompare}
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105"
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-slate-900 dark:text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105"
               >
                 <BarChart3 size={18} />
                 Detaylı Karşılaştırmaya Git
@@ -259,7 +259,7 @@ export function ProposalComparison({
                 type="button"
                 onClick={handleExportReport}
                 disabled={isExporting}
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50"
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-slate-900 dark:text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50"
               >
                 {isExporting ? (
                   <>

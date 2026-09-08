@@ -165,26 +165,26 @@ export function AuditPlannerPanel(props: {
     <div className="space-y-6">
 
       {/* ── DÖNEM PLANLARI ──────────────────────────────────────────────── */}
-      <section className="rounded-xl border border-slate-800 bg-slate-900/80">
-        <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
+      <section className="rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80">
+        <div className="flex items-center justify-between border-b border-slate-300 dark:border-slate-800 px-4 py-3">
           <div>
-            <h2 className="text-sm font-semibold text-slate-100">Dönem Planları (Ana Planlar)</h2>
-            <p className="mt-0.5 text-xs text-slate-400">Quarter tanımla, tarih aralığı belirle.</p>
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Dönem Planları (Ana Planlar)</h2>
+            <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">Quarter tanımla, tarih aralığı belirle.</p>
           </div>
           <button
             type="button"
             onClick={() => setPpOpen((v) => !v)}
-            className="rounded-md border border-sky-700/60 bg-sky-950/40 px-3 py-1.5 text-xs font-medium text-sky-300 hover:bg-sky-950/70"
+            className="rounded-md border border-sky-700/60 bg-sky-950/40 px-3 py-1.5 text-xs font-medium text-sky-600 dark:text-sky-300 hover:bg-sky-950/70"
           >
             {ppOpen ? "İptal" : "+ Yeni Dönem"}
           </button>
         </div>
 
         {ppOpen && (
-          <div className="border-b border-slate-800 p-4 space-y-3">
+          <div className="border-b border-slate-300 dark:border-slate-800 p-4 space-y-3">
             <div className="grid gap-3 md:grid-cols-3">
               <div className="space-y-1">
-                <label className="block text-xs font-medium text-slate-300">Quarter (ör: 2025-Q2)</label>
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Quarter (ör: 2025-Q2)</label>
                 <Input
                   value={ppQuarter}
                   onChange={(e) => setPpQuarter(e.target.value)}
@@ -192,24 +192,24 @@ export function AuditPlannerPanel(props: {
                 />
               </div>
               <div className="space-y-1">
-                <label className="block text-xs font-medium text-slate-300">Başlangıç Tarihi</label>
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Başlangıç Tarihi</label>
                 <DateInput
-                  className="date-dark w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+                  className="date-dark w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
                   value={ppStart}
                   onChange={setPpStart}
                 />
               </div>
               <div className="space-y-1">
-                <label className="block text-xs font-medium text-slate-300">Bitiş Tarihi</label>
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Bitiş Tarihi</label>
                 <DateInput
-                  className="date-dark w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+                  className="date-dark w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
                   value={ppEnd}
                   onChange={setPpEnd}
                 />
               </div>
             </div>
             <div className="space-y-1">
-              <label className="block text-xs font-medium text-slate-300">Başlık (opsiyonel)</label>
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Başlık (opsiyonel)</label>
               <Input value={ppTitle} onChange={(e) => setPpTitle(e.target.value)} placeholder="Q2 2025 Denetim Dönemi" />
             </div>
             {ppStart && ppEnd && ppEnd < ppStart && (
@@ -225,7 +225,7 @@ export function AuditPlannerPanel(props: {
 
         <div className="overflow-hidden">
           {parentPlans.length === 0 ? (
-            <div className="px-4 py-5 text-sm text-slate-500">Henüz dönem planı yok.</div>
+            <div className="px-4 py-5 text-sm text-slate-500 dark:text-slate-500">Henüz dönem planı yok.</div>
           ) : (
             <div className="divide-y divide-slate-800">
               {parentPlans.map((pp) => {
@@ -255,25 +255,25 @@ export function AuditPlannerPanel(props: {
                           });
                         }
                       }}
-                      className="flex w-full cursor-pointer items-center justify-between gap-4 px-4 py-3 text-left transition-colors hover:bg-slate-800/40"
+                      className="flex w-full cursor-pointer items-center justify-between gap-4 px-4 py-3 text-left transition-colors hover:bg-slate-100 hover:dark:bg-slate-800/40"
                     >
                       <div className="flex items-center gap-3">
                         <ChevronRight
                           size={14}
-                          className={`shrink-0 text-slate-400 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`}
+                          className={`shrink-0 text-slate-600 dark:text-slate-400 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`}
                         />
-                        <span className="rounded border border-indigo-700/50 bg-indigo-950/40 px-2 py-0.5 text-[11px] font-semibold text-indigo-300">
+                        <span className="rounded border border-indigo-700/50 bg-indigo-100 dark:bg-indigo-950/40 px-2 py-0.5 text-[11px] font-semibold text-indigo-600 dark:text-indigo-300">
                           {pp.quarter ?? "—"}
                         </span>
                         <div>
-                          {pp.title && <p className="text-xs font-medium text-slate-200">{pp.title}</p>}
-                          <p className="text-[11px] text-slate-400">
+                          {pp.title && <p className="text-xs font-medium text-slate-800 dark:text-slate-200">{pp.title}</p>}
+                          <p className="text-[11px] text-slate-600 dark:text-slate-400">
                             {pp.dateRangeStart ?? "?"} – {pp.dateRangeEnd ?? "?"}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="text-[11px] text-slate-500">{childCount} denetim planı</span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-500">{childCount} denetim planı</span>
                         <Badge>{auditStatusLabelTr(pp.status)}</Badge>
                         <DangerButton
                           className="py-1"
@@ -290,12 +290,12 @@ export function AuditPlannerPanel(props: {
                     {isExpanded && (
                       <div className="border-t border-slate-800/60 bg-slate-950/20">
                         {childPlans.length === 0 ? (
-                          <p className="px-8 py-4 text-xs text-slate-500">
+                          <p className="px-8 py-4 text-xs text-slate-500 dark:text-slate-500">
                             Bu döneme bağlı denetim planı yok.
                           </p>
                         ) : (
                           <div className="divide-y divide-slate-800/40">
-                            <div className="grid grid-cols-12 bg-slate-900/60 px-8 py-2 text-[10px] font-medium uppercase tracking-wide text-slate-500">
+                            <div className="grid grid-cols-12 bg-slate-50 dark:bg-slate-900/60 px-8 py-2 text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-500">
                               <div className="col-span-2">Tarih</div>
                               <div className="col-span-3">Lokasyon</div>
                               <div className="col-span-2">Ekip</div>
@@ -320,12 +320,12 @@ export function AuditPlannerPanel(props: {
                                     {isEditingDate ? (
                                       <div className="flex flex-col gap-1">
                                         <DateInput
-                                          className="date-dark w-full rounded border border-slate-600 bg-slate-950/70 px-2 py-1 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-1"
+                                          className="date-dark w-full rounded border border-slate-400 dark:border-slate-600 bg-white dark:bg-slate-950/70 px-2 py-1 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-1"
                                           value={editingDateVal}
                                           onChange={(v) => setEditingDateVal(v)}
                                         />
                                         {editingDateVal && getEditConflicts(a.id, editingDateVal).map((w, i) => (
-                                          <p key={i} className="text-[10px] text-amber-300">⚠ {w}</p>
+                                          <p key={i} className="text-[10px] text-amber-600 dark:text-amber-300">⚠ {w}</p>
                                         ))}
                                         <div className="flex gap-1">
                                           <button
@@ -343,7 +343,7 @@ export function AuditPlannerPanel(props: {
                                           <button
                                             type="button"
                                             onClick={() => setEditingDateId(null)}
-                                            className="rounded border border-slate-600 px-2 py-0.5 text-[10px] text-slate-300 hover:bg-slate-800"
+                                            className="rounded border border-slate-400 dark:border-slate-600 px-2 py-0.5 text-[10px] text-slate-700 dark:text-slate-300 hover:bg-slate-200 hover:dark:bg-slate-800"
                                           >
                                             İptal
                                           </button>
@@ -351,24 +351,24 @@ export function AuditPlannerPanel(props: {
                                       </div>
                                     ) : (
                                       <div className="flex flex-col gap-0.5">
-                                        <span className="text-sm text-slate-200">{a.plannedDate}</span>
+                                        <span className="text-sm text-slate-800 dark:text-slate-200">{a.plannedDate}</span>
                                         {canChangeDate ? (
                                           <button
                                             type="button"
                                             onClick={() => { setEditingDateId(a.id); setEditingDateVal(a.plannedDate); }}
-                                            className="text-left text-[10px] text-sky-400 hover:underline"
+                                            className="text-left text-[10px] text-sky-600 dark:text-sky-400 hover:underline"
                                           >
                                             Düzenle ({2 - changeCount} hak)
                                           </button>
                                         ) : (
-                                          <span className="text-[10px] text-slate-500">Tarih kilitli</span>
+                                          <span className="text-[10px] text-slate-500 dark:text-slate-500">Tarih kilitli</span>
                                         )}
                                       </div>
                                     )}
                                   </div>
-                                  <div className="col-span-3 text-sm text-slate-100">{loc}</div>
-                                  <div className="col-span-2 text-sm text-slate-300">{team}</div>
-                                  <div className="col-span-2 text-sm text-slate-300">{sahaSort}</div>
+                                  <div className="col-span-3 text-sm text-slate-900 dark:text-slate-100">{loc}</div>
+                                  <div className="col-span-2 text-sm text-slate-700 dark:text-slate-300">{team}</div>
+                                  <div className="col-span-2 text-sm text-slate-700 dark:text-slate-300">{sahaSort}</div>
                                   <div className="col-span-1 text-center">
                                     <Badge>{auditStatusLabelTr(a.status)}</Badge>
                                   </div>
@@ -385,7 +385,7 @@ export function AuditPlannerPanel(props: {
                                     <DangerButton className="py-1.5" onClick={() => onDelete(a.id)}>Sil</DangerButton>
                                   </div>
                                   {a.note && (
-                                    <div className="col-span-12 pt-1 text-[11px] text-slate-400">
+                                    <div className="col-span-12 pt-1 text-[11px] text-slate-600 dark:text-slate-400">
                                       Not: {a.note}
                                     </div>
                                   )}
@@ -405,18 +405,18 @@ export function AuditPlannerPanel(props: {
       </section>
 
       {/* ── DENETİM PLANLARI ─────────────────────────────────────────────── */}
-      <section className="rounded-xl border border-slate-800 bg-slate-900/80">
-        <div className="border-b border-slate-800 px-4 py-3">
-          <h2 className="text-sm font-semibold text-slate-100">Denetim Planları</h2>
-          <p className="mt-0.5 text-xs text-slate-400">Lokasyon + ekip seçerek plan oluştur.</p>
+      <section className="rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80">
+        <div className="border-b border-slate-300 dark:border-slate-800 px-4 py-3">
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Denetim Planları</h2>
+          <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">Lokasyon + ekip seçerek plan oluştur.</p>
         </div>
 
         <div className="p-4 space-y-5">
           <div className="grid gap-4 md:grid-cols-2">
             {/* Dönem bağlama */}
             <div className="space-y-1 md:col-span-2">
-              <label className="block text-xs font-medium text-slate-300">
-                Dönem Planı <span className="text-slate-500">(opsiyonel)</span>
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                Dönem Planı <span className="text-slate-500 dark:text-slate-500">(opsiyonel)</span>
               </label>
               <Select value={parentPlanId} onChange={(e) => setParentPlanId(e.target.value)}>
                 <option value="">— Bağlı dönem yok —</option>
@@ -429,19 +429,19 @@ export function AuditPlannerPanel(props: {
             </div>
 
             <div className="space-y-1">
-              <label className="block text-xs font-medium text-slate-300">Denetim Tarihi</label>
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Denetim Tarihi</label>
               <DateInput
                 className={[
                   "date-dark w-full rounded-md border px-3 py-2 text-xs outline-none ring-sky-500/40 focus:ring-2",
                   dateOutOfRange
                     ? "border-rose-600 bg-rose-950/20 focus:border-rose-400"
-                    : "border-slate-700 bg-slate-950/70 focus:border-sky-400",
+                    : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 focus:border-sky-400",
                 ].join(" ")}
                 value={plannedDate}
                 onChange={(value) => setPlannedDate(value)}
               />
               {selectedParentRange && (
-                <p className="text-[10px] text-slate-500">
+                <p className="text-[10px] text-slate-500 dark:text-slate-500">
                   Dönem aralığı: {selectedParentRange.start} – {selectedParentRange.end}
                 </p>
               )}
@@ -451,7 +451,7 @@ export function AuditPlannerPanel(props: {
             </div>
 
             <div className="space-y-1">
-              <label className="block text-xs font-medium text-slate-300">Lokasyon</label>
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Lokasyon</label>
               <Select value={locationId} onChange={(e) => setLocationId(e.target.value)}>
                 <option value="">Seç</option>
                 {activeLocations.map((l) => (
@@ -461,7 +461,7 @@ export function AuditPlannerPanel(props: {
             </div>
 
             <div className="space-y-1">
-              <label className="block text-xs font-medium text-slate-300">Atanan Ekip</label>
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Atanan Ekip</label>
               <Select value={assignedTeamId} onChange={(e) => setAssignedTeamId(e.target.value)}>
                 <option value="">Seç</option>
                 {teams.map((t) => (
@@ -471,16 +471,16 @@ export function AuditPlannerPanel(props: {
             </div>
 
             <div className="space-y-1">
-              <label className="block text-xs font-medium text-slate-300">Not</label>
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Not</label>
               <Input value={note} onChange={(e) => setNote(e.target.value)} />
             </div>
           </div>
 
           {createConflicts.length > 0 && (
-            <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 space-y-1">
-              <p className="text-[11px] font-semibold text-amber-300">⚠ Çakışma Uyarısı</p>
+            <div className="rounded-md border border-amber-500/30 bg-amber-100 dark:bg-amber-500/10 px-3 py-2 space-y-1">
+              <p className="text-[11px] font-semibold text-amber-600 dark:text-amber-300">⚠ Çakışma Uyarısı</p>
               {createConflicts.map((w, i) => (
-                <p key={i} className="text-[11px] text-amber-200">{w}</p>
+                <p key={i} className="text-[11px] text-amber-700 dark:text-amber-200">{w}</p>
               ))}
             </div>
           )}
@@ -496,11 +496,11 @@ export function AuditPlannerPanel(props: {
 
           {/* ── Dönemsiz Planlar ── */}
           {subPlans.filter((s) => !s.parentPlanId).length > 0 && (
-            <div className="overflow-hidden rounded-lg border border-slate-800">
-              <div className="border-b border-slate-800/60 bg-slate-900/60 px-3 py-2">
-                <p className="text-[11px] font-medium text-slate-400">Dönemsiz Planlar</p>
+            <div className="overflow-hidden rounded-lg border border-slate-300 dark:border-slate-800">
+              <div className="border-b border-slate-800/60 bg-slate-50 dark:bg-slate-900/60 px-3 py-2">
+                <p className="text-[11px] font-medium text-slate-600 dark:text-slate-400">Dönemsiz Planlar</p>
               </div>
-              <div className="grid grid-cols-12 bg-slate-900/90 px-3 py-2 text-[10px] font-medium uppercase tracking-wide text-slate-500">
+              <div className="grid grid-cols-12 bg-slate-50 dark:bg-slate-900/90 px-3 py-2 text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-500">
                 <div className="col-span-2">Tarih</div>
                 <div className="col-span-3">Lokasyon</div>
                 <div className="col-span-2">Ekip</div>
@@ -519,17 +519,17 @@ export function AuditPlannerPanel(props: {
                 const canChangeDate = changeCount < 2;
                 const isEditingDate = editingDateId === a.id;
                 return (
-                  <div key={a.id} className="grid grid-cols-12 items-center gap-2 border-t border-slate-800/80 px-3 py-2">
+                  <div key={a.id} className="grid grid-cols-12 items-center gap-2 border-t border-slate-300 dark:border-slate-800/80 px-3 py-2">
                     <div className="col-span-2">
                       {isEditingDate ? (
                         <div className="flex flex-col gap-1">
                           <DateInput
-                            className="date-dark w-full rounded border border-slate-600 bg-slate-950/70 px-2 py-1 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-1"
+                            className="date-dark w-full rounded border border-slate-400 dark:border-slate-600 bg-white dark:bg-slate-950/70 px-2 py-1 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-1"
                             value={editingDateVal}
                             onChange={(v) => setEditingDateVal(v)}
                           />
                           {editingDateVal && getEditConflicts(a.id, editingDateVal).map((w, i) => (
-                            <p key={i} className="text-[10px] text-amber-300">⚠ {w}</p>
+                            <p key={i} className="text-[10px] text-amber-600 dark:text-amber-300">⚠ {w}</p>
                           ))}
                           <div className="flex gap-1">
                             <button
@@ -547,7 +547,7 @@ export function AuditPlannerPanel(props: {
                             <button
                               type="button"
                               onClick={() => setEditingDateId(null)}
-                              className="rounded border border-slate-600 px-2 py-0.5 text-[10px] text-slate-300 hover:bg-slate-800"
+                              className="rounded border border-slate-400 dark:border-slate-600 px-2 py-0.5 text-[10px] text-slate-700 dark:text-slate-300 hover:bg-slate-200 hover:dark:bg-slate-800"
                             >
                               İptal
                             </button>
@@ -555,24 +555,24 @@ export function AuditPlannerPanel(props: {
                         </div>
                       ) : (
                         <div className="flex flex-col gap-0.5">
-                          <span className="text-sm text-slate-200">{a.plannedDate}</span>
+                          <span className="text-sm text-slate-800 dark:text-slate-200">{a.plannedDate}</span>
                           {canChangeDate ? (
                             <button
                               type="button"
                               onClick={() => { setEditingDateId(a.id); setEditingDateVal(a.plannedDate); }}
-                              className="text-left text-[10px] text-sky-400 hover:underline"
+                              className="text-left text-[10px] text-sky-600 dark:text-sky-400 hover:underline"
                             >
                               Düzenle ({2 - changeCount} hak)
                             </button>
                           ) : (
-                            <span className="text-[10px] text-slate-500">Tarih kilitli</span>
+                            <span className="text-[10px] text-slate-500 dark:text-slate-500">Tarih kilitli</span>
                           )}
                         </div>
                       )}
                     </div>
-                    <div className="col-span-3 text-sm text-slate-100">{loc}</div>
-                    <div className="col-span-2 text-sm text-slate-300">{team}</div>
-                    <div className="col-span-2 text-sm text-slate-300">{sahaSort}</div>
+                    <div className="col-span-3 text-sm text-slate-900 dark:text-slate-100">{loc}</div>
+                    <div className="col-span-2 text-sm text-slate-700 dark:text-slate-300">{team}</div>
+                    <div className="col-span-2 text-sm text-slate-700 dark:text-slate-300">{sahaSort}</div>
                     <div className="col-span-1 text-center">
                       <Badge>{auditStatusLabelTr(a.status)}</Badge>
                     </div>
@@ -589,7 +589,7 @@ export function AuditPlannerPanel(props: {
                       <DangerButton className="py-1.5" onClick={() => onDelete(a.id)}>Sil</DangerButton>
                     </div>
                     {a.note && (
-                      <div className="col-span-12 pt-1 text-[11px] text-slate-400">Not: {a.note}</div>
+                      <div className="col-span-12 pt-1 text-[11px] text-slate-600 dark:text-slate-400">Not: {a.note}</div>
                     )}
                   </div>
                 );

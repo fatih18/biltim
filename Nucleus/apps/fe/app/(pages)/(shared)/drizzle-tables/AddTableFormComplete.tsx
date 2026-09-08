@@ -49,25 +49,25 @@ export function AddTableForm({
   ]
 
   return (
-    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-white dark:bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-7xl max-h-[95vh] flex flex-col">
         {/* Header - Minimal, professional */}
         <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 rounded-t-xl flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-white/10 rounded-lg">
-              <Database className="w-5 h-5 text-white" />
+            <div className="p-2 bg-slate-200 dark:bg-white/10 rounded-lg">
+              <Database className="w-5 h-5 text-slate-900 dark:text-white" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-white">New Schema</h2>
-              <p className="text-slate-300 text-sm">Create Drizzle ORM schema</p>
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-white">New Schema</h2>
+              <p className="text-slate-700 dark:text-slate-300 text-sm">Create Drizzle ORM schema</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+            className="p-2 hover:bg-slate-200 hover:dark:bg-white/10 rounded-lg transition-colors"
           >
-            <X className="w-5 h-5 text-white" />
+            <X className="w-5 h-5 text-slate-900 dark:text-white" />
           </button>
         </div>
 
@@ -82,7 +82,7 @@ export function AddTableForm({
                 className={`flex items-center gap-2 px-4 py-3 font-medium text-sm transition-all relative ${
                   activeTab === tab.id
                     ? 'text-blue-600 bg-white border-b-2 border-blue-600'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    : 'text-slate-400 dark:text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
                 <tab.icon className="w-4 h-4" />
@@ -108,7 +108,7 @@ export function AddTableForm({
 
         {/* Footer - Simple, clean */}
         <div className="border-t bg-slate-50 px-6 py-4 flex items-center justify-between rounded-b-xl">
-          <div className="text-sm text-slate-600">
+          <div className="text-sm text-slate-400 dark:text-slate-600">
             {schema.fields.length} fields · {schema.relations.length} relations ·{' '}
             {schema.indexes.length} indexes
           </div>
@@ -123,7 +123,7 @@ export function AddTableForm({
             <button
               type="button"
               onClick={handleSubmit}
-              className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-all shadow-sm"
+              className="px-5 py-2.5 bg-blue-600 text-slate-900 dark:text-white rounded-lg hover:bg-blue-700 font-medium transition-all shadow-sm"
             >
               Create Schema
             </button>

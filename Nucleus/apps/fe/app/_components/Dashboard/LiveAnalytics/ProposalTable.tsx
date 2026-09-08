@@ -86,7 +86,7 @@ export function ProposalTable({
   }
 
   const getSortIcon = (field: keyof Proposal) => {
-    if (sortField !== field) return <ArrowUpDown size={16} className="text-slate-400" />
+    if (sortField !== field) return <ArrowUpDown size={16} className="text-slate-600 dark:text-slate-400" />
     return sortDirection === 'asc' ? (
       <TrendingUp size={16} className="text-blue-600" />
     ) : (
@@ -176,13 +176,13 @@ export function ProposalTable({
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
-                      <span className="text-white font-bold text-sm">
+                      <span className="text-slate-900 dark:text-white font-bold text-sm">
                         {proposal.vendor.charAt(0)}
                       </span>
                     </div>
                     <div>
                       <div className="font-semibold text-slate-900">{proposal.vendor}</div>
-                      <div className="text-sm text-slate-600">{proposal.rfpTitle}</div>
+                      <div className="text-sm text-slate-400 dark:text-slate-600">{proposal.rfpTitle}</div>
                     </div>
                   </div>
                 </td>
@@ -194,7 +194,7 @@ export function ProposalTable({
                       <div className="font-semibold text-slate-900 whitespace-nowrap">
                         {(proposal.amount / 1000000).toFixed(1)}M TL
                       </div>
-                      <div className="text-xs text-slate-500 truncate">{proposal.currency}</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-500 truncate">{proposal.currency}</div>
                     </div>
                   </div>
                 </td>
@@ -263,7 +263,7 @@ export function ProposalTable({
                         <button
                           type="button"
                           onClick={() => setEditingScore(proposal.id)}
-                          className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"
+                          className="p-1 text-slate-600 dark:text-slate-400 hover:text-slate-400 hover:dark:text-slate-600 hover:bg-slate-100 rounded transition-colors"
                         >
                           <Edit size={14} />
                         </button>
@@ -275,7 +275,7 @@ export function ProposalTable({
                 <td className="px-6 py-4 min-w-[160px]">
                   <div className="space-y-2">
                     <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 text-xs">
-                      <span className="text-slate-600 w-11">Teknik:</span>
+                      <span className="text-slate-400 dark:text-slate-600 w-11">Teknik:</span>
                       <div className="w-16 bg-slate-200 rounded-full h-1.5">
                         <div
                           className="bg-blue-500 h-1.5 rounded-full transition-all duration-300"
@@ -287,7 +287,7 @@ export function ProposalTable({
                       </span>
                     </div>
                     <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 text-xs">
-                      <span className="text-slate-600 w-11">Mali:</span>
+                      <span className="text-slate-400 dark:text-slate-600 w-11">Mali:</span>
                       <div className="w-16 bg-slate-200 rounded-full h-1.5">
                         <div
                           className="bg-green-500 h-1.5 rounded-full transition-all duration-300"
@@ -299,7 +299,7 @@ export function ProposalTable({
                       </span>
                     </div>
                     <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 text-xs">
-                      <span className="text-slate-600 w-11">Uyum:</span>
+                      <span className="text-slate-400 dark:text-slate-600 w-11">Uyum:</span>
                       <div className="w-16 bg-slate-200 rounded-full h-1.5">
                         <div
                           className="bg-purple-500 h-1.5 rounded-full transition-all duration-300"
@@ -353,13 +353,13 @@ export function ProposalTable({
 
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2">
-                    <Clock className="text-slate-500" size={14} />
+                    <Clock className="text-slate-500 dark:text-slate-500" size={14} />
                     <div>
                       <span className="font-medium text-slate-900">{proposal.deliveryTime}</span>
-                      <span className="text-xs text-slate-600 ml-1">gün</span>
+                      <span className="text-xs text-slate-400 dark:text-slate-600 ml-1">gün</span>
                     </div>
                   </div>
-                  <div className="text-xs text-slate-500 mt-1">{proposal.warranty} ay garanti</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-500 mt-1">{proposal.warranty} ay garanti</div>
                 </td>
 
                 <td className="px-6 py-4">
@@ -386,7 +386,7 @@ export function ProposalTable({
                         onClick={() =>
                           setShowActionMenu(showActionMenu === proposal.id ? null : proposal.id)
                         }
-                        className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors hover:scale-110"
+                        className="p-2 text-slate-400 dark:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors hover:scale-110"
                         title="Daha Fazla"
                       >
                         <MoreHorizontal size={16} />

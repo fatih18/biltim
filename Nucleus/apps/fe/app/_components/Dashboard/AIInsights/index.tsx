@@ -29,11 +29,11 @@ export function AIInsights() {
           <div className="relative">
             <div className="flex items-center gap-3 mb-4">
               <div className="bg-gradient-to-br from-slate-600 to-slate-700 p-3 rounded-xl shadow-lg">
-                <Sparkles className="text-white" size={24} />
+                <Sparkles className="text-slate-900 dark:text-white" size={24} />
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-slate-900">AI Öneriler</h3>
-                <p className="text-sm text-slate-600">Akıllı sistem önerileri</p>
+                <p className="text-sm text-slate-400 dark:text-slate-600">Akıllı sistem önerileri</p>
               </div>
             </div>
             <div className="space-y-3">
@@ -41,19 +41,19 @@ export function AIInsights() {
                 <p className="text-sm font-medium text-slate-900">
                   RFP-1 için 3 yeni teklif analiz edildi
                 </p>
-                <p className="text-xs text-slate-600 mt-1">
+                <p className="text-xs text-slate-400 dark:text-slate-600 mt-1">
                   TechCorp A.Ş. teklifinde %15 maliyet optimizasyonu fırsatı tespit edildi
                 </p>
               </div>
               <div className="bg-white p-4 rounded-xl border border-slate-200/50 shadow-sm hover:shadow-md transition-shadow">
                 <p className="text-sm font-medium text-slate-900">Risk analizi tamamlandı</p>
-                <p className="text-xs text-slate-600 mt-1">
+                <p className="text-xs text-slate-400 dark:text-slate-600 mt-1">
                   2 RFP'de orta seviye risk faktörleri belirlendi
                 </p>
               </div>
               <div className="bg-white p-4 rounded-xl border border-slate-200/50 shadow-sm hover:shadow-md transition-shadow">
                 <p className="text-sm font-medium text-slate-900">Yeni tedarikçi önerisi</p>
-                <p className="text-xs text-slate-600 mt-1">
+                <p className="text-xs text-slate-400 dark:text-slate-600 mt-1">
                   Sistem 3 yeni potansiyel tedarikçi tespit etti
                 </p>
               </div>
@@ -66,24 +66,24 @@ export function AIInsights() {
           <div className="relative">
             <div className="flex items-center gap-3 mb-4">
               <div className="bg-gradient-to-br from-slate-600 to-slate-700 p-3 rounded-xl shadow-lg">
-                <TrendingUp className="text-white" size={24} />
+                <TrendingUp className="text-slate-900 dark:text-white" size={24} />
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-slate-900">Performans Analizi</h3>
-                <p className="text-sm text-slate-600">Sistem performans metrikleri</p>
+                <p className="text-sm text-slate-400 dark:text-slate-600">Sistem performans metrikleri</p>
               </div>
             </div>
             <div className="space-y-4">
               <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-200/50">
-                <span className="text-sm text-slate-600">Ortalama İşlem Süresi</span>
+                <span className="text-sm text-slate-400 dark:text-slate-600">Ortalama İşlem Süresi</span>
                 <span className="font-semibold text-slate-900">2.3 gün</span>
               </div>
               <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-200/50">
-                <span className="text-sm text-slate-600">Otomasyon Oranı</span>
+                <span className="text-sm text-slate-400 dark:text-slate-600">Otomasyon Oranı</span>
                 <span className="font-semibold text-slate-900">78%</span>
               </div>
               <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-200/50">
-                <span className="text-sm text-slate-600">Doğruluk Oranı</span>
+                <span className="text-sm text-slate-400 dark:text-slate-600">Doğruluk Oranı</span>
                 <span className="font-semibold text-slate-900">94%</span>
               </div>
             </div>
@@ -97,14 +97,14 @@ export function AIInsights() {
           <div className="relative">
             <div className="flex items-center gap-3 mb-4">
               <div className="bg-gradient-to-br from-slate-600 to-slate-700 p-3 rounded-xl shadow-lg">
-                <Brain className="text-white" size={20} />
+                <Brain className="text-slate-900 dark:text-white" size={20} />
               </div>
               <h3 className="text-lg font-semibold text-slate-900">Akıllı Analiz</h3>
             </div>
             <div className="space-y-3">
               <div className="text-center">
                 <div className="text-3xl font-bold text-slate-900">156</div>
-                <div className="text-sm text-slate-600">Analiz edilen teklif</div>
+                <div className="text-sm text-slate-400 dark:text-slate-600">Analiz edilen teklif</div>
               </div>
               <div className="w-full bg-slate-200 rounded-full h-2">
                 <div
@@ -121,14 +121,14 @@ export function AIInsights() {
           <div className="relative">
             <div className="flex items-center gap-3 mb-4">
               <div className="bg-gradient-to-br from-slate-600 to-slate-700 p-3 rounded-xl shadow-lg">
-                <Zap className="text-white" size={20} />
+                <Zap className="text-slate-900 dark:text-white" size={20} />
               </div>
               <h3 className="text-lg font-semibold text-slate-900">Hızlı İşlem</h3>
             </div>
             <div className="space-y-3">
               <div className="text-center">
                 <div className="text-3xl font-bold text-slate-900">4.2s</div>
-                <div className="text-sm text-slate-600">Ortalama yanıt süresi</div>
+                <div className="text-sm text-slate-400 dark:text-slate-600">Ortalama yanıt süresi</div>
               </div>
               <div className="w-full bg-slate-200 rounded-full h-2">
                 <div
@@ -145,14 +145,14 @@ export function AIInsights() {
           <div className="relative">
             <div className="flex items-center gap-3 mb-4">
               <div className="bg-gradient-to-br from-slate-600 to-slate-700 p-3 rounded-xl shadow-lg">
-                <TrendingUp className="text-white" size={20} />
+                <TrendingUp className="text-slate-900 dark:text-white" size={20} />
               </div>
               <h3 className="text-lg font-semibold text-slate-900">Trend Analizi</h3>
             </div>
             <div className="space-y-3">
               <div className="text-center">
                 <div className="text-3xl font-bold text-slate-900">+23%</div>
-                <div className="text-sm text-slate-600">Bu ayki artış</div>
+                <div className="text-sm text-slate-400 dark:text-slate-600">Bu ayki artış</div>
               </div>
               <div className="w-full bg-slate-200 rounded-full h-2">
                 <div

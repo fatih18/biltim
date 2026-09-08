@@ -232,7 +232,7 @@ export default function ApiSandbox() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-500/25">
-                <Zap className="h-5 w-5 text-white" />
+                <Zap className="h-5 w-5 text-slate-900 dark:text-white" />
               </div>
               <div>
                 <h1 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
@@ -275,7 +275,7 @@ export default function ApiSandbox() {
             {/* Selected Endpoint Info */}
             {selectedEndpoint && (
               <div
-                className={`bg-gradient-to-r ${categoryInfo?.color || 'from-gray-500 to-gray-600'} rounded-2xl p-6 text-white shadow-xl`}
+                className={`bg-gradient-to-r ${categoryInfo?.color || 'from-gray-500 to-gray-600'} rounded-2xl p-6 text-slate-900 dark:text-white shadow-xl`}
               >
                 <div className="flex items-center justify-between">
                   <div>
@@ -294,7 +294,7 @@ export default function ApiSandbox() {
                     type="button"
                     onClick={handleInvoke}
                     disabled={isLoading || !isValidJson(payloadInput)}
-                    className="flex flex-col items-center gap-1 px-6 py-3 bg-white/20 hover:bg-white/30 disabled:bg-white/10 disabled:cursor-not-allowed rounded-xl font-semibold transition-all backdrop-blur-sm"
+                    className="flex flex-col items-center gap-1 px-6 py-3 bg-slate-300 dark:bg-white/20 hover:bg-white/30 disabled:bg-slate-200 disabled:dark:bg-white/10 disabled:cursor-not-allowed rounded-xl font-semibold transition-all backdrop-blur-sm"
                     title="⌘+Enter / Ctrl+Enter"
                   >
                     <div className="flex items-center gap-2">

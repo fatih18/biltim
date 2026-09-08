@@ -56,12 +56,12 @@ export function RFPTable({ rfps }: RFPTableProps) {
 
   function getPriorityBadge(risk: string) {
     const riskConfig = {
-      low: 'bg-gradient-to-r from-green-500 to-emerald-500 text-white',
-      medium: 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white',
-      high: 'bg-gradient-to-r from-red-500 to-pink-500 text-white',
+      low: 'bg-gradient-to-r from-green-500 to-emerald-500 text-slate-900 dark:text-white',
+      medium: 'bg-gradient-to-r from-yellow-500 to-orange-500 text-slate-900 dark:text-white',
+      high: 'bg-gradient-to-r from-red-500 to-pink-500 text-slate-900 dark:text-white',
     }
 
-    return riskConfig[risk as keyof typeof riskConfig] || 'bg-slate-500 text-white'
+    return riskConfig[risk as keyof typeof riskConfig] || 'bg-slate-500 text-slate-900 dark:text-white'
   }
 
   function formatCurrency(amount: number) {
@@ -80,9 +80,9 @@ export function RFPTable({ rfps }: RFPTableProps) {
     >
       <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 p-6 border-b border-slate-600/50">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-white flex items-center gap-3">
-            <div className="bg-white/10 p-2 rounded-lg backdrop-blur-sm">
-              <FileText className="text-white" size={24} />
+          <h2 className="text-xl font-semibold text-slate-900 dark:text-white flex items-center gap-3">
+            <div className="bg-slate-200 dark:bg-white/10 p-2 rounded-lg backdrop-blur-sm">
+              <FileText className="text-slate-900 dark:text-white" size={24} />
             </div>
             Son RFP'ler
           </h2>
@@ -93,7 +93,7 @@ export function RFPTable({ rfps }: RFPTableProps) {
                 '🚀 Yeni RFP oluşturma sayfasına yönlendiriliyorsunuz...\n\nÖzellikler:\n- RFP detayları girişi\n- Tedarikçi seçimi\n- Değerlendirme kriterleri\n- Teslim tarihi belirleme'
               )
             }}
-            className="bg-white/10 backdrop-blur-sm text-white px-6 py-3 rounded-xl hover:bg-white/20 transition-all duration-300 flex items-center gap-2 shadow-lg hover:shadow-xl border border-white/20 hover:scale-105"
+            className="bg-slate-200 dark:bg-white/10 backdrop-blur-sm text-slate-900 dark:text-white px-6 py-3 rounded-xl hover:bg-slate-300 hover:dark:bg-white/20 transition-all duration-300 flex items-center gap-2 shadow-lg hover:shadow-xl border border-slate-300 dark:border-white/20 hover:scale-105"
           >
             <Plus size={20} />
             Yeni RFP Oluştur
@@ -105,7 +105,7 @@ export function RFPTable({ rfps }: RFPTableProps) {
         <div className="flex items-center gap-4 mb-6">
           <div className="relative flex-1">
             <Search
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 dark:text-slate-400"
               size={20}
             />
             <input
@@ -144,7 +144,7 @@ export function RFPTable({ rfps }: RFPTableProps) {
                   <td className="py-4 px-4">
                     <div className="space-y-2">
                       <p className="font-semibold text-slate-900">{rfp.title}</p>
-                      <p className="text-sm text-slate-500">
+                      <p className="text-sm text-slate-500 dark:text-slate-500">
                         {rfp.category} • {rfp.customerType}
                       </p>
                       <div className="flex items-center gap-2">
@@ -174,7 +174,7 @@ export function RFPTable({ rfps }: RFPTableProps) {
                   <td className="py-4 px-4">
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-2">
-                        <Brain className="text-slate-600" size={16} />
+                        <Brain className="text-slate-400 dark:text-slate-600" size={16} />
                         <span className="font-semibold text-slate-900">{rfp.aiScore}</span>
                       </div>
                       <div className="w-16 bg-slate-200 rounded-full h-2">
@@ -196,26 +196,26 @@ export function RFPTable({ rfps }: RFPTableProps) {
                   <td className="py-4 px-4">
                     <div className="space-y-1">
                       <p className="text-sm text-slate-900">{rfp.deadline}</p>
-                      <p className="text-xs text-slate-500">{rfp.proposals} teklif</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-500">{rfp.proposals} teklif</p>
                     </div>
                   </td>
                   <td className="py-4 px-4">
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                        className="p-2 text-slate-600 dark:text-slate-400 hover:text-slate-400 hover:dark:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
                       >
                         <Eye size={16} />
                       </button>
                       <button
                         type="button"
-                        className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                        className="p-2 text-slate-600 dark:text-slate-400 hover:text-slate-400 hover:dark:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
                       >
                         <Brain size={16} />
                       </button>
                       <button
                         type="button"
-                        className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                        className="p-2 text-slate-600 dark:text-slate-400 hover:text-slate-400 hover:dark:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
                       >
                         <MoreVertical size={16} />
                       </button>

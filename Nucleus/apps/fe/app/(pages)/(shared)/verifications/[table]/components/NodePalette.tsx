@@ -63,13 +63,13 @@ export function NodePalette({ isCollapsed, onToggle }: NodePaletteProps) {
         {!isCollapsed && (
           <div>
             <h3 className="text-xs font-semibold text-slate-900">Components</h3>
-            <p className="text-[10px] text-slate-400">Drag to canvas</p>
+            <p className="text-[10px] text-slate-600 dark:text-slate-400">Drag to canvas</p>
           </div>
         )}
         <button
           type="button"
           onClick={onToggle}
-          className={`flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 ${isCollapsed ? 'mx-auto' : ''}`}
+          className={`flex h-7 w-7 items-center justify-center rounded-md text-slate-600 dark:text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-400 hover:dark:text-slate-600 ${isCollapsed ? 'mx-auto' : ''}`}
         >
           <ChevronRight
             className={`h-4 w-4 transition-transform duration-300 ${isCollapsed ? '' : 'rotate-180'}`}
@@ -97,7 +97,7 @@ export function NodePalette({ isCollapsed, onToggle }: NodePaletteProps) {
               ) : (
                 <div className="flex items-center gap-2.5">
                   <div
-                    className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-white shadow-sm ${item.bgColor}`}
+                    className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-slate-900 dark:text-white shadow-sm ${item.bgColor}`}
                   >
                     {item.icon}
                   </div>
@@ -105,7 +105,7 @@ export function NodePalette({ isCollapsed, onToggle }: NodePaletteProps) {
                     <div className="text-xs font-semibold text-slate-800 truncate">
                       {item.label}
                     </div>
-                    <div className="text-[10px] text-slate-400 truncate">{item.description}</div>
+                    <div className="text-[10px] text-slate-600 dark:text-slate-400 truncate">{item.description}</div>
                   </div>
                 </div>
               )}

@@ -49,7 +49,7 @@ export function Table<TData extends Record<string, unknown>>({
                 key={column.id}
                 scope="col"
                 className={cn(
-                  'px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500',
+                  'px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-500',
                   column.align === 'center' ? 'text-center' : '',
                   column.align === 'right' ? 'text-right' : '',
                   column.width
@@ -63,7 +63,7 @@ export function Table<TData extends Record<string, unknown>>({
         <tbody className={cn('divide-y divide-slate-100', bodyClassName)}>
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={columns.length} className="px-4 py-8 text-center text-sm text-slate-500">
+              <td colSpan={columns.length} className="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-500">
                 {emptyState ?? 'Kayıt bulunamadı'}
               </td>
             </tr>

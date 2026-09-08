@@ -313,8 +313,8 @@ export function QuestionsPanel() {
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold text-slate-100">Soru Listesi</h2>
-          <p className="mt-0.5 text-xs text-slate-400">
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Soru Listesi</h2>
+          <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">
             {isAdmin
               ? "Adım ve sorular üzerinde tam yetkiniz var (yetkili admin)."
               : "Sorular yalnızca yetkili admin tarafından düzenlenebilir."}
@@ -335,7 +335,7 @@ export function QuestionsPanel() {
             type="button"
             onClick={fetchAll}
             disabled={loading}
-            className="inline-flex items-center rounded-md border border-slate-700 bg-slate-950/60 px-3 py-1.5 text-[11px] hover:bg-slate-950 disabled:opacity-50"
+            className="inline-flex items-center rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/60 px-3 py-1.5 text-[11px] hover:bg-slate-100 hover:dark:bg-slate-950 disabled:opacity-50"
           >
             {loading ? "..." : "Yenile"}
           </button>
@@ -344,12 +344,12 @@ export function QuestionsPanel() {
 
       {/* Body */}
       {loading ? (
-        <div className="text-xs text-slate-400">Yükleniyor...</div>
+        <div className="text-xs text-slate-600 dark:text-slate-400">Yükleniyor...</div>
       ) : noSteps ? (
-        <div className="rounded-xl border border-slate-800 bg-slate-900/60 px-4 py-8 text-center">
-          <p className="text-xs text-slate-400">Kayıtlı adım veya soru bulunamadı.</p>
+        <div className="rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 px-4 py-8 text-center">
+          <p className="text-xs text-slate-600 dark:text-slate-400">Kayıtlı adım veya soru bulunamadı.</p>
           {isAdmin && (
-            <p className="mt-1 text-[11px] text-slate-500">
+            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-500">
               Yukarıdaki "Varsayılan Soruları İçe Aktar" butonuyla veritabanını başlatın.
             </p>
           )}
@@ -364,18 +364,18 @@ export function QuestionsPanel() {
             const isAdding = addingStepId === step.id;
 
             return (
-              <section key={step.id} className="rounded-xl border border-slate-800 bg-slate-900/80">
+              <section key={step.id} className="rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80">
                 {/* Step header */}
                 <div
-                  className="flex cursor-pointer items-center justify-between border-b border-slate-800 px-4 py-2"
+                  className="flex cursor-pointer items-center justify-between border-b border-slate-300 dark:border-slate-800 px-4 py-2"
                   onClick={() =>
                     setCollapsed((prev) => ({ ...prev, [step.id]: !prev[step.id] }))
                   }
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-slate-500 text-[10px]">{isCollapsed ? "▸" : "▾"}</span>
-                    <h3 className="text-xs font-semibold text-slate-300">{step.title}</h3>
-                    <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] text-slate-400">
+                    <span className="text-slate-500 dark:text-slate-500 text-[10px]">{isCollapsed ? "▸" : "▾"}</span>
+                    <h3 className="text-xs font-semibold text-slate-700 dark:text-slate-300">{step.title}</h3>
+                    <span className="rounded-full bg-slate-200 dark:bg-slate-800 px-2 py-0.5 text-[10px] text-slate-600 dark:text-slate-400">
                       {stepQs.length}
                     </span>
                   </div>
@@ -386,7 +386,7 @@ export function QuestionsPanel() {
                         e.stopPropagation();
                         openAdd(step);
                       }}
-                      className="inline-flex items-center gap-1 rounded-md bg-sky-500/10 px-2 py-1 text-[10px] text-sky-300 hover:bg-sky-500/20"
+                      className="inline-flex items-center gap-1 rounded-md bg-sky-500/10 px-2 py-1 text-[10px] text-sky-600 dark:text-sky-300 hover:bg-sky-500/20"
                     >
                       <Plus className="h-3 w-3" />
                       Soru Ekle
@@ -398,43 +398,43 @@ export function QuestionsPanel() {
                   <div>
                     {/* Add form */}
                     {isAdding && isAdmin && (
-                      <div className="border-b border-slate-800/60 bg-slate-950/40 px-4 py-3 space-y-2">
-                        <p className="text-[11px] font-semibold text-emerald-300">Yeni Soru</p>
+                      <div className="border-b border-slate-800/60 bg-white dark:bg-slate-950/40 px-4 py-3 space-y-2">
+                        <p className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-300">Yeni Soru</p>
                         <textarea
                           rows={3}
                           value={addText}
                           onChange={(e) => setAddText(e.target.value)}
                           placeholder="Soru metni..."
-                          className="w-full rounded-md border border-slate-600 bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+                          className="w-full rounded-md border border-slate-400 dark:border-slate-600 bg-white dark:bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
                         />
                         <div className="flex flex-wrap items-center gap-3 text-xs">
                           <div className="flex items-center gap-1.5">
-                            <label className="text-slate-400">Maks. Puan:</label>
+                            <label className="text-slate-600 dark:text-slate-400">Maks. Puan:</label>
                             <input
                               type="number"
                               step="0.01"
                               min="0"
                               value={addMaxScore}
                               onChange={(e) => setAddMaxScore(e.target.value)}
-                              className="w-20 rounded-md border border-slate-600 bg-slate-950/70 px-2 py-1 text-xs outline-none focus:border-sky-400"
+                              className="w-20 rounded-md border border-slate-400 dark:border-slate-600 bg-white dark:bg-slate-950/70 px-2 py-1 text-xs outline-none focus:border-sky-400"
                             />
                           </div>
                           <div className="flex items-center gap-1.5">
-                            <label className="text-slate-400">Sıra:</label>
+                            <label className="text-slate-600 dark:text-slate-400">Sıra:</label>
                             <input
                               type="number"
                               min="1"
                               value={addOrder}
                               onChange={(e) => setAddOrder(Number(e.target.value))}
-                              className="w-16 rounded-md border border-slate-600 bg-slate-950/70 px-2 py-1 text-xs outline-none focus:border-sky-400"
+                              className="w-16 rounded-md border border-slate-400 dark:border-slate-600 bg-white dark:bg-slate-950/70 px-2 py-1 text-xs outline-none focus:border-sky-400"
                             />
                           </div>
-                          <label className="flex items-center gap-1.5 text-slate-400">
+                          <label className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
                             <input
                               type="checkbox"
                               checked={addRequireExplanation}
                               onChange={(e) => setAddRequireExplanation(e.target.checked)}
-                              className="rounded border-slate-600"
+                              className="rounded border-slate-400 dark:border-slate-600"
                             />
                             Açıklama Zorunlu
                           </label>
@@ -443,7 +443,7 @@ export function QuestionsPanel() {
                               type="button"
                               onClick={() => setAddingStepId(null)}
                               disabled={adding}
-                              className="inline-flex items-center gap-1 rounded-md border border-slate-600 px-3 py-1 text-[11px] text-slate-200 hover:bg-slate-800 disabled:opacity-50"
+                              className="inline-flex items-center gap-1 rounded-md border border-slate-400 dark:border-slate-600 px-3 py-1 text-[11px] text-slate-800 dark:text-slate-200 hover:bg-slate-200 hover:dark:bg-slate-800 disabled:opacity-50"
                             >
                               <X className="h-3 w-3" />İptal
                             </button>
@@ -462,7 +462,7 @@ export function QuestionsPanel() {
                     )}
 
                     {stepQs.length === 0 && !isAdding && (
-                      <div className="px-4 py-3 text-xs text-slate-500">Bu adımda soru yok.</div>
+                      <div className="px-4 py-3 text-xs text-slate-500 dark:text-slate-500">Bu adımda soru yok.</div>
                     )}
 
                     {stepQs.map((q, idx) => (
@@ -476,26 +476,26 @@ export function QuestionsPanel() {
                               rows={3}
                               value={editText}
                               onChange={(e) => setEditText(e.target.value)}
-                              className="w-full rounded-md border border-slate-600 bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+                              className="w-full rounded-md border border-slate-400 dark:border-slate-600 bg-white dark:bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
                             />
                             <div className="flex flex-wrap items-center gap-3 text-xs">
                               <div className="flex items-center gap-1.5">
-                                <label className="text-slate-400">Maks. Puan:</label>
+                                <label className="text-slate-600 dark:text-slate-400">Maks. Puan:</label>
                                 <input
                                   type="number"
                                   step="0.01"
                                   min="0"
                                   value={editMaxScore}
                                   onChange={(e) => setEditMaxScore(e.target.value)}
-                                  className="w-20 rounded-md border border-slate-600 bg-slate-950/70 px-2 py-1 text-xs outline-none focus:border-sky-400"
+                                  className="w-20 rounded-md border border-slate-400 dark:border-slate-600 bg-white dark:bg-slate-950/70 px-2 py-1 text-xs outline-none focus:border-sky-400"
                                 />
                               </div>
-                              <label className="flex items-center gap-1.5 text-slate-400">
+                              <label className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
                                 <input
                                   type="checkbox"
                                   checked={editRequireExplanation}
                                   onChange={(e) => setEditRequireExplanation(e.target.checked)}
-                                  className="rounded border-slate-600"
+                                  className="rounded border-slate-400 dark:border-slate-600"
                                 />
                                 Açıklama Zorunlu
                               </label>
@@ -504,7 +504,7 @@ export function QuestionsPanel() {
                                   type="button"
                                   onClick={() => setEditingId(null)}
                                   disabled={saving}
-                                  className="inline-flex items-center gap-1 rounded-md border border-slate-600 px-3 py-1 text-[11px] text-slate-200 hover:bg-slate-800 disabled:opacity-50"
+                                  className="inline-flex items-center gap-1 rounded-md border border-slate-400 dark:border-slate-600 px-3 py-1 text-[11px] text-slate-800 dark:text-slate-200 hover:bg-slate-200 hover:dark:bg-slate-800 disabled:opacity-50"
                                 >
                                   <X className="h-3 w-3" />İptal
                                 </button>
@@ -523,14 +523,14 @@ export function QuestionsPanel() {
                         ) : (
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex-1">
-                              <div className="text-[11px] text-slate-500">{q.externalId}</div>
-                              <div className="mt-0.5 text-xs leading-relaxed text-slate-200">
+                              <div className="text-[11px] text-slate-500 dark:text-slate-500">{q.externalId}</div>
+                              <div className="mt-0.5 text-xs leading-relaxed text-slate-800 dark:text-slate-200">
                                 {q.text}
                               </div>
-                              <div className="mt-1.5 flex items-center gap-3 text-[11px] text-slate-500">
+                              <div className="mt-1.5 flex items-center gap-3 text-[11px] text-slate-500 dark:text-slate-500">
                                 <span>
                                   Maks. Puan:{" "}
-                                  <span className="text-sky-300">{q.maxScore}</span>
+                                  <span className="text-sky-600 dark:text-sky-300">{q.maxScore}</span>
                                 </span>
                                 <span>
                                   {q.requireExplanation ? "Açıklama zorunlu" : "Açıklama opsiyonel"}
@@ -544,7 +544,7 @@ export function QuestionsPanel() {
                                   type="button"
                                   onClick={() => openEdit(q)}
                                   title="Düzenle"
-                                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-slate-800 hover:text-slate-100"
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-600 dark:text-slate-400 hover:bg-slate-200 hover:dark:bg-slate-800 hover:text-slate-900 hover:dark:text-slate-100"
                                 >
                                   <Pencil className="h-4 w-4" />
                                 </button>
@@ -552,7 +552,7 @@ export function QuestionsPanel() {
                                   type="button"
                                   onClick={() => handleDelete(q)}
                                   title="Sil"
-                                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-rose-900/40 hover:text-rose-400"
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-600 dark:text-slate-400 hover:bg-rose-900/40 hover:text-rose-400"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </button>

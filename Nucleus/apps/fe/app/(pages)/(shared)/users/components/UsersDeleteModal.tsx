@@ -25,16 +25,16 @@ export function UsersDeleteModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-      <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900/90 shadow-2xl shadow-slate-950/60">
+      <div className="w-full max-w-md rounded-2xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/90 shadow-2xl shadow-slate-950/60">
         <div className="space-y-4 px-6 py-6">
           <div>
-            <h2 className="text-xl font-semibold text-slate-100">Kullanıcıyı Sil</h2>
-            <p className="text-sm text-slate-400">
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Kullanıcıyı Sil</h2>
+            <p className="text-sm text-slate-600 dark:text-slate-400">
               Bu kullanıcı kalıcı olarak silinecek. Bu işlem geri alınamaz.
             </p>
           </div>
 
-          <div className="rounded-lg border border-rose-900/40 bg-rose-950/30 px-4 py-3 text-sm text-rose-200">
+          <div className="rounded-lg border border-rose-900/40 bg-rose-100 dark:bg-rose-950/30 px-4 py-3 text-sm text-rose-700 dark:text-rose-200">
             Silinecek kullanıcı:{' '}
             <span className="font-semibold text-rose-100">{userEmail ?? 'Bilinmeyen email'}</span>
           </div>
@@ -43,7 +43,7 @@ export function UsersDeleteModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-slate-700 bg-slate-950/40 px-4 py-2 text-sm font-medium text-slate-200 hover:bg-slate-800 transition-colors"
+              className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-4 py-2 text-sm font-medium text-slate-800 dark:text-slate-200 hover:bg-slate-200 hover:dark:bg-slate-800 transition-colors"
             >
               İptal
             </button>
@@ -52,7 +52,7 @@ export function UsersDeleteModal({
               type="button"
               onClick={handleConfirm}
               disabled={isSubmitting}
-              className="rounded-lg bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-lg bg-rose-600 px-5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white transition-colors hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting ? 'Siliniyor…' : 'Kullanıcıyı Sil'}
             </button>

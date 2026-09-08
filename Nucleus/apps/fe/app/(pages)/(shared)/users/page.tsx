@@ -207,9 +207,9 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-50 px-4 py-6 md:px-8">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-50 px-4 py-6 md:px-8">
       <div className="mx-auto max-w-7xl space-y-6">
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4 md:p-6 shadow-xl shadow-slate-950/60">
+        <div className="rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900/40 p-4 md:p-6 shadow-xl shadow-slate-950/60">
           <div className="space-y-6">
             <UsersHeader
               onCreate={() => usersStore.setModalVisibility('create', true)}
@@ -252,7 +252,7 @@ export default function UsersPage() {
             />
 
             {hasUsers ? (
-              <div className="rounded-xl border border-slate-800 bg-slate-950/40 p-3">
+              <div className="rounded-xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/40 p-3">
                 <Pagination
                   currentPage={usersStore.users?.pagination.page ?? usersStore.page}
                   totalPages={usersStore.users?.pagination.totalPages ?? 1}

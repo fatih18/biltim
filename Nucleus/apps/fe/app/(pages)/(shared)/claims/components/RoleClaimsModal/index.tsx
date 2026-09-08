@@ -203,20 +203,20 @@ export function RoleClaimsModal({ isOpen, role, onClose }: RoleClaimsModalProps)
     return (
       <div
         key={claim.id}
-        className="rounded-2xl border border-white/10 bg-white/5 p-4 transition hover:border-emerald-400/70 hover:bg-emerald-500/10"
+        className="rounded-2xl border border-slate-300 dark:border-white/10 bg-slate-100 dark:bg-white/5 p-4 transition hover:border-emerald-400/70 hover:bg-emerald-100 hover:dark:bg-emerald-500/10"
       >
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="space-y-1">
-            <div className="text-xs font-semibold uppercase tracking-wide text-slate-300">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">
               {claim.action}
             </div>
             <div className="text-xs text-slate-300/90">
-              <span className="rounded-full border border-white/20 bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+              <span className="rounded-full border border-slate-300 dark:border-white/20 bg-slate-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
                 {claim.method}
               </span>
-              <span className="ml-2 text-slate-200">{claim.path}</span>
+              <span className="ml-2 text-slate-800 dark:text-slate-200">{claim.path}</span>
             </div>
-            <div className="text-[11px] text-slate-400">
+            <div className="text-[11px] text-slate-600 dark:text-slate-400">
               Matching mode: <span className="font-semibold">{claim.mode}</span>
             </div>
             {claim.description ? (
@@ -231,7 +231,7 @@ export function RoleClaimsModal({ isOpen, role, onClose }: RoleClaimsModalProps)
               disabled={busy}
               className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${isAssigned
                 ? 'bg-emerald-500 text-emerald-950 hover:bg-emerald-400'
-                : 'border border-white/30 bg-white/10 text-white hover:bg-white/20'
+                : 'border border-white/30 bg-slate-200 dark:bg-white/10 text-slate-900 dark:text-white hover:bg-slate-300 hover:dark:bg-white/20'
                 }`}
             >
               {busy ? (
@@ -259,41 +259,41 @@ export function RoleClaimsModal({ isOpen, role, onClose }: RoleClaimsModalProps)
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm p-6">
-      <div className="relative w-full max-w-4xl overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl">
+      <div className="relative w-full max-w-4xl overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-900 dark:text-white shadow-2xl">
         {isLoadingInitial ? (
-          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-slate-900/70 backdrop-blur-sm">
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-white dark:bg-slate-900/70 backdrop-blur-sm">
             <Loader2 className="animate-spin" size={28} />
-            <span className="text-sm text-slate-200">Loading claims...</span>
+            <span className="text-sm text-slate-800 dark:text-slate-200">Loading claims...</span>
           </div>
         ) : null}
 
         <div className="relative z-10">
-          <header className="flex flex-col gap-4 border-b border-white/10 px-8 py-6">
+          <header className="flex flex-col gap-4 border-b border-slate-300 dark:border-white/10 px-8 py-6">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-bold">Manage Claims for {role.name}</h2>
-                <p className="mt-1 text-sm text-slate-300">
+                <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
                   Attach or detach low-level claims that this role will provide to users.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-full border border-white/10 bg-white/5 p-2 text-white transition hover:bg-white/20"
+                className="rounded-full border border-slate-300 dark:border-white/10 bg-slate-100 dark:bg-white/5 p-2 text-slate-900 dark:text-white transition hover:bg-slate-300 hover:dark:bg-white/20"
                 aria-label="Close role claims management"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div className="text-xs text-slate-300">
+            <div className="text-xs text-slate-700 dark:text-slate-300">
               Assigned <span className="font-semibold">{assignedClaimIds.length}</span> of{' '}
               <span className="font-semibold">{claims.length}</span> claims
             </div>
 
             <div className="relative">
               <Search
-                className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400"
                 size={18}
               />
               <input
@@ -301,7 +301,7 @@ export function RoleClaimsModal({ isOpen, role, onClose }: RoleClaimsModalProps)
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search claims by action, path or method..."
-                className="w-full rounded-2xl border border-white/10 bg-white/5 py-3 pl-12 pr-4 text-sm text-white placeholder:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/60"
+                className="w-full rounded-2xl border border-slate-300 dark:border-white/10 bg-slate-100 dark:bg-white/5 py-3 pl-12 pr-4 text-sm text-slate-900 dark:text-white placeholder:text-slate-600 placeholder:dark:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/60"
                 aria-label="Search claims"
               />
             </div>
@@ -321,12 +321,12 @@ export function RoleClaimsModal({ isOpen, role, onClose }: RoleClaimsModalProps)
             }}
           >
             {isLoadingInitial ? (
-              <div className="flex flex-col items-center justify-center gap-3 py-16 text-slate-300">
+              <div className="flex flex-col items-center justify-center gap-3 py-16 text-slate-700 dark:text-slate-300">
                 <Loader2 className="animate-spin" size={28} />
                 <span>Loading claims...</span>
               </div>
             ) : filteredClaims.length === 0 ? (
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-10 text-center text-slate-300">
+              <div className="rounded-2xl border border-slate-300 dark:border-white/10 bg-slate-100 dark:bg-white/5 p-10 text-center text-slate-700 dark:text-slate-300">
                 No claims found with the current filters.
               </div>
             ) : (
@@ -334,7 +334,7 @@ export function RoleClaimsModal({ isOpen, role, onClose }: RoleClaimsModalProps)
                 {filteredClaims.map(renderClaimRow)}
 
                 {isLoadingMore && (
-                  <div className="flex items-center justify-center gap-2 py-4 text-xs text-slate-300">
+                  <div className="flex items-center justify-center gap-2 py-4 text-xs text-slate-700 dark:text-slate-300">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     <span>Loading more claims...</span>
                   </div>

@@ -22,7 +22,7 @@ export function SegmentedTabs<T extends string>(props: {
                             "rounded-md px-4 py-2 text-xs font-semibold border",
                             active
                                 ? "bg-sky-500 text-slate-950 border-sky-400"
-                                : "bg-slate-900/60 text-slate-200 border-slate-800 hover:bg-slate-800/60",
+                                : "bg-slate-50 dark:bg-slate-900/60 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-800 hover:bg-slate-200 hover:dark:bg-slate-800/60",
                         ].join(" ")}
                     >
                         {it.label}

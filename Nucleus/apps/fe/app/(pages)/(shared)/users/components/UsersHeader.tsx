@@ -10,16 +10,16 @@ interface UsersHeaderProps {
 
 export function UsersHeader({ onCreate, onRefresh, isRefreshing }: UsersHeaderProps) {
   return (
-    <header className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 shadow-lg shadow-slate-950/40">
+    <header className="rounded-2xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 p-6 shadow-lg shadow-slate-950/40">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-4">
-          <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-3">
-            <Shield size={28} className="text-emerald-300" />
+          <div className="rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/40 p-3">
+            <Shield size={28} className="text-emerald-600 dark:text-emerald-300" />
           </div>
 
           <div>
-            <h1 className="text-xl font-semibold text-slate-50 md:text-2xl">Kullanıcılar</h1>
-            <p className="mt-1 text-sm text-slate-400">
+            <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-50 md:text-2xl">Kullanıcılar</h1>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
               Platform hesaplarını, doğrulama ve erişim kontrollerini yönetin.
             </p>
           </div>
@@ -30,7 +30,7 @@ export function UsersHeader({ onCreate, onRefresh, isRefreshing }: UsersHeaderPr
             type="button"
             onClick={onRefresh}
             disabled={isRefreshing}
-            className="rounded-xl border border-slate-800 bg-slate-950/40 px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:bg-slate-950/70 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/40 px-4 py-2.5 text-sm font-semibold text-slate-800 dark:text-slate-200 transition hover:bg-white hover:dark:bg-slate-950/70 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isRefreshing ? 'Yenileniyor…' : 'Yenile'}
           </button>

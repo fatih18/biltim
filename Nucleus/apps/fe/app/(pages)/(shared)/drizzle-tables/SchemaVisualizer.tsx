@@ -291,7 +291,7 @@ export function SchemaVisualizer() {
       {/* Add Table Button - System themed, bottom left */}
       <button
         onClick={() => setShowAddForm(true)}
-        className="absolute bottom-6 left-6 z-20 flex items-center gap-2 px-5 py-3 bg-slate-700 hover:bg-slate-800 text-white rounded-lg shadow-lg hover:shadow-xl transition-all group"
+        className="absolute bottom-6 left-6 z-20 flex items-center gap-2 px-5 py-3 bg-slate-200 dark:bg-slate-700 hover:bg-slate-200 hover:dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg shadow-lg hover:shadow-xl transition-all group"
         type="button"
       >
         <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />

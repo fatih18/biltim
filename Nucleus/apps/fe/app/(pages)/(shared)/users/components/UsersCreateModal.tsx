@@ -189,7 +189,7 @@ export function UsersCreateModal({
       aria-modal="true"
     >
       <div
-        className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900/90
+        className="w-full max-w-md rounded-2xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/90
                    shadow-2xl shadow-slate-950/70
                    my-0"
       >
@@ -200,10 +200,10 @@ export function UsersCreateModal({
         >
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-slate-100 md:text-xl">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 md:text-xl">
                 Kullanıcı Oluştur
               </h2>
-              <p className="mt-1 text-xs text-slate-400">
+              <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
                 Hesap bilgilerini girin ve kullanıcıya rol atayın.
               </p>
             </div>
@@ -211,8 +211,8 @@ export function UsersCreateModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-md border border-slate-700 bg-slate-950/40 px-2 py-1
-                         text-slate-300 hover:bg-slate-950/70 hover:text-slate-100 transition-colors"
+              className="rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-2 py-1
+                         text-slate-700 dark:text-slate-300 hover:bg-white hover:dark:bg-slate-950/70 hover:text-slate-900 hover:dark:text-slate-100 transition-colors"
               aria-label="Close create user modal"
             >
               ×
@@ -223,7 +223,7 @@ export function UsersCreateModal({
             <div>
               <label
                 htmlFor="create-user-email"
-                className="block text-xs font-medium text-slate-300"
+                className="block text-xs font-medium text-slate-700 dark:text-slate-300"
               >
                 E-posta
               </label>
@@ -233,8 +233,8 @@ export function UsersCreateModal({
                 required
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-700 !bg-slate-950/70 px-3 py-2
-                           text-sm text-slate-100 outline-none ring-sky-500/40 placeholder:text-slate-500
+                className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 !bg-white dark:bg-slate-950/70 px-3 py-2
+                           text-sm text-slate-900 dark:text-slate-100 outline-none ring-sky-500/40 placeholder:text-slate-500 placeholder:dark:text-slate-500
                            focus:border-sky-400 focus:ring-2"
               />
             </div>
@@ -242,7 +242,7 @@ export function UsersCreateModal({
             <div>
               <label
                 htmlFor="create-user-password"
-                className="block text-xs font-medium text-slate-300"
+                className="block text-xs font-medium text-slate-700 dark:text-slate-300"
               >
                 Geçici Şifre
               </label>
@@ -253,11 +253,11 @@ export function UsersCreateModal({
                 minLength={8}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-700 !bg-slate-950/70 px-3 py-2
-                           text-sm text-slate-100 outline-none ring-sky-500/40 placeholder:text-slate-500
+                className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 !bg-white dark:bg-slate-950/70 px-3 py-2
+                           text-sm text-slate-900 dark:text-slate-100 outline-none ring-sky-500/40 placeholder:text-slate-500 placeholder:dark:text-slate-500
                            focus:border-sky-400 focus:ring-2"
               />
-              <p className="mt-1 text-[11px] text-slate-500">
+              <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-500">
                 Şifre en az 8 karakter olmalıdır.
               </p>
             </div>
@@ -266,7 +266,7 @@ export function UsersCreateModal({
               <div>
                 <label
                   htmlFor="create-user-first-name"
-                  className="block text-xs font-medium text-slate-300"
+                  className="block text-xs font-medium text-slate-700 dark:text-slate-300"
                 >
                   Ad
                 </label>
@@ -276,8 +276,8 @@ export function UsersCreateModal({
                   required
                   value={firstName}
                   onChange={(event) => setFirstName(event.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2
-                             text-sm text-slate-100 outline-none ring-sky-500/40 placeholder:text-slate-500
+                  className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2
+                             text-sm text-slate-900 dark:text-slate-100 outline-none ring-sky-500/40 placeholder:text-slate-500 placeholder:dark:text-slate-500
                              focus:border-sky-400 focus:ring-2"
                 />
               </div>
@@ -285,7 +285,7 @@ export function UsersCreateModal({
               <div>
                 <label
                   htmlFor="create-user-last-name"
-                  className="block text-xs font-medium text-slate-300"
+                  className="block text-xs font-medium text-slate-700 dark:text-slate-300"
                 >
                   Soyad
                 </label>
@@ -295,24 +295,24 @@ export function UsersCreateModal({
                   required
                   value={lastName}
                   onChange={(event) => setLastName(event.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2
-                             text-sm text-slate-100 outline-none ring-sky-500/40 placeholder:text-slate-500
+                  className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2
+                             text-sm text-slate-900 dark:text-slate-100 outline-none ring-sky-500/40 placeholder:text-slate-500 placeholder:dark:text-slate-500
                              focus:border-sky-400 focus:ring-2"
                 />
               </div>
             </div>
 
             <div>
-              <p className="block text-xs font-medium text-slate-300">Roller <span className="text-rose-400">*</span></p>
+              <p className="block text-xs font-medium text-slate-700 dark:text-slate-300">Roller <span className="text-rose-400">*</span></p>
 
-              <div className="mt-2 max-h-40 md:max-h-48 space-y-1 overflow-y-auto rounded-lg border border-slate-800 bg-slate-950/40 p-3">
+              <div className="mt-2 max-h-40 md:max-h-48 space-y-1 overflow-y-auto rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/40 p-3">
                 {isLoadingRoles ? (
-                  <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
+                  <div className="flex items-center justify-center gap-2 text-xs text-slate-600 dark:text-slate-400">
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-500 border-t-sky-400" />
                     Roller yükleniyor...
                   </div>
                 ) : availableRoles.length === 0 ? (
-                  <p className="text-xs text-slate-500">Rol bulunamadı.</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-500">Rol bulunamadı.</p>
                 ) : (
                   availableRoles.map((role) => {
                     const isSelected = selectedRoleIds.includes(role.id)
@@ -325,15 +325,15 @@ export function UsersCreateModal({
                           'flex items-center justify-between gap-2 rounded-md border border-transparent px-2 py-1.5 text-sm transition-colors',
                           disabled
                             ? 'opacity-50 cursor-not-allowed'
-                            : 'hover:border-slate-800 hover:bg-slate-900/60 cursor-pointer',
+                            : 'hover:border-slate-300 hover:dark:border-slate-800 hover:bg-slate-50 hover:dark:bg-slate-900/60 cursor-pointer',
                         ].join(' ')}
                       >
                         <span className="flex-1 min-w-0">
-                          <span className="block truncate text-xs font-semibold text-slate-100">
+                          <span className="block truncate text-xs font-semibold text-slate-900 dark:text-slate-100">
                             {role.alias}
                           </span>
                           {role.description ? (
-                            <span className="block truncate text-[11px] text-slate-500">
+                            <span className="block truncate text-[11px] text-slate-500 dark:text-slate-500">
                               {role.description}
                             </span>
                           ) : null}
@@ -341,7 +341,7 @@ export function UsersCreateModal({
 
                         <span className="flex items-center gap-2">
                           {role.is_system ? (
-                            <span className="rounded-full border border-amber-800/50 bg-amber-950/25 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200">
+                            <span className="rounded-full border border-amber-800/50 bg-amber-950/25 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-200">
                               Sistem
                             </span>
                           ) : null}
@@ -351,7 +351,7 @@ export function UsersCreateModal({
                             checked={isSelected}
                             disabled={disabled}
                             onChange={(event) => toggleRole(role.id, event.target.checked)}
-                            className="h-4 w-4 rounded border-slate-600 bg-slate-950/70 text-sky-400 focus:ring-sky-500/40"
+                            className="h-4 w-4 rounded border-slate-400 dark:border-slate-600 bg-white dark:bg-slate-950/70 text-sky-600 dark:text-sky-400 focus:ring-sky-500/40"
                           />
                         </span>
                       </label>
@@ -360,17 +360,17 @@ export function UsersCreateModal({
                 )}
               </div>
 
-              <p className="mt-1 text-[11px] text-slate-500">
+              <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-500">
                 Rol seçimi zorunludur. Çoklu seçimde yalnızca Denetçi + Saha Sorumlusu veya Denetçi + Merkez Ekip birlikte seçilebilir.
               </p>
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-3 border-t border-slate-800 pt-4">
+          <div className="flex items-center justify-end gap-3 border-t border-slate-300 dark:border-slate-800 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-slate-700 bg-slate-950/40 px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-950/70 transition-colors"
+              className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-4 py-2 text-xs font-semibold text-slate-800 dark:text-slate-200 hover:bg-white hover:dark:bg-slate-950/70 transition-colors"
             >
               Vazgeç
             </button>

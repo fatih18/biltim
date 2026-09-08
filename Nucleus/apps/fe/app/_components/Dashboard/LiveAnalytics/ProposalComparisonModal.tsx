@@ -120,13 +120,13 @@ export function ProposalComparisonModal({
       <div className="min-h-screen flex items-start justify-center p-4 pt-16 pb-16">
         <div className="bg-white rounded-2xl shadow-2xl max-w-7xl w-full max-h-none overflow-hidden">
           {/* Header */}
-          <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 p-6 text-white shadow-xl">
+          <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 p-6 text-slate-900 dark:text-white shadow-xl">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <BarChart3 size={28} />
                 <div>
                   <h2 className="text-2xl font-bold">Detaylı Teklif Karşılaştırması</h2>
-                  <p className="text-slate-300 mt-1">
+                  <p className="text-slate-700 dark:text-slate-300 mt-1">
                     {selectedProposals.length} teklif karşılaştırılıyor
                   </p>
                 </div>
@@ -134,7 +134,7 @@ export function ProposalComparisonModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                className="p-2 hover:bg-slate-300 hover:dark:bg-white/20 rounded-lg transition-colors"
               >
                 <X size={24} />
               </button>
@@ -145,17 +145,17 @@ export function ProposalComparisonModal({
           <div className="p-6">
             {selectedProposals.length === 0 ? (
               <div className="text-center py-12">
-                <BarChart3 className="mx-auto text-slate-400 mb-4" size={64} />
+                <BarChart3 className="mx-auto text-slate-600 dark:text-slate-400 mb-4" size={64} />
                 <h3 className="text-xl font-semibold text-slate-900 mb-2">
                   Karşılaştırılacak Teklif Seçilmedi
                 </h3>
-                <p className="text-slate-600">Karşılaştırma yapmak için en az 2 teklif seçin.</p>
+                <p className="text-slate-400 dark:text-slate-600">Karşılaştırma yapmak için en az 2 teklif seçin.</p>
               </div>
             ) : selectedProposals.length === 1 ? (
               <div className="text-center py-12">
-                <BarChart3 className="mx-auto text-slate-400 mb-4" size={64} />
+                <BarChart3 className="mx-auto text-slate-600 dark:text-slate-400 mb-4" size={64} />
                 <h3 className="text-xl font-semibold text-slate-900 mb-2">Tek Teklif Seçildi</h3>
-                <p className="text-slate-600">Karşılaştırma yapmak için en az 2 teklif seçin.</p>
+                <p className="text-slate-400 dark:text-slate-600">Karşılaştırma yapmak için en az 2 teklif seçin.</p>
               </div>
             ) : (
               <div className="space-y-8">
@@ -172,7 +172,7 @@ export function ProposalComparisonModal({
                         <div className="text-2xl font-bold text-green-600">
                           {Math.max(...selectedProposals.map((p) => p.score))}
                         </div>
-                        <div className="text-sm text-slate-600">En Yüksek Puan</div>
+                        <div className="text-sm text-slate-400 dark:text-slate-600">En Yüksek Puan</div>
                       </div>
                     </div>
 
@@ -184,7 +184,7 @@ export function ProposalComparisonModal({
                           )}
                           M
                         </div>
-                        <div className="text-sm text-slate-600">En Düşük Fiyat</div>
+                        <div className="text-sm text-slate-400 dark:text-slate-600">En Düşük Fiyat</div>
                       </div>
                     </div>
 
@@ -193,7 +193,7 @@ export function ProposalComparisonModal({
                         <div className="text-2xl font-bold text-orange-600">
                           {Math.min(...selectedProposals.map((p) => p.deliveryTime))}
                         </div>
-                        <div className="text-sm text-slate-600">En Hızlı Teslimat</div>
+                        <div className="text-sm text-slate-400 dark:text-slate-600">En Hızlı Teslimat</div>
                       </div>
                     </div>
 
@@ -202,7 +202,7 @@ export function ProposalComparisonModal({
                         <div className="text-2xl font-bold text-purple-600">
                           {selectedProposals.filter((p) => p.riskLevel === 'low').length}
                         </div>
-                        <div className="text-sm text-slate-600">Düşük Riskli</div>
+                        <div className="text-sm text-slate-400 dark:text-slate-600">Düşük Riskli</div>
                       </div>
                     </div>
                   </div>
@@ -224,7 +224,7 @@ export function ProposalComparisonModal({
                             >
                               <div className="space-y-1">
                                 <div className="font-bold">{proposal.vendor}</div>
-                                <div className="text-xs text-slate-600 font-normal">
+                                <div className="text-xs text-slate-400 dark:text-slate-600 font-normal">
                                   {proposal.rfpTitle}
                                 </div>
                               </div>
@@ -485,7 +485,7 @@ export function ProposalComparisonModal({
                             <button
                               type="button"
                               onClick={handleSelectBest}
-                              className="mt-2 px-3 py-1 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition-colors"
+                              className="mt-2 px-3 py-1 bg-green-600 text-slate-900 dark:text-white text-xs rounded-lg hover:bg-green-700 transition-colors"
                             >
                               Bu Teklifi Seç
                             </button>
@@ -513,7 +513,7 @@ export function ProposalComparisonModal({
                             <button
                               type="button"
                               onClick={handleSelectCheapest}
-                              className="mt-2 px-3 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors"
+                              className="mt-2 px-3 py-1 bg-blue-600 text-slate-900 dark:text-white text-xs rounded-lg hover:bg-blue-700 transition-colors"
                             >
                               Bu Teklifi Seç
                             </button>
@@ -538,7 +538,7 @@ export function ProposalComparisonModal({
                             <button
                               type="button"
                               onClick={handleSelectFastest}
-                              className="mt-2 px-3 py-1 bg-orange-600 text-white text-xs rounded-lg hover:bg-orange-700 transition-colors"
+                              className="mt-2 px-3 py-1 bg-orange-600 text-slate-900 dark:text-white text-xs rounded-lg hover:bg-orange-700 transition-colors"
                             >
                               Bu Teklifi Seç
                             </button>

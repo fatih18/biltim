@@ -20,12 +20,12 @@ interface UsersTableProps {
 export function UsersTable({ users, onSelectDetails, onValidateEmail, onDelete }: UsersTableProps) {
   if (!users) {
     return (
-      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl">
+      <div className="relative overflow-hidden rounded-2xl border border-slate-300 dark:border-white/10 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-900 dark:text-white shadow-2xl">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0 bg-grid-pattern" />
         </div>
 
-        <div className="relative flex items-center justify-center gap-3 py-12 text-slate-200">
+        <div className="relative flex items-center justify-center gap-3 py-12 text-slate-800 dark:text-slate-200">
           <span className="h-5 w-5 animate-spin rounded-full border-2 border-emerald-400 border-t-transparent" />
           Kullanıcılar yükleniyor...
         </div>
@@ -35,46 +35,46 @@ export function UsersTable({ users, onSelectDetails, onValidateEmail, onDelete }
 
   if (users.data.length === 0) {
     return (
-      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl">
+      <div className="relative overflow-hidden rounded-2xl border border-slate-300 dark:border-white/10 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-900 dark:text-white shadow-2xl">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0 bg-grid-pattern" />
         </div>
 
         <div className="relative py-12 text-center">
-          <AlertCircle className="mx-auto mb-4 text-slate-500" size={48} />
-          <h3 className="mb-2 text-lg font-semibold text-white">Kullanıcı bulunamadı</h3>
-          <p className="text-slate-300">Arama kriterlerini veya filtreleri düzenleyip tekrar deneyin.</p>
+          <AlertCircle className="mx-auto mb-4 text-slate-500 dark:text-slate-500" size={48} />
+          <h3 className="mb-2 text-lg font-semibold text-slate-900 dark:text-white">Kullanıcı bulunamadı</h3>
+          <p className="text-slate-700 dark:text-slate-300">Arama kriterlerini veya filtreleri düzenleyip tekrar deneyin.</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl">
+    <div className="relative overflow-hidden rounded-2xl border border-slate-300 dark:border-white/10 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-900 dark:text-white shadow-2xl">
       <div className="absolute inset-0 opacity-10">
         <div className="absolute inset-0 bg-grid-pattern" />
       </div>
 
       <div className="relative overflow-x-auto">
         <table className="w-full">
-          <thead className="border-b border-white/10 bg-white/5">
+          <thead className="border-b border-slate-300 dark:border-white/10 bg-slate-100 dark:bg-white/5">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                 Kullanıcı
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                 E-posta
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                 Doğrulama
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                 Erişim
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                 Son Giriş
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                 İşlemler
               </th>
             </tr>
@@ -93,42 +93,42 @@ export function UsersTable({ users, onSelectDetails, onValidateEmail, onDelete }
                 : '—'
 
               const verificationBadge = user.verified_at ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/40 bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-300">
+                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400 dark:border-emerald-400/40 bg-emerald-100 dark:bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-300">
                   <CheckCircle2 size={14} /> Doğrulandı
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-500/10 px-2 py-1 text-xs font-semibold text-amber-300">
+                <span className="inline-flex items-center gap-1 rounded-full border border-amber-400 dark:border-amber-400/40 bg-amber-100 dark:bg-amber-500/10 px-2 py-1 text-xs font-semibold text-amber-600 dark:text-amber-300">
                   <MailCheck size={14} /> Bekliyor
                 </span>
               )
 
               const accessBadge = user.is_locked ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-rose-400/40 bg-rose-500/10 px-2 py-1 text-xs font-semibold text-rose-300">
+                <span className="inline-flex items-center gap-1 rounded-full border border-rose-400 dark:border-rose-400/40 bg-rose-100 dark:bg-rose-500/10 px-2 py-1 text-xs font-semibold text-rose-600 dark:text-rose-300">
                   <ShieldBan size={14} /> Kilitli
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/40 bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-300">
+                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400 dark:border-emerald-400/40 bg-emerald-100 dark:bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-300">
                   <ShieldCheck size={14} /> Aktif
                 </span>
               )
 
               return (
-                <tr key={user.id} className="transition-colors hover:bg-white/5">
+                <tr key={user.id} className="transition-colors hover:bg-slate-100 hover:dark:bg-white/5">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-emerald-300">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 dark:bg-white/10 text-emerald-600 dark:text-emerald-300">
                         <User size={18} />
                       </div>
                       <div>
-                        <div className="text-sm font-semibold text-white">
+                        <div className="text-sm font-semibold text-slate-900 dark:text-white">
                           {user.profile?.first_name ?? '—'} {user.profile?.last_name ?? ''}
                         </div>
-                        <div className="text-xs text-slate-400">{user.id}</div>
+                        <div className="text-xs text-slate-600 dark:text-slate-400">{user.id}</div>
                       </div>
                     </div>
                   </td>
 
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-100">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-slate-100">
                     {user.email}
                   </td>
 
@@ -136,7 +136,7 @@ export function UsersTable({ users, onSelectDetails, onValidateEmail, onDelete }
 
                   <td className="px-6 py-4 whitespace-nowrap text-sm">{accessBadge}</td>
 
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300">
                     {lastLogin}
                   </td>
 
@@ -144,7 +144,7 @@ export function UsersTable({ users, onSelectDetails, onValidateEmail, onDelete }
                     <div className="flex items-center gap-3">
                       <button
                         type="button"
-                        className="inline-flex items-center gap-1 text-sm font-semibold text-slate-200 hover:text-white transition-colors"
+                        className="inline-flex items-center gap-1 text-sm font-semibold text-slate-800 dark:text-slate-200 hover:text-slate-900 hover:dark:text-white transition-colors"
                         onClick={() => onSelectDetails(user.id)}
                       >
                         <Info size={14} aria-hidden="true" /> Detay
@@ -153,7 +153,7 @@ export function UsersTable({ users, onSelectDetails, onValidateEmail, onDelete }
                       {!user.verified_at ? (
                         <button
                           type="button"
-                          className="inline-flex items-center gap-1 text-sm font-semibold text-emerald-300 hover:text-emerald-200 transition-colors"
+                          className="inline-flex items-center gap-1 text-sm font-semibold text-emerald-600 dark:text-emerald-300 hover:text-emerald-700 hover:dark:text-emerald-200 transition-colors"
                           onClick={() => onValidateEmail(user.id)}
                         >
                           <MailCheck size={14} aria-hidden="true" /> E-postasını Doğrula
@@ -162,7 +162,7 @@ export function UsersTable({ users, onSelectDetails, onValidateEmail, onDelete }
 
                       <button
                         type="button"
-                        className="inline-flex items-center gap-1 text-sm font-semibold text-rose-300 hover:text-rose-200 transition-colors"
+                        className="inline-flex items-center gap-1 text-sm font-semibold text-rose-600 dark:text-rose-300 hover:text-rose-700 hover:dark:text-rose-200 transition-colors"
                         onClick={() => onDelete(user.id)}
                       >
                         <Trash2 size={14} aria-hidden="true" /> Sil

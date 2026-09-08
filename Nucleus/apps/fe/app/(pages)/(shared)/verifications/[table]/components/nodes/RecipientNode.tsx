@@ -57,7 +57,7 @@ function RecipientNodeComponent({ data, selected }: NodeProps & { data: Recipien
       />
 
       <div className="flex items-center gap-3 rounded-t-xl bg-gradient-to-r from-teal-50 to-cyan-50 px-4 py-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-500 text-white shadow-md">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-500 text-slate-900 dark:text-white shadow-md">
           {getRecipientIcon()}
         </div>
         <div className="flex-1">
@@ -70,7 +70,7 @@ function RecipientNodeComponent({ data, selected }: NodeProps & { data: Recipien
       </div>
 
       <div className="px-4 py-2">
-        <div className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+        <div className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-400 dark:text-slate-600">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
           Portal
         </div>

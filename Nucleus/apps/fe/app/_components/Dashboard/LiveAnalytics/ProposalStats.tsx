@@ -130,7 +130,7 @@ export function ProposalStats({ proposals }: ProposalStatsProps) {
             <div
               className={`w-12 h-12 rounded-xl bg-gradient-to-r ${stat.color} p-3 shadow-lg group-hover:scale-110 transition-transform`}
             >
-              <stat.icon className="text-white" size={24} />
+              <stat.icon className="text-slate-900 dark:text-white" size={24} />
             </div>
             <div
               className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
@@ -156,7 +156,7 @@ export function ProposalStats({ proposals }: ProposalStatsProps) {
           <h3 className="text-3xl font-bold text-slate-900 mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-purple-600 transition-all">
             {stat.value}
           </h3>
-          <p className="text-slate-600 font-medium">{stat.title}</p>
+          <p className="text-slate-400 dark:text-slate-600 font-medium">{stat.title}</p>
 
           {/* Decorative elements */}
           <div className="absolute bottom-0 right-0 w-20 h-20 bg-gradient-to-tl from-white/20 to-transparent rounded-tl-full"></div>

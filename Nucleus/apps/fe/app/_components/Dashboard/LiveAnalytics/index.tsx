@@ -141,7 +141,7 @@ export function LiveAnalytics() {
         <h2 className="text-4xl font-bold bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 bg-clip-text text-transparent mb-4">
           📊 Akıllı Teklif Karşılaştırma Motoru
         </h2>
-        <p className="text-xl text-slate-600 max-w-4xl mx-auto">
+        <p className="text-xl text-slate-400 dark:text-slate-600 max-w-4xl mx-auto">
           Teklifleri gerçek zamanlı analiz edin, karşılaştırın ve puanlayın
         </p>
       </div>

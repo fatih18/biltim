@@ -166,31 +166,31 @@ export function UsersManageRolesModal({ isOpen, userId, onClose }: UsersManageRo
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm p-6">
-      <div className="relative w-full max-w-3xl overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl">
+      <div className="relative w-full max-w-3xl overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-900 dark:text-white shadow-2xl">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0 bg-grid-pattern" />
         </div>
 
         {isLoadingInitial ? (
-          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-slate-900/70 backdrop-blur-sm">
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-white dark:bg-slate-900/70 backdrop-blur-sm">
             <Loader2 className="animate-spin" size={28} />
-            <span className="text-sm text-slate-200">İşleniyor, lütfen bekleyin...</span>
+            <span className="text-sm text-slate-800 dark:text-slate-200">İşleniyor, lütfen bekleyin...</span>
           </div>
         ) : null}
 
         <div className="relative z-10">
-          <header className="flex flex-col gap-6 border-b border-white/10 px-8 py-6">
+          <header className="flex flex-col gap-6 border-b border-slate-300 dark:border-white/10 px-8 py-6">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-bold">Rolleri Yönet</h2>
-                <p className="mt-2 text-sm text-slate-300">
+                <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
                   Bu kullanıcı için rol atayın veya kaldırın. Rol izinleri claim'lerden gelir.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-full border border-white/10 bg-white/5 p-2 text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-full border border-slate-300 dark:border-white/10 bg-slate-100 dark:bg-white/5 p-2 text-slate-900 dark:text-white transition hover:bg-slate-300 hover:dark:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
                 aria-label="Close role management"
                 disabled={isLoading}
               >
@@ -200,7 +200,7 @@ export function UsersManageRolesModal({ isOpen, userId, onClose }: UsersManageRo
 
             <div className="relative">
               <Search
-                className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400"
                 size={18}
               />
               <input
@@ -208,7 +208,7 @@ export function UsersManageRolesModal({ isOpen, userId, onClose }: UsersManageRo
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="İsim veya açıklamaya göre rol ara..."
-                className="w-full rounded-2xl border border-white/10 bg-white/5 py-3 pl-12 pr-4 text-sm text-white placeholder:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/60 disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full rounded-2xl border border-slate-300 dark:border-white/10 bg-slate-100 dark:bg-white/5 py-3 pl-12 pr-4 text-sm text-slate-900 dark:text-white placeholder:text-slate-600 placeholder:dark:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/60 disabled:cursor-not-allowed disabled:opacity-60"
                 aria-label="Search roles"
                 disabled={isLoading}
               />
@@ -217,12 +217,12 @@ export function UsersManageRolesModal({ isOpen, userId, onClose }: UsersManageRo
 
           <div className="max-h-[26rem] overflow-y-auto px-8 py-6">
             {isLoadingInitial ? (
-              <div className="flex flex-col items-center justify-center gap-3 py-16 text-slate-300">
+              <div className="flex flex-col items-center justify-center gap-3 py-16 text-slate-700 dark:text-slate-300">
                 <Loader2 className="animate-spin" size={28} />
                 <span>Roller yükleniyor...</span>
               </div>
             ) : filteredRoles.length === 0 ? (
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-10 text-center text-slate-300">
+              <div className="rounded-2xl border border-slate-300 dark:border-white/10 bg-slate-100 dark:bg-white/5 p-10 text-center text-slate-700 dark:text-slate-300">
                 Mevcut filtrelerle rol bulunamadı.
               </div>
             ) : (
@@ -236,17 +236,17 @@ export function UsersManageRolesModal({ isOpen, userId, onClose }: UsersManageRo
                       key={role.id}
                       className={`rounded-2xl border p-4 transition ${
                         isAssigned
-                          ? 'border-emerald-400/60 bg-emerald-500/10 shadow-lg shadow-emerald-500/10'
-                          : 'border-white/10 bg-white/5'
+                          ? 'border-emerald-400/60 bg-emerald-100 dark:bg-emerald-500/10 shadow-lg shadow-emerald-500/10'
+                          : 'border-slate-300 dark:border-white/10 bg-slate-100 dark:bg-white/5'
                       }`}
                     >
                       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                         <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-300">
+                          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">
                             <Shield size={16} />
                             {role.is_system ? 'Sistem Rolü' : 'Özel Rol'}
                           </div>
-                          <h3 className="text-lg font-semibold text-white">{role.name}</h3>
+                          <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{role.name}</h3>
                           {role.description ? (
                             <p className="text-sm text-slate-300/80">{role.description}</p>
                           ) : null}
@@ -259,8 +259,8 @@ export function UsersManageRolesModal({ isOpen, userId, onClose }: UsersManageRo
                             disabled={isBusy}
                             className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
                               isAssigned
-                                ? 'bg-emerald-500 text-white hover:bg-emerald-600'
-                                : 'border border-white/20 bg-white/10 text-white hover:bg-white/20'
+                                ? 'bg-emerald-500 text-slate-900 dark:text-white hover:bg-emerald-600'
+                                : 'border border-slate-300 dark:border-white/20 bg-slate-200 dark:bg-white/10 text-slate-900 dark:text-white hover:bg-slate-300 hover:dark:bg-white/20'
                             }`}
                           >
                             {isBusy ? (

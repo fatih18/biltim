@@ -218,7 +218,7 @@ export function SelectBox<T extends string | number>({
           focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
           ${
             isDark
-              ? 'bg-gradient-to-br from-slate-800 to-slate-900 text-white border-slate-700 hover:border-blue-500 hover:shadow-blue-500/20 focus:ring-blue-500 focus:ring-offset-slate-950'
+              ? 'bg-gradient-to-br from-slate-800 to-slate-900 text-slate-900 dark:text-white border-slate-300 dark:border-slate-700 hover:border-blue-500 hover:shadow-blue-500/20 focus:ring-blue-500 focus:ring-offset-slate-950'
               : 'bg-white text-slate-900 border-slate-300 hover:border-blue-500 hover:shadow-blue-500/10 focus:ring-blue-500 focus:ring-offset-white'
           }
         `}
@@ -233,7 +233,7 @@ export function SelectBox<T extends string | number>({
         </span>
         <ChevronDown
           ref={chevronRef}
-          className={`w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 ml-2 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}
+          className={`w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 ml-2 ${isDark ? 'text-slate-600 dark:text-slate-400' : 'text-slate-400 dark:text-slate-600'}`}
           aria-hidden="true"
         />
       </button>
@@ -251,7 +251,7 @@ export function SelectBox<T extends string | number>({
           absolute w-full mt-2 
           rounded-lg sm:rounded-xl
           border shadow-2xl overflow-hidden z-50 
-          ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-300'}
+          ${isDark ? 'bg-slate-200 dark:bg-slate-800 border-slate-300 dark:border-slate-700' : 'bg-white border-slate-300'}
         `}
         style={{ height: 0, opacity: 0 }}
       >
@@ -273,10 +273,10 @@ export function SelectBox<T extends string | number>({
               ${
                 option.value === value
                   ? isDark
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-blue-500 text-white'
+                    ? 'bg-blue-600 text-slate-900 dark:text-white'
+                    : 'bg-blue-500 text-slate-900 dark:text-white'
                   : isDark
-                    ? 'text-slate-300 hover:bg-slate-700 focus:ring-blue-400'
+                    ? 'text-slate-700 dark:text-slate-300 hover:bg-slate-200 hover:dark:bg-slate-700 focus:ring-blue-400'
                     : 'text-slate-700 hover:bg-slate-100 focus:ring-blue-500'
               }
             `}

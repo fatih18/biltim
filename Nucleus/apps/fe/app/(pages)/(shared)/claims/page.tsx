@@ -31,7 +31,7 @@ export default function ClaimsManagementPage() {
         <div className="mx-auto max-w-7xl">
           <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-lg">
             <h1 className="mb-2 text-2xl font-semibold text-slate-800">Authorization Management</h1>
-            <p className="text-sm text-slate-600">Please log in to manage claims and roles.</p>
+            <p className="text-sm text-slate-400 dark:text-slate-600">Please log in to manage claims and roles.</p>
           </div>
         </div>
       </div>
@@ -46,7 +46,7 @@ export default function ClaimsManagementPage() {
           <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-200 bg-white p-8 text-center shadow-lg">
             <AlertTriangle className="text-red-500" size={32} />
             <h1 className="text-2xl font-semibold text-slate-800">Access denied</h1>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-slate-400 dark:text-slate-600">
               Only god administrators can manage claims and authorization settings.
             </p>
           </div>
@@ -60,14 +60,14 @@ export default function ClaimsManagementPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       <div className="mx-auto max-w-7xl space-y-6">
         {/* Header */}
-        <header className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 text-white rounded-2xl shadow-xl border border-slate-600/60 p-6">
+        <header className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 text-slate-900 dark:text-white rounded-2xl shadow-xl border border-slate-600/60 p-6">
           <div className="flex items-center gap-4">
-            <div className="bg-white/10 rounded-full p-3">
+            <div className="bg-slate-200 dark:bg-white/10 rounded-full p-3">
               <Shield size={28} className="text-emerald-400" />
             </div>
             <div>
               <h1 className="text-2xl font-bold">Authorization Management</h1>
-              <p className="text-slate-200">
+              <p className="text-slate-800 dark:text-slate-200">
                 Define claims and roles that control access to endpoints and resources.
               </p>
             </div>
@@ -82,7 +82,7 @@ export default function ClaimsManagementPage() {
             className={`px-4 py-2 text-sm font-medium transition-colors ${
               activeTab === 'claims'
                 ? 'border-b-2 border-emerald-500 text-emerald-600'
-                : 'text-slate-600 hover:text-slate-900'
+                : 'text-slate-400 dark:text-slate-600 hover:text-slate-900'
             }`}
           >
             Claims
@@ -93,7 +93,7 @@ export default function ClaimsManagementPage() {
             className={`px-4 py-2 text-sm font-medium transition-colors ${
               activeTab === 'roles'
                 ? 'border-b-2 border-emerald-500 text-emerald-600'
-                : 'text-slate-600 hover:text-slate-900'
+                : 'text-slate-400 dark:text-slate-600 hover:text-slate-900'
             }`}
           >
             Roles

@@ -181,7 +181,7 @@ function NotificationDropdown({
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 hover:bg-white/10 rounded-lg transition-all duration-300 hover:scale-110"
+        className="relative p-2 hover:bg-slate-200 hover:dark:bg-white/10 rounded-lg transition-all duration-300 hover:scale-110"
         type="button"
       >
         <Bell size={20} />
@@ -195,17 +195,17 @@ function NotificationDropdown({
       {isOpen && (
         <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl z-50 overflow-hidden">
           <div className="bg-gradient-to-r from-slate-700 to-slate-800 px-4 py-3 flex items-center justify-between">
-            <span className="text-white font-semibold">Notifications</span>
+            <span className="text-slate-900 dark:text-white font-semibold">Notifications</span>
             <div className="flex items-center gap-2">
               {unreadCount > 0 && (
                 <>
-                  <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                  <span className="bg-red-500 text-slate-900 dark:text-white text-xs px-2 py-0.5 rounded-full">
                     {unreadCount} new
                   </span>
                   <button
                     type="button"
                     onClick={markAllAsSeen}
-                    className="text-xs text-slate-300 hover:text-white"
+                    className="text-xs text-slate-700 dark:text-slate-300 hover:text-slate-900 hover:dark:text-white"
                   >
                     Mark all read
                   </button>
@@ -218,12 +218,12 @@ function NotificationDropdown({
             {isLoading ? (
               <div className="px-4 py-8 text-center">
                 <div className="h-6 w-6 border-2 border-slate-300 border-t-indigo-500 rounded-full animate-spin mx-auto mb-2" />
-                <p className="text-sm text-slate-500">Loading...</p>
+                <p className="text-sm text-slate-500 dark:text-slate-500">Loading...</p>
               </div>
             ) : notificationList.length === 0 ? (
               <div className="px-4 py-8 text-center">
-                <Bell className="h-8 w-8 text-slate-300 mx-auto mb-2" />
-                <p className="text-sm text-slate-500">No notifications</p>
+                <Bell className="h-8 w-8 text-slate-700 dark:text-slate-300 mx-auto mb-2" />
+                <p className="text-sm text-slate-500 dark:text-slate-500">No notifications</p>
               </div>
             ) : (
               <div className="divide-y divide-slate-100">
@@ -253,12 +253,12 @@ function NotificationDropdown({
                           >
                             {notif.title}
                           </span>
-                          <span className="text-[10px] text-slate-400 flex-shrink-0">
+                          <span className="text-[10px] text-slate-600 dark:text-slate-400 flex-shrink-0">
                             {formatTime(notif.created_at)}
                           </span>
                         </div>
                         {notif.body && (
-                          <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{notif.body}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-500 mt-0.5 line-clamp-2">{notif.body}</p>
                         )}
                         {notif.entity_name && (
                           <span className="inline-block mt-1 text-[10px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">
@@ -313,7 +313,7 @@ function UserAvatar({
   if (imageError || !src) {
     return (
       <div
-        className={`bg-gradient-to-br from-slate-500 to-slate-600 flex items-center justify-center text-white font-semibold ${className}`}
+        className={`bg-gradient-to-br from-slate-500 to-slate-600 flex items-center justify-center text-slate-900 dark:text-white font-semibold ${className}`}
         style={{ width: size, height: size }}
       >
         {initials}
@@ -340,17 +340,19 @@ const THEME_STORAGE_KEY = 'nucleus-theme'
 
 function applyThemeClass(isLight: boolean) {
   if (typeof document === 'undefined') return
-  document.documentElement.classList.toggle('theme-light', isLight)
+  // Light is the base and dark is the override, so the class marks DARK.
+  document.documentElement.classList.toggle('dark', !isLight)
 }
 
 // Madde 11: Dark/Light tema toggle
 function ThemeToggle(): React.JSX.Element {
-  const [isLight, setIsLight] = useState(false)
+  const [isLight, setIsLight] = useState(true)
 
   useEffect(() => {
     try {
       const stored = localStorage.getItem(THEME_STORAGE_KEY)
-      const light = stored === 'light'
+      // Absent preference means light: it is the default theme, not dark.
+      const light = stored !== 'dark'
       setIsLight(light)
       applyThemeClass(light)
     } catch {
@@ -375,7 +377,7 @@ function ThemeToggle(): React.JSX.Element {
     <button
       type="button"
       onClick={toggle}
-      className="p-2 hover:bg-white/10 rounded-lg transition-all duration-300 hover:scale-110"
+      className="p-2 hover:bg-slate-200 hover:dark:bg-white/10 rounded-lg transition-all duration-300 hover:scale-110"
       title={isLight ? 'Koyu temaya geç' : 'Açık temaya geç'}
     >
       {isLight ? <Moon size={20} /> : <Sun size={20} />}
@@ -846,7 +848,7 @@ export function ClientSide({
     const handleNav = createNavClickHandler(item.id, item.onClick)
     const baseClassName = `nav-item-${item.id} relative px-2 py-1 rounded-lg transition-all duration-300 flex items-center gap-2 group ${
       activeNav === item.id
-        ? 'bg-slate-600/50 shadow-lg border border-slate-500/50'
+        ? 'bg-slate-600/50 shadow-lg border border-slate-400 dark:border-slate-500/50'
         : 'hover:bg-slate-600/30'
     }`
 
@@ -879,7 +881,7 @@ export function ClientSide({
     const handleNav = createNavClickHandler(item.id, item.onClick)
     const baseClassName = `relative px-4 py-3 rounded-lg transition-all duration-300 flex items-center gap-3 ${
       activeNav === item.id
-        ? 'bg-slate-600/50 shadow-lg border border-slate-500/50'
+        ? 'bg-slate-600/50 shadow-lg border border-slate-400 dark:border-slate-500/50'
         : 'hover:bg-slate-600/30'
     }`
 
@@ -929,7 +931,7 @@ export function ClientSide({
             ${
               isActive
                 ? 'bg-gradient-to-r from-indigo-500/20 to-purple-500/20 shadow-lg shadow-indigo-500/10 border border-indigo-400/30'
-                : 'hover:bg-white/10 hover:shadow-md'
+                : 'hover:bg-slate-200 hover:dark:bg-white/10 hover:shadow-md'
             }`}
           onClick={() => {
             headerStore.updateUi({ activeNav: category.id })
@@ -938,12 +940,12 @@ export function ClientSide({
         >
           <span
             className={`transition-all duration-300 ${
-              isActive ? 'text-indigo-300' : 'group-hover:text-indigo-300 group-hover:scale-110'
+              isActive ? 'text-indigo-600 dark:text-indigo-300' : 'group-hover:text-indigo-600 group-hover:dark:text-indigo-300 group-hover:scale-110'
             }`}
           >
             {category.icon}
           </span>
-          <span className={`font-medium text-sm ${isActive ? 'text-indigo-200' : ''}`}>
+          <span className={`font-medium text-sm ${isActive ? 'text-indigo-700 dark:text-indigo-200' : ''}`}>
             {category.label}
           </span>
           {isActive && (
@@ -968,24 +970,24 @@ export function ClientSide({
             ${
               isActive
                 ? 'bg-gradient-to-r from-indigo-500/20 to-purple-500/20 shadow-lg shadow-indigo-500/10 border border-indigo-400/30'
-                : 'hover:bg-white/10 hover:shadow-md'
+                : 'hover:bg-slate-200 hover:dark:bg-white/10 hover:shadow-md'
             }
-            ${isOpen ? 'bg-white/10' : ''}`}
+            ${isOpen ? 'bg-slate-200 dark:bg-white/10' : ''}`}
         >
           <span
             className={`transition-all duration-300 ${
-              isActive ? 'text-indigo-300' : 'group-hover:text-indigo-300 group-hover:scale-110'
+              isActive ? 'text-indigo-600 dark:text-indigo-300' : 'group-hover:text-indigo-600 group-hover:dark:text-indigo-300 group-hover:scale-110'
             }`}
           >
             {category.icon}
           </span>
-          <span className={`font-medium text-sm ${isActive ? 'text-indigo-200' : ''}`}>
+          <span className={`font-medium text-sm ${isActive ? 'text-indigo-700 dark:text-indigo-200' : ''}`}>
             {category.label}
           </span>
           <ChevronDown
             size={14}
             className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''} ${
-              isActive ? 'text-indigo-300' : ''
+              isActive ? 'text-indigo-600 dark:text-indigo-300' : ''
             }`}
           />
           {isActive && (
@@ -994,7 +996,7 @@ export function ClientSide({
         </button>
 
         {isOpen && category.items && (
-          <div className="absolute top-full left-0 mt-2 min-w-[220px] py-2 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/20 border border-white/20 z-[9999] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="absolute top-full left-0 mt-2 min-w-[220px] py-2 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/20 border border-slate-300 dark:border-white/20 z-[9999] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
             <div className="absolute inset-0 bg-gradient-to-br from-slate-50 to-slate-100/80 -z-10" />
             {category.items.map((item, index) => {
               const isItemActive =
@@ -1010,7 +1012,7 @@ export function ClientSide({
                   className={`flex items-center gap-3 px-4 py-2.5 mx-2 rounded-xl transition-all duration-200 group
                     ${
                       isItemActive
-                        ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/30'
+                        ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-slate-900 dark:text-white shadow-lg shadow-indigo-500/30'
                         : 'text-slate-700 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50'
                     }
                     ${index > 0 ? 'mt-1' : ''}`}
@@ -1018,8 +1020,8 @@ export function ClientSide({
                   <span
                     className={`transition-all duration-200 ${
                       isItemActive
-                        ? 'text-white'
-                        : 'text-slate-500 group-hover:text-indigo-500 group-hover:scale-110'
+                        ? 'text-slate-900 dark:text-white'
+                        : 'text-slate-500 dark:text-slate-500 group-hover:text-indigo-500 group-hover:scale-110'
                     }`}
                   >
                     {item.icon}
@@ -1060,11 +1062,11 @@ export function ClientSide({
             ${
               isActive
                 ? 'bg-gradient-to-r from-indigo-500/30 to-purple-500/30 border border-indigo-400/30'
-                : 'hover:bg-white/10'
+                : 'hover:bg-slate-200 hover:dark:bg-white/10'
             }`}
         >
-          <span className={`${isActive ? 'text-indigo-300' : ''}`}>{category.icon}</span>
-          <span className={`font-medium ${isActive ? 'text-indigo-200' : ''}`}>
+          <span className={`${isActive ? 'text-indigo-600 dark:text-indigo-300' : ''}`}>{category.icon}</span>
+          <span className={`font-medium ${isActive ? 'text-indigo-700 dark:text-indigo-200' : ''}`}>
             {category.label}
           </span>
         </Link>
@@ -1080,11 +1082,11 @@ export function ClientSide({
             ${
               isActive
                 ? 'bg-gradient-to-r from-indigo-500/30 to-purple-500/30 border border-indigo-400/30'
-                : 'hover:bg-white/10'
+                : 'hover:bg-slate-200 hover:dark:bg-white/10'
             }`}
         >
-          <span className={`${isActive ? 'text-indigo-300' : ''}`}>{category.icon}</span>
-          <span className={`font-medium flex-1 text-left ${isActive ? 'text-indigo-200' : ''}`}>
+          <span className={`${isActive ? 'text-indigo-600 dark:text-indigo-300' : ''}`}>{category.icon}</span>
+          <span className={`font-medium flex-1 text-left ${isActive ? 'text-indigo-700 dark:text-indigo-200' : ''}`}>
             {category.label}
           </span>
           <ChevronDown
@@ -1109,11 +1111,11 @@ export function ClientSide({
                   className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200
                     ${
                       isItemActive
-                        ? 'bg-gradient-to-r from-indigo-500/40 to-purple-500/40 text-white'
-                        : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                        ? 'bg-gradient-to-r from-indigo-500/40 to-purple-500/40 text-slate-900 dark:text-white'
+                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200 hover:dark:bg-white/10 hover:text-slate-900 hover:dark:text-white'
                     }`}
                 >
-                  <span className={`${isItemActive ? 'text-indigo-200' : 'text-slate-400'}`}>
+                  <span className={`${isItemActive ? 'text-indigo-700 dark:text-indigo-200' : 'text-slate-600 dark:text-slate-400'}`}>
                     {item.icon}
                   </span>
                   <span className="font-medium text-sm">{item.label}</span>
@@ -1129,7 +1131,7 @@ export function ClientSide({
   return (
     <header
       ref={headerRef}
-      className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 text-white shadow-xl relative border-b border-slate-600/50 z-[9998]"
+      className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 text-slate-900 dark:text-white shadow-xl relative border-b border-slate-600/50 z-[9998]"
     >
       <div className="absolute inset-0 opacity-5 pointer-events-none">
         <div className="absolute inset-0 bg-grid-pattern"></div>
@@ -1140,7 +1142,7 @@ export function ClientSide({
           <div className="flex items-center gap-6">
             <button
               onClick={toggleMenu}
-              className="lg:hidden p-2 hover:bg-white/10 rounded-lg transition-all duration-300 hover:scale-110"
+              className="lg:hidden p-2 hover:bg-slate-200 hover:dark:bg-white/10 rounded-lg transition-all duration-300 hover:scale-110"
               type="button"
             >
               {isExpanded ? <X size={24} /> : <Menu size={24} />}
@@ -1163,12 +1165,12 @@ export function ClientSide({
                 <input
                   type="text"
                   placeholder="Search..."
-                  className="px-4 py-2 rounded-lg bg-slate-700/50 backdrop-blur-sm text-white placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                  className="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-700/50 backdrop-blur-sm text-slate-900 dark:text-white placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-400"
                 />
               </div>
               <button
                 onClick={toggleSearch}
-                className="p-2 hover:bg-white/10 rounded-lg transition-all duration-300 hover:scale-110"
+                className="p-2 hover:bg-slate-200 hover:dark:bg-white/10 rounded-lg transition-all duration-300 hover:scale-110"
                 type="button"
               >
                 <Search size={20} />
@@ -1182,7 +1184,7 @@ export function ClientSide({
             <div className="relative">
               <button
                 onClick={toggleProfile}
-                className="flex items-center gap-3 px-3 py-2 hover:bg-white/10 rounded-lg transition-all duration-300"
+                className="flex items-center gap-3 px-3 py-2 hover:bg-slate-200 hover:dark:bg-white/10 rounded-lg transition-all duration-300"
                 type="button"
               >
                 <UserAvatar
@@ -1212,7 +1214,7 @@ export function ClientSide({
                     className="rounded-full border-4 border-white mx-auto mb-2"
                     src={profileImageSrc}
                   />
-                  <p className="text-white font-semibold text-center">{profileName}</p>
+                  <p className="text-slate-900 dark:text-white font-semibold text-center">{profileName}</p>
                 </div>
                 <div className="p-2">
                   {/* <Link
@@ -1246,7 +1248,7 @@ export function ClientSide({
 
         <div
           ref={menuItemsRef}
-          className="lg:hidden mt-4 border-t border-white/20 pt-4 hidden"
+          className="lg:hidden mt-4 border-t border-slate-300 dark:border-white/20 pt-4 hidden"
           style={{ display: isExpanded ? 'block' : 'none' }}
         >
           <nav className="flex flex-col gap-2">

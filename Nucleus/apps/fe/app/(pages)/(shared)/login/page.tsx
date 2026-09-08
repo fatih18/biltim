@@ -71,12 +71,12 @@ export default function Login() {
   const isPending = !!actions.LOGIN_V2?.state?.isPending
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-50">
+    <main className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-50">
       <section className="relative grid min-h-screen grid-cols-1 lg:grid-cols-[1.05fr_1.95fr]">
         {/* Mobile BG */}
         <div className="absolute inset-0 lg:hidden">
           <AbstractAnimatedBackground />
-          <div className="absolute inset-0 bg-slate-950/70" />
+          <div className="absolute inset-0 bg-white dark:bg-slate-950/70" />
           <div className="absolute inset-0 bg-gradient-to-b from-slate-950/70 via-slate-950/40 to-slate-950/80" />
         </div>
 
@@ -90,13 +90,13 @@ export default function Login() {
               </div>
             </div>
 
-            <div className="rounded-3xl border border-slate-800 bg-slate-900/60 px-8 pb-10 pt-9 shadow-xl shadow-slate-950/60 backdrop-blur">
+            <div className="rounded-3xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 px-8 pb-10 pt-9 shadow-xl shadow-slate-950/60 backdrop-blur">
               <header className="mb-8">
-                <p className="text-center text-[11px] font-semibold uppercase tracking-[0.32em] text-slate-400">
+                <p className="text-center text-[11px] font-semibold uppercase tracking-[0.32em] text-slate-600 dark:text-slate-400">
                   Hoşgeldiniz
                 </p>
 
-                <h1 className="mt-3 text-center text-3xl font-semibold text-slate-100 sm:text-4xl">
+                <h1 className="mt-3 text-center text-3xl font-semibold text-slate-900 dark:text-slate-100 sm:text-4xl">
                   Giriş Yap
                 </h1>
 
@@ -105,12 +105,12 @@ export default function Login() {
 
               <form className="space-y-6" onSubmit={handleSubmit}>
                 <fieldset>
-                  <label htmlFor="login-email" className="text-xs font-semibold text-slate-300">
+                  <label htmlFor="login-email" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                     Email
                   </label>
 
                   <div className="relative mt-2">
-                    <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-sky-300">
+                    <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-sky-600 dark:text-sky-300">
                       <FiMail className="h-[18px] w-[18px]" aria-hidden="true" />
                     </span>
 
@@ -121,18 +121,18 @@ export default function Login() {
                       autoComplete="email"
                       placeholder="example@mail.com"
                       required
-                      className="h-12 w-full rounded-lg border border-slate-700 bg-slate-950/60 pl-12 pr-4 text-sm font-medium text-slate-100 placeholder:text-slate-500 outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+                      className="h-12 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/60 pl-12 pr-4 text-sm font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-500 placeholder:dark:text-slate-500 outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
                     />
                   </div>
                 </fieldset>
 
                 <fieldset>
-                  <label htmlFor="login-password" className="text-xs font-semibold text-slate-300">
+                  <label htmlFor="login-password" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                     Şifre
                   </label>
 
                   <div className="relative mt-2">
-                    <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-sky-300">
+                    <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-sky-600 dark:text-sky-300">
                       <FiLock className="h-[18px] w-[18px]" aria-hidden="true" />
                     </span>
 
@@ -143,10 +143,10 @@ export default function Login() {
                       autoComplete="current-password"
                       placeholder="••••••••"
                       required
-                      className="h-12 w-full rounded-lg border border-slate-700 bg-slate-950/60 pl-12 pr-12 text-sm font-medium text-slate-100 placeholder:text-slate-500 outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+                      className="h-12 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/60 pl-12 pr-12 text-sm font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-500 placeholder:dark:text-slate-500 outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
                     />
 
-                    <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-slate-500">
+                    <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-slate-500 dark:text-slate-500">
                       <FiEye className="h-[18px] w-[18px]" aria-hidden="true" />
                     </span>
                   </div>
@@ -166,11 +166,11 @@ export default function Login() {
                 </button>
 
                 <div className="flex items-center justify-between text-xs">
-                  <label className="flex items-center gap-2 font-medium text-slate-300">
+                  <label className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-300">
                     <input
                       type="checkbox"
                       name="remember"
-                      className="h-4 w-4 rounded border-slate-600 bg-slate-950/60 text-sky-400 focus:ring-sky-400"
+                      className="h-4 w-4 rounded border-slate-400 dark:border-slate-600 bg-white dark:bg-slate-950/60 text-sky-600 dark:text-sky-400 focus:ring-sky-400"
                     />
                     Beni Hatırla
                   </label>
@@ -180,7 +180,7 @@ export default function Login() {
 
             </div>
 
-            <p className="mt-6 text-center text-[11px] text-slate-600">
+            <p className="mt-6 text-center text-[11px] text-slate-400 dark:text-slate-600">
               © {new Date().getFullYear()} Biltim • Güvenli giriş
             </p>
           </div>
@@ -191,7 +191,7 @@ export default function Login() {
           <AbstractAnimatedBackground />
           <div className="absolute inset-0 bg-slate-950/55" />
 
-          <div className="relative z-10 flex h-full border-l border-slate-800">
+          <div className="relative z-10 flex h-full border-l border-slate-300 dark:border-slate-800">
             <div className="relative flex w-full items-center justify-center">
               <div
                 className="absolute inset-0 m-auto size-fit opacity-90"

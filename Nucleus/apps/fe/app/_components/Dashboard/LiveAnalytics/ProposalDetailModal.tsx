@@ -83,14 +83,14 @@ export function ProposalDetailModal({
       <div className="min-h-screen flex items-start justify-center p-4 pt-16 pb-16">
         <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-none overflow-hidden">
           {/* Header */}
-          <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 p-6 text-white shadow-xl">
+          <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 p-6 text-slate-900 dark:text-white shadow-xl">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-2xl font-bold">
                   {isEditMode ? '✏️ ' : ''}
                   {proposal.vendor}
                 </h2>
-                <p className="text-slate-300 mt-1">
+                <p className="text-slate-700 dark:text-slate-300 mt-1">
                   {isEditMode ? 'Düzenleme Modu - ' : ''}
                   {proposal.rfpTitle}
                 </p>
@@ -98,7 +98,7 @@ export function ProposalDetailModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                className="p-2 hover:bg-slate-300 hover:dark:bg-white/20 rounded-lg transition-colors"
               >
                 <X size={24} />
               </button>
@@ -119,7 +119,7 @@ export function ProposalDetailModal({
 
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-600">Teklif Tutarı:</span>
+                      <span className="text-slate-400 dark:text-slate-600">Teklif Tutarı:</span>
                       <div className="flex items-center gap-2">
                         <DollarSign className="text-green-600" size={16} />
                         {isEditMode && editData ? (
@@ -140,7 +140,7 @@ export function ProposalDetailModal({
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-600">Durum:</span>
+                      <span className="text-slate-400 dark:text-slate-600">Durum:</span>
                       {isEditMode && editData ? (
                         <select
                           value={editData.status}
@@ -177,7 +177,7 @@ export function ProposalDetailModal({
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-600">Risk Seviyesi:</span>
+                      <span className="text-slate-400 dark:text-slate-600">Risk Seviyesi:</span>
                       {isEditMode && editData ? (
                         <select
                           value={editData.riskLevel}
@@ -210,7 +210,7 @@ export function ProposalDetailModal({
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-600">Teslimat Süresi:</span>
+                      <span className="text-slate-400 dark:text-slate-600">Teslimat Süresi:</span>
                       <div className="flex items-center gap-2">
                         <Clock className="text-orange-600" size={16} />
                         {isEditMode && editData ? (
@@ -223,7 +223,7 @@ export function ProposalDetailModal({
                               }
                               className="font-medium text-slate-900 bg-white border border-slate-300 rounded px-2 py-1 w-20 text-right"
                             />
-                            <span className="text-slate-600">gün</span>
+                            <span className="text-slate-400 dark:text-slate-600">gün</span>
                           </div>
                         ) : (
                           <span className="font-medium text-slate-900">
@@ -234,7 +234,7 @@ export function ProposalDetailModal({
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-600">Garanti Süresi:</span>
+                      <span className="text-slate-400 dark:text-slate-600">Garanti Süresi:</span>
                       <div className="flex items-center gap-2">
                         <Award className="text-purple-600" size={16} />
                         {isEditMode && editData ? (
@@ -247,7 +247,7 @@ export function ProposalDetailModal({
                               }
                               className="font-medium text-slate-900 bg-white border border-slate-300 rounded px-2 py-1 w-20 text-right"
                             />
-                            <span className="text-slate-600">ay</span>
+                            <span className="text-slate-400 dark:text-slate-600">ay</span>
                           </div>
                         ) : (
                           <span className="font-medium text-slate-900">{proposal.warranty} ay</span>
@@ -266,7 +266,7 @@ export function ProposalDetailModal({
 
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-600">Genel Puan:</span>
+                      <span className="text-slate-400 dark:text-slate-600">Genel Puan:</span>
                       <div className="flex items-center gap-2">
                         <div className="w-20 bg-slate-200 rounded-full h-2">
                           <div
@@ -279,7 +279,7 @@ export function ProposalDetailModal({
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-600">Teknik Puan:</span>
+                      <span className="text-slate-400 dark:text-slate-600">Teknik Puan:</span>
                       <div className="flex items-center gap-2">
                         <div className="w-20 bg-slate-200 rounded-full h-2">
                           <div
@@ -294,7 +294,7 @@ export function ProposalDetailModal({
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-600">Mali Puan:</span>
+                      <span className="text-slate-400 dark:text-slate-600">Mali Puan:</span>
                       <div className="flex items-center gap-2">
                         <div className="w-20 bg-slate-200 rounded-full h-2">
                           <div
@@ -309,7 +309,7 @@ export function ProposalDetailModal({
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-600">Uyumluluk Puanı:</span>
+                      <span className="text-slate-400 dark:text-slate-600">Uyumluluk Puanı:</span>
                       <div className="flex items-center gap-2">
                         <div className="w-20 bg-slate-200 rounded-full h-2">
                           <div
@@ -335,26 +335,26 @@ export function ProposalDetailModal({
                   <div className="grid grid-cols-2 gap-4">
                     <div className="text-center p-4 bg-white rounded-lg border border-blue-100">
                       <div className="text-2xl font-bold text-blue-600">{proposal.score}</div>
-                      <div className="text-sm text-slate-600">Genel Puan</div>
+                      <div className="text-sm text-slate-400 dark:text-slate-600">Genel Puan</div>
                     </div>
 
                     <div className="text-center p-4 bg-white rounded-lg border border-green-100">
                       <div className="text-2xl font-bold text-green-600">
                         {(proposal.amount / 1000000).toFixed(1)}M
                       </div>
-                      <div className="text-sm text-slate-600">Teklif Tutarı</div>
+                      <div className="text-sm text-slate-400 dark:text-slate-600">Teklif Tutarı</div>
                     </div>
 
                     <div className="text-center p-4 bg-white rounded-lg border border-orange-100">
                       <div className="text-2xl font-bold text-orange-600">
                         {proposal.deliveryTime}
                       </div>
-                      <div className="text-sm text-slate-600">Gün Teslimat</div>
+                      <div className="text-sm text-slate-400 dark:text-slate-600">Gün Teslimat</div>
                     </div>
 
                     <div className="text-center p-4 bg-white rounded-lg border border-purple-100">
                       <div className="text-2xl font-bold text-purple-600">{proposal.warranty}</div>
-                      <div className="text-sm text-slate-600">Ay Garanti</div>
+                      <div className="text-sm text-slate-400 dark:text-slate-600">Ay Garanti</div>
                     </div>
                   </div>
                 </div>
@@ -378,7 +378,7 @@ export function ProposalDetailModal({
                             }
                             onClose()
                           }}
-                          className="flex items-center gap-3 p-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                          className="flex items-center gap-3 p-4 bg-blue-600 text-slate-900 dark:text-white rounded-lg hover:bg-blue-700 transition-all duration-200 hover:scale-105 hover:shadow-lg"
                         >
                           <FileText size={20} />
                           <div className="text-left">
@@ -390,7 +390,7 @@ export function ProposalDetailModal({
                         <button
                           type="button"
                           onClick={onClose}
-                          className="flex items-center gap-3 p-4 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                          className="flex items-center gap-3 p-4 bg-gray-600 text-slate-900 dark:text-white rounded-lg hover:bg-gray-700 transition-all duration-200 hover:scale-105 hover:shadow-lg"
                         >
                           <X size={20} />
                           <div className="text-left">
@@ -404,7 +404,7 @@ export function ProposalDetailModal({
                         <button
                           type="button"
                           onClick={handleApprove}
-                          className="flex items-center gap-3 p-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                          className="flex items-center gap-3 p-4 bg-green-600 text-slate-900 dark:text-white rounded-lg hover:bg-green-700 transition-all duration-200 hover:scale-105 hover:shadow-lg"
                         >
                           <Award size={20} />
                           <div className="text-left">
@@ -416,7 +416,7 @@ export function ProposalDetailModal({
                         <button
                           type="button"
                           onClick={handleReview}
-                          className="flex items-center gap-3 p-4 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                          className="flex items-center gap-3 p-4 bg-yellow-600 text-slate-900 dark:text-white rounded-lg hover:bg-yellow-700 transition-all duration-200 hover:scale-105 hover:shadow-lg"
                         >
                           <Clock size={20} />
                           <div className="text-left">
@@ -428,7 +428,7 @@ export function ProposalDetailModal({
                         <button
                           type="button"
                           onClick={handleReject}
-                          className="flex items-center gap-3 p-4 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                          className="flex items-center gap-3 p-4 bg-red-600 text-slate-900 dark:text-white rounded-lg hover:bg-red-700 transition-all duration-200 hover:scale-105 hover:shadow-lg"
                         >
                           <X size={20} />
                           <div className="text-left">
@@ -450,17 +450,17 @@ export function ProposalDetailModal({
 
                   <div className="space-y-3 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-slate-600">Teklif ID:</span>
+                      <span className="text-slate-400 dark:text-slate-600">Teklif ID:</span>
                       <span className="font-medium text-slate-900">{proposal.id}</span>
                     </div>
 
                     <div className="flex justify-between">
-                      <span className="text-slate-600">Para Birimi:</span>
+                      <span className="text-slate-400 dark:text-slate-600">Para Birimi:</span>
                       <span className="font-medium text-slate-900">{proposal.currency}</span>
                     </div>
 
                     <div className="flex justify-between">
-                      <span className="text-slate-600">Son Güncelleme:</span>
+                      <span className="text-slate-400 dark:text-slate-600">Son Güncelleme:</span>
                       <span className="font-medium text-slate-900">
                         {new Date().toLocaleDateString('tr-TR')}
                       </span>
