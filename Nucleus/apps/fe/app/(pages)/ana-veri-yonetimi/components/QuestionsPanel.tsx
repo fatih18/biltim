@@ -1,4 +1,5 @@
 "use client";
+import { hasPrivilege } from "@/app/_utils/routeAccess";
 import { confirmDialog } from '@/app/_components/Global/ConfirmDialog'
 
 import React from "react";
@@ -64,13 +65,20 @@ export function QuestionsPanel() {
   const actions = useGenericApiActions();
   const { roleName, roles, isLoading: roleLoading } = useGetUserRole();
 
+  /*
+   * hasPrivilege, not a list of role names.
+   *
+   * This matched "manager" and "content manager core team" literally, so the
+   * root account — whose role is godmin and nothing else — was told "Sorular
+   * yalnızca yetkili admin tarafından düzenlenebilir" and shown no controls at
+   * all. Same dead end the audit form had: the account that can do everything
+   * could not edit the checklist. hasPrivilege admits godmin and superadmin
+   * alongside the named roles, and is what the rest of the app already uses.
+   */
   const isAdmin = React.useMemo(() => {
     if (roleLoading) return false;
-    const all = [roleName ?? "", ...(roles ?? []).map((r) => r.name ?? "")].map(normRole);
-    return (
-      all.includes(normRole("content manager core team")) ||
-      all.includes(normRole("manager"))
-    );
+    const names = [roleName ?? "", ...(roles ?? []).map((r) => r.name ?? "")];
+    return hasPrivilege(names, ["manager", "content manager core team"]);
   }, [roleName, roles, roleLoading]);
 
   const [steps, setSteps] = React.useState<StepRow[]>([]);
