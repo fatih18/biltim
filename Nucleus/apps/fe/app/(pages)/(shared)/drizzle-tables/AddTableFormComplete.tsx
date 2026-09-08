@@ -52,7 +52,7 @@ export function AddTableForm({
     <div className="fixed inset-0 bg-white dark:bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-7xl max-h-[95vh] flex flex-col">
         {/* Header - Minimal, professional */}
-        <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 rounded-t-xl flex items-center justify-between">
+        <div className="bg-white dark:bg-gradient-to-r dark:from-slate-800 to-slate-700 px-6 py-4 rounded-t-xl flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-slate-200 dark:bg-white/10 rounded-lg">
               <Database className="w-5 h-5 text-slate-900 dark:text-white" />

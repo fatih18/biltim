@@ -259,7 +259,7 @@ export function RoleClaimsModal({ isOpen, role, onClose }: RoleClaimsModalProps)
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm p-6">
-      <div className="relative w-full max-w-4xl overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-900 dark:text-white shadow-2xl">
+      <div className="bg-white relative w-full max-w-4xl overflow-hidden rounded-3xl dark:bg-gradient-to-br dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 text-slate-900 dark:text-white shadow-2xl">
         {isLoadingInitial ? (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-white dark:bg-slate-900/70 backdrop-blur-sm">
             <Loader2 className="animate-spin" size={28} />

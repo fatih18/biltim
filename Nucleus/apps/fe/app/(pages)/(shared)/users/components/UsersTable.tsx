@@ -20,7 +20,7 @@ interface UsersTableProps {
 export function UsersTable({ users, onSelectDetails, onValidateEmail, onDelete }: UsersTableProps) {
   if (!users) {
     return (
-      <div className="relative overflow-hidden rounded-2xl border border-slate-300 dark:border-white/10 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-900 dark:text-white shadow-2xl">
+      <div className="bg-white relative overflow-hidden rounded-2xl border border-slate-300 dark:border-white/10 dark:bg-gradient-to-br dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 text-slate-900 dark:text-white shadow-2xl">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0 bg-grid-pattern" />
         </div>
@@ -35,7 +35,7 @@ export function UsersTable({ users, onSelectDetails, onValidateEmail, onDelete }
 
   if (users.data.length === 0) {
     return (
-      <div className="relative overflow-hidden rounded-2xl border border-slate-300 dark:border-white/10 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-900 dark:text-white shadow-2xl">
+      <div className="bg-white relative overflow-hidden rounded-2xl border border-slate-300 dark:border-white/10 dark:bg-gradient-to-br dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 text-slate-900 dark:text-white shadow-2xl">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0 bg-grid-pattern" />
         </div>
@@ -50,7 +50,7 @@ export function UsersTable({ users, onSelectDetails, onValidateEmail, onDelete }
   }
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-slate-300 dark:border-white/10 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-900 dark:text-white shadow-2xl">
+    <div className="bg-white relative overflow-hidden rounded-2xl border border-slate-300 dark:border-white/10 dark:bg-gradient-to-br dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 text-slate-900 dark:text-white shadow-2xl">
       <div className="absolute inset-0 opacity-10">
         <div className="absolute inset-0 bg-grid-pattern" />
       </div>

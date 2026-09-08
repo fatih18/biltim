@@ -235,7 +235,7 @@ export default function ApiSandbox() {
                 <Zap className="h-5 w-5 text-slate-900 dark:text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+                <h1 className="bg-white text-xl font-bold dark:bg-gradient-to-r dark:from-gray-900 to-gray-600 bg-clip-text text-transparent">
                   API Sandbox
                 </h1>
                 <p className="text-xs text-gray-500">Test & Debug Endpoints</p>

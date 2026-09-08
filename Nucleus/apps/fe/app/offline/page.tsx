@@ -2,7 +2,7 @@
 
 export default function OfflinePage() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-gray-900 to-gray-800 text-slate-900 dark:text-white">
+    <div className="bg-white flex min-h-screen flex-col items-center justify-center dark:bg-gradient-to-b dark:from-gray-900 dark:to-gray-800 text-slate-900 dark:text-white">
       <div className="text-center">
         <div className="mb-8">
           <svg

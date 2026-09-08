@@ -173,7 +173,7 @@ export function UsersManageClaimsModal({
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm p-6">
       <div
-        className="relative w-full max-w-3xl overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-900 dark:text-white shadow-2xl"
+        className="bg-white relative w-full max-w-3xl overflow-hidden rounded-3xl dark:bg-gradient-to-br dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 text-slate-900 dark:text-white shadow-2xl"
         aria-busy={isLoading || isLoadingMore}
         aria-live="polite"
       >

@@ -7,7 +7,7 @@ interface LogsHeaderProps {
 
 export function LogsHeader({ onRefresh, isLoading = false }: LogsHeaderProps) {
   return (
-    <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 text-slate-900 dark:text-white rounded-2xl shadow-xl border border-slate-600/60 p-6">
+    <div className="bg-white dark:bg-gradient-to-r dark:from-slate-800 via-slate-700 dark:to-slate-800 text-slate-900 dark:text-white rounded-2xl shadow-xl border border-slate-600/60 p-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-4">
           <div className="p-3 bg-slate-200 dark:bg-white/10 rounded-full">

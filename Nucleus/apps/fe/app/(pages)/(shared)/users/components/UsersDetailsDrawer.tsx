@@ -171,7 +171,7 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
         }`}
       >
         {/* Header */}
-        <div className="relative px-6 py-6 text-slate-900 dark:text-white bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-b border-slate-300 dark:border-slate-800">
+        <div className="bg-white relative px-6 py-6 text-slate-900 dark:text-white dark:bg-gradient-to-r dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 border-b border-slate-300 dark:border-slate-800">
           <div className="absolute inset-0 opacity-5 bg-grid-pattern" />
           <div className="relative z-10">
             <div className="flex items-start justify-between">
