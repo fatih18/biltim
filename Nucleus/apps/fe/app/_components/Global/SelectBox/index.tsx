@@ -255,7 +255,7 @@ export function SelectBox<T extends string | number>({
                     : 'bg-blue-500 text-slate-900 dark:text-white'
                   : isDark
                     ? 'text-slate-700 dark:text-slate-300 hover:bg-slate-200 hover:dark:bg-slate-700 focus:ring-blue-400'
-                    : 'text-slate-700 hover:bg-slate-100 focus:ring-blue-500'
+                    : 'text-slate-700 hover:bg-slate-100 hover:dark:bg-slate-800 focus:ring-blue-500'
               }
             `}
           >

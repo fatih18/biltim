@@ -55,7 +55,7 @@ export function RolesTable({
             </tr>
           ) : (
             roles.map((role) => (
-              <tr key={role.id} className="hover:bg-slate-50/80">
+              <tr key={role.id} className="hover:bg-slate-50/80 hover:dark:bg-slate-800/60">
                 <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-slate-100">{role.name}</td>
                 <td className="px-4 py-3 text-xs text-slate-700 dark:text-slate-300">
                   {role.description || <span className="text-slate-600 dark:text-slate-400">—</span>}
@@ -84,7 +84,7 @@ export function RolesTable({
                     <button
                       type="button"
                       onClick={() => onEdit(role)}
-                      className="inline-flex items-center gap-1 rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50"
+                      className="inline-flex items-center gap-1 rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 hover:dark:bg-slate-800/60"
                     >
                       <Edit3 className="h-3 w-3" />
                       <span>Edit</span>

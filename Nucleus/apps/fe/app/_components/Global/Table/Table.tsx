@@ -69,7 +69,7 @@ export function Table<TData extends Record<string, unknown>>({
             </tr>
           ) : (
             rows.map((row) => (
-              <tr key={row.key} className="hover:bg-slate-50">
+              <tr key={row.key} className="hover:bg-slate-50 hover:dark:bg-slate-800/60">
                 {columns.map((column) => (
                   <td
                     key={`${row.key}-${column.id}`}

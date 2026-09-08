@@ -62,7 +62,7 @@ export function JsonEditor({ value, onChange, onAutoFill }: JsonEditorProps) {
           <button
             type="button"
             onClick={handleFormat}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 hover:dark:bg-slate-800 rounded-lg transition-all"
           >
             <Code2 className="h-3.5 w-3.5" />
             Format
@@ -70,7 +70,7 @@ export function JsonEditor({ value, onChange, onAutoFill }: JsonEditorProps) {
           <button
             type="button"
             onClick={() => onChange('')}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 hover:dark:bg-slate-800 rounded-lg transition-all"
           >
             <Trash2 className="h-3.5 w-3.5" />
             Clear

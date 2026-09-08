@@ -103,7 +103,7 @@ export function LogsTable({ logs, onLogSelect }: LogsTableProps) {
           </thead>
           <tbody className="bg-white dark:bg-slate-900 divide-y divide-gray-200">
             {logs.map((log) => (
-              <tr key={log.id} className="hover:bg-gray-50 transition-colors">
+              <tr key={log.id} className="hover:bg-gray-50 hover:dark:bg-slate-800/60 transition-colors">
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-slate-100">
                   <div className="flex items-center gap-2">
                     <Calendar size={14} className="text-slate-400 dark:text-slate-400" />

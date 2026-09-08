@@ -245,7 +245,7 @@ export default function ApiSandbox() {
             <button
               type="button"
               onClick={() => setShowStringifyTool(true)}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-white dark:bg-slate-900 hover:bg-gray-50 border border-gray-200 rounded-xl transition-colors shadow-sm"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-white dark:bg-slate-900 hover:bg-gray-50 hover:dark:bg-slate-800/60 border border-gray-200 rounded-xl transition-colors shadow-sm"
             >
               <Braces className="h-4 w-4" />
               Stringify Tool
@@ -294,7 +294,7 @@ export default function ApiSandbox() {
                     type="button"
                     onClick={handleInvoke}
                     disabled={isLoading || !isValidJson(payloadInput)}
-                    className="flex flex-col items-center gap-1 px-6 py-3 bg-slate-300 dark:bg-white/20 hover:bg-white/30 disabled:bg-slate-200 disabled:dark:bg-white/10 disabled:cursor-not-allowed rounded-xl font-semibold transition-all backdrop-blur-sm"
+                    className="flex flex-col items-center gap-1 px-6 py-3 bg-slate-300 dark:bg-white/20 hover:bg-white/30 hover:dark:bg-slate-800/30 disabled:bg-slate-200 disabled:dark:bg-white/10 disabled:cursor-not-allowed rounded-xl font-semibold transition-all backdrop-blur-sm"
                     title="⌘+Enter / Ctrl+Enter"
                   >
                     <div className="flex items-center gap-2">

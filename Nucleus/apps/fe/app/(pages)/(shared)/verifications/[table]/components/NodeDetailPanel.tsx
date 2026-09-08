@@ -315,7 +315,7 @@ function VerifierForm({
                         label: fullName || user.email || 'Unknown User',
                       })
                     }
-                    className={`flex w-full items-start justify-between px-3 py-1.5 text-left text-xs hover:bg-white ${ isSelected ?'bg-indigo-50 border-l-2 border-indigo-400' : ''
+                    className={`flex w-full items-start justify-between px-3 py-1.5 text-left text-xs hover:bg-white hover:dark:bg-slate-800 ${ isSelected ?'bg-indigo-50 border-l-2 border-indigo-400' : ''
                     }`}
                   >
                     <span className="flex-1 min-w-0">
@@ -380,7 +380,7 @@ function VerifierForm({
                         label: role.name,
                       })
                     }
-                    className={`flex w-full items-start justify-between px-3 py-1.5 text-left text-xs hover:bg-white ${ isSelected ?'bg-indigo-50 border-l-2 border-indigo-400' : ''
+                    className={`flex w-full items-start justify-between px-3 py-1.5 text-left text-xs hover:bg-white hover:dark:bg-slate-800 ${ isSelected ?'bg-indigo-50 border-l-2 border-indigo-400' : ''
                     }`}
                   >
                     <span className="flex-1 min-w-0">
@@ -615,7 +615,7 @@ function NotificationForm({
                         recipientId: user.id,
                       })
                     }
-                    className={`flex w-full items-start justify-between px-3 py-1.5 text-left text-xs hover:bg-white ${ isSelected ?'bg-amber-50 border-l-2 border-amber-400' : ''
+                    className={`flex w-full items-start justify-between px-3 py-1.5 text-left text-xs hover:bg-white hover:dark:bg-slate-800 ${ isSelected ?'bg-amber-50 border-l-2 border-amber-400' : ''
                     }`}
                   >
                     <span className="flex-1 min-w-0">
@@ -679,7 +679,7 @@ function NotificationForm({
                         recipientId: role.id,
                       })
                     }
-                    className={`flex w-full items-start justify-between px-3 py-1.5 text-left text-xs hover:bg-white ${ isSelected ?'bg-amber-50 border-l-2 border-amber-400' : ''
+                    className={`flex w-full items-start justify-between px-3 py-1.5 text-left text-xs hover:bg-white hover:dark:bg-slate-800 ${ isSelected ?'bg-amber-50 border-l-2 border-amber-400' : ''
                     }`}
                   >
                     <span className="flex-1 min-w-0">

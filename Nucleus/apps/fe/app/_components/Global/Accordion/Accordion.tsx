@@ -79,7 +79,7 @@ export function Accordion({
               className={cn(
                 'flex cursor-pointer items-center justify-between gap-4 px-6 py-4 transition-colors',
                 isOpen ? 'bg-slate-50' : '',
-                item.disabled ? 'cursor-not-allowed opacity-60' : 'hover:bg-slate-50',
+                item.disabled ? 'cursor-not-allowed opacity-60' : 'hover:bg-slate-50 hover:dark:bg-slate-800/60',
                 headerClassName
               )}
               type="button"

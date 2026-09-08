@@ -234,7 +234,7 @@ function NotificationDropdown({
                   <button
                     key={notif.id}
                     type="button"
-                    className={`w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors ${ !notif.is_seen ?'bg-indigo-50/50' : ''
+                    className={`w-full px-4 py-3 text-left hover:bg-slate-50 hover:dark:bg-slate-800/60 transition-colors ${ !notif.is_seen ?'bg-indigo-50/50' : ''
                     }`}
                     onClick={() => handleNotificationClick(notif)}
                   >
@@ -1185,13 +1185,13 @@ export function ClientSide({
                 <div className="p-2">
                   {/* <Link
                     href="/profile"
-                    className="w-full text-left px-4 py-2 text-gray-700 hover:bg-slate-50 rounded-lg transition-colors duration-200 flex items-center gap-3"
+                    className="w-full text-left px-4 py-2 text-gray-700 hover:bg-slate-50 hover:dark:bg-slate-800/60 rounded-lg transition-colors duration-200 flex items-center gap-3"
                   >
                     <Users size={16} />
                     <span>Profile</span>
                   </Link> */}
                   {/* <button
-                    className="w-full text-left px-4 py-2 text-gray-700 hover:bg-slate-50 rounded-lg transition-colors duration-200 flex items-center gap-3"
+                    className="w-full text-left px-4 py-2 text-gray-700 hover:bg-slate-50 hover:dark:bg-slate-800/60 rounded-lg transition-colors duration-200 flex items-center gap-3"
                     type="button"
                   >
                     <Settings size={16} />

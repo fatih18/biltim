@@ -67,7 +67,7 @@ export function NodePalette({ isCollapsed, onToggle }: NodePaletteProps) {
         <button
           type="button"
           onClick={onToggle}
-          className={`flex h-7 w-7 items-center justify-center rounded-md text-slate-600 dark:text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-400 hover:dark:text-slate-600 ${isCollapsed ?'mx-auto' : ''}`}
+          className={`flex h-7 w-7 items-center justify-center rounded-md text-slate-600 dark:text-slate-400 transition-colors hover:bg-slate-100 hover:dark:bg-slate-800 hover:text-slate-400 hover:dark:text-slate-600 ${isCollapsed ?'mx-auto' : ''}`}
         >
           <ChevronRight
             className={`h-4 w-4 transition-transform duration-300 ${isCollapsed ?'' : 'rotate-180'}`}
@@ -83,7 +83,7 @@ export function NodePalette({ isCollapsed, onToggle }: NodePaletteProps) {
               type="button"
               draggable
               onDragStart={(e) => onDragStart(e, item.type)}
-              className={`group w-full cursor-grab rounded-lg border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 transition-all duration-200 hover:border-slate-300 hover:bg-white hover:shadow-sm active:cursor-grabbing active:scale-[0.98] active:shadow-md ${isCollapsed ?'p-2.5' : 'p-2.5'}
+              className={`group w-full cursor-grab rounded-lg border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 transition-all duration-200 hover:border-slate-300 hover:bg-white hover:dark:bg-slate-800 hover:shadow-sm active:cursor-grabbing active:scale-[0.98] active:shadow-md ${isCollapsed ?'p-2.5' : 'p-2.5'}
               `}
             >
               {isCollapsed ? (

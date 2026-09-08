@@ -49,7 +49,7 @@ export function ClaimsTab({ management, methods, modes }: ClaimsTabProps) {
               <button
                 type="button"
                 onClick={handleRefresh}
-                className="px-4 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 transition-colors text-sm font-medium disabled:opacity-60"
+                className="px-4 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 hover:dark:bg-slate-800/60 transition-colors text-sm font-medium disabled:opacity-60"
                 disabled={isInitialLoading || isRefreshing}
               >
                 {isRefreshing && <Loader2 className="h-4 w-4 animate-spin inline mr-2" />}

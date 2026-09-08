@@ -42,7 +42,7 @@ function FieldCopyButton({ value, label }: { value: string; label: string }) {
     <button
       type="button"
       onClick={handleCopy}
-      className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-all w-full ${ copied ?'bg-emerald-50 border-emerald-200' : 'bg-white hover:bg-gray-50 border-gray-200'
+      className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-all w-full ${ copied ?'bg-emerald-50 border-emerald-200' : 'bg-white hover:bg-gray-50 hover:dark:bg-slate-800/60 border-gray-200'
       } border`}
     >
       <div className="flex-1 min-w-0">
@@ -123,7 +123,7 @@ function HistoryEntry({
       <button
         type="button"
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 hover:dark:bg-slate-800/60 transition-colors"
       >
         <div className="flex items-center gap-3">
           {isExpanded ? (
@@ -168,7 +168,7 @@ function HistoryEntry({
               type="button"
               onClick={handleCopy}
               className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${ copied ?'bg-emerald-100 text-emerald-700'
-                  : 'text-gray-600 bg-gray-100 hover:bg-gray-200'
+                  : 'text-gray-600 bg-gray-100 hover:bg-gray-200 hover:dark:bg-white/10'
               }`}
             >
               <span className="flex items-center gap-1">
@@ -207,7 +207,7 @@ function HistoryEntry({
               <button
                 type="button"
                 onClick={() => setShowFields(!showFields)}
-                className="w-full px-3 py-2 flex items-center justify-between text-xs font-medium text-gray-500 hover:bg-gray-100 transition-colors"
+                className="w-full px-3 py-2 flex items-center justify-between text-xs font-medium text-gray-500 hover:bg-gray-100 hover:dark:bg-slate-800 transition-colors"
               >
                 <span className="flex items-center gap-1.5">
                   <Copy className="h-3 w-3" />

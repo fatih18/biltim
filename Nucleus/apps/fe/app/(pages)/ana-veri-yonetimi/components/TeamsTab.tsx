@@ -525,7 +525,7 @@ export function TeamsTab({
               </select>
 
               <button
-                className="rounded-md bg-slate-50 dark:bg-slate-900 px-3 py-2 text-sm font-medium text-slate-950 hover:bg-slate-200 disabled:opacity-50"
+                className="rounded-md bg-slate-50 dark:bg-slate-900 px-3 py-2 text-sm font-medium text-slate-950 hover:bg-slate-200 hover:dark:bg-white/10 disabled:opacity-50"
                 onClick={addDraftMember}
                 disabled={!draftMemberId}
               >

@@ -954,7 +954,7 @@ export function VerificationFlow({ table }: VerificationFlowProps) {
           <nav className="flex items-center gap-3 min-w-0">
             <Link
               href="/verifications"
-              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 transition-colors hover:bg-slate-50 hover:text-slate-700"
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 transition-colors hover:bg-slate-50 hover:dark:bg-slate-800/60 hover:text-slate-700"
             >
               <ArrowLeft className="h-4 w-4" />
             </Link>

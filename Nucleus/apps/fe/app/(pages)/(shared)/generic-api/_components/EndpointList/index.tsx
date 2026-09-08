@@ -205,7 +205,7 @@ export function EndpointList({
             type="button"
             onClick={() => onCategoryChange(cat.id)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${ selectedCategory === cat.id ?`bg-gradient-to-r ${cat.color} text-slate-900 dark:text-white shadow-md`
-                : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+                : 'bg-white text-gray-600 hover:bg-gray-50 hover:dark:bg-slate-800/60 border border-gray-200'
             }`}
           >
             {cat.icon}
@@ -233,7 +233,7 @@ export function EndpointList({
                 <div
                   key={endpoint}
                   className={`w-full px-4 py-3 text-sm transition-all flex items-center gap-2 group ${ isSelected ?'bg-gradient-to-r from-violet-50 to-purple-50 border-l-4 border-violet-500 text-violet-700 font-medium'
-                      : 'hover:bg-gray-50 text-gray-700 border-l-4 border-amber-400'
+                      : 'hover:bg-gray-50 hover:dark:bg-slate-800/60 text-gray-700 border-l-4 border-amber-400'
                   }`}
                 >
                   <button
@@ -288,7 +288,7 @@ export function EndpointList({
                     <div
                       key={endpoint}
                       className={`w-full px-4 py-3 text-sm transition-all flex items-center gap-2 group ${ isSelected ?'bg-gradient-to-r from-violet-50 to-purple-50 border-l-4 border-violet-500 text-violet-700 font-medium'
-                          : 'hover:bg-gray-50 text-gray-700 border-l-4 border-transparent'
+                          : 'hover:bg-gray-50 hover:dark:bg-slate-800/60 text-gray-700 border-l-4 border-transparent'
                       }`}
                     >
                       <button
@@ -305,7 +305,7 @@ export function EndpointList({
                         type="button"
                         onClick={(e) => togglePin(endpoint, e)}
                         className={`p-1 rounded transition-all ${ isPinned ?'text-amber-700 bg-amber-50'
-                            : 'opacity-0 group-hover:opacity-100 hover:bg-gray-100 text-gray-400'
+                            : 'opacity-0 group-hover:opacity-100 hover:bg-gray-100 hover:dark:bg-slate-800 text-gray-400'
                         }`}
                         title={isPinned ? 'Unpin' : 'Pin'}
                       >

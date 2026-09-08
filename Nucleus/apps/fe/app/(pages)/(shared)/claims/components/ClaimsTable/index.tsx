@@ -47,7 +47,7 @@ export function ClaimsTable({ claims, isLoading, onEdit, onDelete }: ClaimsTable
             </tr>
           ) : (
             claims.map((claim) => (
-              <tr key={claim.id} className="hover:bg-slate-50/80">
+              <tr key={claim.id} className="hover:bg-slate-50/80 hover:dark:bg-slate-800/60">
                 <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-slate-100">{claim.action}</td>
                 <td className="px-4 py-3">
                   <span className="inline-flex rounded-full border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-2 py-0.5 text-xs font-semibold uppercase text-slate-700 dark:text-slate-300">
@@ -68,7 +68,7 @@ export function ClaimsTable({ claims, isLoading, onEdit, onDelete }: ClaimsTable
                     <button
                       type="button"
                       onClick={() => onEdit(claim)}
-                      className="inline-flex items-center gap-1 rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50"
+                      className="inline-flex items-center gap-1 rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 hover:dark:bg-slate-800/60"
                     >
                       <Edit3 className="h-3 w-3" />
                       <span>Edit</span>

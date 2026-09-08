@@ -27,7 +27,7 @@ function FieldCopyButton({ value, label }: { value: string; label: string }) {
     <button
       type="button"
       onClick={handleCopy}
-      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-all w-full ${ copied ?'bg-emerald-50 border-emerald-200' : 'bg-gray-50 hover:bg-gray-100 border-gray-200'
+      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-all w-full ${ copied ?'bg-emerald-50 border-emerald-200' : 'bg-gray-50 hover:bg-gray-100 hover:dark:bg-slate-800 border-gray-200'
       } border`}
     >
       <div className="flex-1 min-w-0">
@@ -127,7 +127,7 @@ export function ResponseViewer({
           <button
             type="button"
             onClick={handleCopy}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${ copied ?'bg-emerald-100 text-emerald-700' : 'text-gray-600 hover:bg-gray-100'
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${ copied ?'bg-emerald-100 text-emerald-700' : 'text-gray-600 hover:bg-gray-100 hover:dark:bg-slate-800'
             }`}
           >
             <Copy className="h-3.5 w-3.5" />
@@ -203,7 +203,7 @@ export function ResponseViewer({
           <button
             type="button"
             onClick={() => setShowFields(!showFields)}
-            className="w-full px-4 py-2 flex items-center justify-between text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+            className="w-full px-4 py-2 flex items-center justify-between text-sm font-medium text-gray-600 hover:bg-gray-50 hover:dark:bg-slate-800/60 transition-colors"
           >
             <span className="flex items-center gap-2">
               <Copy className="h-3.5 w-3.5" />

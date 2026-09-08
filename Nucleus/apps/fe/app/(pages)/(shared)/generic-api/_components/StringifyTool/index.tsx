@@ -82,7 +82,7 @@ export function StringifyTool({ isOpen, onClose }: StringifyToolProps) {
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-1.5 hover:bg-gray-100 hover:dark:bg-slate-800 rounded-lg transition-colors"
           >
             <X className="h-4 w-4 text-gray-500" />
           </button>
@@ -127,7 +127,7 @@ export function StringifyTool({ isOpen, onClose }: StringifyToolProps) {
                 <button
                   type="button"
                   onClick={handleCopy}
-                  className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-lg transition-colors ${ copied ?'bg-emerald-100 text-emerald-700' : 'text-gray-500 hover:bg-gray-100'
+                  className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-lg transition-colors ${ copied ?'bg-emerald-100 text-emerald-700' : 'text-gray-500 hover:bg-gray-100 hover:dark:bg-slate-800'
                   }`}
                 >
                   {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
