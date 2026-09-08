@@ -80,7 +80,7 @@ export function AddTableForm({
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-4 py-3 font-medium text-sm transition-all relative ${ activeTab === tab.id ?'text-blue-600 bg-white border-b-2 border-blue-600'
-                    : 'text-slate-400 dark:text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
                 <tab.icon className="w-4 h-4" />
@@ -106,7 +106,7 @@ export function AddTableForm({
 
         {/* Footer - Simple, clean */}
         <div className="border-t bg-slate-50 dark:bg-slate-900 px-6 py-4 flex items-center justify-between rounded-b-xl">
-          <div className="text-sm text-slate-400 dark:text-slate-600">
+          <div className="text-sm text-slate-600 dark:text-slate-400">
             {schema.fields.length} fields · {schema.relations.length} relations ·{' '}
             {schema.indexes.length} indexes
           </div>

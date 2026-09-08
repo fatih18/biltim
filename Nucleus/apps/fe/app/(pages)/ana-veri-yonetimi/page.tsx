@@ -681,7 +681,7 @@ export default function Page() {
                 )}
 
                 {tab !== "master" ? (
-                    <div className="text-[11px] text-slate-400 dark:text-slate-600">
+                    <div className="text-[11px] text-slate-600 dark:text-slate-400">
                         Users: {users.length} ({String(usersLoading)}) • Teams: {teams.length} ({String(teamsLoading)}) • Plans:{" "}
                         {auditPlans.length} ({String(plansLoading)})
                     </div>

@@ -33,7 +33,7 @@ export function Kpi({
       <header className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
           {icon ? (
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 dark:bg-slate-950 text-slate-400 dark:text-slate-600">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 dark:bg-slate-950 text-slate-600 dark:text-slate-400">
               {icon}
             </div>
           ) : null}

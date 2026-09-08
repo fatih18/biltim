@@ -1116,7 +1116,7 @@ export default function FiveSFindingsListPage() {
                   }))
                 }
                 className={`rounded-md border px-3 py-1 text-xs ${ canPrev && !loading ?"border-slate-400 dark:border-slate-600 text-slate-900 dark:text-slate-100 hover:bg-slate-200 hover:dark:bg-slate-800"
-                    : "border-slate-300 dark:border-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed"
+                    : "border-slate-300 dark:border-slate-800 text-slate-600 dark:text-slate-400 cursor-not-allowed"
                 }`}
               >
                 Önceki
@@ -1131,7 +1131,7 @@ export default function FiveSFindingsListPage() {
                   }))
                 }
                 className={`rounded-md border px-3 py-1 text-xs ${ canNext && !loading ?"border-slate-400 dark:border-slate-600 text-slate-900 dark:text-slate-100 hover:bg-slate-200 hover:dark:bg-slate-800"
-                    : "border-slate-300 dark:border-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed"
+                    : "border-slate-300 dark:border-slate-800 text-slate-600 dark:text-slate-400 cursor-not-allowed"
                 }`}
               >
                 Sonraki

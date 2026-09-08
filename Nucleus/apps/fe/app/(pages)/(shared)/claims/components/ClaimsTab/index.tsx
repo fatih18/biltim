@@ -41,7 +41,7 @@ export function ClaimsTab({ management, methods, modes }: ClaimsTabProps) {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Claims</h2>
-              <p className="text-sm text-slate-400 dark:text-slate-600">
+              <p className="text-sm text-slate-600 dark:text-slate-400">
                 Low-level permissions that map to specific API endpoints
               </p>
             </div>

@@ -68,13 +68,13 @@ function RequirementNodeComponent({ data, selected }: NodeProps & { data: Requir
 
       <div className="px-3 py-2 space-y-1">
         {data.isSignatureMandatory && (
-          <div className="flex items-center gap-1.5 text-[10px] text-slate-400 dark:text-slate-600">
+          <div className="flex items-center gap-1.5 text-[10px] text-slate-600 dark:text-slate-400">
             <PenTool className="h-3 w-3 text-amber-500 flex-shrink-0" />
             <span>Signature required</span>
           </div>
         )}
         {data.verifierType === 'role' && data.isAllRequired && (
-          <div className="flex items-center gap-1.5 text-[10px] text-slate-400 dark:text-slate-600">
+          <div className="flex items-center gap-1.5 text-[10px] text-slate-600 dark:text-slate-400">
             <Users className="h-3 w-3 text-blue-500 flex-shrink-0" />
             <span>All users with this role must approve</span>
           </div>

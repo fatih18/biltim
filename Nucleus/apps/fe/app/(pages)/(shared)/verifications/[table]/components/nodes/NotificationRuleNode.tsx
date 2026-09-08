@@ -109,7 +109,7 @@ function NotificationRuleNodeComponent({
       <div className="px-3 py-1.5 space-y-0.5">
         <div className="flex items-center gap-1.5">
           <Flag className="h-2.5 w-2.5 text-amber-500 flex-shrink-0" />
-          <span className="text-[10px] text-slate-400 dark:text-slate-600">
+          <span className="text-[10px] text-slate-600 dark:text-slate-400">
             {data.recipientType === 'role' ? 'Role recipient' : 'User recipient'}
           </span>
         </div>

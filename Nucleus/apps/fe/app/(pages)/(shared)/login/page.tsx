@@ -180,7 +180,7 @@ export default function Login() {
 
             </div>
 
-            <p className="mt-6 text-center text-[11px] text-slate-400 dark:text-slate-600">
+            <p className="mt-6 text-center text-[11px] text-slate-600 dark:text-slate-400">
               © {new Date().getFullYear()} Biltim • Güvenli giriş
             </p>
           </div>

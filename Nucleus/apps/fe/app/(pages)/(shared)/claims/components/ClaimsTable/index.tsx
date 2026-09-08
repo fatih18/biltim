@@ -33,7 +33,7 @@ export function ClaimsTable({ claims, isLoading, onEdit, onDelete }: ClaimsTable
           {isLoading ? (
             <tr>
               <td colSpan={6} className="px-4 py-12 text-center">
-                <div className="flex items-center justify-center gap-2 text-slate-400 dark:text-slate-600">
+                <div className="flex items-center justify-center gap-2 text-slate-600 dark:text-slate-400">
                   <Loader2 className="h-5 w-5 animate-spin" />
                   <span>Loading claims...</span>
                 </div>

@@ -48,7 +48,7 @@ export function Modal({
                   <span aria-hidden="true">×</span>
                 </button>
               </div>
-              {description ? <p className="text-sm text-slate-400 dark:text-slate-600">{description}</p> : null}
+              {description ? <p className="text-sm text-slate-600 dark:text-slate-400">{description}</p> : null}
             </header>
           ) : null}
           <div className="text-slate-700 dark:text-slate-300">{children}</div>

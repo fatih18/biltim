@@ -65,7 +65,7 @@ export function Tabs({
               type="button"
               className={cn(
                 'group inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-all',
-                isActive ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 dark:text-slate-600 hover:bg-white/80',
+                isActive ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-white/80',
                 tab.disabled ? 'cursor-not-allowed opacity-60' : '',
                 tabButtonClassName
               )}

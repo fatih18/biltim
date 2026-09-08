@@ -284,7 +284,7 @@ export function HomeAuditListPanel(props: {
                                                 )}
                                             </div>
                                         ) : (
-                                            <span className="text-[11px] text-slate-400 dark:text-slate-600">—</span>
+                                            <span className="text-[11px] text-slate-600 dark:text-slate-400">—</span>
                                         )}
                                     </div>
 
@@ -304,7 +304,7 @@ export function HomeAuditListPanel(props: {
                                             </div>
                                         )}
                                         {!managerName && fieldManagerNames.length === 0 && (
-                                            <span className="text-xs text-slate-400 dark:text-slate-600">—</span>
+                                            <span className="text-xs text-slate-600 dark:text-slate-400">—</span>
                                         )}
                                     </div>
 

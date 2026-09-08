@@ -31,7 +31,7 @@ export default function ClaimsManagementPage() {
         <div className="mx-auto max-w-7xl">
           <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 text-center shadow-lg">
             <h1 className="mb-2 text-2xl font-semibold text-slate-800 dark:text-slate-200">Authorization Management</h1>
-            <p className="text-sm text-slate-400 dark:text-slate-600">Please log in to manage claims and roles.</p>
+            <p className="text-sm text-slate-600 dark:text-slate-400">Please log in to manage claims and roles.</p>
           </div>
         </div>
       </div>
@@ -46,7 +46,7 @@ export default function ClaimsManagementPage() {
           <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-200 bg-white dark:bg-slate-900 p-8 text-center shadow-lg">
             <AlertTriangle className="text-red-500" size={32} />
             <h1 className="text-2xl font-semibold text-slate-800 dark:text-slate-200">Access denied</h1>
-            <p className="text-sm text-slate-400 dark:text-slate-600">
+            <p className="text-sm text-slate-600 dark:text-slate-400">
               Only god administrators can manage claims and authorization settings.
             </p>
           </div>
@@ -81,7 +81,7 @@ export default function ClaimsManagementPage() {
             onClick={() => setActiveTab('claims')}
             className={`px-4 py-2 text-sm font-medium transition-colors ${ activeTab ==='claims'
                 ? 'border-b-2 border-emerald-500 text-emerald-700'
-                : 'text-slate-400 dark:text-slate-600 hover:text-slate-900'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
             }`}
           >
             Claims
@@ -91,7 +91,7 @@ export default function ClaimsManagementPage() {
             onClick={() => setActiveTab('roles')}
             className={`px-4 py-2 text-sm font-medium transition-colors ${ activeTab ==='roles'
                 ? 'border-b-2 border-emerald-500 text-emerald-700'
-                : 'text-slate-400 dark:text-slate-600 hover:text-slate-900'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
             }`}
           >
             Roles

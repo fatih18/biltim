@@ -224,7 +224,7 @@ export function SelectBox<T extends string | number>({
         </span>
         <ChevronDown
           ref={chevronRef}
-          className={`w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 ml-2 ${isDark ?'text-slate-600 dark:text-slate-400' : 'text-slate-400 dark:text-slate-600'}`}
+          className={`w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 ml-2 ${isDark ?'text-slate-600 dark:text-slate-400' : 'text-slate-600 dark:text-slate-400'}`}
           aria-hidden="true"
         />
       </button>

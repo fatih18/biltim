@@ -68,7 +68,7 @@ function RecipientNodeComponent({ data, selected }: NodeProps & { data: Recipien
       </div>
 
       <div className="px-4 py-2">
-        <div className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 dark:bg-slate-950 px-2 py-0.5 text-xs text-slate-400 dark:text-slate-600">
+        <div className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 dark:bg-slate-950 px-2 py-0.5 text-xs text-slate-600 dark:text-slate-400">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
           Portal
         </div>

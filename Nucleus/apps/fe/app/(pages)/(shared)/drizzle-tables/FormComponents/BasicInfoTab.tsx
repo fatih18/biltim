@@ -123,7 +123,7 @@ export function BasicInfoTab({
                   }}
                   className="w-4 h-4 text-blue-600 rounded"
                 />
-                <span className="uppercase tracking-wide text-slate-400 dark:text-slate-600 text-xs font-semibold">
+                <span className="uppercase tracking-wide text-slate-600 dark:text-slate-400 text-xs font-semibold">
                   {method}
                 </span>
               </label>

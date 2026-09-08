@@ -126,7 +126,7 @@ export function TeamLeaderWithMembersTooltip({
                             <div className="mt-2 text-slate-500 dark:text-slate-400">Üye bulunamadı.</div>
                         )}
 
-                        <div className="mt-2 text-[10px] text-slate-400 dark:text-slate-600">
+                        <div className="mt-2 text-[10px] text-slate-600 dark:text-slate-400">
                             Kapatmak için dışarı tıkla ya da tekrar tıkla.
                         </div>
                     </div>,
