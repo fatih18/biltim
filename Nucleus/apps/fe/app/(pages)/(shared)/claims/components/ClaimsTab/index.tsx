@@ -36,11 +36,11 @@ export function ClaimsTab({ management, methods, modes }: ClaimsTabProps) {
 
   return (
     <>
-      <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 px-6 py-4">
+      <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+        <div className="border-b border-slate-200 dark:border-slate-800 px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">Claims</h2>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Claims</h2>
               <p className="text-sm text-slate-400 dark:text-slate-600">
                 Low-level permissions that map to specific API endpoints
               </p>
@@ -49,7 +49,7 @@ export function ClaimsTab({ management, methods, modes }: ClaimsTabProps) {
               <button
                 type="button"
                 onClick={handleRefresh}
-                className="px-4 py-2 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 transition-colors text-sm font-medium disabled:opacity-60"
+                className="px-4 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 transition-colors text-sm font-medium disabled:opacity-60"
                 disabled={isInitialLoading || isRefreshing}
               >
                 {isRefreshing && <Loader2 className="h-4 w-4 animate-spin inline mr-2" />}

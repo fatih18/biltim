@@ -27,8 +27,7 @@ function FieldCopyButton({ value, label }: { value: string; label: string }) {
     <button
       type="button"
       onClick={handleCopy}
-      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-all w-full ${
-        copied ? 'bg-emerald-50 border-emerald-200' : 'bg-gray-50 hover:bg-gray-100 border-gray-200'
+      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-all w-full ${ copied ?'bg-emerald-50 border-emerald-200' : 'bg-gray-50 hover:bg-gray-100 border-gray-200'
       } border`}
     >
       <div className="flex-1 min-w-0">
@@ -36,8 +35,7 @@ function FieldCopyButton({ value, label }: { value: string; label: string }) {
         <div className="text-sm font-mono text-gray-800 truncate">{value}</div>
       </div>
       <div
-        className={`flex-shrink-0 p-1.5 rounded ${
-          copied ? 'bg-emerald-100 text-emerald-600' : 'bg-white text-gray-400'
+        className={`flex-shrink-0 p-1.5 rounded ${ copied ?'bg-emerald-100 text-emerald-600' : 'bg-white text-gray-400'
         }`}
       >
         {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
@@ -100,7 +98,7 @@ export function ResponseViewer({
   }, [displayText])
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-slate-50">
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-gray-700">Response</span>
@@ -112,9 +110,7 @@ export function ResponseViewer({
           )}
           {!isStreaming && isSuccess !== null && (
             <span
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
-                isSuccess
-                  ? 'bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-700'
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${ isSuccess ?'bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-700'
                   : 'bg-gradient-to-r from-red-100 to-rose-100 text-red-700'
               }`}
             >
@@ -131,8 +127,7 @@ export function ResponseViewer({
           <button
             type="button"
             onClick={handleCopy}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
-              copied ? 'bg-emerald-100 text-emerald-700' : 'text-gray-600 hover:bg-gray-100'
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${ copied ?'bg-emerald-100 text-emerald-700' : 'text-gray-600 hover:bg-gray-100'
             }`}
           >
             <Copy className="h-3.5 w-3.5" />

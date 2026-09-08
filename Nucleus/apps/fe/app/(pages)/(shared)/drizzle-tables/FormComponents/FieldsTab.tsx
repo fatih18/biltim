@@ -43,7 +43,7 @@ export function FieldsTab({
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-lg font-semibold text-slate-800">Fields</h3>
+          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">Fields</h3>
           <p className="text-sm text-slate-500 dark:text-slate-500">Define table columns and their properties</p>
         </div>
         <button
@@ -60,7 +60,7 @@ export function FieldsTab({
         {schema.fields.map((field, index) => (
           <div
             key={index}
-            className="bg-white border border-slate-200 rounded-lg p-4 space-y-3 hover:shadow-md transition-shadow"
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4 space-y-3 hover:shadow-md transition-shadow"
           >
             <div className="grid grid-cols-4 gap-3">
               <input
@@ -68,14 +68,14 @@ export function FieldsTab({
                 value={field.name}
                 onChange={(e) => updateField(index, { name: e.target.value })}
                 placeholder="Field name"
-                className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
               />
               <input
                 type="text"
                 value={field.column}
                 onChange={(e) => updateField(index, { column: e.target.value })}
                 placeholder="Column name"
-                className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
               />
               <select
                 value={field.drizzleType}
@@ -106,7 +106,7 @@ export function FieldsTab({
 
                   updateField(index, updates)
                 }}
-                className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
               >
                 <option value="varchar">varchar</option>
                 <option value="text">text</option>
@@ -123,7 +123,7 @@ export function FieldsTab({
               <select
                 value={field.searchType}
                 onChange={(e) => updateField(index, { searchType: e.target.value as FieldType })}
-                className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
               >
                 <option value="string">string</option>
                 <option value="number">number</option>
@@ -140,7 +140,7 @@ export function FieldsTab({
                   onChange={(e) => updateField(index, { searchable: e.target.checked })}
                   className="w-4 h-4 text-blue-600 rounded"
                 />
-                <span className="text-slate-700">Searchable</span>
+                <span className="text-slate-700 dark:text-slate-300">Searchable</span>
               </label>
               <label className="flex items-center gap-1.5 cursor-pointer">
                 <input
@@ -149,7 +149,7 @@ export function FieldsTab({
                   onChange={(e) => updateField(index, { filterable: e.target.checked })}
                   className="w-4 h-4 text-blue-600 rounded"
                 />
-                <span className="text-slate-700">Filterable</span>
+                <span className="text-slate-700 dark:text-slate-300">Filterable</span>
               </label>
               <label className="flex items-center gap-1.5 cursor-pointer">
                 <input
@@ -158,7 +158,7 @@ export function FieldsTab({
                   onChange={(e) => updateField(index, { sortable: e.target.checked })}
                   className="w-4 h-4 text-blue-600 rounded"
                 />
-                <span className="text-slate-700">Sortable</span>
+                <span className="text-slate-700 dark:text-slate-300">Sortable</span>
               </label>
               <label className="flex items-center gap-1.5 cursor-pointer">
                 <input
@@ -167,7 +167,7 @@ export function FieldsTab({
                   onChange={(e) => updateField(index, { nullable: e.target.checked })}
                   className="w-4 h-4 text-blue-600 rounded"
                 />
-                <span className="text-slate-700">Nullable</span>
+                <span className="text-slate-700 dark:text-slate-300">Nullable</span>
               </label>
               <label className="flex items-center gap-1.5 cursor-pointer">
                 <input
@@ -176,7 +176,7 @@ export function FieldsTab({
                   onChange={(e) => updateField(index, { isUnique: e.target.checked })}
                   className="w-4 h-4 text-blue-600 rounded"
                 />
-                <span className="text-slate-700">Unique</span>
+                <span className="text-slate-700 dark:text-slate-300">Unique</span>
               </label>
               <label className="flex items-center gap-1.5 cursor-pointer">
                 <input
@@ -185,7 +185,7 @@ export function FieldsTab({
                   onChange={(e) => updateField(index, { isPrimaryKey: e.target.checked })}
                   className="w-4 h-4 text-blue-600 rounded"
                 />
-                <span className="text-slate-700">Primary Key</span>
+                <span className="text-slate-700 dark:text-slate-300">Primary Key</span>
               </label>
 
               {field.drizzleType === 'varchar' && (
@@ -197,7 +197,7 @@ export function FieldsTab({
                     updateField(index, { length: Number.isNaN(value) ? 255 : value })
                   }}
                   placeholder="Length"
-                  className="w-20 px-2 py-1 border border-slate-300 rounded text-sm"
+                  className="w-20 px-2 py-1 border border-slate-300 dark:border-slate-700 rounded text-sm"
                 />
               )}
 
@@ -216,14 +216,14 @@ export function FieldsTab({
                 value={field.defaultValue || ''}
                 onChange={(e) => updateField(index, { defaultValue: e.target.value })}
                 placeholder="Default value"
-                className="px-3 py-2 border border-slate-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
               />
               <input
                 type="text"
                 value={field.comment || ''}
                 onChange={(e) => updateField(index, { comment: e.target.value })}
                 placeholder="Comment"
-                className="px-3 py-2 border border-slate-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
               />
               {field.drizzleType === 'decimal' && (
                 <div className="flex items-center gap-2">
@@ -235,7 +235,7 @@ export function FieldsTab({
                       updateField(index, { precision: Number.isNaN(value) ? 10 : value })
                     }}
                     placeholder="Precision"
-                    className="w-24 px-3 py-2 border border-slate-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                    className="w-24 px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                   />
                   <input
                     type="number"
@@ -245,7 +245,7 @@ export function FieldsTab({
                       updateField(index, { scale: Number.isNaN(value) ? 2 : value })
                     }}
                     placeholder="Scale"
-                    className="w-24 px-3 py-2 border border-slate-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                    className="w-24 px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                   />
                 </div>
               )}

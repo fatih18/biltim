@@ -39,7 +39,7 @@ export function TableNode({ data }: NodeProps) {
 
   return (
     <div
-      className="bg-white border-2 border-gray-300 rounded-lg shadow-lg w-[350px] flex flex-col relative"
+      className="bg-white dark:bg-slate-900 border-2 border-gray-300 rounded-lg shadow-lg w-[350px] flex flex-col relative"
       style={{ height: `${calculatedHeight}px` }}
     >
       {/* Header */}

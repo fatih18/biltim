@@ -37,7 +37,7 @@ export function RelationsTab({
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-lg font-semibold text-slate-800">Relations</h3>
+          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">Relations</h3>
           <p className="text-sm text-slate-500 dark:text-slate-500">Define relationships between tables</p>
         </div>
         <button
@@ -54,7 +54,7 @@ export function RelationsTab({
         {schema.relations.map((relation, index) => (
           <div
             key={index}
-            className="bg-white border border-slate-200 rounded-lg p-4 space-y-3 hover:shadow-md transition-shadow"
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4 space-y-3 hover:shadow-md transition-shadow"
           >
             <div className="grid grid-cols-3 gap-3">
               <input
@@ -62,12 +62,12 @@ export function RelationsTab({
                 value={relation.name}
                 onChange={(e) => updateRelation(index, { name: e.target.value })}
                 placeholder="Relation name"
-                className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
               />
               <select
                 value={relation.type}
                 onChange={(e) => updateRelation(index, { type: e.target.value as RelationType })}
-                className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
               >
                 <option value="one-to-one">One-to-One</option>
                 <option value="one-to-many">One-to-Many</option>
@@ -79,7 +79,7 @@ export function RelationsTab({
                 value={relation.targetTable}
                 onChange={(e) => updateRelation(index, { targetTable: e.target.value })}
                 placeholder="Target table (T_Users)"
-                className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
               />
             </div>
 
@@ -89,21 +89,21 @@ export function RelationsTab({
                 value={relation.foreignKey || ''}
                 onChange={(e) => updateRelation(index, { foreignKey: e.target.value || undefined })}
                 placeholder="Foreign key"
-                className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
               />
               <input
                 type="text"
                 value={relation.localKey || ''}
                 onChange={(e) => updateRelation(index, { localKey: e.target.value || undefined })}
                 placeholder="Local key"
-                className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
               />
               <input
                 type="text"
                 value={relation.targetKey || ''}
                 onChange={(e) => updateRelation(index, { targetKey: e.target.value || undefined })}
                 placeholder="Target key"
-                className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
               />
             </div>
 
@@ -115,7 +115,7 @@ export function RelationsTab({
                   updateRelation(index, { throughTable: e.target.value || undefined })
                 }
                 placeholder="Through table (T_UserClaims)"
-                className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
               />
             )}
 
@@ -127,7 +127,7 @@ export function RelationsTab({
                   onChange={(e) => updateRelation(index, { useDrizzleRelation: e.target.checked })}
                   className="w-4 h-4 text-blue-600 rounded"
                 />
-                <span className="text-sm text-slate-700">Use Drizzle Relation</span>
+                <span className="text-sm text-slate-700 dark:text-slate-300">Use Drizzle Relation</span>
               </label>
               <button
                 type="button"

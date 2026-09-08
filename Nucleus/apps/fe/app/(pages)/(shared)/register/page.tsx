@@ -51,7 +51,7 @@ export default function Register() {
   }
 
   return (
-    <main className="bg-white text-neutral-900">
+    <main className="bg-white dark:bg-slate-900 text-neutral-900">
       <section className="relative grid min-h-screen grid-cols-1 lg:grid-cols-[1fr_2fr]">
         <div className="absolute inset-0 lg:hidden">
           <AbstractAnimatedBackground />
@@ -65,7 +65,7 @@ export default function Register() {
               </div>
             </div>
 
-            <div className="rounded-3xl border border-neutral-100 bg-white min-w-96 px-8 pb-10 pt-9 shadow-[0_32px_80px_rgba(15,23,42,0.08)]">
+            <div className="rounded-3xl border border-neutral-100 bg-white dark:bg-slate-900 min-w-96 px-8 pb-10 pt-9 shadow-[0_32px_80px_rgba(15,23,42,0.08)]">
               <header className="mb-8">
                 <p className="text-sm font-medium uppercase tracking-[0.32em] text-neutral-500 text-center">
                   Create your account
@@ -97,7 +97,7 @@ export default function Register() {
                       autoComplete="email"
                       placeholder="example@mail.com"
                       required
-                      className="h-12 w-full rounded-lg border border-neutral-200 bg-white pl-12 pr-4 text-sm font-medium text-neutral-900 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                      className="h-12 w-full rounded-lg border border-neutral-200 bg-white dark:bg-slate-900 pl-12 pr-4 text-sm font-medium text-neutral-900 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                     />
                   </div>
                 </fieldset>
@@ -121,7 +121,7 @@ export default function Register() {
                       placeholder="••••••••"
                       minLength={8}
                       required
-                      className="h-12 w-full rounded-lg border border-neutral-200 bg-white pl-12 pr-12 text-sm font-medium text-neutral-900 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                      className="h-12 w-full rounded-lg border border-neutral-200 bg-white dark:bg-slate-900 pl-12 pr-12 text-sm font-medium text-neutral-900 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                     />
                     <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-neutral-400">
                       <FiEyeOff className="h-[18px] w-[18px]" aria-hidden="true" />
@@ -152,7 +152,7 @@ export default function Register() {
                       placeholder="••••••••"
                       minLength={8}
                       required
-                      className="h-12 w-full rounded-lg border border-neutral-200 bg-white pl-12 pr-12 text-sm font-medium text-neutral-900 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                      className="h-12 w-full rounded-lg border border-neutral-200 bg-white dark:bg-slate-900 pl-12 pr-12 text-sm font-medium text-neutral-900 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                     />
                     <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-neutral-400">
                       <FiEyeOff className="h-[18px] w-[18px]" aria-hidden="true" />

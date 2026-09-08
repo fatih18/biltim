@@ -14,9 +14,7 @@ export type VerificationNodeData = {
 function VerificationNodeComponent({ data, selected }: NodeProps & { data: VerificationNodeData }) {
   return (
     <div
-      className={`
-        group relative min-w-[180px] rounded-xl border-2 bg-white shadow-md transition-all duration-200
-        ${selected ? 'border-violet-500 shadow-violet-200 ring-2 ring-violet-100' : 'border-slate-200 hover:border-violet-300 hover:shadow-lg'}
+      className={`group relative min-w-[180px] rounded-xl border-2 bg-white dark:bg-slate-900 shadow-md transition-all duration-200 ${selected ?'border-violet-500 shadow-violet-200 ring-2 ring-violet-100' : 'border-slate-200 hover:border-violet-300 hover:shadow-lg'}
         ${data.isNew ? 'animate-pulse' : ''}
       `}
     >

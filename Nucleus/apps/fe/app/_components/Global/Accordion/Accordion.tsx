@@ -90,7 +90,7 @@ export function Accordion({
               aria-expanded={isOpen}
             >
               <div className="flex flex-1 flex-col gap-1">
-                <div className="flex items-center gap-3 text-left text-sm font-semibold text-slate-900">
+                <div className="flex items-center gap-3 text-left text-sm font-semibold text-slate-900 dark:text-slate-100">
                   {item.icon ? (
                     <span className="text-lg" aria-hidden="true">
                       {item.icon}

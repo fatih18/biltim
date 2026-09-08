@@ -36,7 +36,7 @@ export function IndexesTab({
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-lg font-semibold text-slate-800">Indexes</h3>
+          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">Indexes</h3>
           <p className="text-sm text-slate-500 dark:text-slate-500">Define database indexes for performance</p>
         </div>
         <button
@@ -53,7 +53,7 @@ export function IndexesTab({
         {schema.indexes.map((idx, index) => (
           <div
             key={index}
-            className="bg-white border border-slate-200 rounded-lg p-4 space-y-3 hover:shadow-md transition-shadow"
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4 space-y-3 hover:shadow-md transition-shadow"
           >
             <div className="grid grid-cols-3 gap-3">
               <input
@@ -61,12 +61,12 @@ export function IndexesTab({
                 value={idx.name}
                 onChange={(e) => updateIndex(index, { name: e.target.value })}
                 placeholder="Index name"
-                className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
               />
               <select
                 value={idx.type}
                 onChange={(e) => updateIndex(index, { type: e.target.value as IndexType })}
-                className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
               >
                 <option value="index">Index</option>
                 <option value="unique">Unique</option>
@@ -85,7 +85,7 @@ export function IndexesTab({
                     })
                   }
                   placeholder="Columns (comma separated)"
-                  className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  className="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                 />
                 <button
                   type="button"

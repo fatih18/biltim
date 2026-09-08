@@ -913,7 +913,7 @@ export function VerificationFlow({ table }: VerificationFlowProps) {
     return (
       <section
         style={{ height: 'calc(100vh - 88px)' }}
-        className="flex w-full items-center justify-center bg-slate-100"
+        className="flex w-full items-center justify-center bg-slate-100 dark:bg-slate-950"
       >
         <article className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
@@ -926,13 +926,12 @@ export function VerificationFlow({ table }: VerificationFlowProps) {
   return (
     <section
       style={{ height: 'calc(100vh - 88px)' }}
-      className="flex w-full overflow-hidden bg-slate-100"
+      className="flex w-full overflow-hidden bg-slate-100 dark:bg-slate-950"
     >
       {saveMessage && (
         <aside className="fixed top-4 left-1/2 z-50 -translate-x-1/2 animate-in fade-in slide-in-from-top-2 duration-300">
           <article
-            className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium shadow-lg ${
-              saveMessage.includes('Error') ? 'bg-red-500 text-slate-900 dark:text-white' : 'bg-emerald-500 text-slate-900 dark:text-white'
+            className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium shadow-lg ${ saveMessage.includes('Error') ? 'bg-red-500 text-slate-900 dark:text-white' : 'bg-emerald-500 text-slate-900 dark:text-white'
             }`}
           >
             {saveMessage.includes('Error') ? (
@@ -951,11 +950,11 @@ export function VerificationFlow({ table }: VerificationFlowProps) {
       />
 
       <article className="flex flex-1 flex-col min-w-0">
-        <header className="flex items-center justify-between gap-4 border-b border-slate-200 bg-white px-4 py-3 sm:px-6 sm:py-4">
+        <header className="flex items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-3 sm:px-6 sm:py-4">
           <nav className="flex items-center gap-3 min-w-0">
             <Link
               href="/verifications"
-              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-500 dark:text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700"
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700"
             >
               <ArrowLeft className="h-4 w-4" />
             </Link>
@@ -963,7 +962,7 @@ export function VerificationFlow({ table }: VerificationFlowProps) {
               <Workflow className="h-4 w-4" />
             </figure>
             <hgroup className="min-w-0">
-              <h1 className="text-base font-bold text-slate-900 sm:text-lg truncate">
+              <h1 className="text-base font-bold text-slate-900 dark:text-slate-100 sm:text-lg truncate">
                 Flow Builder
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-500 sm:text-sm">
@@ -1008,12 +1007,12 @@ export function VerificationFlow({ table }: VerificationFlowProps) {
             fitView
             snapToGrid
             snapGrid={[16, 16]}
-            className="bg-slate-50"
+            className="bg-slate-50 dark:bg-slate-900"
           >
             <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="#cbd5e1" />
-            <Controls className="rounded-xl border border-slate-200 bg-white shadow-lg" />
+            <Controls className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-lg" />
             <MiniMap
-              className="rounded-xl border border-slate-200 bg-white shadow-lg"
+              className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-lg"
               nodeColor={(node) => {
                 switch (node.type) {
                   case 'verification':
@@ -1032,10 +1031,10 @@ export function VerificationFlow({ table }: VerificationFlowProps) {
           {nodes.length === 0 && (
             <article className="pointer-events-none absolute inset-0 flex items-center justify-center">
               <figure className="text-center">
-                <figcaption className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-200">
+                <figcaption className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-200 dark:bg-slate-800">
                   <Workflow className="h-8 w-8 text-slate-600 dark:text-slate-400" />
                 </figcaption>
-                <h3 className="text-lg font-semibold text-slate-700">Start building your flow</h3>
+                <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">Start building your flow</h3>
                 <p className="mt-1 text-sm text-slate-500 dark:text-slate-500">
                   Drag components from the left panel to create your verification workflow
                 </p>

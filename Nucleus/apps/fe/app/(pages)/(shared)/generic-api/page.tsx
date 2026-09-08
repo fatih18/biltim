@@ -245,7 +245,7 @@ export default function ApiSandbox() {
             <button
               type="button"
               onClick={() => setShowStringifyTool(true)}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl transition-colors shadow-sm"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-white dark:bg-slate-900 hover:bg-gray-50 border border-gray-200 rounded-xl transition-colors shadow-sm"
             >
               <Braces className="h-4 w-4" />
               Stringify Tool
@@ -275,7 +275,7 @@ export default function ApiSandbox() {
             {/* Selected Endpoint Info */}
             {selectedEndpoint && (
               <div
-                className={`bg-gradient-to-r ${categoryInfo?.color || 'from-gray-500 to-gray-600'} rounded-2xl p-6 text-slate-900 dark:text-white shadow-xl`}
+                className={`bg-gradient-to-r ${categoryInfo?.color ||'from-gray-500 to-gray-600'} rounded-2xl p-6 text-slate-900 dark:text-white shadow-xl`}
               >
                 <div className="flex items-center justify-between">
                   <div>

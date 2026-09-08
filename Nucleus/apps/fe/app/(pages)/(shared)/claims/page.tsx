@@ -29,8 +29,8 @@ export default function ClaimsManagementPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
         <div className="mx-auto max-w-7xl">
-          <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-lg">
-            <h1 className="mb-2 text-2xl font-semibold text-slate-800">Authorization Management</h1>
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 text-center shadow-lg">
+            <h1 className="mb-2 text-2xl font-semibold text-slate-800 dark:text-slate-200">Authorization Management</h1>
             <p className="text-sm text-slate-400 dark:text-slate-600">Please log in to manage claims and roles.</p>
           </div>
         </div>
@@ -43,9 +43,9 @@ export default function ClaimsManagementPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
         <div className="mx-auto max-w-7xl">
-          <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-200 bg-white p-8 text-center shadow-lg">
+          <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-200 bg-white dark:bg-slate-900 p-8 text-center shadow-lg">
             <AlertTriangle className="text-red-500" size={32} />
-            <h1 className="text-2xl font-semibold text-slate-800">Access denied</h1>
+            <h1 className="text-2xl font-semibold text-slate-800 dark:text-slate-200">Access denied</h1>
             <p className="text-sm text-slate-400 dark:text-slate-600">
               Only god administrators can manage claims and authorization settings.
             </p>
@@ -75,12 +75,11 @@ export default function ClaimsManagementPage() {
         </header>
 
         {/* Tabs */}
-        <div className="flex gap-2 border-b border-slate-200">
+        <div className="flex gap-2 border-b border-slate-200 dark:border-slate-800">
           <button
             type="button"
             onClick={() => setActiveTab('claims')}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
-              activeTab === 'claims'
+            className={`px-4 py-2 text-sm font-medium transition-colors ${ activeTab ==='claims'
                 ? 'border-b-2 border-emerald-500 text-emerald-600'
                 : 'text-slate-400 dark:text-slate-600 hover:text-slate-900'
             }`}
@@ -90,8 +89,7 @@ export default function ClaimsManagementPage() {
           <button
             type="button"
             onClick={() => setActiveTab('roles')}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
-              activeTab === 'roles'
+            className={`px-4 py-2 text-sm font-medium transition-colors ${ activeTab ==='roles'
                 ? 'border-b-2 border-emerald-500 text-emerald-600'
                 : 'text-slate-400 dark:text-slate-600 hover:text-slate-900'
             }`}

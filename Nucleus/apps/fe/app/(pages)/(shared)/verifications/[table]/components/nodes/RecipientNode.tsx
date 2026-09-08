@@ -44,9 +44,7 @@ function RecipientNodeComponent({ data, selected }: NodeProps & { data: Recipien
 
   return (
     <div
-      className={`
-        group relative min-w-[160px] rounded-xl border-2 bg-white shadow-lg transition-all duration-200
-        ${selected ? 'border-teal-500 shadow-teal-200 ring-4 ring-teal-100' : 'border-slate-200 hover:border-teal-300 hover:shadow-xl'}
+      className={`group relative min-w-[160px] rounded-xl border-2 bg-white dark:bg-slate-900 shadow-lg transition-all duration-200 ${selected ?'border-teal-500 shadow-teal-200 ring-4 ring-teal-100' : 'border-slate-200 hover:border-teal-300 hover:shadow-xl'}
         ${data.isNew ? 'animate-pulse' : ''}
       `}
     >
@@ -65,12 +63,12 @@ function RecipientNodeComponent({ data, selected }: NodeProps & { data: Recipien
             <Mail className="h-3 w-3 text-teal-600" />
             <span className="text-xs font-medium text-teal-600">Recipient</span>
           </div>
-          <div className="text-sm font-semibold text-slate-900">{getRecipientLabel()}</div>
+          <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">{getRecipientLabel()}</div>
         </div>
       </div>
 
       <div className="px-4 py-2">
-        <div className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-400 dark:text-slate-600">
+        <div className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 dark:bg-slate-950 px-2 py-0.5 text-xs text-slate-400 dark:text-slate-600">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
           Portal
         </div>

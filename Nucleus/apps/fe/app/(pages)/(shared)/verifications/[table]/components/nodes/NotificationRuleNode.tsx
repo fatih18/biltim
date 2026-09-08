@@ -78,9 +78,7 @@ function NotificationRuleNodeComponent({
 
   return (
     <div
-      className={`
-        group relative min-w-[150px] rounded-xl border-2 bg-white shadow-md transition-all duration-200
-        ${selected ? 'border-amber-400 shadow-amber-200 ring-2 ring-amber-100' : 'border-slate-200 hover:border-amber-300 hover:shadow-lg'}
+      className={`group relative min-w-[150px] rounded-xl border-2 bg-white dark:bg-slate-900 shadow-md transition-all duration-200 ${selected ?'border-amber-400 shadow-amber-200 ring-2 ring-amber-100' : 'border-slate-200 hover:border-amber-300 hover:shadow-lg'}
         ${data.isNew ? 'animate-pulse' : ''}
       `}
     >
@@ -104,7 +102,7 @@ function NotificationRuleNodeComponent({
             <Bell className="h-2.5 w-2.5 text-amber-600" />
             <span className="text-[9px] font-medium text-amber-700">Notification</span>
           </div>
-          <div className="text-xs font-semibold text-slate-900 truncate">{getTriggerLabel()}</div>
+          <div className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">{getTriggerLabel()}</div>
         </div>
       </div>
 

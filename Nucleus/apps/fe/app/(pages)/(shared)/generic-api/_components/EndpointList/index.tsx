@@ -193,7 +193,7 @@ export function EndpointList({
           placeholder="Endpoint ara..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all shadow-sm"
+          className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-white dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all shadow-sm"
         />
       </div>
 
@@ -204,9 +204,7 @@ export function EndpointList({
             key={cat.id}
             type="button"
             onClick={() => onCategoryChange(cat.id)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-              selectedCategory === cat.id
-                ? `bg-gradient-to-r ${cat.color} text-slate-900 dark:text-white shadow-md`
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${ selectedCategory === cat.id ?`bg-gradient-to-r ${cat.color} text-slate-900 dark:text-white shadow-md`
                 : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
             }`}
           >
@@ -217,7 +215,7 @@ export function EndpointList({
       </div>
 
       {/* Endpoint List */}
-      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden max-h-[calc(100vh-320px)] overflow-y-auto shadow-sm">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 overflow-hidden max-h-[calc(100vh-320px)] overflow-y-auto shadow-sm">
         {/* Pinned Endpoints */}
         {pinnedFiltered.length > 0 && (
           <div>
@@ -234,9 +232,7 @@ export function EndpointList({
               return (
                 <div
                   key={endpoint}
-                  className={`w-full px-4 py-3 text-sm transition-all flex items-center gap-2 group ${
-                    isSelected
-                      ? 'bg-gradient-to-r from-violet-50 to-purple-50 border-l-4 border-violet-500 text-violet-700 font-medium'
+                  className={`w-full px-4 py-3 text-sm transition-all flex items-center gap-2 group ${ isSelected ?'bg-gradient-to-r from-violet-50 to-purple-50 border-l-4 border-violet-500 text-violet-700 font-medium'
                       : 'hover:bg-gray-50 text-gray-700 border-l-4 border-amber-400'
                   }`}
                 >
@@ -246,7 +242,7 @@ export function EndpointList({
                     className="flex-1 flex items-center gap-2 text-left"
                   >
                     <div
-                      className={`h-2 w-2 rounded-full bg-gradient-to-r ${catInfo?.color || 'from-gray-400 to-gray-500'}`}
+                      className={`h-2 w-2 rounded-full bg-gradient-to-r ${catInfo?.color ||'from-gray-400 to-gray-500'}`}
                     />
                     <span className="truncate flex-1">{endpoint}</span>
                   </button>
@@ -291,9 +287,7 @@ export function EndpointList({
                   return (
                     <div
                       key={endpoint}
-                      className={`w-full px-4 py-3 text-sm transition-all flex items-center gap-2 group ${
-                        isSelected
-                          ? 'bg-gradient-to-r from-violet-50 to-purple-50 border-l-4 border-violet-500 text-violet-700 font-medium'
+                      className={`w-full px-4 py-3 text-sm transition-all flex items-center gap-2 group ${ isSelected ?'bg-gradient-to-r from-violet-50 to-purple-50 border-l-4 border-violet-500 text-violet-700 font-medium'
                           : 'hover:bg-gray-50 text-gray-700 border-l-4 border-transparent'
                       }`}
                     >
@@ -303,16 +297,14 @@ export function EndpointList({
                         className="flex-1 flex items-center gap-2 text-left"
                       >
                         <div
-                          className={`h-2 w-2 rounded-full bg-gradient-to-r ${catInfo?.color || 'from-gray-400 to-gray-500'}`}
+                          className={`h-2 w-2 rounded-full bg-gradient-to-r ${catInfo?.color ||'from-gray-400 to-gray-500'}`}
                         />
                         <span className="truncate flex-1">{endpoint}</span>
                       </button>
                       <button
                         type="button"
                         onClick={(e) => togglePin(endpoint, e)}
-                        className={`p-1 rounded transition-all ${
-                          isPinned
-                            ? 'text-amber-600 bg-amber-50'
+                        className={`p-1 rounded transition-all ${ isPinned ?'text-amber-600 bg-amber-50'
                             : 'opacity-0 group-hover:opacity-100 hover:bg-gray-100 text-gray-400'
                         }`}
                         title={isPinned ? 'Unpin' : 'Pin'}

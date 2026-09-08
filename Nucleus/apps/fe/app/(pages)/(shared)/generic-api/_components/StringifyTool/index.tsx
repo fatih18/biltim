@@ -70,7 +70,7 @@ export function StringifyTool({ isOpen, onClose }: StringifyToolProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-gray-200">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-gray-200">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-violet-50 to-purple-50">
           <div className="flex items-center gap-2">
@@ -127,8 +127,7 @@ export function StringifyTool({ isOpen, onClose }: StringifyToolProps) {
                 <button
                   type="button"
                   onClick={handleCopy}
-                  className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-lg transition-colors ${
-                    copied ? 'bg-emerald-100 text-emerald-700' : 'text-gray-500 hover:bg-gray-100'
+                  className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-lg transition-colors ${ copied ?'bg-emerald-100 text-emerald-700' : 'text-gray-500 hover:bg-gray-100'
                   }`}
                 >
                   {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
@@ -137,8 +136,7 @@ export function StringifyTool({ isOpen, onClose }: StringifyToolProps) {
               )}
             </div>
             <div
-              className={`w-full h-28 p-3 text-sm font-mono border rounded-xl overflow-auto ${
-                error ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50'
+              className={`w-full h-28 p-3 text-sm font-mono border rounded-xl overflow-auto ${ error ?'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50'
               }`}
             >
               {error ? (

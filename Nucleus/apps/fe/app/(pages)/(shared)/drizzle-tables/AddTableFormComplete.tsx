@@ -50,7 +50,7 @@ export function AddTableForm({
 
   return (
     <div className="fixed inset-0 bg-white dark:bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-7xl max-h-[95vh] flex flex-col">
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-7xl max-h-[95vh] flex flex-col">
         {/* Header - Minimal, professional */}
         <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 rounded-t-xl flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -72,16 +72,14 @@ export function AddTableForm({
         </div>
 
         {/* Tabs - Clean, minimal */}
-        <div className="border-b border-slate-200 bg-slate-50 px-6">
+        <div className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 px-6">
           <div className="flex gap-1">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-3 font-medium text-sm transition-all relative ${
-                  activeTab === tab.id
-                    ? 'text-blue-600 bg-white border-b-2 border-blue-600'
+                className={`flex items-center gap-2 px-4 py-3 font-medium text-sm transition-all relative ${ activeTab === tab.id ?'text-blue-600 bg-white border-b-2 border-blue-600'
                     : 'text-slate-400 dark:text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
@@ -107,7 +105,7 @@ export function AddTableForm({
         </div>
 
         {/* Footer - Simple, clean */}
-        <div className="border-t bg-slate-50 px-6 py-4 flex items-center justify-between rounded-b-xl">
+        <div className="border-t bg-slate-50 dark:bg-slate-900 px-6 py-4 flex items-center justify-between rounded-b-xl">
           <div className="text-sm text-slate-400 dark:text-slate-600">
             {schema.fields.length} fields · {schema.relations.length} relations ·{' '}
             {schema.indexes.length} indexes
@@ -116,7 +114,7 @@ export function AddTableForm({
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 border border-slate-300 rounded-lg hover:bg-slate-100 font-medium transition-all text-slate-700"
+              className="px-5 py-2.5 border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-100 font-medium transition-all text-slate-700 dark:text-slate-300"
             >
               Cancel
             </button>

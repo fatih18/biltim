@@ -193,7 +193,7 @@ function NotificationDropdown({
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl z-50 overflow-hidden">
+        <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-900 rounded-xl shadow-2xl z-50 overflow-hidden">
           <div className="bg-gradient-to-r from-slate-700 to-slate-800 px-4 py-3 flex items-center justify-between">
             <span className="text-slate-900 dark:text-white font-semibold">Notifications</span>
             <div className="flex items-center gap-2">
@@ -217,7 +217,7 @@ function NotificationDropdown({
           <div className="max-h-80 overflow-y-auto">
             {isLoading ? (
               <div className="px-4 py-8 text-center">
-                <div className="h-6 w-6 border-2 border-slate-300 border-t-indigo-500 rounded-full animate-spin mx-auto mb-2" />
+                <div className="h-6 w-6 border-2 border-slate-300 dark:border-slate-700 border-t-indigo-500 rounded-full animate-spin mx-auto mb-2" />
                 <p className="text-sm text-slate-500 dark:text-slate-500">Loading...</p>
               </div>
             ) : notificationList.length === 0 ? (
@@ -226,29 +226,26 @@ function NotificationDropdown({
                 <p className="text-sm text-slate-500 dark:text-slate-500">No notifications</p>
               </div>
             ) : (
-              <div className="divide-y divide-slate-100">
+              <div className="divide-y divide-slate-100 dark:divide-slate-800">
                 {notificationList.map((notif) => (
                   <button
                     key={notif.id}
                     type="button"
-                    className={`w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors ${
-                      !notif.is_seen ? 'bg-indigo-50/50' : ''
+                    className={`w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors ${ !notif.is_seen ?'bg-indigo-50/50' : ''
                     }`}
                     onClick={() => handleNotificationClick(notif)}
                   >
                     <div className="flex items-start gap-3">
                       <div className="mt-2">
                         <div
-                          className={`h-2 w-2 rounded-full ${
-                            notif.is_seen ? 'bg-slate-300' : 'bg-indigo-500'
+                          className={`h-2 w-2 rounded-full ${ notif.is_seen ?'bg-slate-300' : 'bg-indigo-500'
                           }`}
                         />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
                           <span
-                            className={`text-sm text-slate-900 truncate ${
-                              !notif.is_seen ? 'font-semibold' : 'font-medium'
+                            className={`text-sm text-slate-900 dark:text-slate-100 truncate ${ !notif.is_seen ?'font-semibold' : 'font-medium'
                             }`}
                           >
                             {notif.title}
@@ -273,7 +270,7 @@ function NotificationDropdown({
             )}
           </div>
 
-          <div className="border-t border-slate-100 px-4 py-2">
+          <div className="border-t border-slate-100 dark:border-slate-800 px-4 py-2">
             <Link
               href="/notifications"
               className="block text-center text-sm text-indigo-600 hover:text-indigo-700 font-medium"
@@ -927,10 +924,7 @@ export function ClientSide({
         <Link
           key={category.id}
           href={category.href}
-          className={`relative px-3 py-2 rounded-xl transition-all duration-300 flex items-center gap-2 group
-            ${
-              isActive
-                ? 'bg-gradient-to-r from-indigo-500/20 to-purple-500/20 shadow-lg shadow-indigo-500/10 border border-indigo-400/30'
+          className={`relative px-3 py-2 rounded-xl transition-all duration-300 flex items-center gap-2 group ${ isActive ?'bg-gradient-to-r from-indigo-500/20 to-purple-500/20 shadow-lg shadow-indigo-500/10 border border-indigo-400/30'
                 : 'hover:bg-slate-200 hover:dark:bg-white/10 hover:shadow-md'
             }`}
           onClick={() => {
@@ -939,13 +933,12 @@ export function ClientSide({
           }}
         >
           <span
-            className={`transition-all duration-300 ${
-              isActive ? 'text-indigo-600 dark:text-indigo-300' : 'group-hover:text-indigo-600 group-hover:dark:text-indigo-300 group-hover:scale-110'
+            className={`transition-all duration-300 ${ isActive ?'text-indigo-600 dark:text-indigo-300' : 'group-hover:text-indigo-600 group-hover:dark:text-indigo-300 group-hover:scale-110'
             }`}
           >
             {category.icon}
           </span>
-          <span className={`font-medium text-sm ${isActive ? 'text-indigo-700 dark:text-indigo-200' : ''}`}>
+          <span className={`font-medium text-sm ${isActive ?'text-indigo-700 dark:text-indigo-200' : ''}`}>
             {category.label}
           </span>
           {isActive && (
@@ -966,27 +959,23 @@ export function ClientSide({
         <button
           type="button"
           onClick={() => setOpenCategory(isOpen ? null : category.id)}
-          className={`relative px-3 py-2 rounded-xl transition-all duration-300 flex items-center gap-2 group
-            ${
-              isActive
-                ? 'bg-gradient-to-r from-indigo-500/20 to-purple-500/20 shadow-lg shadow-indigo-500/10 border border-indigo-400/30'
+          className={`relative px-3 py-2 rounded-xl transition-all duration-300 flex items-center gap-2 group ${ isActive ?'bg-gradient-to-r from-indigo-500/20 to-purple-500/20 shadow-lg shadow-indigo-500/10 border border-indigo-400/30'
                 : 'hover:bg-slate-200 hover:dark:bg-white/10 hover:shadow-md'
             }
             ${isOpen ? 'bg-slate-200 dark:bg-white/10' : ''}`}
         >
           <span
-            className={`transition-all duration-300 ${
-              isActive ? 'text-indigo-600 dark:text-indigo-300' : 'group-hover:text-indigo-600 group-hover:dark:text-indigo-300 group-hover:scale-110'
+            className={`transition-all duration-300 ${ isActive ?'text-indigo-600 dark:text-indigo-300' : 'group-hover:text-indigo-600 group-hover:dark:text-indigo-300 group-hover:scale-110'
             }`}
           >
             {category.icon}
           </span>
-          <span className={`font-medium text-sm ${isActive ? 'text-indigo-700 dark:text-indigo-200' : ''}`}>
+          <span className={`font-medium text-sm ${isActive ?'text-indigo-700 dark:text-indigo-200' : ''}`}>
             {category.label}
           </span>
           <ChevronDown
             size={14}
-            className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''} ${
+            className={`transition-transform duration-300 ${isOpen ?'rotate-180' : ''} ${
               isActive ? 'text-indigo-600 dark:text-indigo-300' : ''
             }`}
           />
@@ -1009,32 +998,26 @@ export function ClientSide({
                     headerStore.updateUi({ activeNav: item.id })
                     setOpenCategory(null)
                   }}
-                  className={`flex items-center gap-3 px-4 py-2.5 mx-2 rounded-xl transition-all duration-200 group
-                    ${
-                      isItemActive
-                        ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-slate-900 dark:text-white shadow-lg shadow-indigo-500/30'
+                  className={`flex items-center gap-3 px-4 py-2.5 mx-2 rounded-xl transition-all duration-200 group ${ isItemActive ?'bg-gradient-to-r from-indigo-500 to-purple-500 text-slate-900 dark:text-white shadow-lg shadow-indigo-500/30'
                         : 'text-slate-700 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50'
                     }
                     ${index > 0 ? 'mt-1' : ''}`}
                 >
                   <span
-                    className={`transition-all duration-200 ${
-                      isItemActive
-                        ? 'text-slate-900 dark:text-white'
+                    className={`transition-all duration-200 ${ isItemActive ?'text-slate-900 dark:text-white'
                         : 'text-slate-500 dark:text-slate-500 group-hover:text-indigo-500 group-hover:scale-110'
                     }`}
                   >
                     {item.icon}
                   </span>
                   <span
-                    className={`font-medium text-sm ${isItemActive ? '' : 'group-hover:text-indigo-600'}`}
+                    className={`font-medium text-sm ${isItemActive ?'' : 'group-hover:text-indigo-600'}`}
                   >
                     {item.label}
                   </span>
                   <ChevronRight
                     size={14}
-                    className={`ml-auto transition-all duration-200 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0
-                      ${isItemActive ? 'text-white/70' : 'text-indigo-400'}`}
+                    className={`ml-auto transition-all duration-200 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 ${isItemActive ?'text-white/70' : 'text-indigo-400'}`}
                   />
                 </Link>
               )
@@ -1058,15 +1041,12 @@ export function ClientSide({
           onClick={() => {
             headerStore.updateUi({ activeNav: category.id, isExpanded: false })
           }}
-          className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300
-            ${
-              isActive
-                ? 'bg-gradient-to-r from-indigo-500/30 to-purple-500/30 border border-indigo-400/30'
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${ isActive ?'bg-gradient-to-r from-indigo-500/30 to-purple-500/30 border border-indigo-400/30'
                 : 'hover:bg-slate-200 hover:dark:bg-white/10'
             }`}
         >
-          <span className={`${isActive ? 'text-indigo-600 dark:text-indigo-300' : ''}`}>{category.icon}</span>
-          <span className={`font-medium ${isActive ? 'text-indigo-700 dark:text-indigo-200' : ''}`}>
+          <span className={`${isActive ?'text-indigo-600 dark:text-indigo-300' : ''}`}>{category.icon}</span>
+          <span className={`font-medium ${isActive ?'text-indigo-700 dark:text-indigo-200' : ''}`}>
             {category.label}
           </span>
         </Link>
@@ -1078,20 +1058,17 @@ export function ClientSide({
         <button
           type="button"
           onClick={() => setMobileExpandedCategory(isExpandedLocal ? null : category.id)}
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300
-            ${
-              isActive
-                ? 'bg-gradient-to-r from-indigo-500/30 to-purple-500/30 border border-indigo-400/30'
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${ isActive ?'bg-gradient-to-r from-indigo-500/30 to-purple-500/30 border border-indigo-400/30'
                 : 'hover:bg-slate-200 hover:dark:bg-white/10'
             }`}
         >
-          <span className={`${isActive ? 'text-indigo-600 dark:text-indigo-300' : ''}`}>{category.icon}</span>
-          <span className={`font-medium flex-1 text-left ${isActive ? 'text-indigo-700 dark:text-indigo-200' : ''}`}>
+          <span className={`${isActive ?'text-indigo-600 dark:text-indigo-300' : ''}`}>{category.icon}</span>
+          <span className={`font-medium flex-1 text-left ${isActive ?'text-indigo-700 dark:text-indigo-200' : ''}`}>
             {category.label}
           </span>
           <ChevronDown
             size={16}
-            className={`transition-transform duration-300 ${isExpandedLocal ? 'rotate-180' : ''}`}
+            className={`transition-transform duration-300 ${isExpandedLocal ?'rotate-180' : ''}`}
           />
         </button>
 
@@ -1108,14 +1085,11 @@ export function ClientSide({
                     headerStore.updateUi({ activeNav: item.id, isExpanded: false })
                     setMobileExpandedCategory(null)
                   }}
-                  className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200
-                    ${
-                      isItemActive
-                        ? 'bg-gradient-to-r from-indigo-500/40 to-purple-500/40 text-slate-900 dark:text-white'
+                  className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 ${ isItemActive ?'bg-gradient-to-r from-indigo-500/40 to-purple-500/40 text-slate-900 dark:text-white'
                         : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200 hover:dark:bg-white/10 hover:text-slate-900 hover:dark:text-white'
                     }`}
                 >
-                  <span className={`${isItemActive ? 'text-indigo-700 dark:text-indigo-200' : 'text-slate-600 dark:text-slate-400'}`}>
+                  <span className={`${isItemActive ?'text-indigo-700 dark:text-indigo-200' : 'text-slate-600 dark:text-slate-400'}`}>
                     {item.icon}
                   </span>
                   <span className="font-medium text-sm">{item.label}</span>
@@ -1190,7 +1164,7 @@ export function ClientSide({
                 <UserAvatar
                   alt={profileName}
                   size={32}
-                  className="rounded-full border-2 border-slate-300"
+                  className="rounded-full border-2 border-slate-300 dark:border-slate-700"
                   src={profileImageSrc}
                 />
                 <div className="hidden sm:block text-left">
@@ -1198,13 +1172,13 @@ export function ClientSide({
                 </div>
                 <ChevronDown
                   size={16}
-                  className={`transition-transform duration-300 ${isProfileOpen ? 'rotate-180' : ''}`}
+                  className={`transition-transform duration-300 ${isProfileOpen ?'rotate-180' : ''}`}
                 />
               </button>
 
               <div
                 ref={profileRef}
-                className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl z-50 hidden"
+                className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 rounded-xl shadow-2xl z-50 hidden"
                 style={{ display: isProfileOpen ? 'block' : 'none' }}
               >
                 <div className="bg-gradient-to-r from-slate-600 to-slate-700 p-4">

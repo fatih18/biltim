@@ -89,13 +89,13 @@ export default function NotFound() {
               className="group relative px-8 py-3 text-slate-900 dark:text-white font-light tracking-wide transition-all duration-500 hover:tracking-widest"
             >
               <span className="relative z-10">Return Home</span>
-              <div className="absolute bottom-0 left-0 w-0 h-px bg-white transition-all duration-500 group-hover:w-full" />
+              <div className="absolute bottom-0 left-0 w-0 h-px bg-white dark:bg-slate-900 transition-all duration-500 group-hover:w-full" />
             </Link>
           </div>
 
           {/* Breathing Dot */}
           <div className="mt-24 flex justify-center animate-[fadeInUp_1s_ease-out_2.5s_both]">
-            <div className="w-2 h-2 bg-white rounded-full animate-[breathe_3s_ease-in-out_infinite]" />
+            <div className="w-2 h-2 bg-white dark:bg-slate-900 rounded-full animate-[breathe_3s_ease-in-out_infinite]" />
           </div>
         </div>
       </div>

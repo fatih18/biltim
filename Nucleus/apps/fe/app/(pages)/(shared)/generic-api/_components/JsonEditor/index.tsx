@@ -45,7 +45,7 @@ export function JsonEditor({ value, onChange, onAutoFill }: JsonEditorProps) {
   )
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-slate-50">
         <span className="text-sm font-semibold text-gray-700">Request Payload</span>
         <div className="flex items-center gap-1">

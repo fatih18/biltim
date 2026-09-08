@@ -57,7 +57,7 @@ export function NodeDetailPanel({ node, onClose, onUpdate, onDelete }: NodeDetai
   const headerInfo = getHeaderInfo()
 
   return (
-    <div className="flex w-72 flex-col border-l border-slate-200 bg-white shadow-xl flex-shrink-0">
+    <div className="flex w-72 flex-col border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl flex-shrink-0">
       <div className={`bg-gradient-to-r ${headerInfo.color} px-3 py-3`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -102,7 +102,7 @@ export function NodeDetailPanel({ node, onClose, onUpdate, onDelete }: NodeDetai
         )}
       </div>
 
-      <div className="flex items-center gap-2 border-t border-slate-200 px-3 py-2.5">
+      <div className="flex items-center gap-2 border-t border-slate-200 dark:border-slate-800 px-3 py-2.5">
         <button
           type="button"
           onClick={() => onDelete(node.id)}
@@ -136,7 +136,7 @@ function VerificationForm({
       <div>
         <label
           htmlFor="verification-step-order"
-          className="block text-sm font-medium text-slate-700"
+          className="block text-sm font-medium text-slate-700 dark:text-slate-300"
         >
           Step Order
         </label>
@@ -146,7 +146,7 @@ function VerificationForm({
           min={1}
           value={data.stepOrder}
           onChange={(e) => onUpdate({ stepOrder: Number(e.target.value) || 1 })}
-          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+          className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-800 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
         />
       </div>
     </div>
@@ -241,7 +241,7 @@ function VerifierForm({
   return (
     <div className="space-y-4">
       <div>
-        <label htmlFor="verifier-type" className="block text-sm font-medium text-slate-700">
+        <label htmlFor="verifier-type" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
           Verifier Type
         </label>
         <select
@@ -264,7 +264,7 @@ function VerifierForm({
               setRoles([])
             }
           }}
-          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+          className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-800 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
         >
           <option value="user">Specific User</option>
           <option value="role">Role-based</option>
@@ -275,7 +275,7 @@ function VerifierForm({
         <div className="space-y-2">
           <label
             htmlFor="verifier-user-search"
-            className="block text-xs font-medium text-slate-700"
+            className="block text-xs font-medium text-slate-700 dark:text-slate-300"
           >
             Select User
           </label>
@@ -289,10 +289,10 @@ function VerifierForm({
               setUsers([])
             }}
             placeholder="Search by name or email"
-            className="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+            className="w-full rounded-lg border border-slate-200 dark:border-slate-800 px-3 py-1.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
           />
           <div
-            className="mt-1 max-h-40 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50"
+            className="mt-1 max-h-40 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900"
             onScroll={handleUserScroll}
           >
             {isLoadingUsers && users.length === 0 ? (
@@ -315,12 +315,11 @@ function VerifierForm({
                         label: fullName || user.email || 'Unknown User',
                       })
                     }
-                    className={`flex w-full items-start justify-between px-3 py-1.5 text-left text-xs hover:bg-white ${
-                      isSelected ? 'bg-indigo-50 border-l-2 border-indigo-400' : ''
+                    className={`flex w-full items-start justify-between px-3 py-1.5 text-left text-xs hover:bg-white ${ isSelected ?'bg-indigo-50 border-l-2 border-indigo-400' : ''
                     }`}
                   >
                     <span className="flex-1 min-w-0">
-                      <span className="block font-medium text-slate-900 truncate">
+                      <span className="block font-medium text-slate-900 dark:text-slate-100 truncate">
                         {fullName || user.email}
                       </span>
                       {fullName && (
@@ -344,7 +343,7 @@ function VerifierForm({
         <div className="space-y-2">
           <label
             htmlFor="verifier-role-search"
-            className="block text-xs font-medium text-slate-700"
+            className="block text-xs font-medium text-slate-700 dark:text-slate-300"
           >
             Select Role
           </label>
@@ -358,10 +357,10 @@ function VerifierForm({
               setRoles([])
             }}
             placeholder="Search roles"
-            className="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+            className="w-full rounded-lg border border-slate-200 dark:border-slate-800 px-3 py-1.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
           />
           <div
-            className="mt-1 max-h-40 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50"
+            className="mt-1 max-h-40 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900"
             onScroll={handleRoleScroll}
           >
             {isLoadingRoles && roles.length === 0 ? (
@@ -381,12 +380,11 @@ function VerifierForm({
                         label: role.name,
                       })
                     }
-                    className={`flex w-full items-start justify-between px-3 py-1.5 text-left text-xs hover:bg-white ${
-                      isSelected ? 'bg-indigo-50 border-l-2 border-indigo-400' : ''
+                    className={`flex w-full items-start justify-between px-3 py-1.5 text-left text-xs hover:bg-white ${ isSelected ?'bg-indigo-50 border-l-2 border-indigo-400' : ''
                     }`}
                   >
                     <span className="flex-1 min-w-0">
-                      <span className="block font-medium text-slate-900 truncate">{role.name}</span>
+                      <span className="block font-medium text-slate-900 dark:text-slate-100 truncate">{role.name}</span>
                       {role.description && (
                         <span className="block text-[11px] text-slate-500 dark:text-slate-500 truncate">
                           {role.description}
@@ -410,10 +408,10 @@ function VerifierForm({
             type="checkbox"
             checked={data.isSignatureMandatory}
             onChange={(e) => onUpdate({ isSignatureMandatory: e.target.checked })}
-            className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+            className="h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500"
           />
           <div>
-            <div className="text-sm font-medium text-slate-900">Require Signature</div>
+            <div className="text-sm font-medium text-slate-900 dark:text-slate-100">Require Signature</div>
             <div className="text-xs text-slate-500 dark:text-slate-500">Verifier must sign to approve</div>
           </div>
         </label>
@@ -424,10 +422,10 @@ function VerifierForm({
               type="checkbox"
               checked={data.isAllRequired}
               onChange={(e) => onUpdate({ isAllRequired: e.target.checked })}
-              className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+              className="h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500"
             />
             <div>
-              <div className="text-sm font-medium text-slate-900">
+              <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
                 All users with this role must approve
               </div>
               <div className="text-xs text-slate-500 dark:text-slate-500">
@@ -529,7 +527,7 @@ function NotificationForm({
   return (
     <div className="space-y-4">
       <div>
-        <label htmlFor="trigger" className="block text-sm font-medium text-slate-700">
+        <label htmlFor="trigger" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
           Trigger Event
         </label>
         <select
@@ -538,7 +536,7 @@ function NotificationForm({
           onChange={(e) =>
             onUpdate({ trigger: e.target.value as NotificationRuleNodeData['trigger'] })
           }
-          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
+          className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-800 px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
         >
           <option value="on_flow_started">Flow Started</option>
           <option value="on_approved">Approved</option>
@@ -548,7 +546,7 @@ function NotificationForm({
       </div>
 
       <div>
-        <label htmlFor="recipient-type" className="block text-sm font-medium text-slate-700">
+        <label htmlFor="recipient-type" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
           Recipient Type
         </label>
         <select
@@ -567,7 +565,7 @@ function NotificationForm({
               setRoles([])
             }
           }}
-          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
+          className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-800 px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
         >
           <option value="user">Specific User</option>
           <option value="role">Role-based</option>
@@ -578,7 +576,7 @@ function NotificationForm({
         <div className="space-y-2">
           <label
             htmlFor="notification-user-search"
-            className="block text-xs font-medium text-slate-700"
+            className="block text-xs font-medium text-slate-700 dark:text-slate-300"
           >
             Select User
           </label>
@@ -592,10 +590,10 @@ function NotificationForm({
               setUsers([])
             }}
             placeholder="Search by name or email"
-            className="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
+            className="w-full rounded-lg border border-slate-200 dark:border-slate-800 px-3 py-1.5 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
           />
           <div
-            className="mt-1 max-h-40 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50"
+            className="mt-1 max-h-40 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900"
             onScroll={handleUserScroll}
           >
             {isLoadingUsers && users.length === 0 ? (
@@ -617,12 +615,11 @@ function NotificationForm({
                         recipientId: user.id,
                       })
                     }
-                    className={`flex w-full items-start justify-between px-3 py-1.5 text-left text-xs hover:bg-white ${
-                      isSelected ? 'bg-amber-50 border-l-2 border-amber-400' : ''
+                    className={`flex w-full items-start justify-between px-3 py-1.5 text-left text-xs hover:bg-white ${ isSelected ?'bg-amber-50 border-l-2 border-amber-400' : ''
                     }`}
                   >
                     <span className="flex-1 min-w-0">
-                      <span className="block font-medium text-slate-900 truncate">
+                      <span className="block font-medium text-slate-900 dark:text-slate-100 truncate">
                         {fullName || user.email}
                       </span>
                       {fullName && (
@@ -646,7 +643,7 @@ function NotificationForm({
         <div className="space-y-2">
           <label
             htmlFor="notification-role-search"
-            className="block text-xs font-medium text-slate-700"
+            className="block text-xs font-medium text-slate-700 dark:text-slate-300"
           >
             Select Role
           </label>
@@ -660,10 +657,10 @@ function NotificationForm({
               setRoles([])
             }}
             placeholder="Search roles"
-            className="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
+            className="w-full rounded-lg border border-slate-200 dark:border-slate-800 px-3 py-1.5 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
           />
           <div
-            className="mt-1 max-h-40 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50"
+            className="mt-1 max-h-40 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900"
             onScroll={handleRoleScroll}
           >
             {isLoadingRoles && roles.length === 0 ? (
@@ -682,12 +679,11 @@ function NotificationForm({
                         recipientId: role.id,
                       })
                     }
-                    className={`flex w-full items-start justify-between px-3 py-1.5 text-left text-xs hover:bg-white ${
-                      isSelected ? 'bg-amber-50 border-l-2 border-amber-400' : ''
+                    className={`flex w-full items-start justify-between px-3 py-1.5 text-left text-xs hover:bg-white ${ isSelected ?'bg-amber-50 border-l-2 border-amber-400' : ''
                     }`}
                   >
                     <span className="flex-1 min-w-0">
-                      <span className="block font-medium text-slate-900 truncate">{role.name}</span>
+                      <span className="block font-medium text-slate-900 dark:text-slate-100 truncate">{role.name}</span>
                       {role.description && (
                         <span className="block text-[11px] text-slate-500 dark:text-slate-500 truncate">
                           {role.description}
@@ -706,14 +702,14 @@ function NotificationForm({
       )}
 
       <div>
-        <label htmlFor="notification-channel" className="block text-sm font-medium text-slate-700">
+        <label htmlFor="notification-channel" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
           Notification Channel
         </label>
         <select
           id="notification-channel"
           value={data.channel}
           onChange={(e) => onUpdate({ channel: e.target.value as 'portal' })}
-          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
+          className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-800 px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
         >
           <option value="portal">Platform (in-app portal)</option>
         </select>

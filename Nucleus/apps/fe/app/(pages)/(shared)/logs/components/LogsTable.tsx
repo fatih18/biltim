@@ -62,7 +62,7 @@ export function LogsTable({ logs, onLogSelect }: LogsTableProps) {
 
   if (logs.length === 0) {
     return (
-      <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="text-center py-12">
           <AlertCircle className="mx-auto text-gray-400 mb-4" size={48} />
           <h3 className="text-lg font-medium text-gray-900 mb-2">Log kaydı bulunamadı</h3>
@@ -73,7 +73,7 @@ export function LogsTable({ logs, onLogSelect }: LogsTableProps) {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+    <div className="bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-200">
@@ -101,7 +101,7 @@ export function LogsTable({ logs, onLogSelect }: LogsTableProps) {
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white dark:bg-slate-900 divide-y divide-gray-200">
             {logs.map((log) => (
               <tr key={log.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">

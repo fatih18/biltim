@@ -60,7 +60,7 @@ export function SocialLoginButton({
     <button
       type="button"
       onClick={handleClick}
-      className={`flex w-full items-center justify-center gap-3 rounded-lg border border-neutral-200 bg-white px-4 py-3 text-sm font-semibold text-neutral-700 transition hover:border-blue-500 hover:text-blue-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 @container ${className}`}
+      className={`flex w-full items-center justify-center gap-3 rounded-lg border border-neutral-200 bg-white dark:bg-slate-900 px-4 py-3 text-sm font-semibold text-neutral-700 transition hover:border-blue-500 hover:text-blue-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 @container ${className}`}
       aria-label={`Continue with ${config.label}`}
       style={{ containerType: 'inline-size' }}
     >

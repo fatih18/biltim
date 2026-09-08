@@ -173,13 +173,13 @@ export default function LogsPage() {
         />
 
         {errorMessage && (
-          <div className="bg-white border border-red-200 text-red-700 rounded-xl shadow-lg p-6">
+          <div className="bg-white dark:bg-slate-900 border border-red-200 text-red-700 rounded-xl shadow-lg p-6">
             {errorMessage}
           </div>
         )}
 
         {showInitialLoader ? (
-          <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
             <div className="flex items-center justify-center gap-3 py-12 text-gray-600">
               <span className="animate-spin rounded-full h-5 w-5 border-2 border-blue-600 border-t-transparent" />
               Loglar yükleniyor...

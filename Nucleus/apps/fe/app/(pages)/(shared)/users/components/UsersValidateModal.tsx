@@ -25,7 +25,7 @@ export function UsersValidateModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
-      <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl">
+      <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 shadow-2xl">
         <div className="px-6 py-6 space-y-4">
           <div>
             <h2 className="text-xl font-semibold text-gray-900">Verify Email</h2>

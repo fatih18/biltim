@@ -25,7 +25,7 @@ export function SearchAndFilters({
   onFilterChange,
 }: SearchAndFiltersProps) {
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-200">
+    <div className="bg-white dark:bg-slate-900 rounded-xl shadow-lg p-6 border border-slate-200 dark:border-slate-800">
       <div className="space-y-4">
         {/* Search Bar */}
         <div className="flex gap-4">
@@ -45,9 +45,7 @@ export function SearchAndFilters({
           <button
             type="button"
             onClick={onToggleFilters}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
-              showFilters
-                ? 'bg-blue-100 text-blue-700 border-blue-300'
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${ showFilters ?'bg-blue-100 text-blue-700 border-blue-300'
                 : 'bg-gray-50 text-gray-700 border-gray-300 hover:bg-gray-100'
             }`}
           >

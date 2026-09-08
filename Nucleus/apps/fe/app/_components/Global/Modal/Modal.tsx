@@ -38,7 +38,7 @@ export function Modal({
           {title ? (
             <header className="flex flex-col gap-2">
               <div className="flex items-start justify-between gap-4">
-                <h2 className="text-xl font-semibold text-slate-900">{title}</h2>
+                <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">{title}</h2>
                 <button
                   type="button"
                   className="rounded-full p-1 text-slate-500 dark:text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
@@ -51,7 +51,7 @@ export function Modal({
               {description ? <p className="text-sm text-slate-400 dark:text-slate-600">{description}</p> : null}
             </header>
           ) : null}
-          <div className="text-slate-700">{children}</div>
+          <div className="text-slate-700 dark:text-slate-300">{children}</div>
           {footer ? (
             <footer className="flex items-center justify-end gap-3 text-sm">{footer}</footer>
           ) : null}

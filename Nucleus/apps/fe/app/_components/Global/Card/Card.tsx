@@ -30,7 +30,7 @@ export function Card({
     >
       {title ? (
         <header className={cn('mb-4 flex flex-col gap-2', headerClassName)}>
-          <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{title}</h2>
           {description ? <p className="text-sm text-slate-400 dark:text-slate-600">{description}</p> : null}
         </header>
       ) : null}

@@ -42,8 +42,7 @@ function FieldCopyButton({ value, label }: { value: string; label: string }) {
     <button
       type="button"
       onClick={handleCopy}
-      className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-all w-full ${
-        copied ? 'bg-emerald-50 border-emerald-200' : 'bg-white hover:bg-gray-50 border-gray-200'
+      className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-all w-full ${ copied ?'bg-emerald-50 border-emerald-200' : 'bg-white hover:bg-gray-50 border-gray-200'
       } border`}
     >
       <div className="flex-1 min-w-0">
@@ -51,8 +50,7 @@ function FieldCopyButton({ value, label }: { value: string; label: string }) {
         <div className="text-xs font-mono text-gray-800 truncate">{value}</div>
       </div>
       <div
-        className={`flex-shrink-0 p-1 rounded ${
-          copied ? 'bg-emerald-100 text-emerald-600' : 'text-gray-400'
+        className={`flex-shrink-0 p-1 rounded ${ copied ?'bg-emerald-100 text-emerald-600' : 'text-gray-400'
         }`}
       >
         {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
@@ -120,7 +118,7 @@ function HistoryEntry({
   }, [])
 
   return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden bg-white hover:shadow-md transition-shadow">
+    <div className="border border-gray-200 rounded-xl overflow-hidden bg-white dark:bg-slate-900 hover:shadow-md transition-shadow">
       {/* Header - Always visible */}
       <button
         type="button"
@@ -134,8 +132,7 @@ function HistoryEntry({
             <ChevronRight className="h-4 w-4 text-gray-400" />
           )}
           <span
-            className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${
-              item.isSuccess ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+            className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${ item.isSuccess ?'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
             }`}
           >
             {item.isSuccess ? (
@@ -170,9 +167,7 @@ function HistoryEntry({
             <button
               type="button"
               onClick={handleCopy}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                copied
-                  ? 'bg-emerald-100 text-emerald-700'
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${ copied ?'bg-emerald-100 text-emerald-700'
                   : 'text-gray-600 bg-gray-100 hover:bg-gray-200'
               }`}
             >
@@ -245,7 +240,7 @@ export function ResponseHistory({ history, onClear, onReplay }: ResponseHistoryP
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-slate-50">
         <div className="flex items-center gap-2">
           <Clock className="h-4 w-4 text-gray-500" />

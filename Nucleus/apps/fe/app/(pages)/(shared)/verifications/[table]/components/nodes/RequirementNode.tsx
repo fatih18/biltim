@@ -42,9 +42,7 @@ function RequirementNodeComponent({ data, selected }: NodeProps & { data: Requir
 
   return (
     <div
-      className={`
-        group relative min-w-[160px] rounded-xl border-2 bg-white shadow-md transition-all duration-200
-        ${selected ? 'border-indigo-500 shadow-indigo-200 ring-2 ring-indigo-100' : 'border-slate-200 hover:border-indigo-300 hover:shadow-lg'}
+      className={`group relative min-w-[160px] rounded-xl border-2 bg-white dark:bg-slate-900 shadow-md transition-all duration-200 ${selected ?'border-indigo-500 shadow-indigo-200 ring-2 ring-indigo-100' : 'border-slate-200 hover:border-indigo-300 hover:shadow-lg'}
         ${data.isNew ? 'animate-pulse' : ''}
       `}
     >
@@ -56,7 +54,7 @@ function RequirementNodeComponent({ data, selected }: NodeProps & { data: Requir
         style={{ top: '50%' }}
       />
 
-      <div className="flex items-center gap-2 border-b border-slate-100 bg-gradient-to-r from-indigo-50 to-purple-50 px-3 py-2">
+      <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-indigo-50 to-purple-50 px-3 py-2">
         <div className="flex h-6 w-6 items-center justify-center rounded-md bg-indigo-500 text-slate-900 dark:text-white shadow-sm">
           {getVerifierIcon()}
         </div>
@@ -64,7 +62,7 @@ function RequirementNodeComponent({ data, selected }: NodeProps & { data: Requir
           <div className="text-[9px] font-medium text-indigo-600">
             {data.verifierType === 'role' ? 'Role verifier' : 'User verifier'}
           </div>
-          <div className="text-xs font-semibold text-slate-900 truncate">{getVerifierLabel()}</div>
+          <div className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">{getVerifierLabel()}</div>
         </div>
       </div>
 

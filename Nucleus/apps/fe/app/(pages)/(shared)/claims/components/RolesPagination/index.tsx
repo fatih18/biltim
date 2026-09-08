@@ -12,7 +12,7 @@ export function RolesPagination({ pagination, currentCount, onPageChange }: Role
   const { page: currentPage, total: totalItems, totalPages, hasPrev, hasNext } = pagination
 
   return (
-    <div className="mt-4 flex items-center justify-between border-t border-slate-200 pt-4">
+    <div className="mt-4 flex items-center justify-between border-t border-slate-200 dark:border-slate-800 pt-4">
       <div className="text-sm text-slate-400 dark:text-slate-600">
         Showing <span className="font-medium">{currentCount}</span> of{' '}
         <span className="font-medium">{totalItems}</span> roles
@@ -21,7 +21,7 @@ export function RolesPagination({ pagination, currentCount, onPageChange }: Role
         <button
           type="button"
           onClick={() => hasPrev && onPageChange(Math.max(currentPage - 1, 1))}
-          className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-1 text-xs font-medium text-slate-700 dark:text-slate-300 disabled:cursor-not-allowed disabled:opacity-50"
           disabled={!hasPrev}
         >
           Previous
@@ -33,7 +33,7 @@ export function RolesPagination({ pagination, currentCount, onPageChange }: Role
         <button
           type="button"
           onClick={() => hasNext && onPageChange(currentPage + 1)}
-          className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-1 text-xs font-medium text-slate-700 dark:text-slate-300 disabled:cursor-not-allowed disabled:opacity-50"
           disabled={!hasNext}
         >
           Next
