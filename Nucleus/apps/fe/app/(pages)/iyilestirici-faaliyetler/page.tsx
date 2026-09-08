@@ -209,7 +209,7 @@ export default function BoardMeetingDecisionsPage() {
 
     return (
         <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-50 px-4 py-6 md:px-8">
-            <div className="mx-auto max-w-5xl space-y-6">
+            <div className="mx-auto max-w-7xl space-y-6">
                 {/* Header */}
                 <header className="border-b border-slate-300 dark:border-slate-800 rounded-2xl pb-4">
                     <div className="flex flex-col gap-3 p-4 md:flex-row md:items-start md:justify-between">

@@ -1,4 +1,5 @@
 "use client";
+import { ScrollableTable } from '@/app/_components/Global/ScrollableTable'
 import { confirmDialog } from '@/app/_components/Global/ConfirmDialog'
 
 import { useEffect, useMemo, useState } from "react";
@@ -617,7 +618,7 @@ export default function FiveSFindingsListPage() {
 
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-50 px-4 py-6 md:px-8">
-      <div className="mx-auto max-w-6xl space-y-6">
+      <div className="mx-auto max-w-7xl space-y-6">
         <header className="flex flex-col gap-3 rounded-2xl p-4 border-b border-slate-300 dark:border-slate-800 pb-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-xl font-semibold md:text-2xl">5S Bulguları</h1>
@@ -763,7 +764,7 @@ export default function FiveSFindingsListPage() {
             </div>
           )}
 
-          <div className="overflow-x-auto rounded-xl border border-slate-300 dark:border-slate-800">
+          <ScrollableTable className="rounded-xl border border-slate-300 dark:border-slate-800">
             <table className="min-w-full text-left text-xs text-slate-900 dark:text-slate-100">
               <thead className="bg-slate-50 dark:bg-slate-950/80 text-[11px] uppercase tracking-wide text-slate-600 dark:text-slate-400">
                 <tr>
@@ -1113,7 +1114,7 @@ export default function FiveSFindingsListPage() {
                 })}
               </tbody>
             </table>
-          </div>
+          </ScrollableTable>
 
           {/* Pagination */}
           <div className="flex items-center justify-between gap-3 pt-2 text-xs text-slate-600 dark:text-slate-400">

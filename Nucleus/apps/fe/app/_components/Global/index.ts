@@ -4,6 +4,7 @@ export * from "./Badge";
 export * from "./Button";
 export * from "./Card";
 export * from "./ConfirmDialog";
+export * from "./ScrollableTable";
 export * from "./EmptyState";
 export * from "./Header";
 export * from "./Kpi";

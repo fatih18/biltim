@@ -28,8 +28,8 @@ export function UsersValidateModal({
       <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 shadow-2xl">
         <div className="px-6 py-6 space-y-4">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">Verify Email</h2>
-            <p className="text-sm text-gray-500">
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Verify Email</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               This will mark the user&apos;s email as verified and allow them to access
               email-protected features.
             </p>
@@ -41,7 +41,7 @@ export function UsersValidateModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+              className="rounded-lg border border-slate-300 dark:border-slate-700 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
               Cancel
             </button>

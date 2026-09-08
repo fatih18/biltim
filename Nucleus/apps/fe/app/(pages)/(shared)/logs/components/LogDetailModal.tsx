@@ -21,7 +21,7 @@ export function LogDetailModal({ log, onClose }: LogDetailModalProps) {
       case 'soft_delete':
         return <Trash2 size={16} className="text-red-600" />
       default:
-        return <Activity size={16} className="text-gray-600" />
+        return <Activity size={16} className="text-slate-500 dark:text-slate-400" />
     }
   }
 
@@ -29,15 +29,15 @@ export function LogDetailModal({ log, onClose }: LogDetailModalProps) {
     switch (operation.toLowerCase()) {
       case 'insert':
       case 'create':
-        return 'bg-green-100 text-green-800 border-green-200'
+        return 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:border-emerald-800'
       case 'update':
       case 'edit':
-        return 'bg-blue-100 text-blue-800 border-blue-200'
+        return 'bg-sky-100 text-sky-800 border-sky-200 dark:bg-sky-950 dark:text-sky-200 dark:border-sky-800'
       case 'delete':
       case 'soft_delete':
-        return 'bg-red-100 text-red-800 border-red-200'
+        return 'bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-950 dark:text-rose-200 dark:border-rose-800'
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200'
+        return 'bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700'
     }
   }
 
@@ -53,14 +53,27 @@ export function LogDetailModal({ log, onClose }: LogDetailModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Log Detayı</h2>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm dark:bg-slate-950/75"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose()
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="log-detail-title"
+        className="w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900"
+      >
+        <div className="flex items-center justify-between border-b border-slate-200 p-6 dark:border-slate-800">
+          <h2 id="log-detail-title" className="text-xl font-semibold text-slate-900 dark:text-slate-100">
+            Log Detayı
+          </h2>
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-slate-400 transition-colors hover:text-slate-600 dark:hover:text-slate-200"
+            aria-label="Log detayını kapat"
           >
             <XCircle size={24} />
           </button>
@@ -69,11 +82,11 @@ export function LogDetailModal({ log, onClose }: LogDetailModalProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
               <div>
-                <p className="text-sm font-medium text-gray-700">Zaman Damgası</p>
-                <p className="text-sm text-gray-900">{formatTimestamp(log.timestamp)}</p>
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Zaman Damgası</p>
+                <p className="text-sm text-slate-900 dark:text-slate-100">{formatTimestamp(log.timestamp)}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-700">İşlem</p>
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">İşlem</p>
                 <span
                   className={`inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-xs font-medium border ${getOperationColor(log.operation_type)}`}
                 >
@@ -82,30 +95,30 @@ export function LogDetailModal({ log, onClose }: LogDetailModalProps) {
                 </span>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-700">Varlık Adı</p>
-                <p className="text-sm text-gray-900">{log.entity_name}</p>
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Varlık Adı</p>
+                <p className="text-sm text-slate-900 dark:text-slate-100">{log.entity_name}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-700">Varlık ID</p>
-                <p className="text-sm text-gray-900 font-mono">{log.entity_id}</p>
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Varlık ID</p>
+                <p className="font-mono text-sm text-slate-900 dark:text-slate-100">{log.entity_id}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-700">Kullanıcı ID</p>
-                <p className="text-sm text-gray-900 font-mono">{log.user_id ?? '-'}</p>
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Kullanıcı ID</p>
+                <p className="font-mono text-sm text-slate-900 dark:text-slate-100">{log.user_id ?? '-'}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-700">IP Adresi</p>
-                <p className="text-sm text-gray-900">{log.ip_address ?? '-'}</p>
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">IP Adresi</p>
+                <p className="text-sm text-slate-900 dark:text-slate-100">{log.ip_address ?? '-'}</p>
               </div>
             </div>
             <div className="space-y-4">
               <div>
-                <p className="text-sm font-medium text-gray-700">Özet</p>
-                <p className="text-sm text-gray-900">{log.summary ?? '-'}</p>
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Özet</p>
+                <p className="text-sm text-slate-900 dark:text-slate-100">{log.summary ?? '-'}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-700">Kullanıcı Ajanı</p>
-                <p className="text-sm text-gray-900 break-all">{log.user_agent ?? '-'}</p>
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Kullanıcı Ajanı</p>
+                <p className="break-all text-sm text-slate-900 dark:text-slate-100">{log.user_agent ?? '-'}</p>
               </div>
             </div>
           </div>
@@ -113,16 +126,16 @@ export function LogDetailModal({ log, onClose }: LogDetailModalProps) {
           <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
             {log.old_values != null && (
               <div>
-                <p className="text-sm font-medium text-gray-700">Eski Değerler</p>
-                <pre className="bg-red-50 border border-red-200 rounded-lg p-4 text-xs overflow-x-auto whitespace-pre-wrap">
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Eski Değerler</p>
+                <pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded-lg border border-rose-200 bg-rose-50 p-4 text-xs text-rose-950 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-100">
                   {JSON.stringify(log.old_values ?? {}, null, 2)}
                 </pre>
               </div>
             )}
             {log.new_values != null && (
               <div>
-                <p className="text-sm font-medium text-gray-700">Yeni Değerler</p>
-                <pre className="bg-green-50 border border-green-200 rounded-lg p-4 text-xs overflow-x-auto whitespace-pre-wrap">
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Yeni Değerler</p>
+                <pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-xs text-emerald-950 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-100">
                   {JSON.stringify(log.new_values ?? {}, null, 2)}
                 </pre>
               </div>

@@ -1,4 +1,5 @@
 import type { ListReturn } from '@monorepo/db-entities/schemas/default/user'
+import { ScrollableTable } from '@/app/_components/Global/ScrollableTable'
 import {
   AlertCircle,
   CheckCircle2,
@@ -55,26 +56,31 @@ export function UsersTable({ users, onSelectDetails, onValidateEmail, onDelete }
         <div className="absolute inset-0 bg-grid-pattern" />
       </div>
 
-      <div className="relative overflow-x-auto">
+      <ScrollableTable className="relative">
         <table className="w-full">
           <thead className="border-b border-slate-300 dark:border-white/10 bg-slate-100 dark:bg-white/5">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                 Kullanıcı
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                 E-posta
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                 Doğrulama
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                 Erişim
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                 Son Giriş
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              {/*
+                Pinned. This column holds the row's only controls, and the table
+                is wider than its container, so without this the buttons were
+                simply off-screen — 189px of them — with nothing to say so.
+              */}
+              <th className="sticky right-0 z-10 bg-slate-100 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:bg-slate-800 dark:text-slate-300">
                 İşlemler
               </th>
             </tr>
@@ -114,7 +120,7 @@ export function UsersTable({ users, onSelectDetails, onValidateEmail, onDelete }
 
               return (
                 <tr key={user.id} className="transition-colors hover:bg-slate-100 hover:dark:bg-white/5">
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 dark:bg-white/10 text-emerald-700 dark:text-emerald-300">
                         <User size={18} />
@@ -123,24 +129,36 @@ export function UsersTable({ users, onSelectDetails, onValidateEmail, onDelete }
                         <div className="text-sm font-semibold text-slate-900 dark:text-white">
                           {user.profile?.first_name ?? '—'} {user.profile?.last_name ?? ''}
                         </div>
-                        <div className="text-xs text-slate-600 dark:text-slate-400">{user.id}</div>
+                        {/*
+                          The full 36-character id under the name, in a
+                          whitespace-nowrap cell, forced this column to 405px
+                          and pushed the İşlemler buttons 189px off-screen.
+                          Same treatment the logs table already uses: clip with
+                          an ellipsis, keep the whole value in the tooltip.
+                        */}
+                        <div
+                          className="max-w-[11rem] truncate text-xs text-slate-600 dark:text-slate-400"
+                          title={user.id}
+                        >
+                          {user.id}
+                        </div>
                       </div>
                     </div>
                   </td>
 
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-slate-100">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-slate-100">
                     {user.email}
                   </td>
 
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">{verificationBadge}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm">{verificationBadge}</td>
 
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">{accessBadge}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm">{accessBadge}</td>
 
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300">
                     {lastLogin}
                   </td>
 
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <td className="sticky right-0 z-10 whitespace-nowrap bg-white px-4 py-4 text-sm dark:bg-slate-900">
                     <div className="flex items-center gap-3">
                       <button
                         type="button"
@@ -174,7 +192,7 @@ export function UsersTable({ users, onSelectDetails, onValidateEmail, onDelete }
             })}
           </tbody>
         </table>
-      </div>
+      </ScrollableTable>
     </div>
   )
 }
