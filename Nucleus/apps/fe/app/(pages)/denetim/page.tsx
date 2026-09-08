@@ -1962,6 +1962,30 @@ export default function FiveSAuditFormPage() {
   }
 
   const handleReset = async () => {
+    /*
+     * Clearing a half-finished audit is destructive and there was nothing
+     * between the button and the loss.
+     *
+     * Measured: a form carrying 40 points of answers was wiped by one click,
+     * with no prompt and no undo — and the saved draft went with it. This is
+     * the screen an auditor uses while walking the plant, on a phone, with
+     * the button next to "Formu Kaydet". Deleting a location asks first; so
+     * should this. An untouched form still clears without friction.
+     */
+    const doluYanit = Object.values(answers).filter(
+      (a: any) => a?.rating || (a?.explanation ?? '').trim() || (a?.photos?.length ?? 0) > 0
+    ).length
+    if (doluYanit > 0) {
+      const onay = await confirmDialog({
+        title: 'Form temizlensin mi?',
+        message: `${doluYanit} soruda girilen yanıt, açıklama ve fotoğraflar silinecek. Kaydedilmiş taslak da silinir; bu işlem geri alınamaz.`,
+        confirmLabel: 'Temizle',
+        cancelLabel: 'Vazgeç',
+        tone: 'danger',
+      })
+      if (!onay) return
+    }
+
     setSubmitted(false)
     setAnswers(() =>
       Object.fromEntries(
