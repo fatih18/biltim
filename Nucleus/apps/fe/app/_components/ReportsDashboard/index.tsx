@@ -373,6 +373,28 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
       closed,
       overdue,
       lastAvg: last ? num(last.avg_total).toFixed(1) : '-',
+      /*
+       * How long a finding stays open, in days.
+       *
+       * The backend has always computed this per location, but it only ever
+       * reached the screen as the hover text of a factory-map marker — and the
+       * map is empty until someone enters coordinates. It was also always
+       * null: nothing stamped `completed_at`, so a closed finding carried no
+       * closing date. Both are fixed, so the number is worth showing where it
+       * can be read. Locations that have closed nothing are left out rather
+       * than counted as zero, which would drag the average toward "instant".
+       */
+      avgCloseDays: (() => {
+        const withDays = (data?.mapHeat ?? []).filter(
+          (l) => (l as { avg_close_days?: unknown }).avg_close_days != null,
+        )
+        if (withDays.length === 0) return null
+        const total = withDays.reduce(
+          (sum, l) => sum + num((l as { avg_close_days?: unknown }).avg_close_days),
+          0,
+        )
+        return total / withDays.length
+      })(),
     }
   }, [data])
 
@@ -424,13 +446,20 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
         "not open", the in-progress findings were folded into the closed number.
         Now each status is counted as itself and the three add up to the total.
       */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
         <StatCard label="Toplam Denetim" value={String(totals.auditCount)} />
         <StatCard label="Son Dönem Ort. Puan" value={String(totals.lastAvg)} tone={Number(totals.lastAvg) >= 75 ? 'good' : 'warn'} />
         <StatCard label="Açık Bulgu" value={String(totals.open)} tone="warn" />
         <StatCard label="Devam Eden" value={String(totals.inProgress)} tone="warn" />
         <StatCard label="Kapalı Bulgu" value={String(totals.closed)} tone="good" />
         <StatCard label="Termin Geçmiş" value={String(totals.overdue)} tone={totals.overdue > 0 ? 'bad' : 'good'} />
+        <StatCard
+          label="Ort. Kapanma"
+          value={totals.avgCloseDays == null ? '—' : `${totals.avgCloseDays.toFixed(1)} gün`}
+          tone={
+            totals.avgCloseDays == null ? undefined : totals.avgCloseDays <= 14 ? 'good' : 'warn'
+          }
+        />
       </div>
 
       {/* Rapor 7: Puan trendi */}

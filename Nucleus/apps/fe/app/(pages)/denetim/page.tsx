@@ -222,6 +222,27 @@ function normLoc(s: string) {
   return (s ?? '').trim().toLocaleLowerCase('tr')
 }
 
+/**
+ * The day an audit is recorded as having happened.
+ *
+ * Picking a planned audit used to copy the PLAN's date straight into the form.
+ * A plan is scheduled ahead of time, so an audit carried out today against a
+ * plan dated 5 December was filed as 5 December — measured, five of the eight
+ * audits in the database sat in the future, and the reports endpoint averaging
+ * (completed_at - detected_date) came out at -88 days because the findings
+ * inherited it.
+ *
+ * The planned date is still the sensible default when it has already arrived:
+ * the auditor is recording the audit they were scheduled to do. It just cannot
+ * run ahead of today, and the field stays editable either way.
+ */
+function auditDateFor(plannedDate: string | undefined, fallback: string): string {
+  const today = new Date().toISOString().slice(0, 10)
+  const planned = (plannedDate ?? '').slice(0, 10)
+  if (!planned) return fallback
+  return planned > today ? today : planned
+}
+
 function makeDraftKey(planId: string | null, header: AuditFormHeader) {
   // plan varsa planId’ye göre; yoksa lokasyon+tarih’e göre
   const dep = (header.department ?? '').trim()
@@ -1199,7 +1220,7 @@ export default function FiveSAuditFormPage() {
           const nextHeaderUrl = {
             teamName: metaMapUrl[target.id]?.teamName ?? '',
             department: metaMapUrl[target.id]?.locationName ?? '',
-            date: target.planned_date || header.date,
+            date: auditDateFor(target.planned_date, header.date),
             auditorName: header.auditorName || auditorFallback,
           } satisfies AuditFormHeader
           setHeader(nextHeaderUrl)
@@ -1263,7 +1284,7 @@ export default function FiveSAuditFormPage() {
       const nextHeader = {
         teamName,
         department: locName,
-        date: chosen.planned_date || header.date,
+        date: auditDateFor(chosen.planned_date, header.date),
         auditorName: header.auditorName || auditorFallback,
       } satisfies AuditFormHeader
 

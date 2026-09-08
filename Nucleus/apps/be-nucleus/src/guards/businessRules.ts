@@ -23,6 +23,8 @@ import { query } from '../db'
  */
 
 const FINDING_PATH = /^\/fiveSFindings\/([^/?]+)/
+const AUDIT_PATH = /^\/fiveSAudits\/([^/?]+)/
+const AUDIT_COLLECTION = /^\/fiveSAudits\/?$/
 const PLAN_PATH = /^\/fiveSAuditPlans\/([^/?]+)/
 const PLAN_COLLECTION = /^\/fiveSAuditPlans\/?$/
 const FINDING_COLLECTION = /^\/fiveSFindings\/?$/
@@ -30,6 +32,25 @@ const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH'])
 
 /** The cap the planning screen shows as "Düzenle (N hak)". */
 export const MAX_DATE_CHANGES = 2
+
+/**
+ * Today, on the plant's calendar.
+ *
+ * The pool opens with `-c timezone=UTC`, so a plain server-side date is up to
+ * three hours behind the people using this. Between 00:00 and 03:00 in Turkey
+ * that makes the current day look like tomorrow, and a rule that refuses
+ * "tomorrow" would refuse a finding recorded right now.
+ */
+export const PLANT_TZ = process.env.BILTIM_TZ || 'Europe/Istanbul'
+
+export function todayAtPlant(now: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: PLANT_TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now)
+}
 
 export type RuleContext = {
   request: Request
@@ -116,13 +137,48 @@ export async function enforceBusinessRules(ctx: RuleContext): Promise<Response |
     !FINDING_PATH.test(path) &&
     !FINDING_COLLECTION.test(path) &&
     !PLAN_PATH.test(path) &&
-    !PLAN_COLLECTION.test(path)
+    !PLAN_COLLECTION.test(path) &&
+    !AUDIT_PATH.test(path) &&
+    !AUDIT_COLLECTION.test(path)
   ) {
     return undefined
   }
 
   const body = await readBody(ctx)
   const read = ctx.read ?? query
+
+  /*
+   * Nothing was found, and no audit was carried out, on a day that has not
+   * happened yet.
+   *
+   * Measured: five of the eight audits in the database carried a date in the
+   * future, because picking a planned audit copies the PLAN's date into the
+   * form — an audit performed today against a plan dated 5 December was
+   * recorded as happening on 5 December. Two findings inherited the same
+   * date. The consequence is not cosmetic: the reports endpoint averages
+   * (completed_at - detected_date), and with a detection date in the future
+   * that average came out at **-88 days**. "Bu ay yapılan denetimler" counts
+   * the same column.
+   *
+   * A plan's own `planned_date` is deliberately not checked here — a plan is
+   * supposed to be in the future.
+   */
+  const bodyDates = await readBody(ctx)
+  const today = todayAtPlant()
+  const futureField = (
+    [
+      ['detected_date', 'detectedDate', 'Tespit tarihi'],
+      ['audit_date', 'auditDate', 'Denetim tarihi'],
+    ] as const
+  ).find(([snake, camel]) => {
+    const raw = bodyDates[snake] ?? bodyDates[camel]
+    if (raw === undefined || raw === null || raw === '') return false
+    const key = toDateKey(raw)
+    return key !== '' && key > today
+  })
+  if (futureField) {
+    return refuse(`${futureField[2]} gelecekte olamaz.`)
+  }
 
   const finding = request.method !== 'POST' ? FINDING_PATH.exec(path) : null
   if (finding && String(body.status ?? '').toLowerCase() === 'closed') {

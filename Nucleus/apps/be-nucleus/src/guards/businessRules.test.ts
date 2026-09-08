@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'bun:test'
-import { MAX_DATE_CHANGES, enforceBusinessRules, hasAfterPhoto, toDateKey } from './businessRules'
+import {
+  MAX_DATE_CHANGES,
+  enforceBusinessRules,
+  hasAfterPhoto,
+  toDateKey,
+  todayAtPlant,
+} from './businessRules'
 
 const req = (method: string, path: string) =>
   new Request(`http://localhost:4001${path}`, { method })
@@ -409,7 +415,7 @@ describe('a finding must say what was found', () => {
     description: 'Sahada dağınık malzeme',
     location_name: 'Test Depo',
     finding_type: 'Test Güvenlik',
-    detected_date: '2026-12-01',
+    detected_date: '2026-08-01',
   }
 
   it('refuses an empty body — eight such rows existed in the database', async () => {
@@ -448,7 +454,7 @@ describe('a finding must say what was found', () => {
         description: 'x',
         locationName: 'y',
         findingType: 'z',
-        detectedDate: '2026-12-01',
+        detectedDate: '2026-08-01',
       }),
       body: undefined,
       read: reader([]),
@@ -470,6 +476,62 @@ describe('a finding must say what was found', () => {
       request: jsonReq('PUT', '/fiveSFindings/abc', { description: 'yeni metin' }),
       body: undefined,
       read: reader([{ photo_after_url: null }]),
+    })
+    expect(res).toBeUndefined()
+  })
+})
+
+describe('gelecekteki tarihler', () => {
+  const gunSonra = (n: number) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10)
+
+  it('bugünü tesisin takvimine göre çözer', () => {
+    // 31 Aralık 22:00 UTC — Istanbul'da saat 1 Ocak 01:00. Sunucu hâlâ 31
+    // Aralık derken kullanıcı 1 Ocak yaşıyor; o an kaydedilen bir bulgu
+    // "gelecek" sayılmamalı.
+    expect(todayAtPlant(new Date('2025-12-31T22:00:00Z'))).toBe('2026-01-01')
+    expect(todayAtPlant(new Date('2026-01-01T00:30:00Z'))).toBe('2026-01-01')
+  })
+
+  it('yarın tespit edilmiş bulguyu reddeder', async () => {
+    const res = await enforceBusinessRules({
+      request: jsonReq('POST', '/fiveSFindings', {
+        description: 'x',
+        location_name: 'y',
+        finding_type: 'z',
+        detected_date: gunSonra(2),
+      }),
+    })
+    expect(res?.status).toBe(400)
+    expect((await res?.json()).message).toBe('Tespit tarihi gelecekte olamaz.')
+  })
+
+  it('yarına tarihlenmiş denetimi reddeder', async () => {
+    const res = await enforceBusinessRules({
+      request: jsonReq('POST', '/fiveSAudits', { audit_date: gunSonra(2) }),
+    })
+    expect(res?.status).toBe(400)
+    expect((await res?.json()).message).toBe('Denetim tarihi gelecekte olamaz.')
+  })
+
+  it('bugün tespit edilmiş bulguyu geçirir', async () => {
+    const res = await enforceBusinessRules({
+      request: jsonReq('POST', '/fiveSFindings', {
+        description: 'x',
+        location_name: 'y',
+        finding_type: 'z',
+        detected_date: todayAtPlant(),
+      }),
+    })
+    expect(res).toBeUndefined()
+  })
+
+  it('planın tarihi ileride olabilir — plan zaten ileriye kurulur', async () => {
+    const res = await enforceBusinessRules({
+      request: jsonReq('POST', '/fiveSAuditPlans', {
+        planned_date: gunSonra(30),
+        location_id: 'a',
+        assigned_team_id: 'b',
+      }),
     })
     expect(res).toBeUndefined()
   })
