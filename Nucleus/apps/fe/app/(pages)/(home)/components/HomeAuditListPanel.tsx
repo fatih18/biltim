@@ -1,6 +1,9 @@
 "use client";
 
 import React from "react";
+import { ClipboardList } from "lucide-react";
+import { EmptyState } from "@/app/_components/Global/EmptyState";
+import { SkeletonTable } from "@/app/_components/Global/Skeleton";
 import type { TeamInfo, AuditPlanRow, LocInfo } from "../page";
 import { TeamLeaderWithMembersTooltip } from "./TeamLeaderWithMembersTooltip";
 import { DateInput } from "@/app/_components/DateInput";
@@ -179,9 +182,13 @@ export function HomeAuditListPanel(props: {
                     </div>
 
                     {loading ? (
-                        <div className="px-3 py-6 text-sm text-slate-600 dark:text-slate-400">Yükleniyor...</div>
+                        <SkeletonTable rows={4} columns={6} className="border-0" />
                     ) : list.length === 0 ? (
-                        <div className="px-3 py-6 text-sm text-slate-600 dark:text-slate-400">Kayıt bulunamadı.</div>
+                        <EmptyState
+                            icon={ClipboardList}
+                            title="Henüz denetim yok"
+                            description="Planlanan ve tamamlanan denetimler burada listelenir. Yeni bir denetim planlandığında bu listede görünür."
+                        />
                     ) : (
                         list.map((p) => {
                             const locInfo = locInfoById.get(p.location_id);
