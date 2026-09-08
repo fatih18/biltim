@@ -1,4 +1,6 @@
 "use client";
+import { useServerList } from '@/app/_hooks/UseServerList'
+import { InfiniteScroll } from '@/app/_components/Global/InfiniteScroll'
 import { ScrollableTable } from '@/app/_components/Global/ScrollableTable'
 import { confirmDialog } from '@/app/_components/Global/ConfirmDialog'
 
@@ -161,13 +163,10 @@ export default function FiveSFindingsListPage() {
   const canDeleteFinding = hasPrivilege(myRoleNames, DELETE_ALLOWED_ROLES);
   const [deletingFindingId, setDeletingFindingId] = useState<string | null>(null);
   const [downloadingExcel, setDownloadingExcel] = useState(false);
+  /** One page. Infinite scroll asks for the next when the end comes into view. */
+  const PAGE_SIZE = 25;
+
   const [findings, setFindings] = useState<FiveSFinding[]>([]);
-  const [pagination, setPagination] = useState<PaginationInfo>({
-    page: 1,
-    limit: 20,
-    totalCount: 0,
-    pageCount: 1,
-  });
 
   // Locations
   const [locations, setLocations] = useState<{ id: string; name: string }[]>([]);
@@ -220,62 +219,48 @@ export default function FiveSFindingsListPage() {
     return after.length > 0;
   };
 
-  const fetchFindings = () => {
-    if (!actions.GET_FIVE_S_FINDINGS) return;
-    setErrorMsg(null);
+  /*
+   * One server-driven list. The screen used to hold its own page state, build
+   * its own payload and read its own envelope; all three now live in
+   * useServerList, and the criteria below are the only thing this screen owns.
+   */
+  const listFilters = useMemo(
+    () => ({
+      status: statusFilter || undefined,
+      detected_date_gte: dateFrom || undefined,
+      detected_date_lte: dateTo || undefined,
+    }),
+    [statusFilter, dateFrom, dateTo]
+  );
 
-    actions.GET_FIVE_S_FINDINGS.start({
-      payload: {
-        page: pagination.page,
-        limit: pagination.limit,
+  const listSort = useMemo(
+    () => [{ field: "finding_no", direction: "desc" as const }],
+    []
+  );
 
-        search: locationFilter || undefined,
+  const serverList = useServerList<FiveSFinding>({
+    action: actions.GET_FIVE_S_FINDINGS,
+    pageSize: PAGE_SIZE,
+    search: locationFilter,
+    sort: listSort,
+    filters: listFilters,
+  });
 
-        orderBy: "finding_no",
-        orderDirection: "desc",
-        filters: {
-          status: statusFilter || undefined,
-          detected_date_gte: dateFrom || undefined,
-          detected_date_lte: dateTo || undefined,
-        },
-      },
-      onAfterHandle: (resp) => {
-        const root = (resp as any)?.data;
-        const dataArr: FiveSFinding[] = root?.data ?? (Array.isArray(root) ? root : []);
-        const pag = root?.pagination ?? {
-          page: root?.page ?? pagination.page,
-          limit: root?.limit ?? pagination.limit,
-          totalCount: root?.totalCount ?? dataArr.length,
-          pageCount:
-            root?.pageCount ??
-            Math.max(
-              1,
-              Math.ceil((root?.totalCount ?? dataArr.length) / (root?.limit ?? pagination.limit))
-            ),
-        };
-
-        setFindings(dataArr);
-        setPagination({
-          page: pag.page ?? 1,
-          limit: pag.limit ?? 20,
-          totalCount: pag.totalCount ?? dataArr.length,
-          pageCount: pag.pageCount ?? 1,
-        });
-      },
-      onErrorHandle: (err) => {
-        console.error("GET_FIVE_S_FINDINGS error", err);
-        setErrorMsg("Bulgular yüklenirken bir hata oluştu.");
-      },
-    });
-  };
+  /*
+   * The rows are mirrored into local state because this screen edits them in
+   * place — a delete removes one, a photo upload rewrites one — and those edits
+   * must survive until the next read rather than being undone by a re-render.
+   */
+  useEffect(() => {
+    setFindings(serverList.rows);
+  }, [serverList.rows]);
 
   useEffect(() => {
-    fetchFindings();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pagination.page, pagination.limit, locationFilter, statusFilter, dateFrom, dateTo]);
+    setErrorMsg(serverList.error ? "Bulgular yüklenirken bir hata oluştu." : null);
+  }, [serverList.error]);
 
   const handleApplyFilters = () => {
-    setPagination((prev) => ({ ...prev, page: 1 }));
+    serverList.reload();
   };
 
   const handleClearFilters = () => {
@@ -283,11 +268,7 @@ export default function FiveSFindingsListPage() {
     setStatusFilter("");
     setDateFrom("");
     setDateTo("");
-    setPagination((prev) => ({ ...prev, page: 1 }));
   };
-
-  const canPrev = pagination.page > 1;
-  const canNext = pagination.page < pagination.pageCount;
 
   // due_date update
   const handleDueDateChange = (finding: FiveSFinding, value: string) => {
@@ -303,7 +284,7 @@ export default function FiveSFindingsListPage() {
       onErrorHandle: (err) => {
         console.error("UPDATE_FIVE_S_FINDING (due_date) error", err);
         setSavingDueForId(null);
-        fetchFindings();
+        serverList.reload();
       },
     });
   };
@@ -335,7 +316,7 @@ export default function FiveSFindingsListPage() {
       onErrorHandle: (err) => {
         console.error("UPDATE_FIVE_S_FINDING (status) error", err);
         setSavingStatusForId(null);
-        fetchFindings();
+        serverList.reload();
       },
     });
   };
@@ -407,7 +388,7 @@ export default function FiveSFindingsListPage() {
         onErrorHandle: (err) => {
           console.error("UPDATE_FIVE_S_FINDING (after photos) error", err);
           setUploadingFindingId(null);
-          fetchFindings();
+          serverList.reload();
         },
       });
     } catch (err) {
@@ -436,7 +417,6 @@ export default function FiveSFindingsListPage() {
       onAfterHandle: () => {
         setDeletingFindingId(null);
         setFindings((prev) => prev.filter((f) => f.id !== finding.id));
-        setPagination((prev) => ({ ...prev, totalCount: Math.max(0, prev.totalCount - 1) }));
       },
       onErrorHandle: (err: any) => {
         console.error("DELETE_FIVE_S_FINDING error", err);
@@ -511,7 +491,7 @@ export default function FiveSFindingsListPage() {
       onAfterHandle: () => {},
       onErrorHandle: (err) => {
         console.error("UPDATE_FIVE_S_FINDING (remove all after photos) error", err);
-        fetchFindings();
+        serverList.reload();
       },
     });
   };
@@ -561,7 +541,7 @@ export default function FiveSFindingsListPage() {
       onAfterHandle: () => {},
       onErrorHandle: (err) => {
         console.error("UPDATE_FIVE_S_FINDING (remove photo) error", err);
-        fetchFindings();
+        serverList.reload();
       },
     });
   };
@@ -641,9 +621,9 @@ export default function FiveSFindingsListPage() {
               )}
               {downloadingExcel ? "Hazırlanıyor..." : "Açık Bulgu Raporu (Excel)"}
             </button>
-            <span>Toplam Bulgu: {pagination.totalCount}</span>
+            <span>Toplam Bulgu: {serverList.total ?? findings.length}</span>
             <span>
-              Sayfa {pagination.page} / {pagination.pageCount}
+              {findings.length} kayıt yüklendi
             </span>
           </div>
         </header>
@@ -715,7 +695,7 @@ export default function FiveSFindingsListPage() {
 
                 <button
                   type="button"
-                  onClick={() => fetchFindings()}
+                  onClick={() => serverList.reload()}
                   disabled={loading}
                   className="inline-flex h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-md border border-slate-300 px-4 text-xs font-medium text-slate-800 hover:bg-slate-100 disabled:opacity-60 dark:border-slate-600 dark:text-slate-200 hover:dark:bg-slate-800"
                 >
@@ -737,25 +717,11 @@ export default function FiveSFindingsListPage() {
         {/* Liste */}
         <section className="rounded-2xl bg-slate-50 dark:bg-slate-900/60 p-4 shadow-lg shadow-slate-950/50 space-y-4">
           <div className="flex items-center justify-between gap-2 text-xs text-slate-600 dark:text-slate-400">
-            <span>{loading ? "Yükleniyor..." : `${pagination.totalCount} bulgu listeleniyor`}</span>
-            <div className="flex items-center gap-2">
-              <span>Sayfa başına:</span>
-              <select
-                value={pagination.limit}
-                onChange={(e) =>
-                  setPagination((prev) => ({
-                    ...prev,
-                    page: 1,
-                    limit: Number(e.target.value) || 20,
-                  }))
-                }
-                className="rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-2 py-1 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
-              >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-              </select>
-            </div>
+            <span>
+              {serverList.isLoading
+                ? "Yükleniyor..."
+                : `${serverList.total ?? findings.length} bulgu · ${findings.length} tanesi yüklendi`}
+            </span>
           </div>
 
           {errorMsg && (
@@ -1116,45 +1082,17 @@ export default function FiveSFindingsListPage() {
             </table>
           </ScrollableTable>
 
-          {/* Pagination */}
-          <div className="flex items-center justify-between gap-3 pt-2 text-xs text-slate-600 dark:text-slate-400">
-            <span>
-              {(pagination.page - 1) * pagination.limit + 1} -{" "}
-              {Math.min(pagination.page * pagination.limit, pagination.totalCount)} arası gösteriliyor
-            </span>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                disabled={!canPrev || loading}
-                onClick={() =>
-                  setPagination((prev) => ({
-                    ...prev,
-                    page: Math.max(1, prev.page - 1),
-                  }))
-                }
-                className={`rounded-md border px-3 py-1 text-xs ${ canPrev && !loading ?"border-slate-400 dark:border-slate-600 text-slate-900 dark:text-slate-100 hover:bg-slate-200 hover:dark:bg-slate-800"
-                    : "border-slate-300 dark:border-slate-800 text-slate-600 dark:text-slate-400 cursor-not-allowed"
-                }`}
-              >
-                Önceki
-              </button>
-              <button
-                type="button"
-                disabled={!canNext || loading}
-                onClick={() =>
-                  setPagination((prev) => ({
-                    ...prev,
-                    page: Math.min(prev.pageCount, prev.page + 1),
-                  }))
-                }
-                className={`rounded-md border px-3 py-1 text-xs ${ canNext && !loading ?"border-slate-400 dark:border-slate-600 text-slate-900 dark:text-slate-100 hover:bg-slate-200 hover:dark:bg-slate-800"
-                    : "border-slate-300 dark:border-slate-800 text-slate-600 dark:text-slate-400 cursor-not-allowed"
-                }`}
-              >
-                Sonraki
-              </button>
-            </div>
-          </div>
+          <InfiniteScroll
+            hasMore={serverList.hasMore}
+            isLoadingMore={serverList.isLoadingMore}
+            onLoadMore={serverList.loadMore}
+            endLabel={
+              findings.length > 0
+                ? `${findings.length} bulgunun tamamı gösteriliyor`
+                : undefined
+            }
+          />
+
         </section>
       </div>
 

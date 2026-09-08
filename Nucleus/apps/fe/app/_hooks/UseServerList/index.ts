@@ -6,11 +6,18 @@ export type SortCondition = { field: string; direction: 'asc' | 'desc' }
 /** The map dialect UseNucleusApi already translates into nucleus's array form. */
 export type FilterMap = Record<string, unknown>
 
+/*
+ * The generated actions declare `payload` as REQUIRED, so declaring it optional
+ * here makes every real action unassignable. The hook always sends one.
+ */
 type GenericAction = {
   start: (args: {
-    payload?: Record<string, unknown>
-    onAfterHandle?: (data: unknown) => void
-    onErrorHandle?: (error: unknown) => void
+    // biome-ignore lint/suspicious/noExplicitAny: the generated actions are per-endpoint
+    payload: any
+    // biome-ignore lint/suspicious/noExplicitAny: the translated body is per-screen
+    onAfterHandle?: (data: any) => void
+    // biome-ignore lint/suspicious/noExplicitAny: refusals come through untranslated
+    onErrorHandle?: (error: any) => void
   }) => void
 }
 
@@ -71,25 +78,49 @@ export function buildListPayload(criteria: ListCriteria, page: number): Record<s
   return payload
 }
 
-/** Reads a list body in either the translated or the raw nucleus shape. */
+/**
+ * Reads a list body, at whichever depth it arrives.
+ *
+ * `onAfterHandle` receives the whole envelope: `{isSuccess, data: {data,
+ * pagination, items, meta}}`. Reading `body.data` and testing it for an array
+ * therefore finds an OBJECT, and a hook that stops there renders an empty list
+ * and reports "no more pages" — silently, on every screen. Both depths are
+ * accepted, and both field namings, so this survives the translation layer
+ * being thinned out later.
+ */
+type ListBody = {
+  data?: unknown
+  items?: unknown
+  pagination?: Record<string, unknown>
+  meta?: Record<string, unknown>
+}
+
 export function readListResponse<T>(data: unknown): {
   items: T[]
   hasNext: boolean
   total: number | null
 } {
-  const body = (data ?? {}) as {
-    data?: unknown
-    items?: unknown
-    pagination?: Record<string, unknown>
-    meta?: Record<string, unknown>
-  }
-  const raw = Array.isArray(body.data) ? body.data : Array.isArray(body.items) ? body.items : []
-  const meta = (body.pagination ?? body.meta ?? {}) as {
+  const outer = (data ?? {}) as ListBody
+  const inner =
+    outer.data && typeof outer.data === 'object' && !Array.isArray(outer.data)
+      ? (outer.data as ListBody)
+      : outer
+
+  const raw = Array.isArray(inner.data)
+    ? inner.data
+    : Array.isArray(inner.items)
+      ? inner.items
+      : Array.isArray(outer.data)
+        ? outer.data
+        : []
+
+  const meta = (inner.pagination ?? inner.meta ?? outer.pagination ?? outer.meta ?? {}) as {
     hasNext?: boolean
     hasNextPage?: boolean
     total?: number
     totalItems?: number
   }
+
   return {
     items: raw as T[],
     hasNext: Boolean(meta.hasNext ?? meta.hasNextPage),
@@ -140,6 +171,18 @@ export function useServerList<T = Record<string, unknown>>({
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [error, setError] = useState<unknown>(null)
+
+  /*
+   * The action is held in a ref, NOT in a dependency list.
+   *
+   * A generated action carries its own request state (isPending, data), so a
+   * NEW object arrives on every render that a request causes. Depending on it
+   * makes fetchPage change identity, which re-runs the effect, which starts
+   * another request: measured at 20 requests a second and 6581 in total before
+   * this was caught. Only the criteria may restart the list.
+   */
+  const actionRef = useRef(action)
+  actionRef.current = action
 
   const pageRef = useRef(1)
   /*
@@ -198,6 +241,7 @@ export function useServerList<T = Record<string, unknown>>({
 
   const fetchPage = useCallback(
     (page: number, mode: 'replace' | 'append') => {
+      const action = actionRef.current
       if (!action || !enabled) return
       const requestId = ++requestRef.current
       if (mode === 'replace') setIsLoading(true)
@@ -224,14 +268,16 @@ export function useServerList<T = Record<string, unknown>>({
         },
       })
     },
-    [action, enabled, buildPayload, read]
+    [enabled, buildPayload, read]
   )
 
   // Any change of criteria starts the list over at page 1.
+  const actionReady = Boolean(action)
   useEffect(() => {
+    if (!actionReady) return
     pageRef.current = 1
     fetchPage(1, 'replace')
-  }, [fetchPage])
+  }, [fetchPage, actionReady])
 
   const loadMore = useCallback(() => {
     if (!hasMore || isLoading || isLoadingMore) return

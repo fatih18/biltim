@@ -44,6 +44,19 @@ describe('buildListPayload', () => {
 })
 
 describe('readListResponse', () => {
+  it('reads the envelope the screens actually receive', () => {
+    // The real body is {isSuccess, data: {data, pagination}}. Reading one level
+    // too shallow finds an object where an array was expected, which renders an
+    // empty list and reports "no more pages" — silently.
+    const r = readListResponse<{ id: string }>({
+      isSuccess: true,
+      data: { data: [{ id: '1' }, { id: '2' }], pagination: { hasNext: true, total: 9 } },
+    })
+    expect(r.items).toHaveLength(2)
+    expect(r.hasNext).toBe(true)
+    expect(r.total).toBe(9)
+  })
+
   it('reads the translated shape the screens receive', () => {
     const r = readListResponse<{ id: string }>({
       data: [{ id: '1' }],
