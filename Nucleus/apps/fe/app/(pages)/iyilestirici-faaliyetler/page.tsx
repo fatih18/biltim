@@ -428,7 +428,7 @@ export default function BoardMeetingDecisionsPage() {
                                                 ? "Yükleniyor..."
                                                 : managerUsers.length
                                                     ? "Seç"
-                                                    : "Manager rolü olan kullanıcı yok"}
+                                                    : "Müdür rolünde kullanıcı yok. Kullanıcılar ekranından bu rolü atayın."}
                                         </option>
 
                                         {managerUsers.map((u) => (

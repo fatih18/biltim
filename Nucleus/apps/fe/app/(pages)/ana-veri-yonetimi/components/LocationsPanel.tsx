@@ -289,7 +289,7 @@ export function LocationsPanel(props: {
                         {fmDropdownOpen && (
                             <div className="absolute z-50 mt-1 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-slate-200 dark:bg-slate-800 shadow-xl max-h-48 overflow-y-auto">
                                 {users.filter((u) => u.roles?.some((r) => r.name === "Field Manager")).length === 0 ? (
-                                    <div className="px-3 py-2 text-xs text-slate-600 dark:text-slate-400">Field Manager rolünde kullanıcı yok.</div>
+                                    <div className="px-3 py-2 text-xs text-slate-600 dark:text-slate-400">Saha sorumlusu rolünde kullanıcı yok. Kullanıcılar ekranından bu rolü atayın.</div>
                                 ) : (
                                     users
                                         .filter((u) => u.roles?.some((r) => r.name === "Field Manager"))
