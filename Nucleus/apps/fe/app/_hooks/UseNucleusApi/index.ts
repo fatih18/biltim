@@ -11,6 +11,7 @@
 import { createApiHook } from 'nucleus-core-ts/client'
 import { normalizeFilters } from './filters'
 import { normalizeSort } from './sort'
+import { normalizeSearch } from './searchFields'
 import { useMemo } from 'react'
 import { FactoryFunction } from '@/lib/api/factory.nucleus'
 import { NucleusEndpoints } from '@/lib/api/endpoints.nucleus'
@@ -144,7 +145,7 @@ export const useNucleusApiActions = createApiHook(
   (async (endpointKey: string, payload: unknown) => {
     // biome-ignore lint/suspicious/noExplicitAny: per-endpoint payload/response shapes
     const res = (await FactoryFunction(
-      normalizeSort(normalizeFilters(payload)),
+      normalizeSearch(endpointKey, normalizeSort(normalizeFilters(payload))),
       endpointKey as any
     )) as unknown as Dict
     if (ME_KEYS.has(endpointKey) && res?.isSuccess) {
