@@ -17,6 +17,7 @@ import {
 import { Loader2, RefreshCw } from 'lucide-react'
 import { DateInput } from '@/app/_components/DateInput'
 import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
+import { resolvePhotoUrl } from "@/app/_utils/photos"
 
 /* ───────────── Types ───────────── */
 
@@ -113,11 +114,13 @@ type FindingPhotoRow = {
   photo_after_files?: PhotoItem[] | null
 }
 
-function photoUrl(p?: PhotoItem | null): string | null {
-  if (!p) return null
-  if (p.file_id) return `/cdn/${encodeURIComponent(p.file_id)}`
-  return p.url ?? null
-}
+/*
+ * The report used to render a legacy URL verbatim while the audit screen
+ * resolved the same photo to /cdn/<id>, so the same finding showed a picture on
+ * one screen and a broken image on the other. One resolver now, and it is the
+ * one with tests.
+ */
+const photoUrl = resolvePhotoUrl
 
 function BeforeAfterReport() {
   const actions = useGenericApiActions()

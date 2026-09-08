@@ -9,6 +9,15 @@ import { UploadedFileInfo, useUploadAnswerPhoto } from '../bulgular/hooks/useUpl
 import { Question, questions as FALLBACK_QUESTIONS, StepCode, steps as FALLBACK_STEPS, Step } from './constants'
 import { DateInput } from '@/app/_components/DateInput'
 import { findingStatusLabelTr } from '@/app/_utils/StatusLabels'
+import {
+  buildFileUrl,
+  getBeforePhotoResolvedUrls,
+  mergeFilesUnique,
+  normalizeBeforePhotos,
+  type PhotoItem,
+  resolvePhotoUrl,
+  toPhotoArr,
+} from '@/app/_utils/photos'
 
 /* ───────────────────────────── Types ───────────────────────────── */
 type Rating = 'good' | 'medium' | 'bad'
@@ -97,7 +106,6 @@ type FiveSFindingLite = {
   photo_before_files?: Array<{ file_id: string | null; url: string | null }> | null
 }
 
-type PhotoItem = { file_id?: string | null; url?: string | null }
 
 function genUUID(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -169,82 +177,12 @@ function isExplanationRequired(q: Question, ans?: QuestionAnswer) {
   return q.requireExplanation && ans.rating !== 'good'
 }
 
-function mergeFilesUnique(prev: File[], incoming: File[]) {
-  const key = (f: File) => `${f.name}__${f.size}__${f.lastModified}`
-  const seen = new Set(prev.map(key))
-  const next = [...prev]
-  for (const f of incoming) {
-    const k = key(f)
-    if (!seen.has(k)) {
-      next.push(f)
-      seen.add(k)
-    }
-  }
-  return next
-}
 
-function toPhotoArr(ups: UploadedFileInfo[]) {
-  return (ups ?? [])
-    .filter((x) => x?.fileId || x?.fileUrl)
-    .map((x) => ({
-      file_id: x?.fileId ?? null,
-      url: x?.fileUrl ?? null,
-    }))
-}
 
-function buildFileUrl(fileId: string) {
-  return `/cdn/${encodeURIComponent(fileId)}`
-}
 
-function extractUuidMaybe(input: string): string | null {
-  const m =
-    input.match(
-      /[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i
-    ) ?? null
-  return m?.[0] ?? null
-}
 
-function resolvePhotoUrl(p: PhotoItem) {
-  if (p?.file_id) return buildFileUrl(p.file_id)
 
-  const u = (p?.url ?? '').trim()
-  if (u) {
-    const uuid = extractUuidMaybe(u)
-    if (uuid) return buildFileUrl(uuid)
 
-    if (u.startsWith('http')) return u
-    return u
-  }
-
-  return null
-}
-
-function normalizeBeforePhotos(f: FiveSFindingLite | null): PhotoItem[] {
-  if (!f) return []
-  const beforeArr = Array.isArray(f.photo_before_files) ? f.photo_before_files : []
-
-  const fromLegacy =
-    !beforeArr.length && (f.photo_before_file_id || f.photo_before_url)
-      ? [{ file_id: f.photo_before_file_id ?? null, url: f.photo_before_url ?? null }]
-      : []
-
-  const clean = (arr: PhotoItem[]) => (arr ?? []).filter((x) => x?.file_id || x?.url)
-  return clean(beforeArr.length ? beforeArr : fromLegacy)
-}
-
-function getBeforePhotoResolvedUrls(f: FiveSFindingLite | null) {
-  const items = normalizeBeforePhotos(f)
-  const urls = items.map(resolvePhotoUrl).filter(Boolean) as string[]
-  const seen = new Set<string>()
-  const out: string[] = []
-  for (const u of urls) {
-    if (!seen.has(u)) {
-      seen.add(u)
-      out.push(u)
-    }
-  }
-  return out
-}
 
 function safeStart(A: any, key: string) {
   const entry = A?.[key]

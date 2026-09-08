@@ -7,6 +7,7 @@ import { useUploadAnswerPhoto } from "./hooks/useUploadAnswersPhoto";
 import { DateInput } from "@/app/_components/DateInput";
 import { Camera, Eye, FileSpreadsheet, ImageIcon, Loader2, Trash2, Upload, X, ChevronDown, ChevronUp } from "lucide-react";
 import { Skeleton } from "@/app/_components/Global/Skeleton";
+import { buildFileUrl } from "@/app/_utils/photos";
 
 type FindingStatus = "open" | "in_progress" | "closed";
 
@@ -72,9 +73,6 @@ function statusBadgeClass(status: string) {
   }
 }
 
-function buildFileUrl(fileId: string) {
-  return `/cdn/${encodeURIComponent(fileId)}`;
-}
 
 function extractUuidMaybe(input: string): string | null {
   const m =
