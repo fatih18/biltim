@@ -269,7 +269,25 @@ export default function SystemStatusPage() {
               icon={<MemoryStick size={14} />}
               label="Bellek"
               value={percent(s.system?.memory?.usagePercent)}
-              hint={`${formatBytes(s.system?.memory?.used)} / ${formatBytes(s.system?.memory?.total)}`}
+              /*
+               * The scope belongs on the tile, because the same percentage
+               * means two different things.
+               *
+               * Inside a container the server reports the cgroup working set —
+               * the number that actually predicts an out-of-memory kill. With
+               * no cgroup and no /proc/meminfo it falls back to "everything the
+               * OS has not left free", which on a healthy machine is nearly all
+               * of it: this screen read %99.6 on a laptop with nothing wrong.
+               * Without the label, a permanently red tile teaches whoever
+               * watches it to ignore the screen.
+               */
+              hint={`${formatBytes(s.system?.memory?.used)} / ${formatBytes(s.system?.memory?.total)}${
+                s.system?.memory?.scope === 'container'
+                  ? ' — kapsayıcıya ayrılan'
+                  : s.system?.memory?.scope === 'host'
+                    ? ' — makinenin tamamı (önbellek dahil)'
+                    : ''
+              }`}
               tone={usageTone(s.system?.memory?.usagePercent)}
               values={memSeries}
               max={100}

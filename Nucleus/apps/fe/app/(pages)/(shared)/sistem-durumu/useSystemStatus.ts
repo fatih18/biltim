@@ -33,7 +33,18 @@ function call<T>(action: Action | undefined, payload: unknown = {}): Promise<T |
 export type Snapshot = {
   system?: {
     cpu?: { usage?: number; cores?: number }
-    memory?: { usagePercent?: number; used?: number; total?: number }
+    /*
+     * `scope` says what the percentage is measured against: "container" is the
+     * cgroup working set, "host" is everything the OS has not left free. The
+     * screen prints it, because on a host reading the number sits near 100 on
+     * a perfectly healthy machine.
+     */
+    memory?: {
+      usagePercent?: number
+      used?: number
+      total?: number
+      scope?: 'container' | 'host' | string
+    }
     disk?: { usagePercent?: number; used?: number; total?: number }
     process?: { uptime?: number; eventLoopLag?: number }
   }
