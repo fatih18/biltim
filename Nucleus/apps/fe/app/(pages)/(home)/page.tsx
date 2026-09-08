@@ -1,5 +1,6 @@
 "use client";
 
+import { atUtcMidnight } from "@/app/_utils/auditDate";
 import React from "react";
 import { useRouter } from "next/navigation";
 import { useGenericApiActions } from "@/app/_hooks/UseNucleusApi";
@@ -18,7 +19,16 @@ const PLAN_KEYS = {
 } as const;
 
 const LOC_KEYS = { GET: "GET_FIVE_S_LOCATIONS" } as const;
-const AUDIT_KEYS = { GET: "GET_FIVE_S_AUDITS", UPDATE: "UPDATE_FIVE_S_AUDIT" } as const;
+/*
+ * PATCH, not UPDATE.
+ *
+ * `UPDATE_*` is generated as PUT, which replaces the record and therefore
+ * demands every NOT NULL column — and five_s_audits has nine, including
+ * department_name, which this modal has no field for. So "Tamamlanmış Denetimi
+ * Düzenle" answered 400 on every save. Measured: the modal closed, no row was
+ * touched, and the only trace was a console line.
+ */
+const AUDIT_KEYS = { GET: "GET_FIVE_S_AUDITS", UPDATE: "PATCH_FIVE_S_AUDIT" } as const;
 const TEAM_KEYS = { GET: "GET_FIVE_S_AUDIT_TEAMS" } as const;
 const TEAM_MEMBER_KEYS = { GET: "GET_FIVE_S_AUDIT_TEAM_MEMBERS" } as const;
 const GET_USERS_KEY = "GET_USERS";
@@ -465,7 +475,9 @@ export default function Page() {
       payload: {
         _id: next.id,
         auditor_name: next.auditor_name.trim(),
-        audit_date: new Date(`${next.audit_date}T00:00:00`),
+        // Local midnight is read in the browser's zone, which in Turkey files
+        // the audit on the previous day.
+        audit_date: atUtcMidnight(next.audit_date),
         total_score: Number(next.total_score).toFixed(2),
         score_s1: Number(next.score_s1).toFixed(2),
         score_s2: Number(next.score_s2).toFixed(2),
@@ -481,7 +493,19 @@ export default function Page() {
       onErrorHandle: (e: any) => {
         console.error(`${AUDIT_KEYS.UPDATE} error`, e);
         setAuditSaving(false);
-        toast.error("Denetim güncellenemedi. Yetkinizi kontrol edin (sadece Merkez Ekip).");
+        /*
+         * Say what the server said. The message used to blame permissions
+         * unconditionally ("sadece Merkez Ekip"), which sent whoever read it
+         * looking for a role problem while the actual answer was a rejected
+         * field.
+         */
+        const sunucu =
+          (Array.isArray(e) ? e[0]?.message : e?.message) ?? null;
+        toast.error(
+          sunucu
+            ? `Denetim güncellenemedi: ${sunucu}`
+            : "Denetim güncellenemedi. Yetkiniz olmayabilir (Merkez Ekip)."
+        );
       },
     });
   }, []);
