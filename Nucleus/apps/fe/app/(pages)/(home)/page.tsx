@@ -350,6 +350,9 @@ export default function Page() {
     return names.some(
       (n) =>
         n === "super admin" ||
+        // The install's root account. Left out, a godmin saw the audit list and
+        // nothing else — no report summary — on an otherwise empty home screen.
+        n === "godmin" ||
         n === "manager" ||
         (n.includes("content manager") && n.includes("core team"))
     );
