@@ -25,6 +25,8 @@ write_units() {
 Description=Biltim Nucleus backend (port 1001)
 After=network-online.target postgresql.service redis-server.service
 Wants=network-online.target
+# Never stop retrying: giving up after N restarts recreates the outage.
+StartLimitIntervalSec=0
 
 [Service]
 Type=simple
@@ -33,8 +35,6 @@ Environment=HOME=/root
 ExecStart=$BUN run src/index.ts
 Restart=always
 RestartSec=3
-# Do not give up: this is the whole point of the unit.
-StartLimitIntervalSec=0
 StandardOutput=append:/root/be-systemd.log
 StandardError=append:/root/be-systemd.log
 
@@ -47,6 +47,7 @@ UNIT
 Description=Biltim Nucleus frontend (port 3000)
 After=network-online.target biltim-be.service
 Wants=network-online.target
+StartLimitIntervalSec=0
 
 [Service]
 Type=simple
@@ -55,7 +56,6 @@ Environment=HOME=/root
 ExecStart=$BUN run start
 Restart=always
 RestartSec=3
-StartLimitIntervalSec=0
 StandardOutput=append:/root/fe-systemd.log
 StandardError=append:/root/fe-systemd.log
 
