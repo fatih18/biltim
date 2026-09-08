@@ -1,5 +1,6 @@
 'use client'
 
+import { atUtcMidnight, auditDateFor } from '@/app/_utils/auditDate'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { confirmDialog } from '@/app/_components/Global/ConfirmDialog'
 import Dexie, { type Table } from 'dexie'
@@ -222,26 +223,6 @@ function normLoc(s: string) {
   return (s ?? '').trim().toLocaleLowerCase('tr')
 }
 
-/**
- * The day an audit is recorded as having happened.
- *
- * Picking a planned audit used to copy the PLAN's date straight into the form.
- * A plan is scheduled ahead of time, so an audit carried out today against a
- * plan dated 5 December was filed as 5 December — measured, five of the eight
- * audits in the database sat in the future, and the reports endpoint averaging
- * (completed_at - detected_date) came out at -88 days because the findings
- * inherited it.
- *
- * The planned date is still the sensible default when it has already arrived:
- * the auditor is recording the audit they were scheduled to do. It just cannot
- * run ahead of today, and the field stays editable either way.
- */
-function auditDateFor(plannedDate: string | undefined, fallback: string): string {
-  const today = new Date().toISOString().slice(0, 10)
-  const planned = (plannedDate ?? '').slice(0, 10)
-  if (!planned) return fallback
-  return planned > today ? today : planned
-}
 
 function makeDraftKey(planId: string | null, header: AuditFormHeader) {
   // plan varsa planId’ye göre; yoksa lokasyon+tarih’e göre
@@ -317,6 +298,29 @@ type OfflineAuditSubmission = {
   findings: OfflineFindingPayload[]
   // status info
   lastError?: string | null
+  /*
+   * What of this submission already reached the server.
+   *
+   * The replay creates the audit first and the findings after it. When a
+   * finding failed, the whole submission stayed queued and the next sync
+   * started again from "create audit" — so one bad finding produced a fresh,
+   * duplicate audit on every retry, each with the same scores. Measured: the
+   * audit create never sent `client_submission_id` either, so nothing on the
+   * server could tell the copies apart (0 of 8 audits carried one).
+   *
+   * These two fields make a retry resume instead of restart.
+   */
+  syncedAuditId?: string | null
+  syncedFindingIds?: string[]
+  /*
+   * The id the SERVER is given for this submission.
+   *
+   * Not the local `id`: that is a readable key like
+   * "sub_1788897086363_a632a2f…" and the column is a uuid, so sending it
+   * failed the whole sync with "Invalid ID format" — measured, the queue
+   * stayed at 1 and nothing reached the database.
+   */
+  clientSubmissionId?: string
 }
 
 type SubmissionPhotoRow = {
@@ -455,6 +459,15 @@ export default function FiveSAuditFormPage() {
   }, [findings])
 
   // Offline / Sync UI
+  /*
+   * The plan's own scheduled date, kept apart from the form's.
+   *
+   * The "Plan: … • …" line used to print `header.date`, which was the same
+   * value. It no longer is: the form's date cannot run ahead of today, while
+   * a plan legitimately sits in the future. Printing the form's date under a
+   * "Plan:" label would state the wrong schedule.
+   */
+  const [planDate, setPlanDate] = useState<string>('')
   const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true)
   const [syncing, setSyncing] = useState(false)
   const [queuedCount, setQueuedCount] = useState<number>(0)
@@ -801,7 +814,9 @@ export default function FiveSAuditFormPage() {
         setHeader((prev) => ({
           teamName: String(h.teamName ?? prev.teamName),
           department: String(h.department ?? prev.department),
-          date: String(h.date ?? prev.date),
+          // Same reason as the local draft: a stored future date would come
+          // back as a form the API refuses to accept.
+          date: auditDateFor(String(h.date ?? prev.date), prev.date),
           auditorName: String(h.auditorName ?? prev.auditorName),
         }))
       }
@@ -833,8 +848,16 @@ export default function FiveSAuditFormPage() {
       const draft = await db.drafts.get(draftKey)
       if (!draft) return
 
-      // header restore: sadece auditorName boşsa override etme gibi değil; draft gerçek state
-      setHeader(draft.header)
+      /*
+       * The draft is the real state — except for its date. A draft saved
+       * against a plan scheduled for December carries December, and since the
+       * API now refuses an audit dated in the future, restoring it verbatim
+       * would hand the auditor a form that cannot be saved and no clue why.
+       */
+      setHeader({
+        ...draft.header,
+        date: auditDateFor(draft.header?.date, h.date),
+      })
 
       setAnswers((prev) => {
         const base = { ...prev }
@@ -913,24 +936,53 @@ export default function FiveSAuditFormPage() {
       const all = await db.submissions.orderBy('createdAt').toArray()
       for (const s of all) {
         try {
-          // 1) create audit
-          const auditResp = await startAsPromise(startAudit, {
-            payload: {
-              department_name: s.auditPayload.department_name,
-              auditor_name: s.auditPayload.auditor_name,
-              audit_date: new Date(`${s.auditPayload.audit_date}T00:00:00`),
-              total_score: s.auditPayload.total_score,
-              target_score: s.auditPayload.target_score,
-              score_s1: s.auditPayload.score_s1,
-              score_s2: s.auditPayload.score_s2,
-              score_s3: s.auditPayload.score_s3,
-              score_s4: s.auditPayload.score_s4,
-              score_s5: s.auditPayload.score_s5,
-            },
-          })
+          // 1) create audit — unless a previous attempt already did
+          //
+          // The uuid is minted once and kept, so a retry presents the same
+          // key and the unique index can recognise it.
+          let submissionUuid = s.clientSubmissionId
+          if (!isUuid(submissionUuid)) {
+            submissionUuid = genUUID()
+            await db.submissions.update(s.id, { clientSubmissionId: submissionUuid })
+          }
 
-          const auditId = auditResp?.data?.id ?? auditResp?.id ?? auditResp?.data?.[0]?.id ?? null
+          let auditResp: any = null
+          if (!s.syncedAuditId) {
+            auditResp = await startAsPromise(startAudit, {
+              payload: {
+                department_name: s.auditPayload.department_name,
+                auditor_name: s.auditPayload.auditor_name,
+                audit_date: atUtcMidnight(s.auditPayload.audit_date),
+                total_score: s.auditPayload.total_score,
+                target_score: s.auditPayload.target_score,
+                score_s1: s.auditPayload.score_s1,
+                score_s2: s.auditPayload.score_s2,
+                score_s3: s.auditPayload.score_s3,
+                score_s4: s.auditPayload.score_s4,
+                score_s5: s.auditPayload.score_s5,
+                // The column exists so the server can recognise a replay of
+                // the same queued form; nothing was ever writing it.
+                client_submission_id: submissionUuid,
+              },
+            })
+          }
+
+          const auditId =
+            s.syncedAuditId ??
+            auditResp?.data?.id ??
+            auditResp?.id ??
+            auditResp?.data?.[0]?.id ??
+            null
           if (!auditId) throw new Error('Sync: auditId not returned')
+          /*
+           * Written down before a single finding is attempted. If the next
+           * step throws, the retry resumes against THIS audit instead of
+           * creating another one.
+           */
+          if (!s.syncedAuditId) {
+            s.syncedAuditId = auditId
+            await db.submissions.update(s.id, { syncedAuditId: auditId })
+          }
 
           // 2) findings
           const photos = await db.submissionPhotos.where('submissionId').equals(s.id).toArray()
@@ -942,7 +994,12 @@ export default function FiveSAuditFormPage() {
             byQuestion.set(key, arr)
           }
 
+          const alreadySynced = new Set(s.syncedFindingIds ?? [])
           for (const f of s.findings) {
+            // A finding that got through on an earlier attempt is not sent
+            // again; without this, one late failure duplicated every finding
+            // that had already succeeded.
+            if (alreadySynced.has(f.client_finding_id)) continue
             const key = String(f.questionId)
             const relatedPhotos = byQuestion.get(key) ?? []
 
@@ -986,6 +1043,9 @@ export default function FiveSAuditFormPage() {
                 photo_before_url: primary?.fileUrl,
               },
             })
+
+            alreadySynced.add(f.client_finding_id)
+            await db.submissions.update(s.id, { syncedFindingIds: [...alreadySynced] })
           }
 
           // 3) cleanup submission
@@ -1223,6 +1283,7 @@ export default function FiveSAuditFormPage() {
             date: auditDateFor(target.planned_date, header.date),
             auditorName: header.auditorName || auditorFallback,
           } satisfies AuditFormHeader
+          setPlanDate(String(target.planned_date ?? '').slice(0, 10))
           setHeader(nextHeaderUrl)
 
           await tryRestoreDraft(target.id, nextHeaderUrl)
@@ -1288,6 +1349,7 @@ export default function FiveSAuditFormPage() {
         auditorName: header.auditorName || auditorFallback,
       } satisfies AuditFormHeader
 
+      setPlanDate(String(chosen.planned_date ?? '').slice(0, 10))
       setHeader(nextHeader)
 
       // ✅ draft restore (plan-based)
@@ -1738,7 +1800,7 @@ export default function FiveSAuditFormPage() {
         payload: {
           department_name: header.department.trim(),
           auditor_name: header.auditorName.trim(),
-          audit_date: new Date(header.date),
+          audit_date: atUtcMidnight(header.date),
 
           total_score: totalScore.toFixed(2),
           target_score: TARGET_SCORE.toFixed(2),
@@ -2031,7 +2093,7 @@ export default function FiveSAuditFormPage() {
         payload: {
           department_name: header.department.trim(),
           auditor_name: header.auditorName.trim(),
-          audit_date: new Date(header.date),
+          audit_date: atUtcMidnight(header.date),
 
           total_score: '0.00',
           target_score: TARGET_SCORE.toFixed(2),
@@ -2609,7 +2671,12 @@ export default function FiveSAuditFormPage() {
               <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
                 Plan: <span className="text-slate-700 dark:text-slate-300">{header.teamName}</span> •{' '}
                 <span className="text-slate-700 dark:text-slate-300">{header.department}</span> •{' '}
-                <span className="text-slate-700 dark:text-slate-300">{header.date}</span>
+                <span className="text-slate-700 dark:text-slate-300">{planDate || header.date}</span>
+                {planDate && planDate !== header.date ? (
+                  <span className="ml-1 text-slate-500 dark:text-slate-400">
+                    (denetim {header.date} tarihinde yapılıyor)
+                  </span>
+                ) : null}
               </p>
               <p className="mt-2 text-[11px] text-slate-600 dark:text-slate-400">
                 Durum:{' '}
