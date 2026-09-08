@@ -330,6 +330,15 @@ export default function Page() {
                 onErrorHandle: (error: any) => {
                     if (error?.name === "AbortError") return;
                     console.error(`${key} error`, error);
+                    /*
+                     * Measured: with the save forced to fail, the form closed,
+                     * the typed name was discarded and nothing appeared. The
+                     * person had every reason to believe it had saved.
+                     */
+                    // The underlying message is usually the framework's own
+                    // ("An unexpected response was received from the server"),
+                    // which tells a plant auditor nothing. Say what failed.
+                    toast.error("Kayıt eklenemedi. Lütfen tekrar deneyin.");
                 },
             });
         },
@@ -358,6 +367,15 @@ export default function Page() {
                 onErrorHandle: (error: any) => {
                     if (error?.name === "AbortError") return;
                     console.error(`${key} error`, error);
+                    /*
+                     * Measured: with the save forced to fail, the form closed,
+                     * the typed name was discarded and nothing appeared. The
+                     * person had every reason to believe it had saved.
+                     */
+                    // The underlying message is usually the framework's own
+                    // ("An unexpected response was received from the server"),
+                    // which tells a plant auditor nothing. Say what failed.
+                    toast.error("Kayıt eklenemedi. Lütfen tekrar deneyin.");
                 },
             });
         },
@@ -383,6 +401,15 @@ export default function Page() {
                 onErrorHandle: (error: any) => {
                     if (error?.name === "AbortError") return;
                     console.error(`${key} error`, error);
+                    /*
+                     * Measured: with the save forced to fail, the form closed,
+                     * the typed name was discarded and nothing appeared. The
+                     * person had every reason to believe it had saved.
+                     */
+                    // The underlying message is usually the framework's own
+                    // ("An unexpected response was received from the server"),
+                    // which tells a plant auditor nothing. Say what failed.
+                    toast.error("Kayıt eklenemedi. Lütfen tekrar deneyin.");
                 },
             });
         },
@@ -416,6 +443,15 @@ export default function Page() {
                 onErrorHandle: (error: any) => {
                     if (error?.name === "AbortError") return;
                     console.error(`${key} error`, error);
+                    /*
+                     * Measured: with the save forced to fail, the form closed,
+                     * the typed name was discarded and nothing appeared. The
+                     * person had every reason to believe it had saved.
+                     */
+                    // The underlying message is usually the framework's own
+                    // ("An unexpected response was received from the server"),
+                    // which tells a plant auditor nothing. Say what failed.
+                    toast.error("Kayıt eklenemedi. Lütfen tekrar deneyin.");
                 },
             });
         },
