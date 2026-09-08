@@ -323,7 +323,19 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
         setLoading(false)
       },
     })
-  }, [dateFrom, dateTo, actions])
+    /*
+     * `actions` is deliberately not a dependency.
+     *
+     * useGenericApiActions() builds a new object on every render, so listing it
+     * here gave fetchData a new identity every render, which re-ran the effect
+     * below, which fetched, which setState'd, which rendered — a loop with no
+     * end. Measured on this screen with one audit and one finding in the
+     * database: 211 server-action requests for a single page load, and still
+     * climbing for as long as the tab stayed open. Next serialises server
+     * actions, so they queue behind each other as well.
+     */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateFrom, dateTo])
 
   React.useEffect(() => {
     fetchData()
