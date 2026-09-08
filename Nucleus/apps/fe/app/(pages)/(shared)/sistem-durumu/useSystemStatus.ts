@@ -49,7 +49,17 @@ export type Snapshot = {
     process?: { uptime?: number; eventLoopLag?: number }
   }
   application?: {
-    requests?: { total?: number; perMinute?: number }
+    /*
+     * The breakdowns the endpoint has always returned. They were typed away,
+     * so the screen could not read them even though the data was on the wire.
+     */
+    requests?: {
+      total?: number
+      perMinute?: number
+      byEndpoint?: Record<string, number>
+      byStatus?: Record<string, number>
+      byMethod?: Record<string, number>
+    }
     responseTime?: { avg?: number; p95?: number }
     errors?: { total?: number; rate?: number }
     rateLimits?: { blocked?: number; blockedPerMinute?: number }

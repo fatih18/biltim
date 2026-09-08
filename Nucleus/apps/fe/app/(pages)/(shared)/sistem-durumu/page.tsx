@@ -26,6 +26,7 @@ import {
   usageTone,
   useSystemStatus,
 } from './useSystemStatus'
+import { durumGruplari, kisaYol, paylar } from './traffic'
 
 type Tone = 'ok' | 'warn' | 'bad' | 'neutral'
 
@@ -64,6 +65,108 @@ function Stat({
       <div className={`mt-2 text-2xl font-semibold ${INK[tone]}`}>{value}</div>
       {hint ? <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{hint}</div> : null}
     </div>
+  )
+}
+
+/**
+ * One bar carrying the whole population, split by share.
+ *
+ * A stacked bar answers the question a row of counters cannot: how much of the
+ * traffic is each thing. It also makes a small number of server errors
+ * visible next to a large number of successes, which a percentage rounded to
+ * one decimal hides.
+ */
+function StackedBar({
+  parcalar,
+}: {
+  parcalar: Array<{ etiket: string; adet: number; oran: number; ton: 'good' | 'warn' | 'bad' }>
+}) {
+  const RENK = {
+    good: 'bg-emerald-500',
+    warn: 'bg-amber-500',
+    bad: 'bg-rose-500',
+  } as const
+  const NOKTA = {
+    good: 'bg-emerald-500',
+    warn: 'bg-amber-500',
+    bad: 'bg-rose-500',
+  } as const
+
+  if (parcalar.length === 0) {
+    return <p className="text-xs text-slate-600 dark:text-slate-400">Henüz istek kaydı yok.</p>
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex h-3 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+        {parcalar.map((p) => (
+          <div
+            key={p.etiket}
+            className={RENK[p.ton]}
+            /* En küçük dilim bile görünsün: yüzde 0.4'lük bir hata payı
+               tamamen kaybolursa çubuk "hiç hata yok" demiş olur. */
+            style={{ width: `${Math.max(p.oran, p.adet > 0 ? 1.5 : 0)}%` }}
+            title={`${p.etiket}: ${p.adet} (%${p.oran.toFixed(1)})`}
+          />
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-x-4 gap-y-1">
+        {parcalar.map((p) => (
+          <span
+            key={p.etiket}
+            className="inline-flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"
+          >
+            <span className={`h-2 w-2 rounded-full ${NOKTA[p.ton]}`} />
+            {p.etiket}
+            <span className="font-semibold text-slate-900 dark:text-slate-100">{p.adet}</span>
+            <span className="text-slate-500 dark:text-slate-400">%{p.oran.toFixed(1)}</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/** A ranked list where the bar IS the share, so the eye sorts before the mind. */
+function ShareList({
+  satirlar,
+  bosMesaj,
+}: {
+  satirlar: Array<{ ad: string; adet: number; oran: number }>
+  bosMesaj: string
+}) {
+  if (satirlar.length === 0) {
+    return <p className="text-xs text-slate-600 dark:text-slate-400">{bosMesaj}</p>
+  }
+  const enBuyuk = Math.max(...satirlar.map((r) => r.oran), 1)
+  return (
+    <ul className="space-y-2">
+      {satirlar.map((r) => (
+        <li key={r.ad} className="space-y-1">
+          <div className="flex items-baseline justify-between gap-3 text-xs">
+            <span
+              className="truncate font-medium text-slate-800 dark:text-slate-200"
+              title={r.ad}
+            >
+              {kisaYol(r.ad)}
+            </span>
+            <span className="shrink-0 tabular-nums text-slate-600 dark:text-slate-400">
+              {r.adet}
+              <span className="ml-1 text-slate-500 dark:text-slate-500">%{r.oran.toFixed(1)}</span>
+            </span>
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-sky-400 to-indigo-500"
+              /* Ölçek en büyüğe göre: hepsi mutlak yüzdeyle çizilseydi
+                 yirmi ucun dağıldığı bir kurulumda bütün çubuklar
+                 birbirinden ayırt edilemeyecek kadar kısa kalırdı. */
+              style={{ width: `${Math.max((r.oran / enBuyuk) * 100, 2)}%` }}
+            />
+          </div>
+        </li>
+      ))}
+    </ul>
   )
 }
 
@@ -349,6 +452,61 @@ export default function SystemStatusPage() {
               tone={blockedTone}
               values={blockedSeries}
             />
+          </div>
+        </Section>
+
+        {/*
+          What the server is actually being asked to do.
+          
+          All three breakdowns were already in the snapshot — 23 endpoints, the
+          status codes and the methods — and none of them reached the screen. A
+          wall of counters says the system is busy; this says WHAT it is busy
+          with, which is the question someone opens this page to answer.
+        */}
+        <Section
+          title="Trafik dağılımı"
+          subtitle="İsteklerin nasıl sonuçlandığı ve yükü hangi uçların taşıdığı — açılıştan bu yana."
+        >
+          <div className="grid gap-3 lg:grid-cols-2">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-600 dark:text-slate-400">
+                <Activity size={14} />
+                Sonuçlar
+              </div>
+              <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
+                İstemci hatası birinin hatalı istek göndermesi; sunucu hatası bizim.
+              </p>
+              <div className="mt-4">
+                <StackedBar parcalar={durumGruplari(s.application?.requests?.byStatus)} />
+              </div>
+              <div className="mt-5 border-t border-slate-200 pt-4 dark:border-slate-800">
+                <div className="text-xs font-medium uppercase tracking-wide text-slate-600 dark:text-slate-400">
+                  Metotlar
+                </div>
+                <div className="mt-3">
+                  <ShareList
+                    satirlar={paylar(s.application?.requests?.byMethod, 5)}
+                    bosMesaj="Henüz istek kaydı yok."
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-600 dark:text-slate-400">
+                <ServerCog size={14} />
+                En çok çağrılan uçlar
+              </div>
+              <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
+                Çubuk, en yoğun uca göre ölçeklenir; yüzde toplam içindeki payıdır.
+              </p>
+              <div className="mt-4">
+                <ShareList
+                  satirlar={paylar(s.application?.requests?.byEndpoint, 8)}
+                  bosMesaj="Henüz istek kaydı yok."
+                />
+              </div>
+            </div>
           </div>
         </Section>
 

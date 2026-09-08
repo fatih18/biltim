@@ -20,6 +20,9 @@ type Dict = Record<string, unknown>
 
 const SNAKE_CACHE = new Map<string, string>()
 
+/** A camelCase field name — not a path, a method, a date or a label. */
+const IDENTIFIER = /^[a-z][a-zA-Z0-9]*$/
+
 function toSnake(key: string): string {
   const hit = SNAKE_CACHE.get(key)
   if (hit) return hit
@@ -39,7 +42,7 @@ function toSnake(key: string): string {
  * Derinlik sınırı, ilişki genişletmelerinde kendine referans veren yapılara
  * karşı ucuz bir emniyet kemeri.
  */
-function withSnakeAliases(value: unknown, depth = 0): unknown {
+export function withSnakeAliases(value: unknown, depth = 0): unknown {
   if (depth > 6 || value == null) return value
   if (Array.isArray(value)) return value.map((v) => withSnakeAliases(v, depth + 1))
   if (typeof value !== 'object') return value
@@ -51,8 +54,24 @@ function withSnakeAliases(value: unknown, depth = 0): unknown {
   for (const [k, v] of Object.entries(src)) {
     const converted = withSnakeAliases(v, depth + 1)
     out[k] = converted
-    const snake = toSnake(k)
-    if (snake !== k && !(snake in src)) out[snake] = converted
+    /*
+     * Only a camelCase FIELD name gets a twin.
+     *
+     * The rule used to be "if lowercasing changes it", which is true of things
+     * that are values rather than column names: an object keyed by HTTP method
+     * gained a `get` beside its `GET`, and one keyed by request path gained a
+     * `/five_saudit_plans` beside `/fiveSAuditPlans`. Measured on the
+     * monitoring screen — every count appeared twice and every share came out
+     * at half its real value, which is worse than not showing it at all.
+     *
+     * An identifier here starts with a lowercase letter and carries nothing
+     * but letters and digits, so `createdAt` still gets `created_at` while
+     * `GET`, `/users` and `2026-09-08` are left alone.
+     */
+    if (IDENTIFIER.test(k)) {
+      const snake = toSnake(k)
+      if (snake !== k && !(snake in src)) out[snake] = converted
+    }
   }
   return out
 }
