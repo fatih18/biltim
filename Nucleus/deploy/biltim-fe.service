@@ -1,0 +1,35 @@
+# Biltim 5S — on yuz (Next.js).
+#
+# `next start` derlenmis ciktiyi servis eder; once `bun run build` calismis
+# olmali. Guncelleme sirasi: git pull -> bun install -> bun run build ->
+# systemctl restart biltim-fe
+#
+# Kurulum (bir kez):
+#   cp Nucleus/deploy/biltim-fe.service /etc/systemd/system/
+#   systemctl daemon-reload
+#   systemctl enable --now biltim-fe
+# Gunlukler:  journalctl -u biltim-fe -f
+
+[Unit]
+Description=Biltim 5S on yuz (Next.js)
+Documentation=https://github.com/fatih18/biltim
+# Arka uc once kalksin: acilista ilk istekler 500 donmesin.
+After=network-online.target biltim-be.service
+Wants=network-online.target biltim-be.service
+
+[Service]
+Type=simple
+WorkingDirectory=/root/apps/biltim/Nucleus/apps/fe
+ExecStart=/usr/local/bin/bun run start
+Restart=always
+RestartSec=5
+StartLimitIntervalSec=120
+StartLimitBurst=10
+User=root
+Environment=NODE_ENV=production
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=biltim-fe
+
+[Install]
+WantedBy=multi-user.target

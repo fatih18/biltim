@@ -1,0 +1,40 @@
+# Biltim 5S — arka uç.
+#
+# Bu dosyadan önce uygulama `screen` oturumlarında elle koşuyordu: makine
+# yeniden başlarsa kendiliğinden kalkmıyor, süreç çökerse kimse ayağa
+# kaldırmıyordu. Ölçüldü — `screen -S be -X quit` sonrası hiçbir şey geri
+# gelmedi. Servis hem açılışta başlatır hem düşerse yeniden kaldırır.
+#
+# Kurulum (bir kez):
+#   cp Nucleus/deploy/biltim-be.service /etc/systemd/system/
+#   systemctl daemon-reload
+#   systemctl enable --now biltim-be
+# Günlükler:  journalctl -u biltim-be -f
+
+[Unit]
+Description=Biltim 5S arka uc (nucleus-core-ts)
+Documentation=https://github.com/fatih18/biltim
+# Veritabani hazir olmadan acilirsa nucleus semayi itemeden duser.
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/apps/biltim/Nucleus/apps/be-nucleus
+# Tam yol bilerek: PATH'te /snap/bin once geliyordu ve orada kaldirilmis bir
+# snap'ten kalan olu bir bun sembolik bagi vardi. /usr/local/bin/bun kurulu
+# gercek surumu (1.4.2) gosteriyor.
+ExecStart=/usr/local/bin/bun run src/index.ts
+Restart=always
+RestartSec=5
+# Acilista postgres biraz gec hazir olursa pes etmesin.
+StartLimitIntervalSec=120
+StartLimitBurst=10
+User=root
+Environment=NODE_ENV=production
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=biltim-be
+
+[Install]
+WantedBy=multi-user.target
