@@ -23,6 +23,7 @@ import {
   computeTotalScore,
   formatScore,
   isExplanationRequired,
+  RATING_FACTOR,
   TARGET_SCORE,
 } from './_utils/scoring'
 
@@ -2679,7 +2680,7 @@ export default function FiveSAuditFormPage() {
                         {stepQuestions.map((q) => {
                           const ans = answers[q.id]
                           const rating = ans?.rating
-                          const point = rating != null ? q.maxScore * ratingFactor[rating] : undefined
+                          const point = rating != null ? q.maxScore * RATING_FACTOR[rating] : undefined
                           const isMissing = hasAttempted && liveUnanswered.has(q.id)
 
                           return (
@@ -2776,7 +2777,7 @@ export default function FiveSAuditFormPage() {
                   {stepQuestions.map((q) => {
                     const ans = answers[q.id]
                     const rating = ans?.rating
-                    const point = rating != null ? q.maxScore * ratingFactor[rating] : undefined
+                    const point = rating != null ? q.maxScore * RATING_FACTOR[rating] : undefined
                     const isOpen = expanded[q.id]
 
                     const ratingLabel =
