@@ -1,4 +1,5 @@
 "use client";
+import { containsTr } from "@/app/_utils/textSearch";
 import { confirmDialog } from '@/app/_components/Global/ConfirmDialog'
 
 import React from "react";
@@ -42,9 +43,10 @@ export function LocationsPanel(props: {
     }, []);
 
     const filtered = React.useMemo(() => {
-        const query = normalizeName(q).toLowerCase();
-        if (!query) return items;
-        return items.filter((x) => normalizeName(x.name).toLowerCase().includes(query));
+        // Türkçe karşılaştırma; ayrıntı için MasterDataPanel'deki not.
+        const query = normalizeName(q);
+        if (!query.trim()) return items;
+        return items.filter((x) => containsTr(normalizeName(x.name), query));
     }, [items, q]);
 
     const userById = React.useMemo(() => {

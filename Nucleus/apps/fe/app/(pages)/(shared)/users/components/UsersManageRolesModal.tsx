@@ -1,6 +1,7 @@
 'use client'
 
 import { useModal } from '@/app/_hooks/UseModal'
+import { containsTr } from '@/app/_utils/textSearch'
 import type { RoleJSON } from '@monorepo/db-entities/schemas/default/role'
 import type { UserRoleJSON } from '@monorepo/db-entities/schemas/default/user_role'
 import { Check, Loader2, Search, Shield, X } from 'lucide-react'
@@ -84,16 +85,23 @@ export function UsersManageRolesModal({ isOpen, userId, onClose }: UsersManageRo
 
   const assignedSet = new Set(assignedRoleIds)
 
+  /*
+   * Filtered here, not on the server, and deliberately: the modal has to show
+   * every role to say which are assigned, so it already holds the complete
+   * set — this is a search within what is on screen, not a page of a larger
+   * list.
+   *
+   * The comparison is the Turkish one. `toLowerCase()` maps I to i, so a role
+   * called "İdari İşler" could not be found by typing "idari".
+   */
   const filteredRoles = (() => {
-    const term = search.trim().toLowerCase()
+    const term = search.trim()
     if (!term) {
       return roles
     }
-    return roles.filter((role) => {
-      const name = role.name?.toLowerCase() ?? ''
-      const description = role.description?.toLowerCase() ?? ''
-      return name.includes(term) || description.includes(term)
-    })
+    return roles.filter(
+      (role) => containsTr(role.name, term) || containsTr(role.description, term)
+    )
   })()
 
   function isPending(roleId: string): boolean {

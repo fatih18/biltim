@@ -1,4 +1,5 @@
 "use client";
+import { containsTr } from "@/app/_utils/textSearch";
 import { confirmDialog } from '@/app/_components/Global/ConfirmDialog'
 
 import React from "react";
@@ -27,11 +28,11 @@ export function MasterDataPanel(props: {
     const [error, setError] = React.useState<string | null>(null);
 
     const filtered = React.useMemo(() => {
-        const query = normalizeName(q).toLowerCase();
-        if (!query) return items;
-        return items.filter((x) =>
-            normalizeName(x.name).toLowerCase().includes(query)
-        );
+        // Türkçe karşılaştırma: toLowerCase() I'yı i yapar, yani "İdari
+        // Bölüm" adlı bir kaydı "idari" yazarak aramak sonuç vermiyordu.
+        const query = normalizeName(q);
+        if (!query.trim()) return items;
+        return items.filter((x) => containsTr(normalizeName(x.name), query));
     }, [items, q]);
 
     function openCreate() {
