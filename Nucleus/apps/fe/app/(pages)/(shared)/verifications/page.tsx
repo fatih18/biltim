@@ -26,7 +26,7 @@ export default function Verifications() {
       <div className="border-b border-slate-200 dark:border-slate-800 bg-white/80 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-6 py-8">
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-slate-900 dark:text-white shadow-lg shadow-indigo-200">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-200">
               <Shield className="h-7 w-7" />
             </div>
             <div>

@@ -2962,7 +2962,7 @@ export default function FiveSAuditFormPage() {
                   >
                     Formu Kaydet
                     {hasAttempted && liveUnanswered.size > 0 && (
-                      <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-slate-900 dark:text-white">
+                      <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white">
                         {liveUnanswered.size}
                       </span>
                     )}

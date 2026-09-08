@@ -26,12 +26,12 @@ function VerificationNodeComponent({ data, selected }: NodeProps & { data: Verif
         style={{ top: '50%' }}
       />
 
-      <div className="flex items-center gap-2.5 rounded-t-[10px] bg-gradient-to-r from-violet-500 to-purple-500 px-3 py-2 text-slate-900 dark:text-white">
+      <div className="flex items-center gap-2.5 rounded-t-[10px] bg-gradient-to-r from-violet-500 to-purple-500 px-3 py-2 text-white">
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-300 dark:bg-white/20">
           <Workflow className="h-4 w-4" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-[9px] font-medium uppercase tracking-wide text-violet-200">
+          <div className="text-[9px] font-medium uppercase tracking-wide text-violet-100">
             Verification Step
           </div>
           <div className="text-xs font-semibold">Step {data.stepOrder}</div>

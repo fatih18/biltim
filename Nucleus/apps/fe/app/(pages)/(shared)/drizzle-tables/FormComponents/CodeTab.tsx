@@ -229,7 +229,7 @@ ${schema.relations
         <button
           type="button"
           onClick={copyCode}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-slate-900 dark:text-white rounded-lg hover:bg-green-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
         >
           {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
           {copied ? 'Copied!' : 'Copy Code'}

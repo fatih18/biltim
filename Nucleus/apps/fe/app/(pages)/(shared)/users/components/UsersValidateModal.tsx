@@ -49,7 +49,7 @@ export function UsersValidateModal({
               type="button"
               onClick={handleConfirm}
               disabled={isSubmitting}
-              className="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting ? 'Verifying…' : 'Verify Email'}
             </button>

@@ -36,7 +36,7 @@ export function UsersDeleteModal({
 
           <div className="rounded-lg border border-rose-900/40 bg-rose-100 dark:bg-rose-950/30 px-4 py-3 text-sm text-rose-700 dark:text-rose-200">
             Silinecek kullanıcı:{' '}
-            <span className="font-semibold text-rose-100">{userEmail ?? 'Bilinmeyen email'}</span>
+            <span className="font-semibold text-rose-900 dark:text-rose-100">{userEmail ?? 'Bilinmeyen email'}</span>
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-2">
@@ -52,7 +52,7 @@ export function UsersDeleteModal({
               type="button"
               onClick={handleConfirm}
               disabled={isSubmitting}
-              className="rounded-lg bg-rose-600 px-5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white transition-colors hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-lg bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting ? 'Siliniyor…' : 'Kullanıcıyı Sil'}
             </button>

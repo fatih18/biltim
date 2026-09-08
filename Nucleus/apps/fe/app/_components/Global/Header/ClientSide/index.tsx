@@ -199,7 +199,7 @@ function NotificationDropdown({
             <div className="flex items-center gap-2">
               {unreadCount > 0 && (
                 <>
-                  <span className="bg-red-500 text-slate-900 dark:text-white text-xs px-2 py-0.5 rounded-full">
+                  <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
                     {unreadCount} new
                   </span>
                   <button

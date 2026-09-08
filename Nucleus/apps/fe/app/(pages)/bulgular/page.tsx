@@ -827,7 +827,7 @@ export default function FiveSFindingsListPage() {
                       <td className="px-4 py-2 text-xs">
                         <div className="max-w-[180px] truncate">{f.location_name}</div>
                         {f.form_title && (
-                          <div className="mt-0.5 text-[10px] text-slate-500 dark:text-slate-500 truncate max-w-[220px]">
+                          <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-500 truncate max-w-[220px]">
                             {f.form_title}
                           </div>
                         )}
@@ -837,7 +837,7 @@ export default function FiveSFindingsListPage() {
                         {f.finding_type}
                         {duplicateCount > 0 && (
                           <span
-                            className="ml-1 inline-flex items-center rounded-sm bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-300"
+                            className="ml-1 inline-flex items-center rounded-sm bg-amber-500/20 px-1.5 py-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-300"
                             title="Aynı soru ve lokasyon için tekrar eden açık bulgular tekilleştirildi"
                           >
                             +{duplicateCount} tekrar
@@ -873,18 +873,18 @@ export default function FiveSFindingsListPage() {
                           </select>
 
                           {!isAuditor && f.status !== "closed" && canCloseFinding && !canClose && (
-                            <span className="text-[10px] text-rose-300/90">
+                            <span className="text-[11px] leading-tight text-rose-600 dark:text-rose-300">
                               Kapatmak için "Sonrası Fotoğraf" zorunlu.
                             </span>
                           )}
                           {!isAuditor && f.status !== "closed" && !canCloseFinding && (
-                            <span className="text-[10px] text-slate-500 dark:text-slate-500">
+                            <span className="text-[11px] leading-tight text-slate-600 dark:text-slate-400">
                               Yalnızca Saha Sorumlusu kapatabilir.
                             </span>
                           )}
 
                           {savingStatusForId === f.id && (
-                            <span className="text-[10px] text-slate-500 dark:text-slate-500">Kaydediliyor...</span>
+                            <span className="text-[11px] leading-tight text-slate-600 dark:text-slate-400">Kaydediliyor...</span>
                           )}
                         </div>
                       </td>
@@ -901,7 +901,7 @@ export default function FiveSFindingsListPage() {
                           className="date-dark w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
                         />
                         {savingDueForId === f.id && (
-                          <span className="mt-1 block text-[10px] text-slate-500 dark:text-slate-500">Kaydediliyor...</span>
+                          <span className="mt-1 block text-[11px] text-slate-500 dark:text-slate-500">Kaydediliyor...</span>
                         )}
                       </td>
 
@@ -945,7 +945,7 @@ export default function FiveSFindingsListPage() {
                                           href={url ?? "#"}
                                           target="_blank"
                                           rel="noreferrer"
-                                          className="flex flex-1 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-sky-600 dark:text-sky-300 hover:bg-slate-200 hover:dark:bg-slate-800"
+                                          className="flex flex-1 items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-sky-600 dark:text-sky-300 hover:bg-slate-200 hover:dark:bg-slate-800"
                                         >
                                           <ImageIcon size={9} />
                                           Foto {idx + 1}
@@ -965,7 +965,7 @@ export default function FiveSFindingsListPage() {
                       <td className="px-3 py-2">
                         <div className="flex flex-col gap-1.5 min-w-[96px]">
                           {f.status === "closed" && afterCount === 0 && (
-                            <div className="rounded-lg border border-rose-500/40 bg-rose-100 dark:bg-rose-500/10 px-2 py-1 text-[10px] text-rose-600 dark:text-rose-300">
+                            <div className="rounded-lg border border-rose-500/40 bg-rose-100 dark:bg-rose-500/10 px-2 py-1 text-[11px] text-rose-600 dark:text-rose-300">
                               Sonrası foto zorunlu
                             </div>
                           )}
@@ -1003,7 +1003,7 @@ export default function FiveSFindingsListPage() {
                                           href={url ?? "#"}
                                           target="_blank"
                                           rel="noreferrer"
-                                          className="flex flex-1 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-emerald-600 dark:text-emerald-300 hover:bg-slate-200 hover:dark:bg-slate-800"
+                                          className="flex flex-1 items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-emerald-600 dark:text-emerald-300 hover:bg-slate-200 hover:dark:bg-slate-800"
                                         >
                                           <ImageIcon size={9} />
                                           Foto {idx + 1}
@@ -1049,14 +1049,14 @@ export default function FiveSFindingsListPage() {
 
                           {(afterUploadQueue[f.id]?.length ?? 0) > 0 && (
                             <div className="flex items-center gap-1.5">
-                              <span className="rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-300">
+                              <span className="rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-300">
                                 {afterUploadQueue[f.id]!.length} seçildi
                               </span>
                               <button
                                 type="button"
                                 disabled={uploadingFindingId === f.id}
                                 onClick={() => handleAfterPhotosUpload(f)}
-                                className="inline-flex items-center gap-1 rounded-lg bg-emerald-500 px-2 py-0.5 text-[10px] font-semibold text-slate-950 hover:bg-emerald-400 disabled:opacity-50 transition-colors"
+                                className="inline-flex items-center gap-1 rounded-lg bg-emerald-500 px-2 py-0.5 text-[11px] font-semibold text-slate-950 hover:bg-emerald-400 disabled:opacity-50 transition-colors"
                               >
                                 <Upload size={10} />
                                 Yükle
@@ -1068,7 +1068,7 @@ export default function FiveSFindingsListPage() {
                             <button
                               type="button"
                               onClick={() => handleRemoveAllAfterPhotos(f)}
-                              className="inline-flex items-center gap-1 rounded-lg border border-rose-600/40 bg-rose-950/20 px-2 py-0.5 text-[10px] font-medium text-rose-600 dark:text-rose-300 hover:bg-rose-950/50 transition-colors"
+                              className="inline-flex items-center gap-1 rounded-lg border border-rose-600/40 bg-rose-950/20 px-2 py-0.5 text-[11px] font-medium text-rose-600 dark:text-rose-300 hover:bg-rose-950/50 transition-colors"
                               title="Tüm sonrası fotoğrafları sil"
                             >
                               <X size={10} />

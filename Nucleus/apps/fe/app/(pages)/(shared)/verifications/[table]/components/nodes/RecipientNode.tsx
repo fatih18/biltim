@@ -55,7 +55,7 @@ function RecipientNodeComponent({ data, selected }: NodeProps & { data: Recipien
       />
 
       <div className="flex items-center gap-3 rounded-t-xl bg-gradient-to-r from-teal-50 to-cyan-50 px-4 py-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-500 text-slate-900 dark:text-white shadow-md">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-500 text-white shadow-md">
           {getRecipientIcon()}
         </div>
         <div className="flex-1">

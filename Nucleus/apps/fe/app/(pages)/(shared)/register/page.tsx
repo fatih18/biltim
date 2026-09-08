@@ -200,7 +200,7 @@ export default function Register() {
 
                 <button
                   type="submit"
-                  className="inline-flex h-12 w-full items-center justify-center rounded-lg bg-blue-600 text-sm font-semibold text-slate-900 dark:text-white transition hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+                  className="inline-flex h-12 w-full items-center justify-center rounded-lg bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
                 >
                   {actions.REGISTER?.state?.isPending ? 'Registering...' : 'Create account'}
                 </button>

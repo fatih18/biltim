@@ -42,7 +42,7 @@ export function IndexesTab({
         <button
           type="button"
           onClick={addIndex}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-slate-900 dark:text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           <Plus className="w-4 h-4" />
           Add Index

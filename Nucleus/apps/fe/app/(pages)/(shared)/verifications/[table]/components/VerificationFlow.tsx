@@ -958,7 +958,7 @@ export function VerificationFlow({ table }: VerificationFlowProps) {
             >
               <ArrowLeft className="h-4 w-4" />
             </Link>
-            <figure className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-slate-900 dark:text-white shadow-lg">
+            <figure className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg">
               <Workflow className="h-4 w-4" />
             </figure>
             <hgroup className="min-w-0">
@@ -976,7 +976,7 @@ export function VerificationFlow({ table }: VerificationFlowProps) {
               type="button"
               onClick={handleSave}
               disabled={isSaving}
-              className="flex h-9 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 px-3 text-sm font-semibold text-slate-900 dark:text-white shadow-md transition-all hover:shadow-lg disabled:opacity-50 sm:px-4"
+              className="flex h-9 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 px-3 text-sm font-semibold text-white shadow-md transition-all hover:shadow-lg disabled:opacity-50 sm:px-4"
             >
               {isSaving ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

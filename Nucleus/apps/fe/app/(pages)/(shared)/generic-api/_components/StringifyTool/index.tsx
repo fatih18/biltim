@@ -106,7 +106,7 @@ export function StringifyTool({ isOpen, onClose }: StringifyToolProps) {
             <button
               type="button"
               onClick={handleStringify}
-              className="flex-1 px-4 py-2 text-sm font-medium text-slate-900 dark:text-white bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 rounded-xl transition-all shadow-md shadow-violet-500/20"
+              className="flex-1 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 rounded-xl transition-all shadow-md shadow-violet-500/20"
             >
               Stringify →
             </button>
