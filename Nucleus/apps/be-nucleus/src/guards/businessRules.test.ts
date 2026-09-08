@@ -500,6 +500,7 @@ describe('gelecekteki tarihler', () => {
         finding_type: 'z',
         detected_date: gunSonra(2),
       }),
+      body: undefined,
     })
     expect(res?.status).toBe(400)
     expect((await res?.json()).message).toBe('Tespit tarihi gelecekte olamaz.')
@@ -508,6 +509,7 @@ describe('gelecekteki tarihler', () => {
   it('yarına tarihlenmiş denetimi reddeder', async () => {
     const res = await enforceBusinessRules({
       request: jsonReq('POST', '/fiveSAudits', { audit_date: gunSonra(2) }),
+      body: undefined,
     })
     expect(res?.status).toBe(400)
     expect((await res?.json()).message).toBe('Denetim tarihi gelecekte olamaz.')
@@ -521,6 +523,7 @@ describe('gelecekteki tarihler', () => {
         finding_type: 'z',
         detected_date: todayAtPlant(),
       }),
+      body: undefined,
     })
     expect(res).toBeUndefined()
   })
@@ -532,6 +535,7 @@ describe('gelecekteki tarihler', () => {
         location_id: 'a',
         assigned_team_id: 'b',
       }),
+      body: undefined,
     })
     expect(res).toBeUndefined()
   })
@@ -541,6 +545,7 @@ describe('puan sınırları', () => {
   it('100 üstü toplam puanı reddeder', async () => {
     const res = await enforceBusinessRules({
       request: jsonReq('PATCH', '/fiveSAudits/abc', { total_score: '150.00' }),
+      body: undefined,
     })
     expect(res?.status).toBe(400)
     expect((await res?.json()).message).toContain('0 ile 100 arasında')
@@ -549,6 +554,7 @@ describe('puan sınırları', () => {
   it('negatif adım puanını reddeder', async () => {
     const res = await enforceBusinessRules({
       request: jsonReq('PATCH', '/fiveSAudits/abc', { score_s3: '-1' }),
+      body: undefined,
     })
     expect(res?.status).toBe(400)
   })
@@ -556,6 +562,7 @@ describe('puan sınırları', () => {
   it('camelCase ikizini de görür', async () => {
     const res = await enforceBusinessRules({
       request: jsonReq('PATCH', '/fiveSAudits/abc', { totalScore: 101 }),
+      body: undefined,
     })
     expect(res?.status).toBe(400)
   })
@@ -563,6 +570,7 @@ describe('puan sınırları', () => {
   it('sayı olmayanı reddeder', async () => {
     const res = await enforceBusinessRules({
       request: jsonReq('PATCH', '/fiveSAudits/abc', { total_score: 'yüz' }),
+      body: undefined,
     })
     expect(res?.status).toBe(400)
   })
@@ -571,6 +579,7 @@ describe('puan sınırları', () => {
     for (const v of ['0', '0.00', '75.5', '100', '100.00']) {
       const res = await enforceBusinessRules({
         request: jsonReq('PATCH', '/fiveSAudits/abc', { total_score: v }),
+      body: undefined,
       })
       expect(res).toBeUndefined()
     }
@@ -579,6 +588,7 @@ describe('puan sınırları', () => {
   it('puan taşımayan denetim yazmasına karışmaz', async () => {
     const res = await enforceBusinessRules({
       request: jsonReq('PATCH', '/fiveSAudits/abc', { auditor_name: 'x' }),
+      body: undefined,
     })
     expect(res).toBeUndefined()
   })
