@@ -75,12 +75,7 @@ export function UsersTable({ users, onSelectDetails, onValidateEmail, onDelete }
               <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                 Son Giriş
               </th>
-              {/*
-                Pinned. This column holds the row's only controls, and the table
-                is wider than its container, so without this the buttons were
-                simply off-screen — 189px of them — with nothing to say so.
-              */}
-              <th className="sticky right-0 z-10 bg-slate-100 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                 İşlemler
               </th>
             </tr>
@@ -137,7 +132,7 @@ export function UsersTable({ users, onSelectDetails, onValidateEmail, onDelete }
                           an ellipsis, keep the whole value in the tooltip.
                         */}
                         <div
-                          className="max-w-[11rem] truncate text-xs text-slate-600 dark:text-slate-400"
+                          className="max-w-[7.5rem] truncate text-xs text-slate-600 dark:text-slate-400"
                           title={user.id}
                         >
                           {user.id}
@@ -158,7 +153,7 @@ export function UsersTable({ users, onSelectDetails, onValidateEmail, onDelete }
                     {lastLogin}
                   </td>
 
-                  <td className="sticky right-0 z-10 whitespace-nowrap bg-white px-4 py-4 text-sm dark:bg-slate-900">
+                  <td className="whitespace-nowrap px-4 py-4 text-sm">
                     <div className="flex items-center gap-3">
                       <button
                         type="button"

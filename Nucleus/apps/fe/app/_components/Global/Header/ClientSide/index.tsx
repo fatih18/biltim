@@ -198,12 +198,12 @@ function NotificationDropdown({
       {isOpen && (
         <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-900 rounded-xl shadow-2xl z-50 overflow-hidden">
           <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-3 dark:border-transparent dark:bg-gradient-to-r dark:from-slate-700 dark:to-slate-800">
-            <span className="text-slate-900 dark:text-white font-semibold">Notifications</span>
+            <span className="text-slate-900 dark:text-white font-semibold">Bildirimler</span>
             <div className="flex items-center gap-2">
               {unreadCount > 0 && (
                 <>
                   <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-                    {unreadCount} new
+                    {unreadCount} yeni
                   </span>
                   <button
                     type="button"
@@ -226,7 +226,7 @@ function NotificationDropdown({
             ) : notificationList.length === 0 ? (
               <div className="px-4 py-8 text-center">
                 <Bell className="h-8 w-8 text-slate-700 dark:text-slate-300 mx-auto mb-2" />
-                <p className="text-sm text-slate-500 dark:text-slate-400">No notifications</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Bildiriminiz yok</p>
               </div>
             ) : (
               <div className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -273,15 +273,6 @@ function NotificationDropdown({
             )}
           </div>
 
-          <div className="border-t border-slate-100 dark:border-slate-800 px-4 py-2">
-            <Link
-              href="/notifications"
-              className="block text-center text-sm text-indigo-600 hover:text-indigo-700 font-medium"
-              onClick={() => setIsOpen(false)}
-            >
-              View all notifications
-            </Link>
-          </div>
         </div>
       )}
     </div>
@@ -1137,7 +1128,7 @@ export function ClientSide({
               <div ref={searchRef} className="hidden">
                 <input
                   type="text"
-                  placeholder="Search..."
+                  placeholder="Ara..."
                   className="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-700/50 backdrop-blur-sm text-slate-900 dark:text-white placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-400"
                 />
               </div>
