@@ -880,7 +880,8 @@
         {
           "name": "finding_no",
           "type": "integer",
-          "notNull": true
+          "notNull": true,
+          "generatedByDefaultAsIdentity": true
         },
         {
           "name": "detected_date",
