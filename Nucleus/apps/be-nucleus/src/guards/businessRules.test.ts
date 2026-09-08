@@ -259,6 +259,8 @@ describe('a plan belongs to its period', () => {
     const res = await enforceBusinessRules({
       request: jsonReq('POST', '/fiveSAuditPlans', {
         planned_date: '2027-03-15',
+        location_id: 'loc',
+        assigned_team_id: 'team',
         parent_plan_id: 'pp1',
       }),
       body: undefined,
@@ -271,6 +273,8 @@ describe('a plan belongs to its period', () => {
     const res = await enforceBusinessRules({
       request: jsonReq('POST', '/fiveSAuditPlans', {
         planned_date: '2026-09-30',
+        location_id: 'loc',
+        assigned_team_id: 'team',
         parent_plan_id: 'pp1',
       }),
       body: undefined,
@@ -282,7 +286,12 @@ describe('a plan belongs to its period', () => {
   it('allows the boundaries themselves', async () => {
     for (const date of ['2026-10-01', '2026-12-31', '2026-11-15']) {
       const res = await enforceBusinessRules({
-        request: jsonReq('POST', '/fiveSAuditPlans', { planned_date: date, parent_plan_id: 'pp1' }),
+        request: jsonReq('POST', '/fiveSAuditPlans', {
+          planned_date: date,
+          location_id: 'loc',
+          assigned_team_id: 'team',
+          parent_plan_id: 'pp1',
+        }),
         body: undefined,
         read: reader(period),
       })
@@ -292,7 +301,11 @@ describe('a plan belongs to its period', () => {
 
   it('leaves a plan with no period alone — the range is the parent’s, and there is none', async () => {
     const res = await enforceBusinessRules({
-      request: jsonReq('POST', '/fiveSAuditPlans', { planned_date: '2027-03-15' }),
+      request: jsonReq('POST', '/fiveSAuditPlans', {
+        planned_date: '2027-03-15',
+        location_id: 'loc',
+        assigned_team_id: 'team',
+      }),
       body: undefined,
       read: reader(period),
     })
@@ -318,5 +331,75 @@ describe('a plan belongs to its period', () => {
       read: reader(period),
     })
     expect(res).toBeUndefined()
+  })
+})
+
+describe('a plan must be one of the two shapes', () => {
+  /*
+   * Neither planned_date, location_id nor assigned_team_id is NOT NULL, so the
+   * API accepted a plan with nothing in it. Seven such rows reached the
+   * planning screen and rendered as "— ? – ? 0 denetim planı".
+   */
+  it('refuses a plan that is neither a period nor an audit', async () => {
+    for (const body of [{}, { status: 'planned' }, { quarter: '2026-Q4' }, { planned_date: '2026-12-01' }]) {
+      const res = await enforceBusinessRules({
+        request: jsonReq('POST', '/fiveSAuditPlans', body),
+        body: undefined,
+        read: reader([]),
+      })
+      expect(res?.status).toBe(400)
+    }
+  })
+
+  it('accepts a period plan — quarter with a range', async () => {
+    const res = await enforceBusinessRules({
+      request: jsonReq('POST', '/fiveSAuditPlans', {
+        quarter: '2026-Q4',
+        date_range_start: '2026-10-01',
+        date_range_end: '2026-12-31',
+      }),
+      body: undefined,
+      read: reader([]),
+    })
+    expect(res).toBeUndefined()
+  })
+
+  it('accepts an audit plan — date, location and team', async () => {
+    const res = await enforceBusinessRules({
+      request: jsonReq('POST', '/fiveSAuditPlans', {
+        planned_date: '2026-12-01',
+        location_id: 'loc',
+        assigned_team_id: 'team',
+      }),
+      body: undefined,
+      read: reader([]),
+    })
+    expect(res).toBeUndefined()
+  })
+
+  it('reads the camelCase twins the API layer adds', async () => {
+    const res = await enforceBusinessRules({
+      request: jsonReq('POST', '/fiveSAuditPlans', {
+        plannedDate: '2026-12-01',
+        locationId: 'loc',
+        assignedTeamId: 'team',
+      }),
+      body: undefined,
+      read: reader([]),
+    })
+    expect(res).toBeUndefined()
+  })
+
+  it('does not accept a blank string as a value', async () => {
+    const res = await enforceBusinessRules({
+      request: jsonReq('POST', '/fiveSAuditPlans', {
+        planned_date: '2026-12-01',
+        location_id: '   ',
+        assigned_team_id: 'team',
+      }),
+      body: undefined,
+      read: reader([]),
+    })
+    expect(res?.status).toBe(400)
   })
 })

@@ -143,6 +143,31 @@ export async function enforceBusinessRules(ctx: RuleContext): Promise<Response |
    * whole 5S programme is reported on, so an audit filed under the wrong
    * quarter is not a cosmetic problem.
    */
+  /*
+   * A plan is one of two shapes, and "neither" is not one of them.
+   *
+   * A PERIOD plan carries a quarter and a date range; an AUDIT plan carries a
+   * date, a location and a team. Both UI forms require exactly that
+   * (submitParentPlan needs quarter + start + end, submitSubPlan needs date +
+   * location + team), but none of those columns is NOT NULL, so the API
+   * accepted a plan with nothing in it at all. Seven such rows reached the
+   * planning screen and rendered as "— ? – ? 0 denetim planı".
+   */
+  if (PLAN_COLLECTION.test(path) && request.method === 'POST') {
+    const body0 = await readBody(ctx)
+    const has = (k: string) => {
+      const v = body0[k] ?? body0[k.replace(/_([a-z])/g, (_, c) => c.toUpperCase())]
+      return typeof v === 'string' ? v.trim() !== '' : v !== undefined && v !== null
+    }
+    const isPeriod = has('quarter') && has('date_range_start') && has('date_range_end')
+    const isAudit = has('planned_date') && has('location_id') && has('assigned_team_id')
+    if (!isPeriod && !isAudit) {
+      return refuse(
+        'Plan kaydedilemedi: bir dönem planı için çeyrek ve tarih aralığı, bir denetim planı için tarih, lokasyon ve ekip gereklidir.'
+      )
+    }
+  }
+
   const planCreate = PLAN_COLLECTION.test(path) && request.method === 'POST'
   if (planCreate || (PLAN_PATH.test(path) && body.planned_date !== undefined)) {
     const parentId = String(body.parent_plan_id ?? body.parentPlanId ?? '').trim()
