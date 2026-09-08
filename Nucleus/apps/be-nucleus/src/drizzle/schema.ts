@@ -1588,7 +1588,7 @@ export const fiveSFindingsColumns = {
 	clientSubmissionId: uuid('client_submission_id'),
 	questionId: text('question_id'),
 	stepCode: text('step_code'),
-	findingNo: integer('finding_no').notNull(),
+	findingNo: integer('finding_no').generatedByDefaultAsIdentity(),
 	detectedDate: date('detected_date'),
 	locationName: text('location_name'),
 	findingType: text('finding_type'),
