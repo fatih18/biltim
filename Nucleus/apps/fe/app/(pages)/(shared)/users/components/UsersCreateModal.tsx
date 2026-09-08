@@ -313,11 +313,24 @@ export function UsersCreateModal({
                         ].join(' ')}
                       >
                         <span className="flex-1 min-w-0">
-                          <span className="block truncate text-xs font-semibold text-slate-900 dark:text-slate-100">
+                          <span
+                            className="block truncate text-xs font-semibold text-slate-900 dark:text-slate-100"
+                            title={role.alias ?? undefined}
+                          >
                             {role.alias}
                           </span>
+                          {/*
+                            The description is what tells someone what they are
+                            granting. It clipped with an ellipsis and no title,
+                            so the sentence simply ended — "Full system access -
+                            God mode equivalent for non-…" — with no way to read
+                            the rest.
+                          */}
                           {role.description ? (
-                            <span className="block truncate text-[11px] text-slate-500 dark:text-slate-400">
+                            <span
+                              className="block truncate text-[11px] text-slate-500 dark:text-slate-400"
+                              title={role.description ?? undefined}
+                            >
                               {role.description}
                             </span>
                           ) : null}
