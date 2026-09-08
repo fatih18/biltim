@@ -102,3 +102,28 @@ describe('mergePages', () => {
     expect(merged).toHaveLength(3)
   })
 })
+
+describe('düz dizi cevabı', () => {
+  it('değerin kendisi diziyse listeyi ondan okur', () => {
+    // Bildirimler ucu {items,meta} değil, doğrudan dizi döndürüyor; eylem de
+    // geri çağrıya zaten response.data'yı veriyor. Zarf arayan okuma boş
+    // dönüyordu — zil hiçbir zaman bildirim göstermedi.
+    const r = readListResponse<{ id: string }>([{ id: 'a' }, { id: 'b' }])
+    expect(r.items).toHaveLength(2)
+    expect(r.total).toBe(2)
+    expect(r.hasNext).toBe(false)
+  })
+
+  it('boş dizi de listedir', () => {
+    expect(readListResponse([]).items).toEqual([])
+  })
+
+  it('zarflı cevabı bozmaz', () => {
+    const r = readListResponse<{ id: string }>({
+      data: { items: [{ id: 'a' }], meta: { hasNextPage: true, total: 9 } },
+    })
+    expect(r.items).toHaveLength(1)
+    expect(r.hasNext).toBe(true)
+    expect(r.total).toBe(9)
+  })
+})

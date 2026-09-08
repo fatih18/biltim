@@ -226,11 +226,21 @@ export default function BoardMeetingDecisionsPage() {
 
         setDecisions((prev) => prev.map((d) => (d.id === id ? { ...d, status: next } : d)));
 
-        actions.UPDATE_BOARD_MEETING_DECISION?.start({
+        /*
+         * PATCH, not UPDATE.
+         *
+         * `UPDATE_*` is generated as PUT, which replaces the whole record and
+         * therefore demands every NOT NULL column. This table has three
+         * (meeting_date, item_no, item_description) and the dropdown sends
+         * only the status, so every change came back "Validation failed" and
+         * the select snapped straight back to its old value. Measured: PUT
+         * {"status":"in_progress"} -> 400, PATCH with the same body -> 200.
+         */
+        actions.PATCH_BOARD_MEETING_DECISION?.start({
             payload: { _id: id, status: next },
             onAfterHandle: () => { },
             onErrorHandle: (err: any) => {
-                console.error("UPDATE_BOARD_MEETING_DECISION error", err);
+                console.error("PATCH_BOARD_MEETING_DECISION error", err);
                 fetchDecisions();
                 toast.error("Durum güncellenirken hata oluştu.");
             },

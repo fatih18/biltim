@@ -1,5 +1,7 @@
 'use client'
 
+import { relativeTime } from '@/app/(pages)/(shared)/logs/labels'
+import { readListResponse } from '@/app/_hooks/UseServerList'
 import { useGSAP } from '@gsap/react'
 import { useStore } from '@store/globalStore'
 import { useHeaderStore } from '@store/headerStore'
@@ -105,10 +107,16 @@ function NotificationDropdown({
         filters: { user_id: userId },
       },
       onAfterHandle: (data) => {
-        if (data?.data) {
-          setNotificationList(data.data as NotificationItem[])
-          setUnreadCount(data.data.filter((n: NotificationItem) => !n.is_seen).length)
-        }
+        /*
+         * The notifications route answers a bare array, not the {items,meta}
+         * envelope the entity routes use, and the action already unwraps
+         * `response.data` — so `data.data` was always undefined and the list
+         * was never set. The bell showed "Bildiriminiz yok" with unseen rows
+         * sitting in the database.
+         */
+        const { items } = readListResponse<NotificationItem>(data)
+        setNotificationList(items)
+        setUnreadCount(items.filter((n) => !n.is_seen).length)
         setIsLoading(false)
       },
       onErrorHandle: () => {
@@ -128,12 +136,18 @@ function NotificationDropdown({
         filters: { user_id: userId, is_seen: false },
       },
       onAfterHandle: (data) => {
-        if (data?.data) setUnreadCount(data.data.length)
+        setUnreadCount(readListResponse<NotificationItem>(data).items.length)
       },
     })
   }
 
   const markAsSeen = (notificationId: string) => {
+    /*
+     * UPDATE_NOTIFICATION is one of the overridden keys in
+     * lib/api/endpoints.nucleus.ts and already maps to PATCH — which is what
+     * this needs, since a PUT would replace the record and demand user_id and
+     * title that a "mark seen" does not send.
+     */
     actions.UPDATE_NOTIFICATION?.start({
       payload: {
         _id: notificationId,
@@ -167,15 +181,11 @@ function NotificationDropdown({
     }
   }
 
-  const formatTime = (timestamp: string) => {
-    const diff = Date.now() - new Date(timestamp).getTime()
-    const minutes = Math.floor(diff / 60000)
-    if (minutes < 1) return 'just now'
-    if (minutes < 60) return `${minutes}m ago`
-    const hours = Math.floor(minutes / 60)
-    if (hours < 24) return `${hours}h ago`
-    return `${Math.floor(hours / 24)}d ago`
-  }
+  /*
+   * The audit-log screen already words this in Turkish and has tests for the
+   * boundaries; the panel was printing "2m ago" next to "1 yeni".
+   */
+  const formatTime = (timestamp: string) => relativeTime(timestamp, new Date())
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -210,7 +220,7 @@ function NotificationDropdown({
                     onClick={markAllAsSeen}
                     className="text-xs text-slate-700 dark:text-slate-300 hover:text-slate-900 hover:dark:text-white"
                   >
-                    Mark all read
+                    Tümünü okundu işaretle
                   </button>
                 </>
               )}

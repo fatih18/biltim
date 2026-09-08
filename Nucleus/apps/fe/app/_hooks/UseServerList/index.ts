@@ -100,6 +100,20 @@ export function readListResponse<T>(data: unknown): {
   hasNext: boolean
   total: number | null
 } {
+  /*
+   * The value itself can be the list.
+   *
+   * Entity routes answer {data:{items,meta}}, but the notifications route
+   * answers a bare array — and an action's onAfterHandle already hands over
+   * `response.data`, so what arrives here is the array, with no envelope left
+   * to unwrap. Read as an envelope it looked empty, which is why the bell
+   * showed no notifications and no unread badge even with unseen rows in the
+   * database.
+   */
+  if (Array.isArray(data)) {
+    return { items: data as T[], hasNext: false, total: data.length }
+  }
+
   const outer = (data ?? {}) as ListBody
   const inner =
     outer.data && typeof outer.data === 'object' && !Array.isArray(outer.data)
