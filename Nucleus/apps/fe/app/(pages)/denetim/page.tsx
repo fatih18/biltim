@@ -6,6 +6,7 @@ import Dexie, { type Table } from 'dexie'
 
 import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
 import { useGetUserRole } from '@/app/_hooks/user/useGetUserRole'
+import { hasPrivilege } from '@/app/_utils/routeAccess'
 import { UploadedFileInfo, useUploadAnswerPhoto } from '../bulgular/hooks/useUploadAnswersPhoto'
 import { Question, questions as FALLBACK_QUESTIONS, StepCode, steps as FALLBACK_STEPS, Step } from './constants'
 import { DateInput } from '@/app/_components/DateInput'
@@ -470,6 +471,22 @@ export default function FiveSAuditFormPage() {
     const all = [roleName ?? '', ...(roles ?? []).map((r) => r.name ?? '')].map(norm)
     return all.includes(norm('content manager core team')) || all.includes(norm('manager')) || all.includes(norm('auditor'))
   }, [roleName, roles, roleLoading])
+
+  /*
+   * Whoever plans the audits — and the root account — must be able to open one
+   * without being on the team that was assigned it. Without this the screen
+   * tells an administrator "your team has no audit", which is true, useless,
+   * and a dead end: there is no other way into the form.
+   */
+  const [isOwnTeamSelection, setIsOwnTeamSelection] = useState(true)
+  const canOpenAnyPlanRef = useRef(false)
+  const canOpenAnyPlan = useMemo(() => {
+    if (roleLoading) return false
+    const names = [roleName ?? '', ...(roles ?? []).map((r) => r.name ?? '')]
+    return hasPrivilege(names, ['manager', 'planner', 'superadmin'])
+  }, [roleName, roles, roleLoading])
+
+  canOpenAnyPlanRef.current = canOpenAnyPlan
 
   const stepScores = useMemo(
     () => computeStepScores(steps, questions, answers),
@@ -1186,6 +1203,22 @@ export default function FiveSAuditFormPage() {
         }
       }
 
+      if (matched.length === 0 && canOpenAnyPlanRef.current && activePlans.length > 0) {
+        const metaAll: Record<string, { locationName: string; teamName: string }> = {}
+        for (const p of activePlans) {
+          metaAll[p.id] = {
+            locationName: locs.find((l) => l.id === p.location_id)?.name ?? '',
+            teamName: teams.find((t) => t.id === p.assigned_team_id)?.name ?? '',
+          }
+        }
+        setPlanMetaMap(metaAll)
+        setAvailablePlans(activePlans)
+        setIsOwnTeamSelection(false)
+        setPlanSelectionMode(true)
+        setHeader((prev) => ({ ...prev, auditorName: prev.auditorName || auditorFallback }))
+        return
+      }
+
       if (matched.length === 0) {
         setAssignedPlan(null)
         setHeader((prev) => ({
@@ -1206,6 +1239,7 @@ export default function FiveSAuditFormPage() {
 
       if (matched.length > 1) {
         setAvailablePlans(matched)
+        setIsOwnTeamSelection(true)
         setPlanSelectionMode(true)
         setHeader((prev) => ({ ...prev, auditorName: prev.auditorName || auditorFallback }))
         return
@@ -2309,13 +2343,15 @@ export default function FiveSAuditFormPage() {
     )
   }
 
-  if (planSelectionMode && availablePlans.length > 1) {
+  if (planSelectionMode && availablePlans.length > 0) {
     return (
       <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-50 px-4 py-10 md:px-8">
         <div className="mx-auto max-w-2xl rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 p-6">
           <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">Denetim Seç</h2>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-            Ekibinize atanmış birden fazla planlı denetim var. Lütfen hangi denetimi yapacağınızı seçin.
+            {isOwnTeamSelection
+              ? 'Ekibinize atanmış birden fazla planlı denetim var. Lütfen hangi denetimi yapacağınızı seçin.'
+              : 'Ekibinize atanmış planlı bir denetim yok. Yetkiniz olduğu için açık denetimlerin tamamı aşağıda listeleniyor.'}
           </p>
 
           <div className="mt-5 space-y-3">
@@ -2357,7 +2393,7 @@ export default function FiveSAuditFormPage() {
         <div className="mx-auto max-w-3xl rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 p-6">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <div className="text-base font-semibold text-slate-900 dark:text-slate-100">Ekibinize planlanan bir denetim yoktur</div>
+              <div className="text-base font-semibold text-slate-900 dark:text-slate-100">Ekibinize planlanan bir denetim yok</div>
               <div className="mt-2 text-sm text-slate-600 dark:text-slate-400">
                 Planlama ekranından ekibinize bir denetim planlandığında bu form otomatik açılacaktır.
               </div>
