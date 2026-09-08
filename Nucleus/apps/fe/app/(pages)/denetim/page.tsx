@@ -18,6 +18,13 @@ import {
   resolvePhotoUrl,
   toPhotoArr,
 } from '@/app/_utils/photos'
+import {
+  computeStepScores,
+  computeTotalScore,
+  formatScore,
+  isExplanationRequired,
+  TARGET_SCORE,
+} from './_utils/scoring'
 
 /* ───────────────────────────── Types ───────────────────────────── */
 type Rating = 'good' | 'medium' | 'bad'
@@ -120,13 +127,7 @@ function genUUID(): string {
 }
 
 /* ───────────────────────────── Consts ───────────────────────────── */
-const ratingFactor: Record<Rating, number> = {
-  good: 1,
-  medium: 0.5,
-  bad: 0,
-}
 
-const TARGET_SCORE = 75
 
 const PLAN_KEYS = { GET: 'GET_FIVE_S_AUDIT_PLANS', UPDATE: 'UPDATE_FIVE_S_AUDIT_PLAN' } as const
 const USERS_KEYS = { GET: 'GET_USERS' } as const
@@ -152,10 +153,6 @@ const DRAFT_KEYS = {
 
 
 /* ───────────────────────────── Helpers ───────────────────────────── */
-function formatScore(value: number | undefined) {
-  if (value == null || Number.isNaN(value)) return '-'
-  return value.toFixed(2)
-}
 
 function ensureAnswer(prev: AnswersState, questionId: string): QuestionAnswer {
   return (
@@ -172,10 +169,6 @@ function ensureAnswer(prev: AnswersState, questionId: string): QuestionAnswer {
   )
 }
 
-function isExplanationRequired(q: Question, ans?: QuestionAnswer) {
-  if (!ans || !ans.rating) return false
-  return q.requireExplanation && ans.rating !== 'good'
-}
 
 
 
@@ -475,30 +468,11 @@ export default function FiveSAuditFormPage() {
     return all.includes(norm('content manager core team')) || all.includes(norm('manager')) || all.includes(norm('auditor'))
   }, [roleName, roles, roleLoading])
 
-  const stepScores = useMemo(() => {
-  const scores: Record<StepCode, number> = { S1: 0, S2: 0, S3: 0, S4: 0, S5: 0 }
-
-  for (const step of steps) {
-    const qs = questions.filter((q) => q.stepCode === step.code)
-
-    const rawMax = qs.reduce((sum, q) => sum + (q.maxScore ?? 0), 0)
-
-    const rawEarned = qs.reduce((sum, q) => {
-      const ans = answers[q.id]
-      if (!ans?.rating) return sum
-      return sum + (q.maxScore ?? 0) * ratingFactor[ans.rating]
-    }, 0)
-
-    const scale = rawMax > 0 ? step.maxScore / rawMax : 0
-    scores[step.code] = rawEarned * scale
-  }
-
-  return scores
-}, [answers, questions, steps])
-  const totalScore = useMemo(
-    () => (Object.values(stepScores) as number[]).reduce((a, b) => a + b, 0),
-    [stepScores]
+  const stepScores = useMemo(
+    () => computeStepScores(steps, questions, answers),
+    [answers, questions, steps]
   )
+  const totalScore = useMemo(() => computeTotalScore(stepScores), [stepScores])
 
   // Gerçek zamanlı eksik/tamamlanmamış soru seti
   const liveUnanswered = useMemo(() => {
