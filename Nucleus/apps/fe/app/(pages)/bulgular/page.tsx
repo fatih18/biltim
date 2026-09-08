@@ -622,7 +622,7 @@ export default function FiveSFindingsListPage() {
               type="button"
               onClick={handleDownloadExcel}
               disabled={downloadingExcel}
-              className="inline-flex items-center gap-1.5 rounded-md border border-emerald-600/60 bg-emerald-100 dark:bg-emerald-950/30 px-3 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-200 hover:bg-emerald-200 hover:dark:bg-emerald-950/60 disabled:opacity-50"
+              className="inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border border-emerald-600/60 bg-emerald-100 px-3 text-xs font-semibold text-emerald-700 hover:bg-emerald-200 disabled:opacity-50 dark:bg-emerald-950/30 dark:text-emerald-200 hover:dark:bg-emerald-950/60"
             >
               {downloadingExcel ? (
                 <Loader2 size={13} className="animate-spin" />
@@ -693,12 +693,12 @@ export default function FiveSFindingsListPage() {
               </div>
             </div>
 
-            <div className="md:w-40 space-y-2">
+            <div className="space-y-2 md:w-auto">
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={handleApplyFilters}
-                  className="flex-1 rounded-md bg-sky-500 px-4 py-2 text-xs font-semibold text-slate-950 hover:bg-sky-400"
+                  className="inline-flex h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-md bg-sky-600 px-4 text-xs font-semibold text-white hover:bg-sky-500"
                 >
                   Filtreleri Uygula
                 </button>
@@ -707,7 +707,7 @@ export default function FiveSFindingsListPage() {
                   type="button"
                   onClick={() => fetchFindings()}
                   disabled={loading}
-                  className="flex-1 rounded-md border border-slate-400 dark:border-slate-600 px-4 py-2 text-xs font-medium text-slate-800 dark:text-slate-200 hover:bg-slate-200 hover:dark:bg-slate-800 disabled:opacity-60"
+                  className="inline-flex h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-md border border-slate-300 px-4 text-xs font-medium text-slate-800 hover:bg-slate-100 disabled:opacity-60 dark:border-slate-600 dark:text-slate-200 hover:dark:bg-slate-800"
                 >
                   {loading ? "Yükleniyor..." : "Yenile"}
                 </button>
@@ -716,7 +716,7 @@ export default function FiveSFindingsListPage() {
               <button
                 type="button"
                 onClick={handleClearFilters}
-                className="w-full rounded-md border border-slate-400 dark:border-slate-600 px-4 py-2 text-xs font-medium text-slate-800 dark:text-slate-200 hover:bg-slate-200 hover:dark:bg-slate-800"
+                className="inline-flex h-9 w-full items-center justify-center whitespace-nowrap rounded-md border border-slate-300 px-4 text-xs font-medium text-slate-800 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 hover:dark:bg-slate-800"
               >
                 Temizle
               </button>
