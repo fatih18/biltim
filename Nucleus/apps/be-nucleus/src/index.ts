@@ -1,5 +1,6 @@
 import { type CreateNucleusServerOptions, createNucleusServer } from 'nucleus-core-ts/server'
 import { closePool } from './db'
+import { enforceBusinessRules } from './guards/businessRules'
 import { ReportsRoutes } from './routes/reports'
 
 /**
@@ -34,6 +35,16 @@ async function main() {
     config,
     port,
     routes: [ReportsRoutes],
+    /*
+     * The 5S rules that the screens enforce and the API did not.
+     *
+     * Measured before this existed: PUT /fiveSFindings/<id> {"status":"closed"}
+     * answered 200 and closed a finding with no "after" photo, and five
+     * consecutive date changes on one plan all answered 200 against a cap of
+     * two. Nucleus chains this ahead of its own guard, so it reaches the
+     * generated CRUD routes a host route could not.
+     */
+    onRequest: ({ request, body }) => enforceBusinessRules({ request, body }),
     // Our own pg pool is separate from the framework's; without this it leaked
     // on every restart. `onStop` runs after nucleus's own teardown steps.
     onStop: [closePool],

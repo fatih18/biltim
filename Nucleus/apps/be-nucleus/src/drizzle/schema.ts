@@ -1460,6 +1460,7 @@ export const fiveSAuditPlans = pgTable('five_s_audit_plans', fiveSAuditPlansColu
 	index('five_s_audit_plans_audit_id_idx').on(t.auditId),
 	index('five_s_audit_plans_parent_plan_id_idx').on(t.parentPlanId),
 	index('five_s_audit_plans_quarter_idx').on(t.quarter),
+	check('five_s_audit_plans_date_change_count_check', sql`date_change_count >= 0 and date_change_count <= 2`),
 ]);
 
 export function createFiveSAuditPlansForSchema(schema: ReturnType<typeof pgSchema>) {
