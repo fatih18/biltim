@@ -78,6 +78,24 @@ const custom = {
   REGISTER_V2: { method: 'POST', path: '/auth/register' },
   REFRESH_V2: { method: 'POST', path: '/auth/refresh' },
 
+  /*
+   * 1 — şifre ve hesap kilidi.
+   *
+   * Üçü de nucleus'ta VAR ve kurulu sürümde mount ediliyor; buradan
+   * çağrılmadıkları için yoklar sanılıyordu. Kilidi açmanın tek dürüst yolu
+   * `unlock-user`: `users` tablosunu PATCH'leyip `is_locked: false` yazmak
+   * jenerik uçta 200 döner ve HİÇBİR ŞEY değiştirmez — o kolonlar jenerik
+   * yazmaya kapalı. Ayrıca kilidi açmak sayacı sıfırlamayı da gerektiriyor;
+   * `unlock-user` üçünü birlikte temizliyor.
+   *
+   * `set-user-password` ve `unlock-user` godmin kapısının arkasında, ama kapı
+   * `is_god` kolonunu VEYA godmin ROLÜNÜ kabul ediyor — yani godmin hesabını
+   * paylaşmadan bir yöneticiye rol vermek yeterli.
+   */
+  CHANGE_MY_PASSWORD: { method: 'POST', path: '/auth/password-change' },
+  ADMIN_SET_USER_PASSWORD: { method: 'POST', path: '/auth/admin/set-user-password' },
+  ADMIN_UNLOCK_USER: { method: 'POST', path: '/auth/admin/unlock-user' },
+
   // 1 — bildirimler
   GET_NOTIFICATIONS: { method: 'GET', path: '/notifications/' },
   UPDATE_NOTIFICATION: { method: 'PATCH', path: '/notifications/:id' },

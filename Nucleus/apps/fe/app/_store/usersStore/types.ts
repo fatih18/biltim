@@ -23,6 +23,7 @@ export type StoreProps = {
     details: boolean
     delete: boolean
     manageClaims: boolean
+    setPassword: boolean
   }
   selectedUserId: string | null
   claimModal: {

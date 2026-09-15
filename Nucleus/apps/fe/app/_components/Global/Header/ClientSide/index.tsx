@@ -10,6 +10,7 @@ import {
   Bell,
   ChevronDown,
   ChevronRight,
+  KeyRound,
   LogOut,
   Menu,
   Moon,
@@ -24,6 +25,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import type React from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Endpoints, FactoryFunction } from '@/lib/api'
+import { ChangePasswordModal } from '../../ChangePasswordModal'
 import { SkeletonHeader } from '../Skeleton'
 import type {
   HeaderNavCategory,
@@ -610,6 +612,7 @@ export function ClientSide({
   const headerRef = useRef<HTMLDivElement>(null)
   const menuItemsRef = useRef<HTMLDivElement>(null)
   const profileRef = useRef<HTMLDivElement>(null)
+  const [isChangePasswordOpen, setChangePasswordOpen] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
   const logoRef = useRef<HTMLDivElement>(null)
   const navRef = useRef<HTMLDivElement>(null)
@@ -1196,6 +1199,17 @@ export function ClientSide({
                     <Settings size={16} />
                     <span>Settings</span>
                   </button> */}
+                  <button
+                    onClick={() => {
+                      headerStore.updateUi({ isProfileOpen: false })
+                      setChangePasswordOpen(true)
+                    }}
+                    className="w-full text-left px-4 py-2 text-slate-700 dark:text-slate-200 hover:bg-slate-50 hover:dark:bg-slate-800/60 rounded-lg transition-colors duration-200 flex items-center gap-3"
+                    type="button"
+                  >
+                    <KeyRound size={16} />
+                    <span>Şifremi Değiştir</span>
+                  </button>
                   <hr className="my-2" />
                   <button
                     onClick={handleLogout}
@@ -1223,6 +1237,11 @@ export function ClientSide({
           </nav>
         </div>
       </div>
+
+      <ChangePasswordModal
+        isOpen={isChangePasswordOpen}
+        onClose={() => setChangePasswordOpen(false)}
+      />
     </header>
   )
 }

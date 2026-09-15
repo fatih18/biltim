@@ -4,6 +4,8 @@ import {
   AlertCircle,
   CheckCircle2,
   Info,
+  KeyRound,
+  LockOpen,
   MailCheck,
   ShieldBan,
   ShieldCheck,
@@ -16,9 +18,20 @@ interface UsersTableProps {
   onSelectDetails: (userId: string) => void
   onValidateEmail: (userId: string) => void
   onDelete: (userId: string) => void
+  onUnlock: (userId: string) => void
+  onSetPassword: (userId: string) => void
+  unlockingUserId: string | null
 }
 
-export function UsersTable({ users, onSelectDetails, onValidateEmail, onDelete }: UsersTableProps) {
+export function UsersTable({
+  users,
+  onSelectDetails,
+  onValidateEmail,
+  onDelete,
+  onUnlock,
+  onSetPassword,
+  unlockingUserId,
+}: UsersTableProps) {
   if (!users) {
     return (
       <div className="bg-white relative overflow-hidden rounded-2xl border border-slate-300 dark:border-white/10 dark:bg-gradient-to-br dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 text-slate-900 dark:text-white shadow-2xl">
@@ -172,6 +185,31 @@ export function UsersTable({ users, onSelectDetails, onValidateEmail, onDelete }
                           <MailCheck size={14} aria-hidden="true" /> E-postasını Doğrula
                         </button>
                       ) : null}
+
+                      {/*
+                        Kilidi açan buton yalnızca kilitli satırda çıkıyor: her
+                        satırda duran bir "Kilidi Aç" düğmesi, kilitlinin hangisi
+                        olduğunu tabloda aramak demekti.
+                      */}
+                      {user.is_locked ? (
+                        <button
+                          type="button"
+                          disabled={unlockingUserId === user.id}
+                          className="inline-flex items-center gap-1 text-sm font-semibold text-amber-700 dark:text-amber-300 hover:text-amber-800 hover:dark:text-amber-200 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                          onClick={() => onUnlock(user.id)}
+                        >
+                          <LockOpen size={14} aria-hidden="true" />{' '}
+                          {unlockingUserId === user.id ? 'Açılıyor…' : 'Kilidi Aç'}
+                        </button>
+                      ) : null}
+
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 text-sm font-semibold text-sky-700 dark:text-sky-300 hover:text-sky-800 hover:dark:text-sky-200 transition-colors"
+                        onClick={() => onSetPassword(user.id)}
+                      >
+                        <KeyRound size={14} aria-hidden="true" /> Şifre Sıfırla
+                      </button>
 
                       <button
                         type="button"

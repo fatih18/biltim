@@ -346,6 +346,7 @@ const initialStore: StoreProps = {
     details: false,
     delete: false,
     manageClaims: false,
+    setPassword: false,
   },
   selectedUserId: null,
   claimModal: { ...defaultClaimModalState },

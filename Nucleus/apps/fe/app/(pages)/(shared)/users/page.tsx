@@ -13,6 +13,7 @@ import { UsersDeleteModal } from './components/UsersDeleteModal'
 import { UsersDetailsDrawer } from './components/UsersDetailsDrawer'
 import { UsersFilters } from './components/UsersFilters'
 import { UsersHeader } from './components/UsersHeader'
+import { UsersSetPasswordModal } from './components/UsersSetPasswordModal'
 import { UsersTable } from './components/UsersTable'
 import { toast } from "sonner";
 // import { UsersValidateModal } from './components/UsersValidateModal' // dosyada kullanılmıyor, istersen geri aç
@@ -23,6 +24,9 @@ export default function UsersPage() {
 
   const usersStore = useUsersStore()
   const [areFiltersVisible, setFiltersVisible] = useState(false)
+  // Hangi satırın kilidi açılıyor: buton "Açılıyor…" derken diğer satırlar
+  // tıklanabilir kalsın diye tek bir boolean değil, id tutuluyor.
+  const [unlockingUserId, setUnlockingUserId] = useState<string | null>(null)
 
   // GET_USERS'i aynı anda 2 kez tetiklemeyi önlemek için
   const isFetchingRef = useRef(false)
@@ -229,6 +233,62 @@ export default function UsersPage() {
     startDelete(0)
   }
 
+  /*
+   * Kilidi AÇMAK, `users` satırına `is_locked: false` yazmak değil.
+   *
+   * Jenerik varlık ucu bu kolonları yazmaya kapalı: PATCH 200 döner ve hiçbir
+   * şey değişmez — panel işi bitmiş sanır, kullanıcı hâlâ giremez. Ayrıca kilit
+   * bayrağını temizlemek tek başına yeterli de değil; giriş rotası hatalı deneme
+   * sayacını şifreyi KONTROL ETMEDEN önce okuyor ve o sayaç yalnız başarılı bir
+   * girişte sıfırlanıyor. `unlock-user` üçünü (bayrak, süre, sayaç) birlikte
+   * temizlediği için tek doğru yol o.
+   */
+  function handleUnlockUser(userId: string) {
+    setUnlockingUserId(userId)
+
+    actions.ADMIN_UNLOCK_USER?.start({
+      payload: { userId },
+      onAfterHandle: () => {
+        setUnlockingUserId(null)
+        usersStore.setNeedsRefresh(true)
+        toast.success('Hesabın kilidi açıldı.')
+      },
+      onErrorHandle: (error) => {
+        setUnlockingUserId(null)
+        toast.error(getErrorMessage(error) || 'Kilit açılamadı.')
+      },
+    })
+  }
+
+  /*
+   * Sunucunun reddetme SEBEBİ modalda kalmalı, toast'ta değil.
+   *
+   * "Şifre çok zayıf" bir toast olarak çıkıp kaybolursa, yönetici yazdığı
+   * şifrenin neden kabul edilmediğini göremeden formla baş başa kalıyor. O
+   * yüzden bu akış hatayı modala geri döndürüyor; modal açık kalıyor ve yazılan
+   * şifre kutuda duruyor.
+   */
+  function handleSetUserPassword(password: string): Promise<string | null> {
+    const userId = usersStore.selectedUserId
+    if (!userId) return Promise.resolve('Kullanıcı seçili değil.')
+
+    return new Promise((resolve) => {
+      actions.ADMIN_SET_USER_PASSWORD?.start({
+        payload: { userId, password },
+        onAfterHandle: () => {
+          usersStore.setModalVisibility('setPassword', false)
+          usersStore.setSelectedUserId(null)
+          usersStore.setNeedsRefresh(true)
+          toast.success('Şifre değiştirildi. Kullanıcının açık oturumları kapatıldı.')
+          resolve(null)
+        },
+        onErrorHandle: (error) => {
+          resolve(getErrorMessage(error) || 'Şifre değiştirilemedi.')
+        },
+      })
+    })
+  }
+
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-50 px-4 py-6 md:px-8">
       <div className="mx-auto max-w-7xl space-y-6">
@@ -272,6 +332,12 @@ export default function UsersPage() {
                 usersStore.setSelectedUserId(userId)
                 usersStore.setModalVisibility('delete', true)
               }}
+              onUnlock={handleUnlockUser}
+              onSetPassword={(userId) => {
+                usersStore.setSelectedUserId(userId)
+                usersStore.setModalVisibility('setPassword', true)
+              }}
+              unlockingUserId={unlockingUserId}
             />
 
             {hasUsers ? (
@@ -301,6 +367,17 @@ export default function UsersPage() {
             usersStore.setSelectedUserId(null)
           }}
           isSubmitting={Boolean(actions.DELETE_USER?.state?.isPending)}
+        />
+
+        <UsersSetPasswordModal
+          isOpen={usersStore.modals.setPassword}
+          userEmail={selectedUser?.email || ''}
+          onConfirm={handleSetUserPassword}
+          onClose={() => {
+            usersStore.setModalVisibility('setPassword', false)
+            usersStore.setSelectedUserId(null)
+          }}
+          isSubmitting={Boolean(actions.ADMIN_SET_USER_PASSWORD?.state?.isPending)}
         />
 
         <UsersDetailsDrawer

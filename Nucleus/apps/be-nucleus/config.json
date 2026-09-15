@@ -89,6 +89,9 @@
         "enabled": true
       }
     },
+    "passwordChange": {
+      "enabled": true
+    },
     "passwordPolicy": {
       "minLength": 8,
       "requireUppercase": false,
