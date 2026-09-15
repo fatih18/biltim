@@ -83,6 +83,18 @@
       "allowMultipleDevices": true,
       "maxActiveSessions": 5,
       "inactivityTimeout": "30d"
+    },
+    "admin": {
+      "passwordTools": {
+        "enabled": true
+      }
+    },
+    "passwordPolicy": {
+      "minLength": 8,
+      "requireUppercase": false,
+      "requireLowercase": true,
+      "requireNumber": true,
+      "requireSpecialChar": false
     }
   },
   "authorization": {
