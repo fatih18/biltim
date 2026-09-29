@@ -11,6 +11,14 @@ const API = process.env.AUTH_API_URL || "http://localhost:1001";
 
 const nextConfig: NextConfig = {
 	...baseConfig,
+	/**
+	 * `next build` empties its distDir before compiling, so building into the
+	 * live `.next` took the running site down for the whole build — and kept it
+	 * down when the build failed. Nucleus/deploy/update.sh builds into
+	 * `.next-build` and swaps it in only after the build succeeds. `next start`
+	 * never sets this, so it always serves `.next`.
+	 */
+	distDir: process.env.NEXT_DIST_DIR || ".next",
 	// Turbopack is enabled by default in Next.js 16
 	allowedDevOrigins: ["*"],
 	experimental: {

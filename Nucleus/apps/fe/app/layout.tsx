@@ -1,17 +1,26 @@
 import type { Metadata, Viewport } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import localFont from 'next/font/local'
 import './globals.css'
 import { Toaster } from 'sonner'
 import { ConfirmHost, Header, LoginChecker } from './_components'
 
-const geistSans = Geist({
+/*
+ * Fonts ship with the repo instead of coming from next/font/google. The
+ * customer server has no outbound internet, and next/font/google fetches at
+ * BUILD time: `next build` failed there with "Failed to fetch Geist from
+ * Google Fonts". Same Geist variable fonts (OFL, app/fonts/OFL.txt), full
+ * Turkish coverage (ş ğ ı İ ç ö ü) checked against the glyph table.
+ */
+const geistSans = localFont({
+  src: './fonts/Geist-Variable.woff2',
   variable: '--font-geist-sans',
-  subsets: ['latin'],
+  weight: '100 900',
 })
 
-const geistMono = Geist_Mono({
+const geistMono = localFont({
+  src: './fonts/GeistMono-Variable.woff2',
   variable: '--font-geist-mono',
-  subsets: ['latin'],
+  weight: '100 900',
 })
 
 export const metadata: Metadata = {
