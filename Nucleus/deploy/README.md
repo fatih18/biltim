@@ -24,16 +24,37 @@ screen -S fe -X quit
 
 ## Güncelleme
 
-Sıra önemli: ön yüz derlenmiş çıktıyı servis eder, o yüzden `build` restart'tan
-önce gelir.
+Tek komut. Konsola uzun komut yazmak gerekmez; CyberArk/RDP konsolu tuş
+düşürüyor ve Shift'li karakterleri (`| " & { } : $`) bozuyor.
 
 ```bash
 cd /root/apps/biltim
-git pull
-cd Nucleus && bun install
-cd apps/fe && bun run build
-systemctl restart biltim-be biltim-fe
+bash update.sh
 ```
+
+Betik sırasıyla şunları yapar: `git pull` → paket dosyaları değiştiyse
+`bun install` → ön yüzü `.next-build`'e derler → arka ucu yeniden başlatıp
+`/health` bekler → yeni derlemeyi `.next`'e koyup ön yüzü yeniden başlatır ve
+`/login` bekler. Ayrıntılar ve garantiler betiğin başında
+(`Nucleus/deploy/update.sh`).
+
+| Komut | Ne yapar |
+|---|---|
+| `bash update.sh` | güncelle |
+| `bash update.sh status` | sadece durum, hiçbir şeye dokunmaz |
+| `bash update.sh nopull` | `git pull` yapmadan derle + yeniden başlat |
+| `bash update.sh geri` | yalnız ön yüz: önceki derlemeyle yer değiştirir (tekrar yazınca geri döner); kod ve arka uç değişmez |
+
+- **Derleme sırasında site açık kalır.** `next build` hedef klasörü baştan
+  siliyor; eskiden canlı `.next`'e derlendiği için derleme boyunca site
+  bozuluyordu, derleme başarısızsa bozuk kalıyordu (29 Eylül). Şimdi derleme
+  yandaki klasöre yapılıyor, başarısızsa canlı siteye hiç dokunulmuyor.
+- **Derleme internet istemez.** Yazı tipleri repoda (`apps/fe/app/fonts`);
+  eskiden derleme Google Fonts'tan indiriyordu ve makinenin çıkışı kapalıyken
+  derleme düşüyordu. Yalnız paket dosyaları değişirse `bun install` için npm'e
+  erişim gerekir.
+- **Konsol koparsa iş yarıda kalmaz.** İş ayrı bir oturumda koşar; kaydı
+  `/root/biltim-deploy/update.log`.
 
 ## Kontrol
 

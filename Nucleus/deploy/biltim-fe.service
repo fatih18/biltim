@@ -1,8 +1,8 @@
 # Biltim 5S — on yuz (Next.js).
 #
-# `next start` derlenmis ciktiyi servis eder; once `bun run build` calismis
-# olmali. Guncelleme sirasi: git pull -> bun install -> bun run build ->
-# systemctl restart biltim-fe
+# `next start` derlenmis ciktiyi (.next) servis eder. Guncelleme:
+#   cd /root/apps/biltim && bash update.sh
+# Elle `bun run build` yapma: canli .next'i derleme boyunca bozar.
 #
 # Kurulum (bir kez):
 #   cp Nucleus/deploy/biltim-fe.service /etc/systemd/system/
