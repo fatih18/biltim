@@ -51,6 +51,7 @@ export type StoreMethods = {
   setNeedsRefresh: (needsRefresh: boolean) => void
   mergeUser: (user: UserJSON | UserJSON) => void
   removeUser: (userId: string) => void
+  clearUserLockout: (userId: string) => void
   setModalVisibility: (modal: keyof StoreProps['modals'], value: boolean) => void
   setSelectedUserId: (userId: string | null) => void
   resetClaimModal: (payload: {

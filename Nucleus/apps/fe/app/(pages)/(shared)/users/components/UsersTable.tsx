@@ -21,6 +21,12 @@ interface UsersTableProps {
   onUnlock: (userId: string) => void
   onSetPassword: (userId: string) => void
   unlockingUserId: string | null
+  /*
+   * "Kilidi Aç" ve "Şifre Sıfırla" yalnız godmin'e. İkisinin ucu da sunucuda
+   * godmin kapısının arkasında; bu ekranı açabilen Super Admin ya da Content
+   * Manager Core Team düğmeyi görüp tıklıyor ve 403 alıyordu.
+   */
+  showGodminActions: boolean
 }
 
 export function UsersTable({
@@ -31,6 +37,7 @@ export function UsersTable({
   onUnlock,
   onSetPassword,
   unlockingUserId,
+  showGodminActions,
 }: UsersTableProps) {
   if (!users) {
     return (
@@ -191,7 +198,7 @@ export function UsersTable({
                         satırda duran bir "Kilidi Aç" düğmesi, kilitlinin hangisi
                         olduğunu tabloda aramak demekti.
                       */}
-                      {user.is_locked ? (
+                      {showGodminActions && user.is_locked ? (
                         <button
                           type="button"
                           disabled={unlockingUserId === user.id}
@@ -203,13 +210,15 @@ export function UsersTable({
                         </button>
                       ) : null}
 
-                      <button
-                        type="button"
-                        className="inline-flex items-center gap-1 text-sm font-semibold text-sky-700 dark:text-sky-300 hover:text-sky-800 hover:dark:text-sky-200 transition-colors"
-                        onClick={() => onSetPassword(user.id)}
-                      >
-                        <KeyRound size={14} aria-hidden="true" /> Şifre Sıfırla
-                      </button>
+                      {showGodminActions ? (
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 text-sm font-semibold text-sky-700 dark:text-sky-300 hover:text-sky-800 hover:dark:text-sky-200 transition-colors"
+                          onClick={() => onSetPassword(user.id)}
+                        >
+                          <KeyRound size={14} aria-hidden="true" /> Şifre Sıfırla
+                        </button>
+                      ) : null}
 
                       <button
                         type="button"

@@ -1,13 +1,19 @@
 'use client'
 
 import { Copy, Eye, EyeOff, KeyRound } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { useModal } from '@/app/_hooks/UseModal'
+import {
+  ADMIN_SET_PASSWORD_POLICY,
+  PasswordRuleList,
+  passwordProblems,
+} from '@/app/_components/Global/PasswordRules'
 
 interface UsersSetPasswordModalProps {
   isOpen: boolean
   userEmail: string | undefined
-  onConfirm: (password: string) => Promise<string | null>
+  /** Sunucu reddederse sebepleri (Türkçe) döner; başarıda null. */
+  onConfirm: (password: string) => Promise<string[] | null>
   onClose: () => void
   isSubmitting: boolean
 }
@@ -22,11 +28,12 @@ interface UsersSetPasswordModalProps {
  * kimsenin okuyamayacağı bir şifre koyup "kullanıcıya iletin" demek, işi
  * bitmiş göstermenin bir yolu olurdu.
  *
- * Şifre kuralını BURADA tekrar yazmıyoruz. Sunucu kurulumun kendi politikasını
- * uyguluyor ve reddederse sebebini cümleyle söylüyor; buraya ikinci bir kural
- * kopyası koymak, iki kuralın birbirinden kayacağı gün "geçerli" görünen bir
- * şifrenin sunucuda reddedilmesi demek. Tek yaptığımız kontrol, iki alanın
- * birbirini tutması — onu sunucu göremez.
+ * Kural burada yazıyor ve gönderilmeden önce kontrol ediliyor. Önceden
+ * yazmıyordu, "sunucu sebebini söyler" deniyordu; ama bu uç kurulu sürümde
+ * kurulumun kuralını değil kütüphanenin varsayılanını uyguluyor (büyük harf
+ * dahil) ve reddi İngilizce söylüyor. Küçük harfli bir şifre yazan yönetici
+ * "Password must contain uppercase letter" ile kalıyordu. Kuralın hangisi
+ * olduğu `PasswordRules` içinde anlatılıyor.
  */
 export function UsersSetPasswordModal({
   isOpen,
@@ -35,12 +42,26 @@ export function UsersSetPasswordModal({
   onClose,
   isSubmitting,
 }: UsersSetPasswordModalProps) {
-  const modal = useModal(onClose, { enabled: isOpen })
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [visible, setVisible] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [errors, setErrors] = useState<string[]>([])
   const [copied, setCopied] = useState(false)
+  const [isSending, setSending] = useState(false)
+
+  // İstek sürerken modal kapanmıyor. Kapanabilseydi geç gelen cevap bir
+  // sonraki açılışa — başka bir kullanıcının kutusuna — düşerdi.
+  const isBusy = isSubmitting || isSending
+  const modal = useModal(isBusy ? () => {} : onClose, { enabled: isOpen })
+  const isOpenRef = useRef(isOpen)
+  isOpenRef.current = isOpen
+
+  // Odak göz düğmesine değil, şifrenin yazılacağı alana. useModal'dan sonra
+  // çalıştığı için onun seçtiği öğenin üzerine yazıyor.
+  const passwordRef = useRef<HTMLInputElement | null>(null)
+  useEffect(() => {
+    if (isOpen) passwordRef.current?.focus()
+  }, [isOpen])
 
   // Bir kullanıcı için yazılan şifrenin bir sonraki kullanıcının kutusunda
   // durması, yanlış kişiye yanlış şifre vermenin en kolay yolu.
@@ -48,7 +69,7 @@ export function UsersSetPasswordModal({
     if (!isOpen) {
       setPassword('')
       setConfirmPassword('')
-      setError(null)
+      setErrors([])
       setCopied(false)
     }
   }, [isOpen])
@@ -57,21 +78,26 @@ export function UsersSetPasswordModal({
     return null
   }
 
-  async function handleConfirm() {
-    setError(null)
+  async function handleConfirm(event?: FormEvent) {
+    event?.preventDefault()
+    if (isBusy) return
+    setErrors([])
 
+    const problems = passwordProblems(ADMIN_SET_PASSWORD_POLICY, password)
+    if (problems.length > 0) {
+      setErrors(problems)
+      return
+    }
     if (password !== confirmPassword) {
-      setError('İki şifre birbirini tutmuyor.')
-      return
-    }
-    if (password.length === 0) {
-      setError('Şifre boş olamaz.')
+      setErrors(['İki şifre birbirini tutmuyor.'])
       return
     }
 
-    const serverError = await onConfirm(password)
-    if (serverError) {
-      setError(serverError)
+    setSending(true)
+    const serverErrors = await onConfirm(password)
+    setSending(false)
+    if (serverErrors && serverErrors.length > 0 && isOpenRef.current) {
+      setErrors(serverErrors)
     }
   }
 
@@ -95,7 +121,7 @@ export function UsersSetPasswordModal({
         {...modal}
         className="w-full max-w-md rounded-2xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/90 shadow-2xl shadow-slate-950/60"
       >
-        <div className="space-y-4 px-6 py-6">
+        <form onSubmit={handleConfirm} className="space-y-4 px-6 py-6" noValidate>
           <div>
             <h2 className="flex items-center gap-2 text-xl font-semibold text-slate-900 dark:text-slate-100">
               <KeyRound size={18} aria-hidden="true" /> Şifre Sıfırla
@@ -121,6 +147,7 @@ export function UsersSetPasswordModal({
             </label>
             <div className="flex items-center gap-2">
               <input
+                ref={passwordRef}
                 id="new-password"
                 type={visible ? 'text' : 'password'}
                 value={password}
@@ -153,6 +180,8 @@ export function UsersSetPasswordModal({
             ) : null}
           </div>
 
+          <PasswordRuleList policy={ADMIN_SET_PASSWORD_POLICY} password={password} />
+
           <div className="space-y-2">
             <label
               htmlFor="new-password-confirm"
@@ -174,9 +203,20 @@ export function UsersSetPasswordModal({
             Şifre değişince bu kullanıcının açık oturumları kapanır ve varsa hesap kilidi kalkar.
           </div>
 
-          {error ? (
-            <div className="rounded-lg border border-rose-400 dark:border-rose-400/40 bg-rose-100 dark:bg-rose-950/30 px-4 py-3 text-sm text-rose-700 dark:text-rose-200">
-              {error}
+          {errors.length > 0 ? (
+            <div
+              role="alert"
+              className="rounded-lg border border-rose-400 dark:border-rose-400/40 bg-rose-100 dark:bg-rose-950/30 px-4 py-3 text-sm text-rose-700 dark:text-rose-200"
+            >
+              {errors.length === 1 ? (
+                errors[0]
+              ) : (
+                <ul className="list-disc space-y-1 pl-4">
+                  {errors.map((message) => (
+                    <li key={message}>{message}</li>
+                  ))}
+                </ul>
+              )}
             </div>
           ) : null}
 
@@ -184,21 +224,21 @@ export function UsersSetPasswordModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-4 py-2 text-sm font-medium text-slate-800 dark:text-slate-200 hover:bg-slate-200 hover:dark:bg-slate-800 transition-colors"
+              disabled={isBusy}
+              className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-4 py-2 text-sm font-medium text-slate-800 dark:text-slate-200 hover:bg-slate-200 hover:dark:bg-slate-800 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
             >
               İptal
             </button>
 
             <button
-              type="button"
-              onClick={handleConfirm}
-              disabled={isSubmitting}
+              type="submit"
+              disabled={isBusy}
               className="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isSubmitting ? 'Kaydediliyor…' : 'Şifreyi Kaydet'}
+              {isBusy ? 'Kaydediliyor…' : 'Şifreyi Kaydet'}
             </button>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   )

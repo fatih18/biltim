@@ -1238,9 +1238,18 @@ export function ClientSide({
         </div>
       </div>
 
+      {/*
+        Şifre değişince sunucu bu oturumu da kapatıyor; modal ne olduğunu
+        söyledikten sonra buradaki normal çıkış yolu çalışıyor (store temizlenir,
+        /login açılır). Ayrı bir yönlendirme yazılmadı ki iki çıkış yolu olmasın.
+      */}
       <ChangePasswordModal
         isOpen={isChangePasswordOpen}
         onClose={() => setChangePasswordOpen(false)}
+        onSignedOut={() => {
+          setChangePasswordOpen(false)
+          void handleLogout()
+        }}
       />
     </header>
   )

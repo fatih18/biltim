@@ -5,6 +5,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import type { Create as CreateUserPayload } from '@monorepo/db-entities/schemas/default/user'
 import { useStore } from '@store/globalStore'
 import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
+import { readServerReasons } from '@/app/_components/Global/PasswordRules'
 import { useUsersStore } from '@/app/_store/usersStore'
 import type { StoreProps } from '@/app/_store/usersStore/types'
 import { Pagination } from '../logs/components/Pagination'
@@ -32,6 +33,9 @@ export default function UsersPage() {
   const isFetchingRef = useRef(false)
 
   const hasUsers = usersStore.users && usersStore.users.data.length > 0
+
+  // Kilit açma ve şifre koyma yalnız godmin'e açık; bkz. isGodmin.
+  const canManageAccess = useMemo(() => isGodmin(store.user), [store.user])
 
   const selectedUser = useMemo(() => {
     if (!usersStore.selectedUserId || !usersStore.users) return undefined
@@ -64,13 +68,20 @@ export default function UsersPage() {
           const incoming = data as NonNullable<typeof usersStore.users>
           const isFirstPage = (incoming.pagination?.page ?? 1) <= 1
           const previous = usersStore.users
+          /*
+           * Zaten listede olan bir satırın YENİ kopyası eskisinin yerine
+           * geçiyor. Önceden eskisi tutuluyordu: 2. sayfadayken yapılan bir
+           * yenileme aynı satırları getirip atıyordu, yani kilidi açılan
+           * hesabın "Kilitli" rozeti ekranda kalıyordu.
+           */
+          const fresh = new Map(incoming.data.map((row) => [row.id, row]))
           usersStore.users =
             isFirstPage || !previous
               ? incoming
               : {
                   ...incoming,
                   data: [
-                    ...previous.data,
+                    ...previous.data.map((held) => fresh.get(held.id) ?? held),
                     ...incoming.data.filter(
                       (row) => !previous.data.some((held) => held.id === row.id)
                     ),
@@ -244,18 +255,22 @@ export default function UsersPage() {
    * temizlediği için tek doğru yol o.
    */
   function handleUnlockUser(userId: string) {
+    if (!canManageAccess) return
     setUnlockingUserId(userId)
 
     actions.ADMIN_UNLOCK_USER?.start({
       payload: { userId },
       onAfterHandle: () => {
         setUnlockingUserId(null)
+        // Satır hangi sayfadan gelmiş olursa olsun hemen düzelsin; yenileme
+        // de filtreye göre listenin kendisini toparlasın.
+        usersStore.clearUserLockout(userId)
         usersStore.setNeedsRefresh(true)
         toast.success('Hesabın kilidi açıldı.')
       },
       onErrorHandle: (error) => {
         setUnlockingUserId(null)
-        toast.error(getErrorMessage(error) || 'Kilit açılamadı.')
+        toast.error(readServerReasons(error).join(' ') || 'Kilit açılamadı.')
       },
     })
   }
@@ -268,22 +283,31 @@ export default function UsersPage() {
    * yüzden bu akış hatayı modala geri döndürüyor; modal açık kalıyor ve yazılan
    * şifre kutuda duruyor.
    */
-  function handleSetUserPassword(password: string): Promise<string | null> {
+  function handleSetUserPassword(password: string): Promise<string[] | null> {
     const userId = usersStore.selectedUserId
-    if (!userId) return Promise.resolve('Kullanıcı seçili değil.')
+    if (!userId) return Promise.resolve(['Kullanıcı seçili değil.'])
 
     return new Promise((resolve) => {
       actions.ADMIN_SET_USER_PASSWORD?.start({
         payload: { userId, password },
-        onAfterHandle: () => {
-          usersStore.setModalVisibility('setPassword', false)
-          usersStore.setSelectedUserId(null)
+        onAfterHandle: (data) => {
+          const result = (data ?? {}) as { signedOut?: unknown; lockoutCleared?: unknown }
+          // Modal yalnız bu kullanıcı için hâlâ açıksa kapansın; bu arada
+          // başka biri seçildiyse onun modalı ve seçimi yerinde kalmalı.
+          if (usersStore.modals.setPassword && usersStore.selectedUserId === userId) {
+            usersStore.setModalVisibility('setPassword', false)
+            usersStore.setSelectedUserId(null)
+          }
+          // Sunucu şifreyle birlikte kilidi ve hatalı giriş sayacını da
+          // temizliyor; satır bunu hemen göstersin.
+          if (result.lockoutCleared !== false) usersStore.clearUserLockout(userId)
           usersStore.setNeedsRefresh(true)
-          toast.success('Şifre değiştirildi. Kullanıcının açık oturumları kapatıldı.')
+          toast.success(passwordSetMessage(result.signedOut))
           resolve(null)
         },
         onErrorHandle: (error) => {
-          resolve(getErrorMessage(error) || 'Şifre değiştirilemedi.')
+          const reasons = readServerReasons(error)
+          resolve(reasons.length > 0 ? reasons : ['Şifre değiştirilemedi.'])
         },
       })
     })
@@ -334,10 +358,12 @@ export default function UsersPage() {
               }}
               onUnlock={handleUnlockUser}
               onSetPassword={(userId) => {
+                if (!canManageAccess) return
                 usersStore.setSelectedUserId(userId)
                 usersStore.setModalVisibility('setPassword', true)
               }}
               unlockingUserId={unlockingUserId}
+              showGodminActions={canManageAccess}
             />
 
             {hasUsers ? (
@@ -402,6 +428,46 @@ export default function UsersPage() {
       </div>
     </div>
   )
+}
+
+/*
+ * `set-user-password` ve `unlock-user` sunucuda godmin kapısının arkasında
+ * (nucleus requireGodmin.ts). Kapının tanımı: kişinin kendi satırında
+ * `is_god` açık YA DA adı tam olarak "godmin" olan bir rolü var. Aynı tanım
+ * burada; büyük/küçük harf katlanmıyor, çünkü sunucu da katlamıyor. Kaynak
+ * /auth/me: LoginChecker'ın doldurduğu kullanıcı, rolleriyle birlikte geliyor.
+ */
+function isGodmin(user: unknown): boolean {
+  if (!user || typeof user !== 'object') return false
+  type GodFlags = { is_god?: unknown; isGod?: unknown }
+  // /auth/me: { user: { isGod, … }, roles: [{ name }], … } — bayrak `user`
+  // içinde, roller yanında. Zarflı ya da düz gelmesine göre ikisine de bak.
+  const envelope = user as { data?: unknown }
+  const me = (envelope.data ?? user) as GodFlags & { user?: GodFlags; roles?: unknown }
+  const flags = [me, me.user].filter(Boolean) as GodFlags[]
+  if (flags.some((f) => f.is_god === true || f.isGod === true)) return true
+  return (
+    Array.isArray(me.roles) &&
+    me.roles.some((role) => (role as { name?: unknown } | null)?.name === 'godmin')
+  )
+}
+
+/*
+ * Oturum kapanıp kapanmadığını sunucu söylüyor (`signedOut`, silinen oturum
+ * kaydı sayısı); mesaj onu okuyor. Önceden her seferinde "açık oturumları
+ * kapatıldı" deniyordu — kapanacak oturum olmasa da. Sayının kendisi
+ * yazılmıyor: eski, zaten geçersiz kayıtları da sayıyor.
+ *
+ * 0 "oturumu yoktu" demek DEĞİL: sunucu (revokeUserSessions) silme hata
+ * verdiğinde de 0 dönüyor. O yüzden 0'da oturumlar hakkında hiçbir şey
+ * söylenmiyor; ele geçirilmiş bir hesabı sıfırlayan yöneticiye "kapatılacak
+ * oturum yoktu" demek, eski oturumlar açıkken yanlış bir güvence olurdu.
+ */
+function passwordSetMessage(signedOut: unknown): string {
+  if (typeof signedOut === 'number' && signedOut > 0) {
+    return 'Şifre değiştirildi. Kullanıcının oturumları kapatıldı.'
+  }
+  return 'Şifre değiştirildi.'
 }
 
 function buildFilters(filters: StoreProps['filters']) {

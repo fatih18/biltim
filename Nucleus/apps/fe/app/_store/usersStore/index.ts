@@ -25,6 +25,24 @@ const defaultClaimModalState: StoreProps['claimModal'] = {
   assignmentMap: {},
 }
 
+/*
+ * Kilidi açılan ya da şifresi yönetici tarafından konan hesabın satırda
+ * görünmesi gereken hâli. `unlock-user` ve `set-user-password` sunucuda bu
+ * üçünü (bayrak, süre, sayaç) birlikte temizliyor.
+ *
+ * Satırlar sunucudan camelCase gelip snake_case ikizleriyle çoğaltılıyor
+ * (UseNucleusApi), yani aynı alan nesnede iki adla duruyor; ikisi de
+ * yazılıyor ki biri eski değeri göstermesin.
+ */
+const clearedLockout = {
+  is_locked: false,
+  locked_until: null,
+  failed_login_attempts: 0,
+  isLocked: false,
+  lockedUntil: null,
+  failedLoginAttempts: 0,
+}
+
 const storeMethodCreators: MethodCreators<StoreProps, StoreMethods> = {
   setUsers(store) {
     function setUsersAction(users: ListReturn | undefined) {
@@ -145,6 +163,30 @@ const storeMethodCreators: MethodCreators<StoreProps, StoreMethods> = {
       }
     }
     return removeUserAction
+  },
+  /*
+   * Listeyi yeniden çekmek bu satırı her zaman tazelemiyor: kaydırarak 2.
+   * sayfaya inildiyse yenileme yalnızca o sayfayı getiriyor, 1. sayfadaki
+   * satır olduğu gibi kalıyordu — "Kilitli" rozeti duruyor, yönetici işlemin
+   * olmadığını sanıyordu. Sunucunun ne yaptığı belli olduğu için satır
+   * yerinde düzeltiliyor.
+   */
+  clearUserLockout(store) {
+    function clearUserLockoutAction(userId: string) {
+      if (!store.users) {
+        return
+      }
+      store.users = {
+        ...store.users,
+        data: store.users.data.map(function mapUser(existing) {
+          if (existing.id !== userId) {
+            return existing
+          }
+          return { ...existing, ...clearedLockout }
+        }),
+      }
+    }
+    return clearUserLockoutAction
   },
   setModalVisibility(store) {
     function setModalVisibilityAction(modal: keyof StoreProps['modals'], value: boolean) {
