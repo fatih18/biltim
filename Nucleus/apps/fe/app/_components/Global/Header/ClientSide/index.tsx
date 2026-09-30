@@ -24,7 +24,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import type React from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Endpoints, FactoryFunction } from '@/lib/api'
+import { FactoryFunction } from '@/lib/api/factory.nucleus'
 import { ChangePasswordModal } from '../../ChangePasswordModal'
 import { SkeletonHeader } from '../Skeleton'
 import type {
@@ -815,9 +815,20 @@ export function ClientSide({
     }
   }
 
+  /*
+   * Çıkış, oturum çerezini de taşıyan istemciyle.
+   *
+   * Önceden eski istemciyle (`@/lib/api`) yapılıyordu. O istemci yalnız
+   * erişim çerezini gönderiyor, oturum çerezini göndermiyordu; sunucu hangi
+   * oturumun kapanacağını bilemiyor, hiçbir şeyi kapatmıyordu. Oturum çerezi de
+   * tarayıcıda kalıyordu ve nucleus kimliği o çerezden okuduğu için "Çıkış
+   * Yap"tan sonra aynı bilgisayarı açan kişi önceki kullanıcı olarak içerideydi.
+   * nucleus istemcisi tarayıcının bütün çerezlerini iletiyor ve sunucunun
+   * silme talimatlarını (Max-Age=0) tarayıcıya uyguluyor.
+   */
   async function handleLogout(): Promise<undefined> {
     try {
-      await FactoryFunction(undefined, Endpoints.LOGOUT_V2)
+      await FactoryFunction({}, 'LOGOUT_V2')
     } catch (error) {
       console.error('Logout failed:', error)
     } finally {

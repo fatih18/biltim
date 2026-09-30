@@ -84,6 +84,7 @@ export default function Login() {
       payload: {
         email: (event.currentTarget as any).email.value,
         password: (event.currentTarget as any).password.value,
+        deviceHint: browserDeviceId(),
       },
       onAfterHandle: () => {
         actions.GET_ME_V2?.start({
@@ -317,4 +318,34 @@ export default function Login() {
       </section>
     </main>
   )
+}
+
+/*
+ * Bu tarayıcının kalıcı kimliği, girişte `deviceHint` olarak gidiyor.
+ *
+ * nucleus bir hesaba "aynı cihazdan" yeni giriş yapılınca o hesabın aynı
+ * cihazdaki öteki oturumlarını kapatıyor. Cihaz izi ipucu verilmezse yalnız
+ * "tarayıcı-işletim sistemi-tür" (Chrome-Windows-desktop) oluyor; yani aynı
+ * hesabı kullanan bütün Windows bilgisayarları tek cihaz sayılıyor ve biri
+ * girince öbürü atılıyordu. Canlıda 30 Eylül günlüğünde her /auth/refresh 401,
+ * kullanıcılar tekrar tekrar giriş yapıyordu. Tarayıcı başına rastgele bir
+ * kimlikle yalnız aynı tarayıcının eski oturumu kapanıyor.
+ *
+ * crypto.randomUUID kullanılmıyor: sayfa http://172.26.16.27 üzerinden
+ * açılıyor, güvenli bağlam değil ve orada tanımsız. getRandomValues her
+ * yerde var. Depolama kapalıysa ipucu gönderilmez, eski davranış sürer.
+ */
+function browserDeviceId(): string | undefined {
+  const KEY = 'biltim_device_id'
+  try {
+    const stored = window.localStorage.getItem(KEY)
+    if (stored && /^[0-9a-f]{32}$/.test(stored)) return stored
+    const bytes = new Uint8Array(16)
+    window.crypto.getRandomValues(bytes)
+    const id = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
+    window.localStorage.setItem(KEY, id)
+    return id
+  } catch {
+    return undefined
+  }
 }
