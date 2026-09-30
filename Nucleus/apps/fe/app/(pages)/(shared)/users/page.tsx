@@ -347,7 +347,7 @@ export default function UsersPage() {
           isOpen={usersStore.modals.create}
           onClose={() => usersStore.setModalVisibility('create', false)}
           onSubmit={handleCreate}
-          isSubmitting={Boolean(actions.ADD_USER?.state?.isPending)}
+          isSubmitting={Boolean(actions.ADMIN_CREATE_USER?.state?.isPending)}
         />
 
         <UsersDeleteModal
@@ -358,7 +358,7 @@ export default function UsersPage() {
             usersStore.setModalVisibility('delete', false)
             usersStore.setSelectedUserId(null)
           }}
-          isSubmitting={Boolean(actions.DELETE_USER?.state?.isPending)}
+          isSubmitting={Boolean(actions.ADMIN_HARD_DELETE_USER?.state?.isPending)}
         />
 
         <UsersSetPasswordModal

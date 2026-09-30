@@ -226,6 +226,7 @@ const SERVER_REASONS: Array<[RegExp, (match: RegExpMatchArray) => string]> = [
     () => 'Kullanıcı silmek yalnızca godmin yetkisiyle yapılabilir.',
   ],
   [/^Cannot hard-delete yourself$/i, () => 'Kendi hesabınızı silemezsiniz.'],
+  [/^Cannot hard-delete a godmin user$/i, () => 'Godmin hesabı silinemez.'],
   [
     /^Hard delete failed and was rolled back/i,
     () =>
