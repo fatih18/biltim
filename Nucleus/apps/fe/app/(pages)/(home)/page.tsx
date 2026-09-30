@@ -188,6 +188,10 @@ export default function Page() {
   const [teams, setTeams] = React.useState<AuditTeamLite[]>([]);
   const [teamMembers, setTeamMembers] = React.useState<TeamMemberRow[]>([]);
   const [users, setUsers] = React.useState<UserLite[]>([]);
+  // Planın gösterdiği ama sunucunun artık döndürmediği kayıtlar: silinmişler.
+  // Ayrı tutuluyor ki ekran "yükleniyor"u "yok"tan ayırabilsin.
+  const [missingLocIds, setMissingLocIds] = React.useState<string[]>([]);
+  const [missingTeamIds, setMissingTeamIds] = React.useState<string[]>([]);
   const [loading, setLoading] = React.useState(false);
 
   const [currentUserId, setCurrentUserId] = React.useState<string>("");
@@ -350,70 +354,117 @@ export default function Page() {
      * plus the current user's own memberships, which is what decides whose
      * plans they may see.
      */
+    /*
+     * Kişiler birleştirilerek tutuluyor, değiştirilmeyerek değil: ekip
+     * liderleri ile lokasyon müdürleri iki ayrı okumadan geliyor ve biri
+     * ötekini silmemeli.
+     */
+    const kisileriOku = (ids: unknown[]) => {
+      const uniq = [...new Set(ids.filter(Boolean).map(String))];
+      if (uniq.length === 0) return;
+      run(startUsers, {
+        payload: { page: 1, limit: 200, filters: { id: uniq } },
+        onAfterHandle: (u: any) => {
+          const gelen = extractArray(u).map(toUserLite);
+          setUsers((prev) => {
+            const byId = new Map(prev.map((x) => [x.id, x]));
+            for (const x of gelen) byId.set(x.id, x);
+            return [...byId.values()];
+          });
+        },
+        onErrorHandle: (e: any) => reportReadFailure(`${GET_USERS_KEY}`, e),
+      });
+    };
+
     const okuIlgili = (planRows: any[]) => {
       const lokIds = [...new Set(planRows.map((p) => p?.location_id).filter(Boolean).map(String))];
       const ekipIds = [
         ...new Set(planRows.map((p) => p?.assigned_team_id).filter(Boolean).map(String)),
       ];
 
+      /*
+       * Lokasyonlar ve onların müdür / saha sorumluları.
+       *
+       * Müdür adları önceden hiç okunmuyordu: kişi okuması yalnız ekip
+       * liderlerini ve üyeleri istiyordu, "MÜDÜR / SAHA SOR." sütunu bu
+       * yüzden her satırda "—" kalıyordu.
+       */
       if (lokIds.length > 0) {
         run(startLocs, {
           payload: { page: 1, limit: 200, filters: { id: lokIds } },
-          onAfterHandle: (res: any) => setLocations(extractArray(res).map(toLocationLite)),
+          onAfterHandle: (res: any) => {
+            const lokasyonlar = extractArray(res).map(toLocationLite);
+            setLocations(lokasyonlar);
+            const gelen = new Set(lokasyonlar.map((l) => l.id));
+            setMissingLocIds(lokIds.filter((id) => !gelen.has(id)));
+            kisileriOku(lokasyonlar.flatMap((l) => [l.managerUserId, ...l.fieldManagerUserIds]));
+          },
           onErrorHandle: (e: any) => reportReadFailure(`${LOC_KEYS.GET}`, e),
         });
       } else {
         setLocations([]);
+        setMissingLocIds([]);
       }
 
       /*
-       * Teams: the ones on screen, plus the ones this person leads or belongs
-       * to — those decide which plans they are allowed to see at all, so they
-       * cannot be limited to what is currently listed.
+       * Ekipler: ekrandakiler ve bu kişinin lideri/üyesi olduklarını —
+       * hangi planları görebileceğine onlar karar veriyor.
+       *
+       * İkisi TEK okumada (team_id IN … VEYA user_id = ben). Önceden kişi
+       * belliyse yalnız kendi üyelikleri okunuyordu ve bu, ekrandaki
+       * ekiplerin üyelerinin yerine geçiyordu: "Üyeler" açılır kutusu yalnız
+       * lideri gösteriyordu.
        */
+      const ben = benRef.current;
+      const uyeFiltresi =
+        ekipIds.length > 0 && ben
+          ? [
+              {
+                operator: "or",
+                value: [
+                  { field: "team_id", operator: "in", value: ekipIds },
+                  { field: "user_id", operator: "eq", value: ben },
+                ],
+              },
+            ]
+          : ekipIds.length > 0
+            ? { team_id: ekipIds }
+            : ben
+              ? { user_id: ben }
+              : null;
+
+      if (!uyeFiltresi) {
+        setTeamMembers([]);
+        setTeams([]);
+        setMissingTeamIds([]);
+        return;
+      }
+
       run(startMembers, {
-        payload: {
-          page: 1,
-          limit: 500,
-          filters: benRef.current
-            ? { user_id: benRef.current }
-            : ekipIds.length > 0
-              ? { team_id: ekipIds }
-              : { id: ["00000000-0000-0000-0000-000000000000"] },
-        },
+        payload: { page: 1, limit: 200, filters: uyeFiltresi },
         onAfterHandle: (res: any) => {
           const uyeler = extractArray(res).map(toTeamMemberLite);
           setTeamMembers(uyeler);
-          const hepsi = [...new Set([...ekipIds, ...uyeler.map((m: any) => String(m.team_id))])];
+          const hepsi = [
+            ...new Set([...ekipIds, ...uyeler.map((m: any) => String(m.team_id))].filter(Boolean)),
+          ];
           if (hepsi.length === 0) {
             setTeams([]);
+            setMissingTeamIds([]);
             return;
           }
           run(startTeams, {
-            payload: { page: 1, limit: 500, filters: { id: hepsi } },
+            payload: { page: 1, limit: 200, filters: { id: hepsi } },
             onAfterHandle: (r: any) => {
               const ekipler = extractArray(r).map(toTeamLite);
               setTeams(ekipler);
-              const kisiIds = [
-                ...new Set(
-                  [
-                    ...ekipler.map((t: any) => t.leaderUserId),
-                    ...uyeler.map((m: any) => m.user_id),
-                    benRef.current,
-                  ]
-                    .filter(Boolean)
-                    .map(String)
-                ),
-              ];
-              if (kisiIds.length === 0) {
-                setUsers([]);
-                return;
-              }
-              run(startUsers, {
-                payload: { page: 1, limit: 500, filters: { id: kisiIds } },
-                onAfterHandle: (u: any) => setUsers(extractArray(u).map(toUserLite)),
-                onErrorHandle: (e: any) => reportReadFailure(`${GET_USERS_KEY}`, e),
-              });
+              const gelen = new Set(ekipler.map((t) => t.id));
+              setMissingTeamIds(ekipIds.filter((id) => !gelen.has(id)));
+              kisileriOku([
+                ...ekipler.map((t: any) => t.leaderUserId),
+                ...uyeler.map((m: any) => m.user_id),
+                benRef.current,
+              ]);
             },
             onErrorHandle: (e: any) => reportReadFailure(`${TEAM_KEYS.GET}`, e),
           });
@@ -457,9 +508,9 @@ export default function Page() {
     const userNameById = new Map(users.map((u) => [u.id, u.name]));
     const map = new Map<string, LocInfo>();
     for (const loc of locations) {
-      if (!loc.isActive) continue;
+      // Pasif lokasyon atlanmıyor: plan hâlâ ona bağlı, ad görünmeli.
       map.set(loc.id, {
-        name: loc.name,
+        name: loc.isActive ? loc.name : `${loc.name} (pasif)`,
         managerName: loc.managerUserId
           ? (userNameById.get(loc.managerUserId) ?? null)
           : null,
@@ -468,8 +519,11 @@ export default function Page() {
           .filter((n): n is string => !!n),
       });
     }
+    for (const id of missingLocIds) {
+      if (!map.has(id)) map.set(id, { name: "Silinmiş lokasyon", managerName: null, fieldManagerNames: [] });
+    }
     return map;
-  }, [locations, users]);
+  }, [locations, users, missingLocIds]);
 
   const teamInfoById = React.useMemo(() => {
     const userName = new Map(users.map((u) => [u.id, u.name || u.email || "Kullanıcı"]));
@@ -497,8 +551,11 @@ export default function Page() {
 
       map.set(t.id, { teamId: t.id, leaderName, memberNames });
     }
+    for (const id of missingTeamIds) {
+      if (!map.has(id)) map.set(id, { teamId: id, leaderName: "Silinmiş ekip", memberNames: [] });
+    }
     return map;
-  }, [users, teamMembers, teams]);
+  }, [users, teamMembers, teams, missingTeamIds]);
 
   // Madde 6: Denetçi / Saha Sorumlusu ana sayfada sadece kendi denetimlerini görsün
   const { roleName, roles, isLoading: isRoleLoading } = useGetUserRole();

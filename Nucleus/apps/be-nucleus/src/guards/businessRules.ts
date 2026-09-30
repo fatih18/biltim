@@ -29,6 +29,8 @@ const PLAN_PATH = /^\/fiveSAuditPlans\/([^/?]+)/
 const PLAN_COLLECTION = /^\/fiveSAuditPlans\/?$/
 const FINDING_COLLECTION = /^\/fiveSFindings\/?$/
 const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH'])
+const LOCATION_ITEM = /^\/fiveSLocations\/([^/?]+)\/?$/
+const TEAM_ITEM = /^\/fiveSAuditTeams\/([^/?]+)\/?$/
 
 /** The cap the planning screen shows as "Düzenle (N hak)". */
 export const MAX_DATE_CHANGES = 2
@@ -128,8 +130,50 @@ async function readBody(ctx: RuleContext): Promise<Record<string, unknown>> {
   }
 }
 
+/**
+ * A location or team an open plan still points at cannot be deleted.
+ *
+ * `five_s_audit_plans.location_id` and `assigned_team_id` carry no foreign
+ * key, and nucleus's generic DELETE is a hard delete, so nothing stopped it.
+ * Measured on production (30 Sep, 11:45 UTC): three locations and three teams
+ * were deleted from Ana Veri Yönetimi while two planned audits still named
+ * them. The plans stayed, pointing at rows that no longer exist; the home
+ * page showed "-" for the location and "—" for the team, and nobody could say
+ * where or by whom those audits were meant to be done.
+ *
+ * Completed plans do not block: they are history, and the customer must be
+ * able to clean test data out. The message says what to do instead.
+ */
+async function guardMasterDataDelete(
+  path: string,
+  read: NonNullable<RuleContext['read']>
+): Promise<Response | undefined> {
+  const target = LOCATION_ITEM.exec(path)
+    ? { id: LOCATION_ITEM.exec(path)?.[1], column: 'location_id', label: 'Bu lokasyon', hint: 'lokasyonu pasif yapın' }
+    : TEAM_ITEM.exec(path)
+      ? { id: TEAM_ITEM.exec(path)?.[1], column: 'assigned_team_id', label: 'Bu ekip', hint: 'ekibi pasif yapın' }
+      : null
+  if (!target?.id) return undefined
+
+  const rows = await read(
+    `select count(*)::int as n from main.five_s_audit_plans
+      where ${target.column} = $1 and is_active and coalesce(status, '') <> 'completed'`,
+    [decodeURIComponent(target.id)]
+  )
+  const open = Number(rows[0]?.n ?? 0)
+  if (!Number.isFinite(open) || open <= 0) return undefined
+  return refuse(
+    `${target.label} ${open} açık denetim planında kullanılıyor; silinirse o planların nerede ve kimle yapılacağı kaybolur. Önce planları başka birine taşıyın ya da silin, veya ${target.hint}.`
+  )
+}
+
 export async function enforceBusinessRules(ctx: RuleContext): Promise<Response | undefined> {
   const { request } = ctx
+  if (request.method === 'DELETE') {
+    const deletePath = new URL(request.url).pathname
+    if (!LOCATION_ITEM.test(deletePath) && !TEAM_ITEM.test(deletePath)) return undefined
+    return guardMasterDataDelete(deletePath, ctx.read ?? query)
+  }
   if (!WRITE_METHODS.has(request.method)) return undefined
 
   const path = new URL(request.url).pathname

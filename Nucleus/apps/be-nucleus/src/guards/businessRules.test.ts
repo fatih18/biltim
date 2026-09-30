@@ -593,3 +593,54 @@ describe('puan sınırları', () => {
     expect(res).toBeUndefined()
   })
 })
+
+describe('master data an open plan still uses', () => {
+  const LOC = '/fiveSLocations/ca47d356-7903-4be0-8dc0-cf2fab0eadb7'
+  const TEAM = '/fiveSAuditTeams/a5b1476f-9896-4d7c-a2e9-d19679559625'
+
+  it('refuses deleting a location an open plan points at, and says what to do', async () => {
+    const res = await enforceBusinessRules({ request: req('DELETE', LOC), body: undefined, read: reader([{ n: 2 }]) })
+    expect(res?.status).toBe(400)
+    const body = await res?.json()
+    expect(body.message).toContain('Bu lokasyon 2 açık denetim planında kullanılıyor')
+    expect(body.message).toContain('pasif')
+  })
+
+  it('refuses deleting a team an open plan is assigned to', async () => {
+    const res = await enforceBusinessRules({ request: req('DELETE', TEAM), body: undefined, read: reader([{ n: 1 }]) })
+    expect(res?.status).toBe(400)
+    expect((await res?.json()).message).toContain('Bu ekip 1 açık denetim planında')
+  })
+
+  it('lets the delete through when no open plan uses it', async () => {
+    expect(await enforceBusinessRules({ request: req('DELETE', LOC), body: undefined, read: reader([{ n: 0 }]) })).toBeUndefined()
+    expect(await enforceBusinessRules({ request: req('DELETE', TEAM), body: undefined, read: reader([]) })).toBeUndefined()
+  })
+
+  it('asks only about the row being deleted, by the right column', async () => {
+    const seen: Array<{ text: string; params: unknown[] }> = []
+    const read = async (text: string, params: unknown[]) => {
+      seen.push({ text, params })
+      return [{ n: 0 }]
+    }
+    await enforceBusinessRules({ request: req('DELETE', TEAM), body: undefined, read })
+    expect(seen).toHaveLength(1)
+    expect(seen[0]?.text).toContain('assigned_team_id = $1')
+    expect(seen[0]?.text).toContain("<> 'completed'")
+    expect(seen[0]?.params).toEqual(['a5b1476f-9896-4d7c-a2e9-d19679559625'])
+  })
+
+  it('does not touch other deletes, the collection, or reads', async () => {
+    const boom = async () => {
+      throw new Error('must not query')
+    }
+    for (const r of [
+      req('DELETE', '/fiveSFindingTypes/x'),
+      req('DELETE', '/fiveSAuditPlans/x'),
+      req('DELETE', '/fiveSLocations'),
+      req('GET', LOC),
+    ]) {
+      expect(await enforceBusinessRules({ request: r, body: undefined, read: boom })).toBeUndefined()
+    }
+  })
+})
