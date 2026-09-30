@@ -2,7 +2,6 @@
 import { InfiniteScroll } from '@/app/_components/Global/InfiniteScroll'
 
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import type { Create as CreateUserPayload } from '@monorepo/db-entities/schemas/default/user'
 import { useStore } from '@store/globalStore'
 import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
 import { readServerReasons } from '@/app/_components/Global/PasswordRules'
@@ -118,54 +117,35 @@ export default function UsersPage() {
     lastName: string
     roleIds: string[]
   }) {
+    /*
+     * Tek çağrı: kullanıcı, roller ve profil birlikte.
+     *
+     * Eskiden üç ayrı istekti (POST /users → /profiles → /userRoles). Kurulu
+     * nucleus (0.10.115) ilkini HERKESE reddediyor — "users cannot be created
+     * through the generic entity API — it would create an account with no
+     * password" — yani ekrandan hiçbir kullanıcı açılamıyordu (canlı günlük:
+     * POST /users 403, 30 Eylül). `/auth/admin/create-user` şifreyi kurulumun
+     * politikasıyla kontrol edip özetler, rolleri ve profili aynı istekte yazar.
+     * Uç godmin'e açık; godmin olmayana sunucu 403 döner, ekran da düğmeyi
+     * yalnız godmin'e gösteriyor.
+     */
     return await new Promise<void>((resolve) => {
-      const requestPayload: CreateUserPayload = {
-        email: payload.email,
-        password: payload.password,
-        is_god: false,
-      }
-
-      actions.ADD_USER?.start({
-        payload: requestPayload,
-        onAfterHandle: (createdUser) => {
-          if (!createdUser) {
-            resolve()
-            return
-          }
-
-          // Profile
-          actions.ADD_PROFILE?.start({
-            payload: {
-              user_id: createdUser.id,
-              first_name: payload.firstName,
-              last_name: payload.lastName,
-            },
-            onErrorHandle: (error) => {
-              console.error('Add profile failed:', error)
-              toast.error('Kullanıcı profili oluşturulamadı.')
-            },
-          })
-
-          // Roles
-          if (payload.roleIds && payload.roleIds.length > 0) {
-            payload.roleIds.forEach((roleId) => {
-              actions.ADD_USER_ROLE?.start({
-                payload: { user_id: createdUser.id, role_id: roleId },
-                onErrorHandle: (error) => {
-                  console.error(`Add user role failed for role ${roleId}:`, error)
-                  toast.error('Rol eklenemedi.')
-                },
-              })
-            })
-          }
-
+      actions.ADMIN_CREATE_USER?.start({
+        payload: {
+          email: payload.email.trim(),
+          password: payload.password,
+          roleIds: payload.roleIds,
+          profile: { firstName: payload.firstName.trim(), lastName: payload.lastName.trim() },
+        },
+        onAfterHandle: () => {
           usersStore.setNeedsRefresh(true)
           usersStore.setModalVisibility('create', false)
           usersStore.setSelectedUserId(null)
+          toast.success('Kullanıcı oluşturuldu.')
           resolve()
         },
         onErrorHandle: (error) => {
-          console.error('Add user failed:', error)
+          console.error('Create user failed:', error)
 
           if (isDuplicateEmailError(error)) {
             toast.error('Aynı mail adresiyle iki kere kayıt yapılamaz.')
@@ -173,19 +153,8 @@ export default function UsersPage() {
             return
           }
 
-          const msg = (getErrorMessage(error) || '').toLowerCase()
-          if (
-            msg.includes('fetch failed') ||
-            msg.includes('econnrefused') ||
-            msg.includes('network') ||
-            msg.includes('failed to fetch')
-          ) {
-            toast.error('Kullanıcı oluşturulamadı.')
-            resolve()
-            return
-          }
-
-          toast.error(getErrorMessage(error) || 'Kullanıcı oluşturulamadı.')
+          const reasons = readServerReasons(error)
+          toast.error(reasons.length > 0 ? reasons.join(' ') : 'Kullanıcı oluşturulamadı.')
           resolve()
         },
       })
@@ -193,6 +162,7 @@ export default function UsersPage() {
   }
 
   function handleDeleteUser() {
+    if (!canManageAccess) return
     if (!usersStore.selectedUserId) return
     const userIdToDelete = usersStore.selectedUserId
 
@@ -205,43 +175,37 @@ export default function UsersPage() {
       return
     }
 
-    const startDelete = (attempt: number) => {
-      actions.DELETE_USER?.start({
-        payload: { _id: userIdToDelete },
-        onAfterHandle: (data) => {
-          if (!data) return
-
-          // optimistik kaldır
-          usersStore.removeUser(data.id)
-
-          // modal/selection state temizle
-          usersStore.setModalVisibility('delete', false)
-          usersStore.setSelectedUserId(null)
-
-          // listeyi kesin güncelle
-          usersStore.setNeedsRefresh(true)
-        },
-        onErrorHandle: (error) => {
-          console.error('Delete user failed:', error)
-
-          // 401/403 ise 1 kere retry
-          if (attempt === 0 && isAuthRefreshLikely(error)) {
-            startDelete(1)
-            return
-          }
-
-          const msg = getErrorMessage(error)
-
-          // ✅ UI state toparla (sayfa düşmesin / loader takılmasın)
-          usersStore.setModalVisibility('delete', false)
-          usersStore.setSelectedUserId(null)
-
-          toast.error(msg || 'Kullanıcı silinemedi.')
-        },
-      })
-    }
-
-    startDelete(0)
+    /*
+     * Kalıcı silme, bağlı kayıtlarıyla birlikte.
+     *
+     * Jenerik `DELETE /users/:id` yalnız `users` satırını silmeye çalışıyordu;
+     * her kullanıcının bir `profiles` satırı olduğu için Postgres reddediyordu
+     * ve ekran "Cannot delete: records in 'profiles' still reference this one"
+     * gösteriyordu (canlı günlük: 409, 30 Eylül). nucleus'un kendi ucu
+     * `hard-delete` profili, rolleri, oturumları ve kişisel kayıtları tek
+     * işlemde siler; biri takılırsa hepsi geri alınır. Uç yalnız godmin'e açık.
+     *
+     * 401/403'te bir kez daha deneme kaldırıldı: 403 burada "godmin değilsin"
+     * demek, oturum yenilemeyle düzelmez; ikinci deneme yalnız aynı reddi
+     * tekrarlıyordu.
+     */
+    actions.ADMIN_HARD_DELETE_USER?.start({
+      payload: { userId: userIdToDelete },
+      onAfterHandle: () => {
+        usersStore.removeUser(userIdToDelete)
+        usersStore.setModalVisibility('delete', false)
+        usersStore.setSelectedUserId(null)
+        usersStore.setNeedsRefresh(true)
+        toast.success('Kullanıcı silindi.')
+      },
+      onErrorHandle: (error) => {
+        console.error('Delete user failed:', error)
+        usersStore.setModalVisibility('delete', false)
+        usersStore.setSelectedUserId(null)
+        const reasons = readServerReasons(error)
+        toast.error(reasons.length > 0 ? reasons.join(' ') : 'Kullanıcı silinemedi.')
+      },
+    })
   }
 
   /*
@@ -319,7 +283,9 @@ export default function UsersPage() {
         <div className="rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900/40 p-4 md:p-6 shadow-xl shadow-slate-950/60">
           <div className="space-y-6">
             <UsersHeader
-              onCreate={() => usersStore.setModalVisibility('create', true)}
+              onCreate={
+                canManageAccess ? () => usersStore.setModalVisibility('create', true) : undefined
+              }
               onRefresh={() => usersStore.setNeedsRefresh(true)}
               isRefreshing={
                 Boolean(usersStore.needsRefresh) ||
@@ -526,20 +492,6 @@ function getBackendCode(error: unknown): string | undefined {
     e?.response?.data?.code ??
     e?.response?.data?.errorCode ??
     e?.response?.data?.error?.code
-  )
-}
-
-function isAuthRefreshLikely(error: unknown): boolean {
-  const status = getStatus(error)
-  if (status === 401 || status === 403) return true
-
-  const msg = (getErrorMessage(error) || '').toLowerCase()
-  return (
-    msg.includes('unauthorized') ||
-    msg.includes('jwt') ||
-    msg.includes('token') ||
-    msg.includes('expired') ||
-    msg.includes('refresh')
   )
 }
 

@@ -3,7 +3,8 @@
 import { Shield, UserPlus } from 'lucide-react'
 
 interface UsersHeaderProps {
-  onCreate: () => void
+  /** Verilmezse "Kullanıcı Ekle" görünmez (uç yalnız godmin'e açık). */
+  onCreate?: () => void
   onRefresh: () => void
   isRefreshing: boolean
 }
@@ -35,14 +36,16 @@ export function UsersHeader({ onCreate, onRefresh, isRefreshing }: UsersHeaderPr
             {isRefreshing ? 'Yenileniyor…' : 'Yenile'}
           </button>
 
-          <button
-            type="button"
-            onClick={onCreate}
-            className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-slate-950 shadow transition hover:bg-emerald-400"
-          >
-            <UserPlus size={18} />
-            Kullanıcı Ekle
-          </button>
+          {onCreate ? (
+            <button
+              type="button"
+              onClick={onCreate}
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-slate-950 shadow transition hover:bg-emerald-400"
+            >
+              <UserPlus size={18} />
+              Kullanıcı Ekle
+            </button>
+          ) : null}
         </div>
       </div>
     </header>

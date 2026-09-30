@@ -221,6 +221,19 @@ const SERVER_REASONS: Array<[RegExp, (match: RegExpMatchArray) => string]> = [
     /^Forbidden: godmin privileges required$/i,
     () => 'Bu işlem yalnızca godmin yetkisiyle yapılabilir.',
   ],
+  [
+    /^Forbidden\s*[—-]\s*only godmin can hard-delete users$/i,
+    () => 'Kullanıcı silmek yalnızca godmin yetkisiyle yapılabilir.',
+  ],
+  [/^Cannot hard-delete yourself$/i, () => 'Kendi hesabınızı silemezsiniz.'],
+  [
+    /^Hard delete failed and was rolled back/i,
+    () =>
+      'Kullanıcı silinemedi, hiçbir şey değişmedi: bu kişiye bağlı kayıtlar var (denetim, onay akışı vb.). Silmek yerine hesabı pasif yapın.',
+  ],
+  [/^Email already registered$/i, () => 'Aynı mail adresiyle iki kere kayıt yapılamaz.'],
+  [/^Failed to create user$/i, () => 'Kullanıcı oluşturulamadı.'],
+  [/^Forbidden$/i, () => 'Bu işlem için yetkiniz yok.'],
   [/^Account is locked$/i, () => 'Hesabınız kilitli olduğu için bu işlem yapılamıyor.'],
   [/^Account is not active$/i, () => 'Hesabınız etkin olmadığı için bu işlem yapılamıyor.'],
   [/^(Unauthorized|Authentication required)$/i, () => 'Oturumunuz kapanmış; yeniden giriş yapın.'],

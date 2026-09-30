@@ -220,13 +220,19 @@ export function UsersTable({
                         </button>
                       ) : null}
 
-                      <button
-                        type="button"
-                        className="inline-flex items-center gap-1 text-sm font-semibold text-rose-700 dark:text-rose-300 hover:text-rose-700 hover:dark:text-rose-200 transition-colors"
-                        onClick={() => onDelete(user.id)}
-                      >
-                        <Trash2 size={14} aria-hidden="true" /> Sil
-                      </button>
+                      {/*
+                        Silme de godmin kapısının arkasında (hard-delete): diğer
+                        rollere düğmeyi göstermek, basınca 403 almak demekti.
+                      */}
+                      {showGodminActions ? (
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 text-sm font-semibold text-rose-700 dark:text-rose-300 hover:text-rose-700 hover:dark:text-rose-200 transition-colors"
+                          onClick={() => onDelete(user.id)}
+                        >
+                          <Trash2 size={14} aria-hidden="true" /> Sil
+                        </button>
+                      ) : null}
                     </div>
                   </td>
                 </tr>

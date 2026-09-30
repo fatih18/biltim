@@ -3,6 +3,12 @@
 import type { RoleJSON } from '@monorepo/db-entities/schemas/default/role'
 import React, { useEffect, useMemo, useState } from 'react'
 import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
+import {
+  PasswordRuleList,
+  passwordProblems,
+  readServerReasons,
+  SELF_SERVICE_PASSWORD_POLICY,
+} from '@/app/_components/Global/PasswordRules'
 import { toast } from "sonner";
 
 interface UsersCreateModalProps {
@@ -72,6 +78,10 @@ export function UsersCreateModal({
   const [availableRoles, setAvailableRoles] = useState<RoleJSON[]>([])
   const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>([])
   const [isLoadingRoles, setIsLoadingRoles] = useState(false)
+  // Liste boş geldiyle hiç gelmedi aynı şey değil: ikincisinde "Rol
+  // bulunamadı" demek yanlış yönlendiriyordu (canlıda oturum süresi dolunca
+  // GET /roles 401 döndü ve form "Rol bulunamadı" gösterdi).
+  const [rolesError, setRolesError] = useState<string | null>(null)
 
   const rolesById = useMemo(() => {
     return new Map(availableRoles.map((r) => [r.id, r]))
@@ -143,6 +153,7 @@ export function UsersCreateModal({
     setLastName('')
     setSelectedRoleIds([])
     setAvailableRoles([])
+    setRolesError(null)
 
     setIsLoadingRoles(true)
     actions.GET_ROLES?.start({
@@ -155,7 +166,12 @@ export function UsersCreateModal({
       onErrorHandle: (error) => {
         setIsLoadingRoles(false)
         console.error('Get roles failed:', error)
-        toast.error('Roller getirilemedi.')
+        const reasons = readServerReasons(error)
+        setRolesError(
+          reasons.length > 0
+            ? `Roller yüklenemedi: ${reasons.join(' ')}`
+            : 'Roller yüklenemedi. Sayfayı yenileyip tekrar deneyin.'
+        )
       },
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -165,6 +181,13 @@ export function UsersCreateModal({
     event.preventDefault()
     if (selectedRoleIds.length === 0) {
       toast.error('Lütfen en az bir rol seçin.')
+      return
+    }
+    // Sunucu kurulumun şifre kuralını uyguluyor; aynı kural burada da
+    // bakılıyor ki form, sunucunun reddedeceği şifreyi göndermesin.
+    const problems = passwordProblems(SELF_SERVICE_PASSWORD_POLICY, password)
+    if (problems.length > 0) {
+      toast.error(problems.join(' '))
       return
     }
     await onSubmit({
@@ -245,9 +268,9 @@ export function UsersCreateModal({
                 onChange={(event) => setPassword(event.target.value)}
                 className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 !bg-white dark:bg-slate-950/70 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none ring-sky-500/40 placeholder:text-slate-500 placeholder:dark:text-slate-400 focus:border-sky-400 focus:ring-2"
               />
-              <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-                Şifre en az 8 karakter olmalıdır.
-              </p>
+              <div className="mt-2">
+                <PasswordRuleList policy={SELF_SERVICE_PASSWORD_POLICY} password={password} />
+              </div>
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -295,6 +318,8 @@ export function UsersCreateModal({
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-500 border-t-sky-400" />
                     Roller yükleniyor...
                   </div>
+                ) : rolesError ? (
+                  <p className="text-xs text-rose-700 dark:text-rose-300">{rolesError}</p>
                 ) : availableRoles.length === 0 ? (
                   <p className="text-xs text-slate-500 dark:text-slate-400">Rol bulunamadı.</p>
                 ) : (
@@ -315,9 +340,9 @@ export function UsersCreateModal({
                         <span className="flex-1 min-w-0">
                           <span
                             className="block truncate text-xs font-semibold text-slate-900 dark:text-slate-100"
-                            title={role.alias ?? undefined}
+                            title={role.alias || role.name || undefined}
                           >
-                            {role.alias}
+                            {role.alias || role.name}
                           </span>
                           {/*
                             The description is what tells someone what they are

@@ -118,6 +118,61 @@ function normalizeMe(data: unknown): unknown {
 
 const ME_KEYS = new Set(['GET_ME', 'GET_ME_V2'])
 
+/** nucleus'un liste ucunun tek sayfada verdiği en çok satır. */
+const MAX_PAGE_SIZE = 200
+
+/**
+ * Kullanıcı listesine profili (ad, soyad) ekler.
+ *
+ * Eski backend `GET /users` cevabının her satırına `profile`'ı kendiliğinden
+ * koyuyordu; ekranlar adı oradan okuyor (`user.profile.first_name`). nucleus
+ * listesi yalnız `users` kolonlarını döndürüyor, `?with=` yalnız tek kayıt
+ * ucunda var. Sonuç: taşımadan beri her kullanıcının adı "—" görünüyordu —
+ * veri `profiles` tablosunda duruyordu, sadece okunmuyordu (müşteri bildirimi,
+ * 30 Eylül). Kullanıcılar ekranı, ana sayfadaki müdür/ekip lideri adları ve
+ * kullanıcı listesi okuyan diğer ekranlar hep buradan geçtiği için birleştirme
+ * tek yerde yapılıyor.
+ *
+ * Profiller okunamazsa (yetki, ağ) liste olduğu gibi döner: adın yokluğu,
+ * listenin hiç gelmemesinden iyidir.
+ */
+async function attachProfiles(body: unknown, payload: unknown): Promise<void> {
+  if (!body || typeof body !== 'object') return
+  const rows = (body as Dict).data
+  if (!Array.isArray(rows) || rows.length === 0) return
+  // groupBy cevabı satır değil, grup döndürür.
+  if (payload && typeof payload === 'object' && 'groupBy' in (payload as Dict)) return
+
+  const ids = [...new Set(rows.map((r) => (r as Dict)?.id).filter(Boolean).map(String))]
+  if (ids.length === 0) return
+
+  const byUser = new Map<string, Dict>()
+  for (let i = 0; i < ids.length; i += MAX_PAGE_SIZE) {
+    const chunk = ids.slice(i, i + MAX_PAGE_SIZE)
+    try {
+      const res = normalizeEnvelope(
+        (await FactoryFunction(
+          { page: 1, limit: chunk.length, filters: [{ field: 'user_id', operator: 'in', value: chunk }] },
+          // biome-ignore lint/suspicious/noExplicitAny: endpoint key union
+          'GET_PROFILES' as any
+        )) as unknown as Dict
+      )
+      const profiles = (res?.isSuccess ? ((res.data as Dict)?.data as unknown[]) : null) ?? []
+      for (const p of profiles) {
+        const profile = p as Dict
+        const userId = String(profile.userId ?? profile.user_id ?? '')
+        if (userId) byUser.set(userId, profile)
+      }
+    } catch {
+      return
+    }
+  }
+
+  for (const row of rows as Dict[]) {
+    if (row && row.profile == null) row.profile = byUser.get(String(row.id)) ?? null
+  }
+}
+
 /**
  * Cevap zarfını ekranların beklediği şekle çevirir.
  *
@@ -172,6 +227,7 @@ export const useNucleusApiActions = createApiHook(
     }
     const unwrapped = normalizeEnvelope(res)
     if (!unwrapped?.isSuccess) return unwrapped
+    if (endpointKey === 'GET_USERS') await attachProfiles(unwrapped.data, payload)
     return { ...unwrapped, data: withSnakeAliases(unwrapped.data) }
     // biome-ignore lint/suspicious/noExplicitAny: adapter signature
   }) as any
