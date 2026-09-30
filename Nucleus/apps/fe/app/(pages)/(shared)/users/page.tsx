@@ -5,6 +5,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '@store/globalStore'
 import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
 import { readServerReasons } from '@/app/_components/Global/PasswordRules'
+import { confirmDialog } from '@/app/_components/Global/ConfirmDialog'
 import { useUsersStore } from '@/app/_store/usersStore'
 import type { StoreProps } from '@/app/_store/usersStore/types'
 import { Pagination } from '../logs/components/Pagination'
@@ -27,6 +28,7 @@ export default function UsersPage() {
   // Hangi satırın kilidi açılıyor: buton "Açılıyor…" derken diğer satırlar
   // tıklanabilir kalsın diye tek bir boolean değil, id tutuluyor.
   const [unlockingUserId, setUnlockingUserId] = useState<string | null>(null)
+  const [lockingUserId, setLockingUserId] = useState<string | null>(null)
 
   // GET_USERS'i aynı anda 2 kez tetiklemeyi önlemek için
   const isFetchingRef = useRef(false)
@@ -138,6 +140,8 @@ export default function UsersPage() {
           profile: { firstName: payload.firstName.trim(), lastName: payload.lastName.trim() },
         },
         onAfterHandle: () => {
+          // Yeni kişi listenin başka bir sayfasında kalmasın.
+          if (usersStore.page !== 1) usersStore.setPage(1)
           usersStore.setNeedsRefresh(true)
           usersStore.setModalVisibility('create', false)
           usersStore.setSelectedUserId(null)
@@ -218,6 +222,41 @@ export default function UsersPage() {
    * girişte sıfırlanıyor. `unlock-user` üçünü (bayrak, süre, sayaç) birlikte
    * temizlediği için tek doğru yol o.
    */
+  /*
+   * Hesabı kilitlemek: silinemeyen ya da ayrılan biri için.
+   *
+   * Onay akışında karar vermiş ya da akış başlatmış bir kullanıcı kalıcı
+   * silinemiyor (verifications kayıtları ona bağlı; nucleus hard-delete bunları
+   * temizlemiyor). Kilit girişi süresiz kapatır ve açık oturumlarını hemen
+   * sonlandırır; denetim geçmişi yerinde kalır, "Kilidi Aç" ile geri alınır.
+   */
+  async function handleLockUser(userId: string) {
+    if (!canManageAccess) return
+    const target = usersStore.users?.data.find((u) => u.id === userId)
+    const confirmed = await confirmDialog({
+      title: 'Hesap kilitlensin mi?',
+      message: `${target?.email ?? 'Bu kullanıcı'} artık giriş yapamaz ve açık oturumları hemen kapanır. Kayıtları silinmez; "Kilidi Aç" ile geri alınır.`,
+      confirmLabel: 'Kilitle',
+      cancelLabel: 'Vazgeç',
+      tone: 'danger',
+    })
+    if (!confirmed) return
+    setLockingUserId(userId)
+    actions.ADMIN_LOCK_USER?.start({
+      payload: { userId },
+      onAfterHandle: () => {
+        setLockingUserId(null)
+        usersStore.setNeedsRefresh(true)
+        toast.success('Hesap kilitlendi; kullanıcının açık oturumları kapatıldı.')
+      },
+      onErrorHandle: (error) => {
+        setLockingUserId(null)
+        const reasons = readServerReasons(error)
+        toast.error(reasons.length > 0 ? reasons.join(' ') : 'Hesap kilitlenemedi.')
+      },
+    })
+  }
+
   function handleUnlockUser(userId: string) {
     if (!canManageAccess) return
     setUnlockingUserId(userId)
@@ -323,6 +362,8 @@ export default function UsersPage() {
                 usersStore.setModalVisibility('delete', true)
               }}
               onUnlock={handleUnlockUser}
+              onLock={(userId) => void handleLockUser(userId)}
+              lockingUserId={lockingUserId}
               onSetPassword={(userId) => {
                 if (!canManageAccess) return
                 usersStore.setSelectedUserId(userId)

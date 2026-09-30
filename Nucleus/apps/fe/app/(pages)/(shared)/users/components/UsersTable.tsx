@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   Info,
   KeyRound,
+  Lock,
   LockOpen,
   MailCheck,
   ShieldBan,
@@ -19,8 +20,10 @@ interface UsersTableProps {
   onValidateEmail: (userId: string) => void
   onDelete: (userId: string) => void
   onUnlock: (userId: string) => void
+  onLock: (userId: string) => void
   onSetPassword: (userId: string) => void
   unlockingUserId: string | null
+  lockingUserId: string | null
   /*
    * "Kilidi Aç" ve "Şifre Sıfırla" yalnız godmin'e. İkisinin ucu da sunucuda
    * godmin kapısının arkasında; bu ekranı açabilen Super Admin ya da Content
@@ -35,8 +38,10 @@ export function UsersTable({
   onValidateEmail,
   onDelete,
   onUnlock,
+  onLock,
   onSetPassword,
   unlockingUserId,
+  lockingUserId,
   showGodminActions,
 }: UsersTableProps) {
   if (!users) {
@@ -142,7 +147,7 @@ export function UsersTable({
                       </div>
                       <div>
                         <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                          {user.profile?.first_name ?? '—'} {user.profile?.last_name ?? ''}
+                          {user.profile?.first_name || '—'} {user.profile?.last_name || ''}
                         </div>
                         {/*
                           The full 36-character id under the name, in a
@@ -207,6 +212,24 @@ export function UsersTable({
                         >
                           <LockOpen size={14} aria-hidden="true" />{' '}
                           {unlockingUserId === user.id ? 'Açılıyor…' : 'Kilidi Aç'}
+                        </button>
+                      ) : null}
+
+                      {/*
+                        Silinemeyen (onay akışında yer almış) ya da ayrılan birini
+                        sistemden çıkarmanın yolu: hesabı kilitlemek girişi
+                        kapatır ve açık oturumlarını sonlandırır; geçmiş kayıtlar
+                        yerinde kalır. "Kilidi Aç" ile geri alınır.
+                      */}
+                      {showGodminActions && !user.is_locked ? (
+                        <button
+                          type="button"
+                          disabled={lockingUserId === user.id}
+                          className="inline-flex items-center gap-1 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 hover:dark:text-slate-100 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                          onClick={() => onLock(user.id)}
+                        >
+                          <Lock size={14} aria-hidden="true" />{' '}
+                          {lockingUserId === user.id ? 'Kilitleniyor…' : 'Kilitle'}
                         </button>
                       ) : null}
 

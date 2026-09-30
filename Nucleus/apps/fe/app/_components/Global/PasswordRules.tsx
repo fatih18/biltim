@@ -230,8 +230,10 @@ const SERVER_REASONS: Array<[RegExp, (match: RegExpMatchArray) => string]> = [
   [
     /^Hard delete failed and was rolled back/i,
     () =>
-      'Kullanıcı silinemedi, hiçbir şey değişmedi: bu kişiye bağlı kayıtlar var (denetim, onay akışı vb.). Silmek yerine hesabı pasif yapın.',
+      'Kullanıcı silinemedi, hiçbir şey değişmedi: bu kişiye bağlı kayıtlar var (örneğin onay akışı). Silmek yerine "Kilitle" ile hesabı kapatın; giriş yapamaz, kayıtları yerinde kalır.',
   ],
+  [/Expected string to match 'email' format/i, () => 'Geçerli bir e-posta adresi girin.'],
+  [/^An administrator cannot lock their own account$/i, () => 'Kendi hesabınızı kilitleyemezsiniz.'],
   [/^Email already registered$/i, () => 'Aynı mail adresiyle iki kere kayıt yapılamaz.'],
   [/^Failed to create user$/i, () => 'Kullanıcı oluşturulamadı.'],
   [/^Forbidden$/i, () => 'Bu işlem için yetkiniz yok.'],
