@@ -1,11 +1,18 @@
 import { describe, expect, it } from 'bun:test'
 import {
   MAX_DATE_CHANGES,
+  PENDING_APPROVAL,
   enforceBusinessRules,
   hasAfterPhoto,
   toDateKey,
   todayAtPlant,
 } from './businessRules'
+import type { Caller } from './caller'
+
+const GOD: Caller = { userId: 'u-god', isGod: true, roles: ['godmin'] }
+const CENTRAL: Caller = { userId: 'u-ce', isGod: false, roles: ['content manager core team'] }
+const AUDITOR: Caller = { userId: 'u-aud', isGod: false, roles: ['auditor'] }
+const FIELD_MANAGER: Caller = { userId: 'u-fm', isGod: false, roles: ['field manager'] }
 
 const req = (method: string, path: string) =>
   new Request(`http://localhost:4001${path}`, { method })
@@ -143,10 +150,201 @@ describe('moving an audit date', () => {
   it('ignores an update that does not touch the date', async () => {
     const res = await enforceBusinessRules({
       request: req('PUT', '/fiveSAuditPlans/p1'),
-      body: { status: 'completed' },
-      read: reader([{ planned_date: '2026-10-05', date_change_count: 9 }]),
+      body: { status: PENDING_APPROVAL, audit_id: 'a1' },
+      read: reader([{ planned_date: '2026-10-05', date_change_count: 9, status: 'planned' }]),
     })
     expect(res).toBeUndefined()
+  })
+
+  it('lets the godmin move a date with no changes left, without spending one (#32)', async () => {
+    const res = await enforceBusinessRules({
+      request: req('PUT', '/fiveSAuditPlans/p1'),
+      body: { planned_date: '2026-11-20', date_change_count: 2 },
+      read: reader([{ planned_date: '2026-11-02', date_change_count: 2, status: 'planned' }]),
+      caller: GOD,
+    })
+    expect(res).toBeUndefined()
+  })
+
+  it('still holds Merkez Ekip to the two changes on a planned audit', async () => {
+    const res = await enforceBusinessRules({
+      request: req('PUT', '/fiveSAuditPlans/p1'),
+      body: { planned_date: '2026-11-20', date_change_count: 3 },
+      read: reader([{ planned_date: '2026-11-02', date_change_count: 2, status: 'planned' }]),
+      caller: CENTRAL,
+    })
+    expect(res?.status).toBe(400)
+  })
+
+  it('lets only Merkez Ekip correct the date of a completed audit (#16)', async () => {
+    const read = reader([{ planned_date: '2026-10-02', date_change_count: 0, status: 'completed' }])
+    const asLeader = await enforceBusinessRules({
+      request: req('PUT', '/fiveSAuditPlans/p1'),
+      body: { planned_date: '2026-10-03', date_change_count: 1 },
+      read,
+      caller: AUDITOR,
+    })
+    expect(asLeader?.status).toBe(400)
+    expect((await asLeader?.json()).message).toContain('yalnız Merkez Ekip')
+
+    const asCentral = await enforceBusinessRules({
+      request: req('PUT', '/fiveSAuditPlans/p1'),
+      body: { planned_date: '2026-10-03', date_change_count: 0 },
+      read,
+      caller: CENTRAL,
+    })
+    expect(asCentral).toBeUndefined()
+  })
+
+  it('does not let anyone but the godmin give a date change back', async () => {
+    const read = reader([{ planned_date: '2026-10-02', date_change_count: 2, status: 'planned' }])
+    const asCentral = await enforceBusinessRules({
+      request: req('PUT', '/fiveSAuditPlans/p1'),
+      body: { date_change_count: 0 },
+      read,
+      caller: CENTRAL,
+    })
+    expect(asCentral?.status).toBe(400)
+    expect(
+      await enforceBusinessRules({
+        request: req('PUT', '/fiveSAuditPlans/p1'),
+        body: { date_change_count: 0 },
+        read,
+        caller: GOD,
+      })
+    ).toBeUndefined()
+  })
+})
+
+describe('approving an audit (#28)', () => {
+  const planned = reader([{ planned_date: '2026-10-02', date_change_count: 0, status: PENDING_APPROVAL }])
+
+  it('refuses `completed` from the auditor who sent the form', async () => {
+    const res = await enforceBusinessRules({
+      request: req('PUT', '/fiveSAuditPlans/p1'),
+      body: { status: 'completed' },
+      read: planned,
+      caller: AUDITOR,
+    })
+    expect(res?.status).toBe(400)
+    expect((await res?.json()).message).toContain('Onay Bekliyor')
+  })
+
+  it('refuses it from a caller nobody can identify', async () => {
+    const res = await enforceBusinessRules({
+      request: req('PUT', '/fiveSAuditPlans/p1'),
+      body: { status: 'completed' },
+      read: planned,
+      caller: null,
+    })
+    expect(res?.status).toBe(400)
+  })
+
+  it('lets Merkez Ekip and the godmin approve', async () => {
+    for (const caller of [CENTRAL, GOD]) {
+      const res = await enforceBusinessRules({
+        request: req('PUT', '/fiveSAuditPlans/p1'),
+        body: { status: 'completed' },
+        read: planned,
+        caller,
+      })
+      expect(res).toBeUndefined()
+    }
+  })
+
+  it('keeps a completed audit completed unless Merkez Ekip reopens it', async () => {
+    const done = reader([{ planned_date: '2026-10-02', date_change_count: 0, status: 'completed' }])
+    const res = await enforceBusinessRules({
+      request: req('PUT', '/fiveSAuditPlans/p1'),
+      body: { status: 'planned' },
+      read: done,
+      caller: AUDITOR,
+    })
+    expect(res?.status).toBe(400)
+  })
+})
+
+describe('a field manager and their own location', () => {
+  /** Answers each query the rule asks, in the order it asks them. */
+  const script =
+    (answers: Record<string, Record<string, unknown>[]>) => async (text: string) => {
+      for (const [needle, rows] of Object.entries(answers)) if (text.includes(needle)) return rows
+      return []
+    }
+
+  it('refuses a plan whose team holds the location field manager (#13)', async () => {
+    const res = await enforceBusinessRules({
+      request: req('POST', '/fiveSAuditPlans'),
+      body: { planned_date: '2026-10-20', location_id: 'L1', assigned_team_id: 'T1' },
+      read: script({
+        'from main.five_s_locations': [{ field_manager_user_ids: ['u-fm'] }],
+        'from main.five_s_audit_teams': [{ leader_user_id: 'u-lead' }],
+        'from main.five_s_audit_team_members': [{ user_id: 'u-fm' }],
+        'from main.users': [{ name: 'Ayşe Saha' }],
+      }),
+      caller: CENTRAL,
+    })
+    expect(res?.status).toBe(400)
+    expect((await res?.json()).message).toContain('Ayşe Saha bu lokasyonun saha sorumlusu')
+  })
+
+  it('allows a team with no one responsible for the place', async () => {
+    const res = await enforceBusinessRules({
+      request: req('POST', '/fiveSAuditPlans'),
+      body: { planned_date: '2026-10-20', location_id: 'L1', assigned_team_id: 'T1' },
+      read: script({
+        'from main.five_s_locations': [{ field_manager_user_ids: '["u-fm"]' }],
+        'from main.five_s_audit_teams': [{ leader_user_id: 'u-lead' }],
+        'from main.five_s_audit_team_members': [{ user_id: 'u-other' }],
+      }),
+      caller: CENTRAL,
+    })
+    expect(res).toBeUndefined()
+  })
+
+  it('refuses the audit when the person starting it is the field manager (#27)', async () => {
+    const res = await enforceBusinessRules({
+      request: req('POST', '/fiveSAudits'),
+      body: { plan_id: 'p1', department_name: 'Kaynak' },
+      read: script({ 'from main.five_s_audit_plans p': [{ field_manager_user_ids: ['u-aud'] }] }),
+      caller: AUDITOR,
+    })
+    expect(res?.status).toBe(400)
+  })
+})
+
+describe('photos on a closed finding (#31)', () => {
+  const closed = reader([
+    { status: 'closed', photo_after_files: [{ id: 'a' }, { id: 'b' }], photo_after_url: 'u1' },
+  ])
+
+  it('refuses removing one for anyone but Merkez Ekip / Super Admin', async () => {
+    const res = await enforceBusinessRules({
+      request: req('PUT', '/fiveSFindings/f1'),
+      body: { photo_after_files: [{ id: 'a' }] },
+      read: closed,
+      caller: FIELD_MANAGER,
+    })
+    expect(res?.status).toBe(400)
+  })
+
+  it('lets anyone add one, and an admin remove one', async () => {
+    expect(
+      await enforceBusinessRules({
+        request: req('PUT', '/fiveSFindings/f1'),
+        body: { photo_after_files: [{ id: 'a' }, { id: 'b' }, { id: 'c' }] },
+        read: closed,
+        caller: FIELD_MANAGER,
+      })
+    ).toBeUndefined()
+    expect(
+      await enforceBusinessRules({
+        request: req('PUT', '/fiveSFindings/f1'),
+        body: { photo_after_files: [], photo_after_url: null },
+        read: closed,
+        caller: CENTRAL,
+      })
+    ).toBeUndefined()
   })
 })
 
@@ -625,7 +823,7 @@ describe('master data an open plan still uses', () => {
     }
     await enforceBusinessRules({ request: req('DELETE', TEAM), body: undefined, read })
     expect(seen).toHaveLength(1)
-    expect(seen[0]?.text).toContain('assigned_team_id = $1')
+    expect(seen[0]?.text).toContain('assigned_team_id::text = $1')
     expect(seen[0]?.text).toContain("<> 'completed'")
     expect(seen[0]?.params).toEqual(['a5b1476f-9896-4d7c-a2e9-d19679559625'])
   })

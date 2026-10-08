@@ -6,7 +6,7 @@ export type MasterEntity = {
 	createdAt: string; // ISO
 };
 
-export type AuditStatus = "planned" | "cancelled" | "completed";
+export type AuditStatus = "planned" | "pending_approval" | "cancelled" | "completed";
 
 export type Audit = {
   id: string;

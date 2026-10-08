@@ -47,6 +47,18 @@ export function hasPrivilege(
   return mine.some((n) => wanted.includes(n));
 }
 
+/**
+ * Merkez Ekip and above: the people who plan, approve and correct audits.
+ * The server's `isCentral` (be-nucleus/src/guards/caller.ts) uses this list.
+ */
+export const CENTRAL_ROLES = ["content manager core team", "super admin", "manager"] as const;
+
+/**
+ * Who may manage accounts and remove evidence from a closed finding — not a
+ * plant manager. The server's `isAdmin` uses this list.
+ */
+export const ADMIN_ROLES = ["content manager core team", "super admin"] as const;
+
 const isSuperAdmin = (roles: string[]) =>
   roles.includes("super admin") || roles.includes("godmin");
 

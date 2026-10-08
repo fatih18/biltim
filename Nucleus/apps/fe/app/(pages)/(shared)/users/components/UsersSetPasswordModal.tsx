@@ -4,9 +4,9 @@ import { Copy, Eye, EyeOff, KeyRound } from 'lucide-react'
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { useModal } from '@/app/_hooks/UseModal'
 import {
-  ADMIN_SET_PASSWORD_POLICY,
   PasswordRuleList,
   passwordProblems,
+  SELF_SERVICE_PASSWORD_POLICY,
 } from '@/app/_components/Global/PasswordRules'
 
 interface UsersSetPasswordModalProps {
@@ -28,12 +28,10 @@ interface UsersSetPasswordModalProps {
  * kimsenin okuyamayacağı bir şifre koyup "kullanıcıya iletin" demek, işi
  * bitmiş göstermenin bir yolu olurdu.
  *
- * Kural burada yazıyor ve gönderilmeden önce kontrol ediliyor. Önceden
- * yazmıyordu, "sunucu sebebini söyler" deniyordu; ama bu uç kurulu sürümde
- * kurulumun kuralını değil kütüphanenin varsayılanını uyguluyor (büyük harf
- * dahil) ve reddi İngilizce söylüyor. Küçük harfli bir şifre yazan yönetici
- * "Password must contain uppercase letter" ile kalıyordu. Kuralın hangisi
- * olduğu `PasswordRules` içinde anlatılıyor.
+ * Kural burada yazıyor ve gönderilmeden önce kontrol ediliyor: kurulumun
+ * kendi kuralı (config.json), sunucudaki Biltim ucunun uyguladığıyla aynı.
+ * Önceki nucleus ucu kütüphanenin varsayılanını (büyük harf dahil) uygulayıp
+ * reddi İngilizce söylüyordu; o uç artık kullanılmıyor.
  */
 export function UsersSetPasswordModal({
   isOpen,
@@ -83,7 +81,7 @@ export function UsersSetPasswordModal({
     if (isBusy) return
     setErrors([])
 
-    const problems = passwordProblems(ADMIN_SET_PASSWORD_POLICY, password)
+    const problems = passwordProblems(SELF_SERVICE_PASSWORD_POLICY, password)
     if (problems.length > 0) {
       setErrors(problems)
       return
@@ -180,7 +178,7 @@ export function UsersSetPasswordModal({
             ) : null}
           </div>
 
-          <PasswordRuleList policy={ADMIN_SET_PASSWORD_POLICY} password={password} />
+          <PasswordRuleList policy={SELF_SERVICE_PASSWORD_POLICY} password={password} />
 
           <div className="space-y-2">
             <label

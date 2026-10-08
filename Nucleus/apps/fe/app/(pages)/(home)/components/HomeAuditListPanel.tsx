@@ -4,7 +4,7 @@ import React from "react";
 import { ClipboardList } from "lucide-react";
 import { EmptyState } from "@/app/_components/Global/EmptyState";
 import { SkeletonTable } from "@/app/_components/Global/Skeleton";
-import type { TeamInfo, AuditPlanRow, LocInfo } from "../page";
+import type { TeamInfo, AuditPlanRow, LocInfo, HomeTab, DateEditRule } from "../page";
 import { TeamLeaderWithMembersTooltip } from "./TeamLeaderWithMembersTooltip";
 import { DateInput } from "@/app/_components/DateInput";
 import { auditStatusLabelTr } from "@/app/_utils/StatusLabels";
@@ -23,6 +23,8 @@ function StatusPill({ status }: { status: string }) {
     const base = "inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-medium";
     if (status === "planned")
         return <span className={`${base} border-amber-800/60 bg-amber-100 dark:bg-amber-950/30 text-amber-700 dark:text-amber-200`}>{auditStatusLabelTr(status)}</span>;
+    if (status === "pending_approval")
+        return <span className={`${base} border-violet-800/60 bg-violet-100 dark:bg-violet-950/30 text-violet-700 dark:text-violet-200`}>{auditStatusLabelTr(status)}</span>;
     if (status === "completed")
         return <span className={`${base} border-emerald-800/60 bg-emerald-950/25 text-emerald-700 dark:text-emerald-200`}>{auditStatusLabelTr(status)}</span>;
     if (status === "cancelled")
@@ -81,7 +83,17 @@ export function HomeAuditListPanel(props: {
     onRefresh?: () => void;
     onOpenPlan?: (id: string) => void;
     onStartAudit?: (planId: string) => void;
+    /** Whether this person may start this plan's audit (#27). */
+    canStartPlan?: (plan: AuditPlanRow) => boolean;
+    /** Merkez Ekip only: approve a sent audit (#28). */
+    onApprovePlan?: (plan: AuditPlanRow) => void;
+    approvingId?: string | null;
+    /** Merkez Ekip only: delete the plan row (#19). */
+    onDeletePlan?: (plan: AuditPlanRow) => void;
+    /** Edit the carried-out audit on the question screen (#12). */
     onEditCompletedAudit?: (plan: AuditPlanRow) => void;
+    /** Correct only the five totals. */
+    onEditScores?: (plan: AuditPlanRow) => void;
     currentUserId?: string;
     /*
      * The two tabs are two SERVER queries, not one list split here.
@@ -93,11 +105,10 @@ export function HomeAuditListPanel(props: {
      * ['completed'], each with location_id not null — and returns the totals
      * with them.
      */
-    tab: "upcoming" | "completed";
-    onTabChange: (tab: "upcoming" | "completed") => void;
-    upcomingCount: number | null;
-    completedCount: number | null;
-    canEditPlan: (plan: AuditPlanRow) => boolean;
+    tab: HomeTab;
+    onTabChange: (tab: HomeTab) => void;
+    counts: Record<HomeTab, number | null>;
+    dateEditRule: (plan: AuditPlanRow) => DateEditRule;
     onUpdatePlanDate: (planId: string, dateYYYYMMDD: string, newCount: number) => void;
     getDateConflicts?: (planId: string, newDate: string) => string[];
 }) {
@@ -110,12 +121,16 @@ export function HomeAuditListPanel(props: {
         onRefresh,
         onOpenPlan,
         onStartAudit,
+        canStartPlan,
+        onApprovePlan,
+        approvingId,
+        onDeletePlan,
         onEditCompletedAudit,
+        onEditScores,
         tab,
         onTabChange,
-        upcomingCount,
-        completedCount,
-        canEditPlan,
+        counts,
+        dateEditRule,
         onUpdatePlanDate,
         getDateConflicts,
     } = props;
@@ -142,7 +157,9 @@ export function HomeAuditListPanel(props: {
     const saveEdit = (plan: AuditPlanRow) => {
         if (!editingId) return;
         if (!editDate) return;
-        const newCount = (plan.date_change_count ?? 0) + 1;
+        // A godmin move, or Merkez Ekip correcting a finished audit, does not
+        // use up one of the plan's two changes.
+        const newCount = (plan.date_change_count ?? 0) + (dateEditRule(plan).spends ? 1 : 0);
         onUpdatePlanDate(editingId, editDate, newCount);
         setEditingId(null);
     };
@@ -159,17 +176,21 @@ export function HomeAuditListPanel(props: {
                     <SegTabs
                         value={tab}
                         onChange={(v) => {
-                            onTabChange(v as "upcoming" | "completed");
+                            onTabChange(v as HomeTab);
                             cancelEdit();
                         }}
                         items={[
                             {
                                 value: "upcoming",
-                                label: `Plan / Yaklaşan${upcomingCount === null ? "" : ` (${upcomingCount})`}`,
+                                label: `Plan / Yaklaşan${counts.upcoming === null ? "" : ` (${counts.upcoming})`}`,
+                            },
+                            {
+                                value: "approval",
+                                label: `Onay Bekleyen${counts.approval === null ? "" : ` (${counts.approval})`}`,
                             },
                             {
                                 value: "completed",
-                                label: `Tamamlanan${completedCount === null ? "" : ` (${completedCount})`}`,
+                                label: `Tamamlanan${counts.completed === null ? "" : ` (${counts.completed})`}`,
                             },
                         ]}
                     />
@@ -215,7 +236,8 @@ export function HomeAuditListPanel(props: {
                             const loc = locInfo?.name ?? "-";
                             const managerName = locInfo?.managerName ?? null;
                             const fieldManagerNames = locInfo?.fieldManagerNames ?? [];
-                            const editable = canEditPlan(p);
+                            const rule = dateEditRule(p);
+                            const editable = rule.allowed;
                             const isEditing = editingId === p.id;
                             const parentRange = p.parent_plan_id
                                 ? parentPlanRangeById.get(p.parent_plan_id)
@@ -277,9 +299,11 @@ export function HomeAuditListPanel(props: {
                                                         onClick={() => startEdit(p)}
                                                         className="text-left text-[11px] text-sky-700 dark:text-sky-400 hover:underline"
                                                     >
-                                                        Düzenle ({2 - (p.date_change_count ?? 0)} hak)
+                                                        {rule.remaining === null
+                                                            ? "Tarihi Düzenle"
+                                                            : `Düzenle (${rule.remaining} hak)`}
                                                     </button>
-                                                ) : (p.date_change_count ?? 0) >= 2 && canEditPlan({ ...p, date_change_count: 0 }) ? (
+                                                ) : rule.locked ? (
                                                     <span className="text-[11px] text-slate-500 dark:text-slate-400">Tarih kilitli</span>
                                                 ) : null}
                                             </div>
@@ -328,7 +352,7 @@ export function HomeAuditListPanel(props: {
 
                                     <div className="col-span-2 flex flex-col items-center gap-1 text-center">
                                         <StatusPill status={p.status} />
-                                        {onStartAudit && tab === "upcoming" && p.status === "planned" && (
+                                        {onStartAudit && tab === "upcoming" && p.status === "planned" && (canStartPlan?.(p) ?? true) && (
                                             <button
                                                 type="button"
                                                 onClick={() => onStartAudit(p.id)}
@@ -337,14 +361,50 @@ export function HomeAuditListPanel(props: {
                                                 Denetimi Başlat
                                             </button>
                                         )}
-                                        {onEditCompletedAudit && tab === "completed" && p.status === "completed" && p.audit_id && (
+                                        {tab === "upcoming" && p.status === "planned" && canStartPlan && !canStartPlan(p) && (
+                                            <span className="text-[11px] text-slate-500 dark:text-slate-400" title="Saha sorumlusu olduğunuz lokasyonun denetimini ekipteki diğer denetçiler yapar.">
+                                                Saha sorumlususunuz
+                                            </span>
+                                        )}
+                                        {onApprovePlan && p.status === "pending_approval" && (
+                                            <button
+                                                type="button"
+                                                onClick={() => onApprovePlan(p)}
+                                                disabled={approvingId === p.id}
+                                                className="rounded-md border border-emerald-800/60 bg-emerald-100 dark:bg-emerald-950/30 px-2 py-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-200 hover:bg-emerald-200 hover:dark:bg-emerald-950/60 disabled:opacity-50"
+                                                title="Denetimi onayla; plan Tamamlanan'a geçer"
+                                            >
+                                                {approvingId === p.id ? "Onaylanıyor…" : "Onayla"}
+                                            </button>
+                                        )}
+                                        {onEditCompletedAudit && (p.status === "completed" || p.status === "pending_approval") && p.audit_id && (
                                             <button
                                                 type="button"
                                                 onClick={() => onEditCompletedAudit(p)}
                                                 className="rounded-md border border-indigo-800/60 bg-indigo-100 dark:bg-indigo-950/30 px-2 py-1 text-[11px] font-semibold text-indigo-700 dark:text-indigo-200 hover:bg-indigo-200 hover:dark:bg-indigo-950/60"
-                                                title="Tamamlanmış denetimi düzenle (Merkez Ekip)"
+                                                title="Denetimi soru-cevap ekranında düzenle (Merkez Ekip)"
                                             >
                                                 Düzenle
+                                            </button>
+                                        )}
+                                        {onEditScores && (p.status === "completed" || p.status === "pending_approval") && p.audit_id && (
+                                            <button
+                                                type="button"
+                                                onClick={() => onEditScores(p)}
+                                                className="text-[11px] text-indigo-700 dark:text-indigo-300 hover:underline"
+                                                title="Yalnız puanları düzelt"
+                                            >
+                                                Puanlar
+                                            </button>
+                                        )}
+                                        {onDeletePlan && (
+                                            <button
+                                                type="button"
+                                                onClick={() => onDeletePlan(p)}
+                                                className="text-[11px] text-rose-700 dark:text-rose-300 hover:underline"
+                                                title="Planı sil (Merkez Ekip)"
+                                            >
+                                                Sil
                                             </button>
                                         )}
                                     </div>
@@ -356,7 +416,7 @@ export function HomeAuditListPanel(props: {
 
                 {/* küçük not */}
                 <div className="mt-3 text-[11px] text-slate-500 dark:text-slate-400">
-                    Not: “Düzenle” butonu sadece ilgili ekibin liderinde görünür.
+                    Not: Tarih, planlanmış denetimde ekip lideri ve Merkez Ekip tarafından en fazla 2 kez değiştirilebilir; tamamlanmış denetimin tarihini yalnız Merkez Ekip düzeltir.
                 </div>
             </div>
         </section>

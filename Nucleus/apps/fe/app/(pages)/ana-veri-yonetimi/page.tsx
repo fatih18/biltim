@@ -17,6 +17,8 @@ import {
 import { useGenericApiActions } from "@/app/_hooks/UseNucleusApi";
 import { TeamsTab } from "./components/TeamsTab";
 import { toast } from "sonner";
+import { useGetUserRole } from "@/app/_hooks/user/useGetUserRole";
+import { confirmDialog } from "@/app/_components/Global/ConfirmDialog";
 
 type MasterKind = "actions" | "findingTypes" | "locations";
 
@@ -55,7 +57,14 @@ const GET_USERS_KEY = "GET_USERS";
 
 const TEAM_KEYS = {
     GET: "GET_FIVE_S_AUDIT_TEAMS",
+    MEMBERS: "GET_FIVE_S_AUDIT_TEAM_MEMBERS",
 } as const;
+
+/** What the server said, for a toast; the generic text when it said nothing. */
+function serverMessage(error: any, fallback: string): string {
+    const m = (Array.isArray(error) ? error[0]?.message : error?.message) ?? null;
+    return m ? `${fallback} ${m}` : fallback;
+}
 
 function safeStart(A: any, key: string) {
     const entry = A?.[key];
@@ -272,6 +281,28 @@ export default function Page() {
 
     const [teams, setTeams] = React.useState<AuditTeamLite[]>([]);
     const [teamsLoading, setTeamsLoading] = React.useState(false);
+    const { isGod } = useGetUserRole();
+    /*
+     * Who is on which team, for the planner's checks: the same auditor on two
+     * audits in one day (#26), and a location's field manager on the team
+     * sent to audit it (#13).
+     */
+    const [teamMembers, setTeamMembers] = React.useState<Array<{ teamId: string; userId: string }>>([]);
+    const fetchTeamMembers = React.useCallback(() => {
+        const start = safeStart(actionsRef.current as any, TEAM_KEYS.MEMBERS);
+        if (!start) return;
+        start({
+            payload: { page: 1, limit: 5000, filters: { is_active: true } },
+            onAfterHandle: (res: any) => {
+                setTeamMembers(
+                    extractArray(res)
+                        .map((m: any) => ({ teamId: String(m?.team_id ?? m?.teamId ?? ""), userId: String(m?.user_id ?? m?.userId ?? "") }))
+                        .filter((m: { teamId: string; userId: string }) => m.teamId && m.userId)
+                );
+            },
+            onErrorHandle: (error: any) => console.error(`${TEAM_KEYS.MEMBERS} error`, error),
+        });
+    }, []);
 
     const fetchTeams = React.useCallback(() => {
         const A = actionsRef.current as any;
@@ -526,7 +557,8 @@ export default function Page() {
                 onErrorHandle: (error: any) => {
                     if (error?.name === "AbortError") return;
                     console.error(`${key} error`, error);
-                    toast.error("Kayıt güncellenemedi. Lütfen tekrar deneyin.");
+                    // A refusal says why — e.g. an open plan still uses this location (#18).
+                    toast.error(serverMessage(error, "Kayıt silinemedi."));
                 },
             });
         },
@@ -577,6 +609,7 @@ export default function Page() {
         fetchPlans();
         fetchMaster("locations");
         fetchTeams();
+        fetchTeamMembers();
     }, [tab, fetchPlans, fetchMaster, fetchTeams]);
 
     const createParentPlan = React.useCallback(
@@ -602,7 +635,8 @@ export default function Page() {
                 onErrorHandle: (error: any) => {
                     if (error?.name === "AbortError") return;
                     console.error(`${key} error`, error);
-                    toast.error("Denetim planı oluşturulamadı.");
+                    // The server says why (field manager on the team, date outside the period, ...).
+                    toast.error(serverMessage(error, "Denetim planı oluşturulamadı."));
                 },
             });
         },
@@ -652,7 +686,7 @@ export default function Page() {
             onErrorHandle: (error: any) => {
                 if (error?.name === "AbortError") return;
                 console.error(`${key} (date) error`, error);
-                toast.error("Tarih değiştirilemedi. Lütfen tekrar deneyin.");
+                toast.error(serverMessage(error, "Tarih değiştirilemedi."));
             },
         });
     }, []);
@@ -671,27 +705,59 @@ export default function Page() {
             onErrorHandle: (error: any) => {
                 if (error?.name === "AbortError") return;
                 console.error(`${key} error`, error);
-                toast.error("İşlem tamamlanamadı. Lütfen tekrar deneyin.");
+                toast.error(serverMessage(error, "Durum değiştirilemedi."));
             },
         });
     }, []);
 
-    const deletePlan = React.useCallback((id: string) => {
+    /*
+     * #19: deleting a period plan takes its audit plans with it. The period
+     * went and its children stayed, still pointing at it, listed nowhere under
+     * a period that no longer existed. The children go first, so a refusal
+     * halfway leaves the period in place rather than orphans behind it.
+     */
+    const deletePlan = React.useCallback(async (id: string) => {
         const A = actionsRef.current as any;
         const key = PLAN_KEYS.DELETE;
         const start = safeStart(A, key);
         if (!start) return;
 
-        start({
-            payload: { _id: id },
-            onAfterHandle: () => setAuditPlans((prev) => prev.filter((x) => x.id !== id)),
-            onErrorHandle: (error: any) => {
-                if (error?.name === "AbortError") return;
-                console.error(`${key} error`, error);
-                toast.error("İşlem tamamlanamadı. Lütfen tekrar deneyin.");
-            },
+        const children = auditPlans.filter((x) => x.parentPlanId === id);
+        const ok = await confirmDialog({
+            title: "Plan silinsin mi?",
+            message:
+                children.length > 0
+                    ? `Bu dönem planına bağlı ${children.length} denetim planı da silinecek. Yapılmış denetimlerin kayıtları ve bulguları silinmez.`
+                    : "Plan kalıcı olarak silinir. Yapılmış bir denetimin kaydı ve bulguları silinmez.",
+            confirmLabel: "Sil",
+            cancelLabel: "Vazgeç",
+            tone: "danger",
         });
-    }, []);
+        if (!ok) return;
+
+        const remove = (planId: string) =>
+            new Promise<boolean>((resolve) =>
+                start({
+                    payload: { _id: planId },
+                    onAfterHandle: () => {
+                        setAuditPlans((prev) => prev.filter((x) => x.id !== planId));
+                        resolve(true);
+                    },
+                    onErrorHandle: (error: any) => {
+                        if (error?.name !== "AbortError") {
+                            console.error(`${key} error`, error);
+                            toast.error(serverMessage(error, "Plan silinemedi."));
+                        }
+                        resolve(false);
+                    },
+                })
+            );
+
+        for (const child of children) {
+            if (!(await remove(child.id))) return;
+        }
+        if (await remove(id)) toast.success(children.length > 0 ? "Dönem planı ve bağlı planlar silindi." : "Plan silindi.");
+    }, [auditPlans]);
 
     return (
         <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-50 px-4 py-6 md:px-8">
@@ -760,7 +826,9 @@ export default function Page() {
                         }}
                         onUpdateStatus={(id, status) => updatePlanStatus(id, status)}
                         onUpdateDate={(id, date, count) => updatePlanDate(id, date, count)}
-                        onDelete={(id) => deletePlan(id)}
+                        onDelete={(id) => void deletePlan(id)}
+                        teamMembers={teamMembers}
+                        isGod={isGod}
                     />
                 ) : tab === "teams" ? (
                     <TeamsTab

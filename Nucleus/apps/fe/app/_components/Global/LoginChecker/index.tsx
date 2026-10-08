@@ -7,6 +7,7 @@ import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
 import { useGetUserRole } from '@/app/_hooks/user/useGetUserRole'
 import { canAccessRoute, requirementFor } from '@/app/_utils/routeAccess'
 import { Loader } from '../Loader'
+import { looksOffline, rememberedSignedInUser, rememberSignedInUser } from '@/app/_utils/offlineIdentity'
 
 const unauthPaths = ['/login', '/register']
 /*
@@ -54,9 +55,23 @@ export function LoginChecker({ children }: { children: React.ReactNode }) {
         store.isLoginChecked = true
         isCheckingRef.current = false
         redirectedRef.current = false
+        rememberSignedInUser(data)
       },
 
-      onErrorHandle: () => {
+      onErrorHandle: (error: unknown) => {
+        /*
+         * Offline is not signed out. The iPad in the field has no connection;
+         * sending it to /login (which cannot load either) left the auditor no
+         * way into the form that is built to work offline.
+         */
+        const remembered = looksOffline(error) ? rememberedSignedInUser() : null
+        if (remembered) {
+          store.user = remembered as never
+          store.isLoginChecked = true
+          isCheckingRef.current = false
+          return
+        }
+
         store.user = undefined
         store.isLoginChecked = true
         isCheckingRef.current = false

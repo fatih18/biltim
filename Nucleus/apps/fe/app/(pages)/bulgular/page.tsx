@@ -14,7 +14,9 @@ import { Skeleton } from "@/app/_components/Global/Skeleton";
 import { buildFileUrl } from "@/app/_utils/photos";
 import { ClipboardCheck } from "lucide-react";
 import { EmptyState } from "@/app/_components/Global/EmptyState";
-import { hasPrivilege } from "@/app/_utils/routeAccess";
+import { ADMIN_ROLES, CENTRAL_ROLES, hasPrivilege } from "@/app/_utils/routeAccess";
+import { useMyScope } from "@/app/_hooks/user/useMyScope";
+import { toast } from "sonner";
 
 type FindingStatus = "open" | "in_progress" | "closed";
 
@@ -144,7 +146,8 @@ function mergeFilesUnique(prev: File[], incoming: File[]) {
 export default function FiveSFindingsListPage() {
   const actions = useGenericApiActions();
   const { uploadAnswerPhoto } = useUploadAnswerPhoto();
-  const { roles: userRoles } = useGetUserRole();
+  const { roles: userRoles, isGod, isLoading: rolesLoading } = useGetUserRole();
+  const { scope, failed: scopeFailed } = useMyScope();
 
   /*
    * Through hasPrivilege, so the install's root account is admitted whatever
@@ -161,6 +164,16 @@ export default function FiveSFindingsListPage() {
   // Madde 5: Sadece Merkez Ekip / Manager / Super Admin bulgu silebilir
   const DELETE_ALLOWED_ROLES = ["super admin", "manager", "content manager core team"];
   const canDeleteFinding = hasPrivilege(myRoleNames, DELETE_ALLOWED_ROLES);
+  // #31: evidence on a closed finding is removed only by Merkez Ekip / Super Admin.
+  const canRemoveClosedPhotos = hasPrivilege(myRoleNames, ADMIN_ROLES, isGod);
+  const canRemovePhotosOf = (f: { status?: string | null }) => f.status !== "closed" || canRemoveClosedPhotos;
+  /*
+   * #7/#24: a field manager sees the findings of the locations they are
+   * responsible for, not the plant's. Narrowed on the server, so the total
+   * and the rows agree; Merkez Ekip and above keep the whole register.
+   */
+  const isScopedToMyLocations =
+    hasPrivilege(myRoleNames, ["field manager"]) && !hasPrivilege(myRoleNames, CENTRAL_ROLES, isGod);
   const [deletingFindingId, setDeletingFindingId] = useState<string | null>(null);
   const [downloadingExcel, setDownloadingExcel] = useState(false);
   /** One page. Infinite scroll asks for the next when the end comes into view. */
@@ -176,6 +189,23 @@ export default function FiveSFindingsListPage() {
   const [statusFilter, setStatusFilter] = useState<FindingStatus | "">("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  // #3: findings raised during an audit, or on their own with the single-finding form.
+  const [sourceFilter, setSourceFilter] = useState<"" | "audit" | "single">("");
+  /*
+   * #22 (Foto 2): the register's order is the user's to choose. It was fixed
+   * to newest number first, which reads as "not sorted" to anyone looking for
+   * a date or a due date; the column headers now sort.
+   */
+  const [sortField, setSortField] = useState<"finding_no" | "detected_date" | "due_date" | "location_name" | "status">("finding_no");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const toggleSort = (field: typeof sortField) => {
+    if (sortField === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else {
+      setSortField(field);
+      setSortDir(field === "location_name" || field === "status" ? "asc" : "desc");
+    }
+  };
+  const sortMark = (field: typeof sortField) => (sortField === field ? (sortDir === "asc" ? " ▲" : " ▼") : "");
 
   // Lokasyonları mount'ta çek
   useEffect(() => {
@@ -220,6 +250,22 @@ export default function FiveSFindingsListPage() {
   };
 
   /*
+   * The field manager's locations, as a filter. A chosen location inside them
+   * narrows further; one outside them, or none at all, matches nothing — an
+   * empty list in this filter dialect means "no filter", which here would
+   * have meant every finding.
+   */
+  const scopedLocationFilter = useMemo((): unknown => {
+    if (!isScopedToMyLocations) return null;
+    const mine = scope?.fieldManagerLocationNames ?? [];
+    const pick = locationFilter
+      ? mine.filter((n) => n.trim().toLocaleLowerCase("tr") === locationFilter.trim().toLocaleLowerCase("tr"))
+      : mine;
+    // Every finding carries a location (the server requires one), so this is "none".
+    return pick.length > 0 ? pick : { operator: "isNull", value: true };
+  }, [isScopedToMyLocations, scope, locationFilter]);
+
+  /*
    * One server-driven list. The screen used to hold its own page state, build
    * its own payload and read its own envelope; all three now live in
    * useServerList, and the criteria below are the only thing this screen owns.
@@ -236,17 +282,30 @@ export default function FiveSFindingsListPage() {
        * unfiltered list, so choosing a location did nothing at all. Measured:
        * 73 findings before and 73 after, where the correct filter returns 2.
        */
-      location_name: locationFilter || undefined,
+      location_name: scopedLocationFilter ?? (locationFilter || undefined),
       status: statusFilter || undefined,
       detected_date_gte: dateFrom || undefined,
       detected_date_lte: dateTo || undefined,
+      form_title:
+        sourceFilter === "single"
+          ? "Tekil Bulgu"
+          : sourceFilter === "audit"
+            ? { operator: "neq", value: "Tekil Bulgu" }
+            : undefined,
     }),
-    [locationFilter, statusFilter, dateFrom, dateTo]
+    [locationFilter, statusFilter, dateFrom, dateTo, sourceFilter, scopedLocationFilter]
   );
 
+  // finding_no last, so equal dates or locations still come out in one order.
   const listSort = useMemo(
-    () => [{ field: "finding_no", direction: "desc" as const }],
-    []
+    () =>
+      sortField === "finding_no"
+        ? [{ field: "finding_no", direction: sortDir }]
+        : [
+            { field: sortField, direction: sortDir },
+            { field: "finding_no", direction: "desc" as const },
+          ],
+    [sortField, sortDir]
   );
 
   const serverList = useServerList<FiveSFinding>({
@@ -254,6 +313,8 @@ export default function FiveSFindingsListPage() {
     pageSize: PAGE_SIZE,
     sort: listSort,
     filters: listFilters,
+    // Not before we know whose findings to ask for.
+    enabled: !rolesLoading && (!isScopedToMyLocations || !!scope || scopeFailed),
   });
 
   /*
@@ -278,6 +339,7 @@ export default function FiveSFindingsListPage() {
     setStatusFilter("");
     setDateFrom("");
     setDateTo("");
+    setSourceFilter("");
   };
 
   // due_date update
@@ -370,6 +432,15 @@ export default function FiveSFindingsListPage() {
       const last = nextAfter[nextAfter.length - 1] ?? null;
       const lastFileId = last?.file_id ?? null;
 
+      /*
+       * #30: the field manager's "Kaydet" with an after photo closes the
+       * finding — the photo IS the evidence that it is resolved, and choosing
+       * "Kapandı" from a second control afterwards was the step people
+       * missed. More photos can still be added to a closed finding.
+       */
+      const autoClose =
+        canCloseFinding && !isAuditor && finding.status !== "closed" && nextAfter.length > 0;
+
       setFindings((prev) =>
         prev.map((f) =>
           f.id === finding.id
@@ -378,6 +449,7 @@ export default function FiveSFindingsListPage() {
                 photo_after_files: nextAfter,
                 photo_after_file_id: lastFileId ?? null,
                 photo_after_url: lastFileId ? buildFileUrl(lastFileId) : null,
+                ...(autoClose ? { status: "closed" as FindingStatus } : {}),
               }
             : f
         )
@@ -389,11 +461,13 @@ export default function FiveSFindingsListPage() {
           photo_after_files: nextAfter,
           photo_after_file_id: lastFileId ?? null,
           photo_after_url: lastFileId ? buildFileUrl(lastFileId) : null,
+          ...(autoClose ? { status: "closed" } : {}),
         },
         onAfterHandle: () => {
           setUploadingFindingId(null);
           setAfterUploadQueue((prev) => ({ ...prev, [finding.id]: [] }));
           setErrorMsg(null);
+          if (autoClose) toast.success(`#${finding.finding_no ?? ""} bulgusu kapatıldı.`);
         },
         onErrorHandle: (err) => {
           console.error("UPDATE_FIVE_S_FINDING (after photos) error", err);
@@ -440,17 +514,21 @@ export default function FiveSFindingsListPage() {
   const handleDownloadExcel = async () => {
     try {
       setDownloadingExcel(true);
+      // The register as filtered on screen; a field manager's export is
+      // narrowed to their locations by the server, as the list is.
       const params = new URLSearchParams();
       if (locationFilter) params.set("location_name", locationFilter);
+      if (statusFilter) params.set("status", statusFilter);
+      if (sourceFilter) params.set("source", sourceFilter === "single" ? "single_finding" : "audit");
       if (dateFrom) params.set("date_from", dateFrom);
       if (dateTo) params.set("date_to", dateTo);
       const qs = params.toString();
-      const res = await fetch(`/reports/open-findings.xlsx${qs ? `?${qs}` : ""}`);
+      const res = await fetch(`/reports/findings.xlsx${qs ? `?${qs}` : ""}`, { cache: "no-store" });
       if (!res.ok) throw new Error(`Excel indirme hatası (${res.status})`);
       const blob = await res.blob();
       const cd = res.headers.get("Content-Disposition") ?? "";
       const nameMatch = cd.match(/filename="?([^";]+)"?/);
-      const filename = nameMatch?.[1] ?? `5s-acik-bulgu-raporu-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      const filename = nameMatch?.[1] ?? `5s-bulgu-raporu-${new Date().toISOString().slice(0, 10)}.xlsx`;
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -629,7 +707,7 @@ export default function FiveSFindingsListPage() {
               ) : (
                 <FileSpreadsheet size={13} />
               )}
-              {downloadingExcel ? "Hazırlanıyor..." : "Açık Bulgu Raporu (Excel)"}
+              {downloadingExcel ? "Hazırlanıyor..." : "Bulgu Raporu (Excel)"}
             </button>
             <span>Toplam Bulgu: {serverList.total ?? findings.length}</span>
             <span>
@@ -641,7 +719,7 @@ export default function FiveSFindingsListPage() {
         {/* Filtreler */}
         <section className="rounded-2xl bg-slate-50 dark:bg-slate-900/60 p-4 shadow-lg shadow-slate-950/50 space-y-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 flex-1">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 flex-1">
               <div className="space-y-1">
                 <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300">Lokasyon</label>
                 <select
@@ -649,10 +727,31 @@ export default function FiveSFindingsListPage() {
                   onChange={(e) => setLocationFilter(e.target.value)}
                   className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
                 >
-                  <option value="">Tümü</option>
-                  {locations.map((loc) => (
+                  <option value="">{isScopedToMyLocations ? "Sorumlu olduğum lokasyonlar" : "Tümü"}</option>
+                  {/* A field manager is offered only their own locations. */}
+                  {(isScopedToMyLocations
+                    ? locations.filter((loc) =>
+                        (scope?.fieldManagerLocationNames ?? []).some(
+                          (n) => n.trim().toLocaleLowerCase("tr") === loc.name.trim().toLocaleLowerCase("tr")
+                        )
+                      )
+                    : locations
+                  ).map((loc) => (
                     <option key={loc.id} value={loc.name}>{loc.name}</option>
                   ))}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300">Kaynak</label>
+                <select
+                  value={sourceFilter}
+                  onChange={(e) => setSourceFilter(e.target.value as "" | "audit" | "single")}
+                  className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
+                >
+                  <option value="">Tümü</option>
+                  <option value="audit">Denetim bulguları</option>
+                  <option value="single">Tekil bulgular</option>
                 </select>
               </div>
 
@@ -744,13 +843,24 @@ export default function FiveSFindingsListPage() {
             <table className="min-w-full text-left text-xs text-slate-900 dark:text-slate-100">
               <thead className="bg-slate-50 dark:bg-slate-950/80 text-[11px] uppercase tracking-wide text-slate-600 dark:text-slate-400">
                 <tr>
-                  <th className="px-4 py-2">No</th>
-                  <th className="px-4 py-2">Tespit Tarihi</th>
-                  <th className="px-4 py-2">Lokasyon</th>
+                  <th className="px-4 py-2">
+                    <button type="button" onClick={() => toggleSort("finding_no")} className="uppercase hover:underline">No{sortMark("finding_no")}</button>
+                  </th>
+                  <th className="px-4 py-2">Ana Denetim</th>
+                  <th className="px-4 py-2">
+                    <button type="button" onClick={() => toggleSort("detected_date")} className="uppercase hover:underline">Tespit Tarihi{sortMark("detected_date")}</button>
+                  </th>
+                  <th className="px-4 py-2">
+                    <button type="button" onClick={() => toggleSort("location_name")} className="uppercase hover:underline">Lokasyon{sortMark("location_name")}</button>
+                  </th>
                   <th className="px-4 py-2">Tip</th>
-                  <th className="px-4 py-2">Durum</th>
+                  <th className="px-4 py-2">
+                    <button type="button" onClick={() => toggleSort("status")} className="uppercase hover:underline">Durum{sortMark("status")}</button>
+                  </th>
                   <th className="px-4 py-2">Faaliyet</th>
-                  <th className="px-4 py-2">Termin</th>
+                  <th className="px-4 py-2">
+                    <button type="button" onClick={() => toggleSort("due_date")} className="uppercase hover:underline">Termin{sortMark("due_date")}</button>
+                  </th>
                   <th className="px-4 py-2">Sorumlu</th>
                   <th className="px-4 py-2">Denetçi</th>
                   <th className="px-4 py-2">Foto (Önce)</th>
@@ -770,7 +880,7 @@ export default function FiveSFindingsListPage() {
                   rows.length === 0 &&
                   Array.from({ length: 6 }, (_, r) => (
                     <tr key={`skeleton-${r}`} className="border-b border-slate-100 dark:border-slate-800/60">
-                      {Array.from({ length: canDeleteFinding ? 12 : 11 }, (_, c) => (
+                      {Array.from({ length: canDeleteFinding ? 13 : 12 }, (_, c) => (
                         <td key={`skeleton-${r}-${c}`} className="px-4 py-3">
                           <Skeleton shape="text" className="h-3 w-full" />
                         </td>
@@ -780,7 +890,7 @@ export default function FiveSFindingsListPage() {
 
                 {rows.length === 0 && !loading && (
                   <tr>
-                    <td colSpan={canDeleteFinding ? 12 : 11} className="px-4">
+                    <td colSpan={canDeleteFinding ? 13 : 12} className="px-4">
                       <EmptyState
                         icon={ClipboardCheck}
                         title="Gösterilecek bulgu yok"
@@ -808,15 +918,21 @@ export default function FiveSFindingsListPage() {
                       className="border-t border-slate-300 dark:border-slate-800/80 hover:bg-slate-50 hover:dark:bg-slate-900/80 align-top"
                     >
                       <td className="px-4 py-2 text-[11px] text-slate-600 dark:text-slate-400">{f.finding_no ?? "-"}</td>
+                      <td className="px-4 py-2 text-[11px]">
+                        {f.form_title === "Tekil Bulgu" ? (
+                          <span className="inline-flex rounded border border-amber-600/50 bg-amber-100 dark:bg-amber-950/30 px-1.5 py-0.5 text-[11px] font-medium text-amber-800 dark:text-amber-200">
+                            Tekil Bulgu
+                          </span>
+                        ) : (
+                          <span className="block max-w-[200px] truncate" title={f.form_title ?? ""}>
+                            {f.form_title || "—"}
+                          </span>
+                        )}
+                      </td>
                       <td className="px-4 py-2 text-[11px]">{formatDate(f.detected_date)}</td>
 
                       <td className="px-4 py-2 text-xs">
                         <div className="max-w-[180px] truncate">{f.location_name}</div>
-                        {f.form_title && (
-                          <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-[220px]">
-                            {f.form_title}
-                          </div>
-                        )}
                       </td>
 
                       <td className="px-4 py-2 text-[11px] text-sky-700 dark:text-sky-300">
@@ -999,13 +1115,15 @@ export default function FiveSFindingsListPage() {
                                           <ImageIcon size={9} />
                                           Foto {idx + 1}
                                         </a>
-                                        <button
-                                          type="button"
-                                          onClick={() => handleRemovePhoto(f, "after", idx)}
-                                          className="rounded p-0.5 text-slate-500 dark:text-slate-400 hover:text-rose-400 hover:bg-rose-100 hover:dark:bg-rose-500/10 transition-colors"
-                                        >
-                                          <X size={11} />
-                                        </button>
+                                        {canRemovePhotosOf(f) && (
+                                          <button
+                                            type="button"
+                                            onClick={() => handleRemovePhoto(f, "after", idx)}
+                                            className="rounded p-0.5 text-slate-500 dark:text-slate-400 hover:text-rose-400 hover:bg-rose-100 hover:dark:bg-rose-500/10 transition-colors"
+                                          >
+                                            <X size={11} />
+                                          </button>
+                                        )}
                                       </div>
                                     );
                                   })}
@@ -1048,12 +1166,12 @@ export default function FiveSFindingsListPage() {
                                 className="inline-flex items-center gap-1 rounded-lg bg-emerald-500 px-2 py-0.5 text-[11px] font-semibold text-slate-950 hover:bg-emerald-400 disabled:opacity-50 transition-colors"
                               >
                                 <Upload size={10} />
-                                Yükle
+                                Kaydet
                               </button>
                             </div>
                           )}
 
-                          {afterCount > 0 && (
+                          {afterCount > 0 && canRemovePhotosOf(f) && (
                             <button
                               type="button"
                               onClick={() => handleRemoveAllAfterPhotos(f)}

@@ -3,6 +3,7 @@ import localFont from 'next/font/local'
 import './globals.css'
 import { Toaster } from 'sonner'
 import { ConfirmHost, Header, LoginChecker } from './_components'
+import { ServiceWorkerRegistrar } from './_components/Global/ServiceWorker'
 
 /*
  * Fonts ship with the repo instead of coming from next/font/google. The
@@ -60,6 +61,7 @@ export default function RootLayout({
 
         <Toaster />
         <ConfirmHost />
+        <ServiceWorkerRegistrar />
         <LoginChecker>{children}</LoginChecker>
       </body>
     </html>

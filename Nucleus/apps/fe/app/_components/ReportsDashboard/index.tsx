@@ -14,7 +14,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { Loader2, RefreshCw } from 'lucide-react'
+import { Download, Loader2, RefreshCw } from 'lucide-react'
 import { DateInput } from '@/app/_components/DateInput'
 import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
 import { resolvePhotoUrl } from "@/app/_utils/photos"
@@ -49,16 +49,59 @@ const str = (v: unknown) => String(v ?? '')
 
 /* ───────────── Small UI helpers ───────────── */
 
-function Card(props: { title: string; subtitle?: string; children: React.ReactNode; className?: string }) {
+function Card(props: {
+  title: string
+  subtitle?: string
+  children: React.ReactNode
+  className?: string
+  /** Every report downloads as Excel (7 Oct request). */
+  onExport?: () => void
+  exporting?: boolean
+}) {
   return (
     <section className={`rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 p-4 ${props.className ??''}`}>
-      <div className="mb-3">
-        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{props.title}</h3>
-        {props.subtitle && <p className="mt-0.5 text-[11px] text-slate-600 dark:text-slate-400">{props.subtitle}</p>}
+      <div className="mb-3 flex items-start justify-between gap-2">
+        <div>
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{props.title}</h3>
+          {props.subtitle && <p className="mt-0.5 text-[11px] text-slate-600 dark:text-slate-400">{props.subtitle}</p>}
+        </div>
+        {props.onExport && (
+          <button
+            type="button"
+            onClick={props.onExport}
+            disabled={props.exporting}
+            className="inline-flex shrink-0 items-center gap-1 rounded-md border border-emerald-700/50 bg-white dark:bg-slate-950/60 px-2 py-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 hover:dark:bg-emerald-950/30 disabled:opacity-50"
+            title="Bu raporu Excel olarak indir"
+          >
+            {props.exporting ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
+            Excel
+          </button>
+        )}
       </div>
       {props.children}
     </section>
   )
+}
+
+/**
+ * Download a workbook the backend builds. Same-origin through the /reports
+ * rewrite in next.config.ts, so the session cookie goes with it.
+ */
+async function downloadWorkbook(path: string, params: Record<string, string>): Promise<void> {
+  const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v)).toString()
+  const res = await fetch(`${path}${qs ? `?${qs}` : ''}`, { cache: 'no-store' })
+  if (!res.ok) throw new Error(`Excel indirilemedi (${res.status})`)
+  const blob = await res.blob()
+  const cd = res.headers.get('Content-Disposition') ?? ''
+  const filename = cd.match(/filename="?([^";]+)"?/)?.[1] ?? 'rapor.xlsx'
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
 }
 
 function StatCard(props: { label: string; value: string; tone?: 'default' | 'good' | 'warn' | 'bad' }) {
@@ -282,6 +325,31 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
   const [error, setError] = React.useState<string | null>(null)
   const [dateFrom, setDateFrom] = React.useState('')
   const [dateTo, setDateTo] = React.useState('')
+  const [exporting, setExporting] = React.useState<string | null>(null)
+
+  const exportSection = React.useCallback(
+    async (section: string, path = '/reports/dashboard.xlsx', extra: Record<string, string> = {}) => {
+      setExporting(section)
+      try {
+        await downloadWorkbook(path, {
+          ...(path === '/reports/dashboard.xlsx' && section !== 'all' ? { section } : {}),
+          date_from: dateFrom,
+          date_to: dateTo,
+          ...extra,
+        })
+      } catch (err) {
+        console.error('report export error', err)
+        setError((err as Error).message || 'Excel indirilemedi')
+      } finally {
+        setExporting(null)
+      }
+    },
+    [dateFrom, dateTo]
+  )
+  const exp = (section: string) => ({
+    onExport: () => exportSection(section),
+    exporting: exporting === section,
+  })
 
   const actions = useGenericApiActions()
 
@@ -438,6 +506,16 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
           {loading ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
           Yenile
         </button>
+        <button
+          type="button"
+          onClick={() => exportSection('all')}
+          disabled={exporting === 'all'}
+          className="inline-flex items-center gap-1.5 rounded-md border border-emerald-700/50 bg-white dark:bg-slate-950/60 px-3 py-2 text-xs font-medium text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 hover:dark:bg-emerald-950/30 disabled:opacity-50"
+          title="Tüm raporlar, her biri ayrı sayfada"
+        >
+          {exporting === 'all' ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+          Tümünü Excel'e aktar
+        </button>
       </div>
 
       {/* Özet kartlar (rapor 2 + 10 özet) */}
@@ -463,7 +541,7 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
       </div>
 
       {/* Rapor 7: Puan trendi */}
-      <Card title="5S Puan Trendi" subtitle="Denetim dönemlerine göre ortalama puan — hedef karşılaştırmalı">
+      <Card title="5S Puan Trendi" subtitle="Denetim dönemlerine göre ortalama puan — hedef karşılaştırmalı" {...exp('scoreTrend')}>
         <ResponsiveContainer width="100%" height={260}>
           <LineChart data={data?.scoreTrend ?? []}>
             <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
@@ -491,7 +569,7 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
 
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Rapor 1: Bölge × bulgu tipi */}
-        <Card title="Bölge / Bulgu Tipi Dağılımı" subtitle="Hangi bölgede hangi tip bulgular yoğun">
+        <Card title="Bölge / Bulgu Tipi Dağılımı" subtitle="Hangi bölgede hangi tip bulgular yoğun" {...exp('byLocationType')}>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={locationTypePivot.data}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
@@ -513,7 +591,7 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
         </Card>
 
         {/* Rapor 2: Açık/Kapalı bulgu */}
-        <Card title="Açık / Kapalı Bulgu Sayıları" subtitle="Bölge bazında durum dağılımı">
+        <Card title="Açık / Kapalı Bulgu Sayıları" subtitle="Bölge bazında durum dağılımı" {...exp('statusCounts')}>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={statusPivot.data}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
@@ -535,7 +613,7 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
         </Card>
 
         {/* Rapor 5: Puanlar bölge bazında */}
-        <Card title="Bölge Bazında Puanlar" subtitle="Ortalama toplam puan (hedef çizgisi 75)">
+        <Card title="Bölge Bazında Puanlar" subtitle="Ortalama toplam puan (hedef çizgisi 75)" {...exp('scoresByDepartment')}>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={data?.scoresByDepartment ?? []}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
@@ -549,7 +627,7 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
         </Card>
 
         {/* Rapor 6: Bölge × S adımı */}
-        <Card title="Bölge / 5S Adımı Dağılımı" subtitle="Bulgular hangi S adımından çıkıyor">
+        <Card title="Bölge / 5S Adımı Dağılımı" subtitle="Bulgular hangi S adımından çıkıyor" {...exp('byStepCode')}>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={stepCodePivot.data}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
@@ -571,7 +649,7 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
         </Card>
 
         {/* Rapor 9: Ekip başına ortalama bulgu */}
-        <Card title="Denetim Başına Ortalama Bulgu" subtitle="Ekip bazında bulgu yoğunluğu">
+        <Card title="Denetim Başına Ortalama Bulgu" subtitle="Ekip bazında bulgu yoğunluğu" {...exp('findingsPerTeam')}>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={data?.findingsPerTeam ?? []}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
@@ -592,7 +670,7 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
         </Card>
 
         {/* Rapor 8: Denetim planına uyum */}
-        <Card title="Denetim Planına Uyum" subtitle="Plan durumları ve katılım bilgisi">
+        <Card title="Denetim Planına Uyum" subtitle="Plan durumları ve katılım bilgisi" {...exp('planCompliance')}>
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-xs text-slate-800 dark:text-slate-200">
               <thead className="text-[11px] uppercase tracking-wide text-slate-600 dark:text-slate-400">
@@ -608,7 +686,7 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
                 {(data?.planCompliance ?? []).map((r, i) => (
                   <tr key={i} className="border-t border-slate-300 dark:border-slate-800/80">
                     <td className="px-3 py-2">
-                      {str(r.status) === 'planned' ? 'Planlandı' : str(r.status) === 'completed' ? 'Tamamlandı' : str(r.status) === 'cancelled' ? 'İptal' : str(r.status)}
+                      {str(r.status) === 'planned' ? 'Planlandı' : str(r.status) === 'pending_approval' ? 'Onay Bekliyor' : str(r.status) === 'completed' ? 'Tamamlandı' : str(r.status) === 'cancelled' ? 'İptal' : str(r.status)}
                     </td>
                     <td className="px-3 py-2 text-center">{num(r.count)}</td>
                     <td className="px-3 py-2 text-center text-emerald-700 dark:text-emerald-300">{num(r.auditor_attended)}</td>
@@ -628,7 +706,7 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
       </div>
 
       {/* Rapor 10: Müdürlük bazlı özet */}
-      <Card title="Müdürlük Bazlı Özet" subtitle="Denetim sayısı, ortalama puan ve bulgu durumları (müdürlük eşlemesi Ana Veri Yönetimi'ndeki lokasyonlardan gelir)">
+      <Card title="Müdürlük Bazlı Özet" subtitle="Denetim sayısı, ortalama puan ve bulgu durumları (müdürlük eşlemesi Ana Veri Yönetimi'ndeki lokasyonlardan gelir)" {...exp('departmentSummary')}>
         <div className="overflow-x-auto">
           <table className="min-w-full text-left text-xs text-slate-800 dark:text-slate-200">
             <thead className="text-[11px] uppercase tracking-wide text-slate-600 dark:text-slate-400">
@@ -665,7 +743,7 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
       </Card>
 
       {/* Rapor 4: Termin geçmiş aksiyonlar */}
-      <Card title="Termin Tarihi Geçmiş Aksiyonlar" subtitle="Termini geçmiş, hâlâ açık bulgular">
+      <Card title="Termin Tarihi Geçmiş Aksiyonlar" subtitle="Termini geçmiş, hâlâ açık bulgular" {...exp('overdueActions')}>
         <div className="max-h-80 overflow-auto">
           <table className="min-w-full text-left text-xs text-slate-800 dark:text-slate-200">
             <thead className="sticky top-0 bg-white dark:bg-slate-900 text-[11px] uppercase tracking-wide text-slate-600 dark:text-slate-400">
@@ -704,12 +782,17 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
       {!compact && (
         <>
           {/* Rapor 11: Fabrika krokisi ısı haritası */}
-          <Card title="Fabrika Krokisi — Bulgu Isı Haritası" subtitle="Açık bulgu sayısına göre kırmızı/sarı/yeşil; büyüklük yoğunluğu gösterir">
+          <Card title="Fabrika Krokisi — Bulgu Isı Haritası" subtitle="Açık bulgu sayısına göre kırmızı/sarı/yeşil; büyüklük yoğunluğu gösterir" {...exp('mapHeat')}>
             <FactoryMapHeat mapHeat={data?.mapHeat ?? []} />
           </Card>
 
           {/* Rapor 3: Önce / Sonra fotoğraflı rapor */}
-          <Card title="Önce / Sonra Fotoğraflı Bulgular" subtitle="Kapatılmış bulguların iyileştirme fotoğrafları">
+          <Card
+            title="Önce / Sonra Fotoğraflı Bulgular"
+            subtitle="Kapatılmış bulguların iyileştirme fotoğrafları"
+            onExport={() => exportSection('closedFindings', '/reports/findings.xlsx', { status: 'closed' })}
+            exporting={exporting === 'closedFindings'}
+          >
             <BeforeAfterReport />
           </Card>
         </>

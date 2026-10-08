@@ -1,6 +1,7 @@
 'use client'
 
 import { relativeTime } from '@/app/(pages)/(shared)/logs/labels'
+import { forgetSignedInUser } from '@/app/_utils/offlineIdentity'
 import { readListResponse } from '@/app/_hooks/UseServerList'
 import { useGSAP } from '@gsap/react'
 import { useStore } from '@store/globalStore'
@@ -833,6 +834,7 @@ export function ClientSide({
       console.error('Logout failed:', error)
     } finally {
       onLogout()
+      forgetSignedInUser()
       globalStore.user = undefined
       globalStore.isLoginChecked = false
       router.push('/login')

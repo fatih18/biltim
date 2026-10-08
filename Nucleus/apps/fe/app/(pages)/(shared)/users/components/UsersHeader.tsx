@@ -3,7 +3,7 @@
 import { Shield, UserPlus } from 'lucide-react'
 
 interface UsersHeaderProps {
-  /** Verilmezse "Kullanıcı Ekle" görünmez (uç yalnız godmin'e açık). */
+  /** Verilmezse "Kullanıcı Ekle" görünmez (Merkez Ekip, Super Admin, godmin). */
   onCreate?: () => void
   onRefresh: () => void
   isRefreshing: boolean

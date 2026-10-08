@@ -5,6 +5,9 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { useGenericApiActions } from "@/app/_hooks/UseNucleusApi";
 import { useGetUserRole } from "@/app/_hooks/user/useGetUserRole";
+import { useMyScope } from "@/app/_hooks/user/useMyScope";
+import { CENTRAL_ROLES, hasPrivilege } from "@/app/_utils/routeAccess";
+import { confirmDialog } from "@/app/_components/Global/ConfirmDialog";
 
 import { HomeAuditListPanel } from "./components/HomeAuditListPanel";
 import { EditAuditModal, type EditableAudit } from "./components/EditAuditModal";
@@ -16,6 +19,7 @@ import { toast } from "sonner";
 const PLAN_KEYS = {
   GET: "GET_FIVE_S_AUDIT_PLANS",
   UPDATE: "UPDATE_FIVE_S_AUDIT_PLAN", // <-- sende farklıysa değiştir
+  DELETE: "DELETE_FIVE_S_AUDIT_PLAN",
 } as const;
 
 const LOC_KEYS = { GET: "GET_FIVE_S_LOCATIONS" } as const;
@@ -50,6 +54,43 @@ function extractArray(res: any): any[] {
   }
   return [];
 }
+
+type Dict = Record<string, unknown>;
+
+/*
+ * Three tabs, three server questions. "Onay Bekleyen" is new (#28): the
+ * auditor's submission puts a plan there, and only Merkez Ekip's "Onayla"
+ * moves it to "Tamamlanan".
+ */
+export type HomeTab = "upcoming" | "approval" | "completed";
+
+const STATUS_BY_TAB: Record<HomeTab, Dict> = {
+  upcoming: { field: "status", operator: "notIn", value: ["completed", "pending_approval"] },
+  approval: { field: "status", operator: "in", value: ["pending_approval"] },
+  completed: { field: "status", operator: "in", value: ["completed"] },
+};
+
+/** The conditions for one tab, or null when this person has no plans at all. */
+function planFilters(tab: HomeTab, access: "all" | "none" | Dict): Dict[] | null {
+  if (access === "none") return null;
+  const conditions: Dict[] = [
+    { field: "is_active", operator: "eq", value: true },
+    { field: "location_id", operator: "isNotNull", value: true },
+    STATUS_BY_TAB[tab],
+  ];
+  if (access !== "all") conditions.push(access);
+  return conditions;
+}
+
+export type DateEditRule = {
+  allowed: boolean;
+  /** Whether saving uses up one of the plan's two changes. */
+  spends: boolean;
+  /** Changes left; null when the rule does not count them. */
+  remaining: number | null;
+  /** The person could move it, but the changes are used up. */
+  locked?: boolean;
+};
 
 export type AuditPlanRow = {
   id: string;
@@ -170,6 +211,7 @@ export default function Page() {
   }, [actions]);
 
   const [plans, setPlans] = React.useState<AuditPlanRow[]>([]);
+  const [parentPlans, setParentPlans] = React.useState<AuditPlanRow[]>([]);
   /*
    * Which tab is showing, and what the server says each one holds.
    *
@@ -180,10 +222,19 @@ export default function Page() {
    */
   // Kim olduğumuz, bağımlılıksız fetchAll'ın okuyabileceği yerde.
   const benRef = React.useRef<string>("");
-  const [tab, setTab] = React.useState<"upcoming" | "completed">("upcoming");
+  const [tab, setTab] = React.useState<HomeTab>("upcoming");
   const tabRef = React.useRef(tab);
-  const [upcomingCount, setUpcomingCount] = React.useState<number | null>(null);
-  const [completedCount, setCompletedCount] = React.useState<number | null>(null);
+  const [counts, setCounts] = React.useState<Record<HomeTab, number | null>>({
+    upcoming: null,
+    approval: null,
+    completed: null,
+  });
+  /*
+   * Whose plans this screen may list, decided by the server's scope answer.
+   * `null` = not decided yet (nothing is fetched), `"all"` = Merkez Ekip and
+   * above, otherwise the condition that narrows the query to this person.
+   */
+  const accessRef = React.useRef<"all" | "none" | Dict | null>(null);
   const [locations, setLocations] = React.useState<LocationLite[]>([]);
   const [teams, setTeams] = React.useState<AuditTeamLite[]>([]);
   const [teamMembers, setTeamMembers] = React.useState<TeamMemberRow[]>([]);
@@ -277,20 +328,28 @@ export default function Page() {
      * against the live API, `status notIn ['completed']` returns 1 and
      * `status in ['completed']` returns 6, which is what the labels show — and
      * it returns the total alongside the page.
+     *
+     * The same holds for WHOSE plans. An auditor or field manager used to get
+     * the plant's totals on the tabs and only their own rows underneath — the
+     * screen hid the rest after the server had counted them (#23). The
+     * narrowing is now part of the query, so the count is of their rows.
      */
+    const access = accessRef.current;
+    if (access === null) return;
+    const currentTab = tabRef.current;
+    const filters = planFilters(currentTab, access);
+    if (!filters) {
+      setPlans([]);
+      setCounts({ upcoming: 0, approval: 0, completed: 0 });
+      setLoading(false);
+      return;
+    }
     run(startPlans, {
       payload: {
         page: 1,
         limit: 50,
-        sort: [{ field: "planned_date", direction: tabRef.current === "upcoming" ? "asc" : "desc" }],
-        filters: {
-          is_active: true,
-          location_id: { operator: "isNotNull", value: true },
-          status:
-            tabRef.current === "upcoming"
-              ? { operator: "notIn", value: ["completed"] }
-              : { operator: "in", value: ["completed"] },
-        },
+        sort: [{ field: "planned_date", direction: currentTab === "upcoming" ? "asc" : "desc" }],
+        filters,
       },
       onAfterHandle: (res: any) => {
         const arr = extractArray(res) as any[];
@@ -309,37 +368,26 @@ export default function Page() {
           | { totalItems?: number; total?: number }
           | undefined;
         const toplam = meta?.totalItems ?? meta?.total ?? null;
-        if (tabRef.current === "upcoming") setUpcomingCount(toplam);
-        else setCompletedCount(toplam);
+        setCounts((prev) => ({ ...prev, [currentTab]: toplam }));
       },
       onErrorHandle: (e: any) => reportReadFailure(`${PLAN_KEYS.GET}`, e),
     });
 
-    // The other tab's count, without its rows — the label has to be right
-    // before anyone clicks it.
-    run(startPlans, {
-      payload: {
-        page: 1,
-        limit: 1,
-        filters: {
-          is_active: true,
-          location_id: { operator: "isNotNull", value: true },
-          status:
-            tabRef.current === "upcoming"
-              ? { operator: "in", value: ["completed"] }
-              : { operator: "notIn", value: ["completed"] },
+    // The other tabs' counts, without their rows — the labels have to be
+    // right before anyone clicks them.
+    for (const other of (Object.keys(STATUS_BY_TAB) as HomeTab[]).filter((t) => t !== currentTab)) {
+      run(startPlans, {
+        payload: { page: 1, limit: 1, filters: planFilters(other, access) },
+        onAfterHandle: (res: any) => {
+          const meta = (res?.pagination ?? res?.meta ?? res?.data?.meta) as
+            | { totalItems?: number; total?: number }
+            | undefined;
+          const toplam = meta?.totalItems ?? meta?.total ?? null;
+          setCounts((prev) => ({ ...prev, [other]: toplam }));
         },
-      },
-      onAfterHandle: (res: any) => {
-        const meta = (res?.pagination ?? res?.meta ?? res?.data?.meta) as
-          | { totalItems?: number; total?: number }
-          | undefined;
-        const toplam = meta?.totalItems ?? meta?.total ?? null;
-        if (tabRef.current === "upcoming") setCompletedCount(toplam);
-        else setUpcomingCount(toplam);
-      },
-      onErrorHandle: () => {},
-    });
+        onErrorHandle: () => {},
+      });
+    }
 
     /*
      * The supporting rows, asked for by id.
@@ -378,6 +426,33 @@ export default function Page() {
 
     const okuIlgili = (planRows: any[]) => {
       const lokIds = [...new Set(planRows.map((p) => p?.location_id).filter(Boolean).map(String))];
+
+      /*
+       * Dönem planları. "Dönem" sütunu üst planın çeyreğini ve aralığını
+       * gösteriyor, ama liste yalnız lokasyonlu (alt) planları okuduğu için üst
+       * planlar hiç yüklenmiyordu ve sütun her satırda "—" kalıyordu.
+       */
+      const ustIds = [...new Set(planRows.map((p) => p?.parent_plan_id).filter(Boolean).map(String))];
+      if (ustIds.length > 0) {
+        run(startPlans, {
+          payload: { page: 1, limit: 200, filters: [{ field: "id", operator: "in", value: ustIds }] },
+          onAfterHandle: (res: any) => {
+            setParentPlans(
+              extractArray(res).map((p: any) => ({
+                ...p,
+                planned_date: normalizeDateYYYYMMDD(p?.planned_date ?? ""),
+                date_range_start: normalizeDateYYYYMMDD(p?.date_range_start ?? "") || null,
+                date_range_end: normalizeDateYYYYMMDD(p?.date_range_end ?? "") || null,
+                quarter: p?.quarter ?? null,
+                title: p?.title ?? null,
+              })) as AuditPlanRow[]
+            );
+          },
+          onErrorHandle: (e: any) => reportReadFailure(`${PLAN_KEYS.GET}`, e),
+        });
+      } else {
+        setParentPlans([]);
+      }
       const ekipIds = [
         ...new Set(planRows.map((p) => p?.assigned_team_id).filter(Boolean).map(String)),
       ];
@@ -478,20 +553,65 @@ export default function Page() {
     }
   }, []);
 
+  // Madde 6: Denetçi / Saha Sorumlusu ana sayfada sadece kendi denetimlerini görsün
+  const { roleName, roles, isGod, isLoading: isRoleLoading } = useGetUserRole();
+  const { scope, failed: scopeFailed } = useMyScope();
+
+  const roleNames = React.useMemo(
+    () => [roleName ?? "", ...(roles ?? []).map((r: any) => r?.name ?? "")].filter(Boolean),
+    [roleName, roles]
+  );
+  // The godmin is included through `isGod`: left out, it saw the audit list and
+  // nothing else — no report summary — on an otherwise empty home screen.
+  const isPrivilegedUser = React.useMemo(
+    () => hasPrivilege(roleNames, CENTRAL_ROLES, isGod),
+    [roleNames, isGod]
+  );
+
+  /*
+   * Decide whose plans to ask for, then ask. Merkez Ekip and above see every
+   * plan; anyone else sees the plans of their teams and of the locations they
+   * answer for — the same rule the screen applied after loading, now applied
+   * by the server so the counts agree with the rows.
+   */
+  React.useEffect(() => {
+    if (isRoleLoading) return;
+    if (isPrivilegedUser) {
+      accessRef.current = "all";
+    } else if (scope) {
+      const branches: Dict[] = [];
+      if (scope.teamIds.length > 0)
+        branches.push({ field: "assigned_team_id", operator: "in", value: scope.teamIds });
+      if (scope.locationIds.length > 0)
+        branches.push({ field: "location_id", operator: "in", value: scope.locationIds });
+      accessRef.current = branches.length === 0 ? "none" : { operator: "or", value: branches };
+    } else if (scopeFailed) {
+      accessRef.current = "none";
+      toast.error("Size atanan denetimler okunamadı. Sayfayı yenilemeyi deneyin.");
+    } else {
+      return;
+    }
+    fetchAll();
+  }, [isRoleLoading, isPrivilegedUser, scope, scopeFailed, fetchAll]);
+
   // Switching tabs re-runs the query rather than re-slicing what is in memory.
+  const firstTabRun = React.useRef(true);
   React.useEffect(() => {
     tabRef.current = tab;
+    if (firstTabRun.current) {
+      firstTabRun.current = false;
+      return;
+    }
     fetchAll();
   }, [tab, fetchAll]);
 
   React.useEffect(() => {
     fetchMeOnce();
-    fetchAll();
-  }, [fetchAll, fetchMeOnce]);
+  }, [fetchMeOnce]);
 
   const parentPlanRangeById = React.useMemo((): Map<string, { start: string; end: string; quarter: string | null; title: string | null }> => {
     const map = new Map<string, { start: string; end: string; quarter: string | null; title: string | null }>();
-    for (const p of plans) {
+    for (const p of [...plans, ...parentPlans]) {
       if (p.date_range_start && p.date_range_end) {
         map.set(p.id, {
           start: p.date_range_start,
@@ -502,7 +622,7 @@ export default function Page() {
       }
     }
     return map;
-  }, [plans]);
+  }, [plans, parentPlans]);
 
   const locInfoById = React.useMemo((): Map<string, LocInfo> => {
     const userNameById = new Map(users.map((u) => [u.id, u.name]));
@@ -557,61 +677,102 @@ export default function Page() {
     return map;
   }, [users, teamMembers, teams, missingTeamIds]);
 
-  // Madde 6: Denetçi / Saha Sorumlusu ana sayfada sadece kendi denetimlerini görsün
-  const { roleName, roles, isLoading: isRoleLoading } = useGetUserRole();
-
-  const isPrivilegedUser = React.useMemo(() => {
-    const names = [roleName ?? "", ...(roles ?? []).map((r: any) => r?.name ?? "")]
-      .filter(Boolean)
-      .map((x) => String(x).trim().toLowerCase().replace(/\s+/g, " "));
-    return names.some(
-      (n) =>
-        n === "super admin" ||
-        // The install's root account. Left out, a godmin saw the audit list and
-        // nothing else — no report summary — on an otherwise empty home screen.
-        n === "godmin" ||
-        n === "manager" ||
-        (n.includes("content manager") && n.includes("core team"))
-    );
-  }, [roleName, roles]);
-
-  const visiblePlans = React.useMemo(() => {
-    if (isRoleLoading) return [];
-    if (isPrivilegedUser) return plans;
-    if (!currentUserId) return plans;
-
-    // Kullanıcının dahil olduğu ekipler (üye veya lider)
-    const myTeamIds = new Set<string>();
-    for (const m of teamMembers) {
-      if (m.is_active && String(m.user_id) === String(currentUserId)) myTeamIds.add(m.team_id);
-    }
-    for (const t of teams) {
-      if (t.leaderUserId && String(t.leaderUserId) === String(currentUserId)) myTeamIds.add(t.id);
-    }
-
-    // Kullanıcının sorumlu olduğu lokasyonlar (müdür veya saha sorumlusu)
-    const myLocationIds = new Set<string>();
-    for (const l of locations) {
-      if (
-        (l.managerUserId && String(l.managerUserId) === String(currentUserId)) ||
-        l.fieldManagerUserIds.some((id) => String(id) === String(currentUserId))
-      ) {
-        myLocationIds.add(l.id);
-      }
-    }
-
-    return plans.filter(
-      (p) =>
-        !p.location_id || // ana planlar (quarter) görünür kalsın (dönem bilgisi için)
-        myTeamIds.has(p.assigned_team_id) ||
-        myLocationIds.has(p.location_id)
-    );
-  }, [plans, teams, teamMembers, locations, currentUserId, isPrivilegedUser, isRoleLoading]);
+  /*
+   * Nobody audits the place they are responsible for (#27). Someone who is an
+   * auditor on one team and the field manager of this location used to get
+   * "Denetimi Başlat" on it; the server now refuses that audit too.
+   */
+  const canStartPlan = React.useCallback(
+    (plan: AuditPlanRow) => {
+      if (plan.status !== "planned") return false;
+      if (isPrivilegedUser) return true;
+      return !(scope?.fieldManagerLocationIds ?? []).includes(String(plan.location_id));
+    },
+    [isPrivilegedUser, scope]
+  );
 
   // Madde 7: Ana sayfadan denetim başlatma
   const startAudit = React.useCallback(
     (planId: string) => {
       router.push(`/denetim?planId=${encodeURIComponent(planId)}`);
+    },
+    [router]
+  );
+
+  /*
+   * Merkez Ekip approves what the auditor sent (#28). Until then the plan sits
+   * in "Onay Bekleyen"; approving moves it to "Tamamlanan". The server refuses
+   * this for anyone else.
+   */
+  const [approvingId, setApprovingId] = React.useState<string | null>(null);
+  const approvePlan = React.useCallback(
+    (plan: AuditPlanRow) => {
+      const startUpdate = safeStart(actionsRef.current as any, PLAN_KEYS.UPDATE);
+      if (!startUpdate) return;
+      setApprovingId(plan.id);
+      startUpdate({
+        payload: { _id: plan.id, status: "completed" },
+        onAfterHandle: () => {
+          setApprovingId(null);
+          toast.success("Denetim onaylandı.");
+          fetchAll();
+        },
+        onErrorHandle: (e: any) => {
+          setApprovingId(null);
+          const sunucu = (Array.isArray(e) ? e[0]?.message : e?.message) ?? null;
+          toast.error(sunucu ? `Onaylanamadı: ${sunucu}` : "Denetim onaylanamadı.");
+        },
+      });
+    },
+    [fetchAll]
+  );
+
+  /*
+   * Merkez Ekip can delete a plan from here (#19), including one whose
+   * location or team has since been deleted — those could not be reached
+   * from the planner, which lists plans under the location they belong to.
+   */
+  const deletePlan = React.useCallback(
+    async (plan: AuditPlanRow) => {
+      const ok = await confirmDialog({
+        title: "Denetim planı silinsin mi?",
+        message:
+          plan.status === "planned"
+            ? "Plan kalıcı olarak silinir."
+            : "Bu plan için yapılmış denetim kaydı ve bulguları silinmez; yalnız plan satırı kaldırılır.",
+        confirmLabel: "Sil",
+        cancelLabel: "Vazgeç",
+        tone: "danger",
+      });
+      if (!ok) return;
+      const del = safeStart(actionsRef.current as any, PLAN_KEYS.DELETE);
+      if (!del) return;
+      del({
+        payload: { _id: plan.id },
+        onAfterHandle: () => {
+          toast.success("Plan silindi.");
+          fetchAll();
+        },
+        onErrorHandle: (e: any) => {
+          const sunucu = (Array.isArray(e) ? e[0]?.message : e?.message) ?? null;
+          toast.error(sunucu ? `Plan silinemedi: ${sunucu}` : "Plan silinemedi.");
+        },
+      });
+    },
+    [fetchAll]
+  );
+
+  /*
+   * Madde 8 / #12: Merkez Ekip corrects a carried-out audit on the same
+   * question-and-answer screen the auditor used (Foto 7), not only its five
+   * totals. The score modal below stays for a quick total correction.
+   */
+  const openAuditAnswersEdit = React.useCallback(
+    (plan: AuditPlanRow) => {
+      if (!plan.audit_id) return;
+      router.push(
+        `/denetim?editAuditId=${encodeURIComponent(plan.audit_id)}&planId=${encodeURIComponent(plan.id)}`
+      );
     },
     [router]
   );
@@ -725,20 +886,31 @@ export default function Page() {
 
   const MAX_DATE_CHANGES = 2;
 
-  const canEditPlan = React.useCallback(
-    (plan: AuditPlanRow) => {
-      if (!currentUserId) return false;
-      // Sadece atanan ekibin lideri düzenleyebilir
+  /*
+   * Who may move a plan's date, and whether doing so spends one of its two
+   * changes. The server applies the same rule (businessRules.ts).
+   *
+   *  - planned: the team leader, or Merkez Ekip, while changes remain;
+   *  - done (sent or approved): Merkez Ekip only, as a correction that does
+   *    not spend a change (#16) — the leader could rewrite the date of an
+   *    audit that had already been carried out;
+   *  - the godmin: any plan, any number of times, nothing spent (#32).
+   */
+  const dateEditRule = React.useCallback(
+    (plan: AuditPlanRow): DateEditRule => {
+      const used = plan.date_change_count ?? 0;
+      const left = Math.max(0, MAX_DATE_CHANGES - used);
+      const done = plan.status === "completed" || plan.status === "pending_approval";
+      if (isGod) return { allowed: true, spends: false, remaining: null };
+      if (done) return { allowed: isPrivilegedUser, spends: false, remaining: null };
       const team = teams.find((t) => t.id === plan.assigned_team_id);
-      if (!team?.leaderUserId) return false;
-      if (String(team.leaderUserId) !== String(currentUserId)) return false;
-      // Maksimum 2 düzenleme hakkı
-      if ((plan.date_change_count ?? 0) >= MAX_DATE_CHANGES) return false;
-      return true;
+      const isLeader =
+        !!currentUserId && !!team?.leaderUserId && String(team.leaderUserId) === String(currentUserId);
+      if (!isLeader && !isPrivilegedUser) return { allowed: false, spends: true, remaining: left };
+      return { allowed: left > 0, spends: true, remaining: left, locked: left === 0 };
     },
-    [teams, currentUserId]
+    [teams, currentUserId, isGod, isPrivilegedUser]
   );
-
 
   const updatePlanDate = React.useCallback((planId: string, dateYYYYMMDD: string, newCount: number) => {
     const A = actionsRef.current as any;
@@ -762,6 +934,10 @@ export default function Page() {
       },
       onErrorHandle: (e: any) => {
         console.error(`${PLAN_KEYS.UPDATE} error`, e);
+        // The server says why (no changes left, completed audit, ...); a
+        // silent failure left the old date on screen with no explanation.
+        const sunucu = (Array.isArray(e) ? e[0]?.message : e?.message) ?? null;
+        toast.error(sunucu ? `Tarih değiştirilemedi: ${sunucu}` : "Tarih değiştirilemedi.");
       },
     });
   }, []);
@@ -811,7 +987,28 @@ export default function Page() {
         }
       }
 
-      // 3) Saha sorumlusu başka bir lokasyonun denetiminde
+      // 3) Aynı denetçi (ekip üyesi) bu tarihte başka bir ekibin denetiminde (#26)
+      const kadro = (id: string) => {
+        const lead = teams.find((t) => t.id === id)?.leaderUserId;
+        return new Set(
+          [lead, ...teamMembers.filter((m) => m.is_active && m.team_id === id).map((m) => m.user_id)]
+            .filter(Boolean)
+            .map(String)
+        );
+      };
+      const benimKadro = kadro(teamId);
+      for (const a of same) {
+        if (a.assigned_team_id === teamId) continue;
+        const ortak = [...kadro(a.assigned_team_id)].filter(
+          (id) => benimKadro.has(id) && id !== String(leaderId ?? "")
+        );
+        if (ortak.length > 0) {
+          const names = ortak.map((id) => userNameById.get(id) ?? id).join(", ");
+          warns.push(`Denetçi (${names}) bu tarihte "${locName(a.location_id)}" denetiminde de görevli.`);
+        }
+      }
+
+      // 4) Saha sorumlusu başka bir lokasyonun denetiminde
       const selFM = locations.find((l) => l.id === locId)?.fieldManagerUserIds ?? [];
       if (selFM.length > 0) {
         for (const a of same) {
@@ -828,15 +1025,19 @@ export default function Page() {
 
       return warns;
     },
-    [plans, teams, locations, users]
+    [plans, teams, teamMembers, locations, users]
   );
 
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-50 px-4 py-6 md:px-8">
       <div className="mx-auto max-w-7xl space-y-6">
         <HomeAuditListPanel
-          plans={visiblePlans}
+          plans={plans}
           onStartAudit={startAudit}
+          canStartPlan={canStartPlan}
+          onApprovePlan={isPrivilegedUser ? approvePlan : undefined}
+          approvingId={approvingId}
+          onDeletePlan={isPrivilegedUser ? deletePlan : undefined}
           currentUserId={currentUserId}
           locInfoById={locInfoById}
           parentPlanRangeById={parentPlanRangeById}
@@ -845,14 +1046,14 @@ export default function Page() {
           loading={loading}
           onRefresh={fetchAll}
 
-          canEditPlan={canEditPlan}
+          dateEditRule={dateEditRule}
           onUpdatePlanDate={updatePlanDate}
           getDateConflicts={getDateConflicts}
-          onEditCompletedAudit={isPrivilegedUser ? openAuditEdit : undefined}
+          onEditCompletedAudit={isPrivilegedUser ? openAuditAnswersEdit : undefined}
+          onEditScores={isPrivilegedUser ? openAuditEdit : undefined}
           tab={tab}
           onTabChange={setTab}
-          upcomingCount={upcomingCount}
-          completedCount={completedCount}
+          counts={counts}
         />
 
         {isPrivilegedUser && (

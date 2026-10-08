@@ -32,8 +32,41 @@ export function AuditPlannerPanel(props: {
   onUpdateStatus: (id: string, status: AuditStatus) => void;
   onUpdateDate: (id: string, newDate: string, newCount: number) => void;
   onDelete: (id: string) => void;
+  /** Active team memberships, for the auditor clash (#26) and field-manager (#13) checks. */
+  teamMembers?: Array<{ teamId: string; userId: string }>;
+  /** The godmin moves any date any number of times, spending nothing (#32). */
+  isGod?: boolean;
 }) {
   const { locations, teams, audits, users, onCreateParentPlan, onCreate, onUpdateStatus, onUpdateDate, onDelete } = props;
+  const teamMembers = props.teamMembers ?? [];
+  const isGod = props.isGod ?? false;
+
+  /** The team's people: its leader and its active members. */
+  const peopleOf = (teamId: string) =>
+    new Set(
+      [teams.find((t) => t.id === teamId)?.leaderUserId, ...teamMembers.filter((m) => m.teamId === teamId).map((m) => m.userId)]
+        .filter(Boolean)
+        .map(String)
+    );
+  const nameOf = (id: string) => users.find((u) => u.id === id)?.name ?? id;
+
+  /*
+   * #13: the location's field manager cannot be on the team that audits it.
+   * The server refuses such a plan; this says so before the button is pressed.
+   */
+  const fieldManagerClash = (teamId: string, locId: string): string[] => {
+    if (!teamId || !locId) return [];
+    const fm = new Set((locations.find((l) => l.id === locId)?.fieldManagerUserIds ?? []).map(String));
+    return [...peopleOf(teamId)].filter((id) => fm.has(id)).map(nameOf);
+  };
+
+  /** A plan date move: who may, and whether it spends one of the two changes. */
+  const dateRule = (a: Audit) => {
+    const used = a.dateChangeCount ?? 0;
+    const done = a.status === "completed" || a.status === "pending_approval";
+    const free = isGod || done;
+    return { canChange: free || used < 2, spends: !free, label: free ? "Tarihi Düzenle" : `Düzenle (${2 - used} hak)` };
+  };
 
   // ── Parent plan form ────────────────────────────────────────────────────────
   const [ppQuarter, setPpQuarter] = React.useState("");
@@ -111,6 +144,17 @@ export function AuditPlannerPanel(props: {
       }
     }
 
+    // #26: one of this team's auditors is already on another team's audit that day.
+    const mine = peopleOf(teamId);
+    for (const plan of same) {
+      if (plan.assignedTeamId === teamId) continue;
+      const shared = [...peopleOf(plan.assignedTeamId)].filter((id) => mine.has(id) && id !== String(leaderId ?? ""));
+      if (shared.length > 0) {
+        const cLoc = locations.find((l) => l.id === plan.locationId)?.name ?? "-";
+        warns.push(`Denetçi (${shared.map(nameOf).join(", ")}) bu tarihte "${cLoc}" denetiminde de görevli.`);
+      }
+    }
+
     const selLoc = locations.find((l) => l.id === locId);
     const selFM = selLoc?.fieldManagerUserIds ?? [];
     if (selFM.length > 0) {
@@ -131,8 +175,9 @@ export function AuditPlannerPanel(props: {
   const createConflicts = React.useMemo(
     () => detectConflicts(plannedDate, assignedTeamId, locationId),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [plannedDate, assignedTeamId, locationId, subPlans, locations, teams, users]
+    [plannedDate, assignedTeamId, locationId, subPlans, locations, teams, users, teamMembers]
   );
+  const createClash = fieldManagerClash(assignedTeamId, locationId);
 
   function getEditConflicts(auditId: string, newDate: string): string[] {
     const a = subPlans.find((x) => x.id === auditId);
@@ -148,7 +193,7 @@ export function AuditPlannerPanel(props: {
   }
 
   function submitSubPlan() {
-    if (!plannedDate || !locationId || !assignedTeamId || dateOutOfRange) return;
+    if (!plannedDate || !locationId || !assignedTeamId || dateOutOfRange || createClash.length > 0) return;
     onCreate({
       plannedDate,
       locationId,
@@ -305,13 +350,14 @@ export function AuditPlannerPanel(props: {
                             </div>
                             {childPlans.map((a) => {
                               const locObj = locations.find((x) => x.id === a.locationId);
-                              const loc = locObj?.name ?? "-";
-                              const team = teams.find((x) => x.id === a.assignedTeamId)?.name ?? "-";
+                              const loc = locObj?.name ?? (a.locationId ? "Silinmiş lokasyon" : "-");
+                              const team = teams.find((x) => x.id === a.assignedTeamId)?.name ?? (a.assignedTeamId ? "Silinmiş ekip" : "-");
                               const sahaSort = (locObj?.fieldManagerUserIds ?? []).length > 0
                                 ? (locObj!.fieldManagerUserIds!.map((id) => users.find((u) => u.id === id)?.name ?? id).join(", "))
                                 : "-";
+                              const rule = dateRule(a);
                               const changeCount = a.dateChangeCount ?? 0;
-                              const canChangeDate = changeCount < 2;
+                              const canChangeDate = rule.canChange;
                               const isEditingDate = editingDateId === a.id;
 
                               return (
@@ -332,7 +378,7 @@ export function AuditPlannerPanel(props: {
                                             type="button"
                                             onClick={() => {
                                               if (editingDateVal && editingDateVal !== a.plannedDate) {
-                                                onUpdateDate(a.id, editingDateVal, changeCount + 1);
+                                                onUpdateDate(a.id, editingDateVal, changeCount + (rule.spends ? 1 : 0));
                                               }
                                               setEditingDateId(null);
                                             }}
@@ -358,7 +404,7 @@ export function AuditPlannerPanel(props: {
                                             onClick={() => { setEditingDateId(a.id); setEditingDateVal(a.plannedDate); }}
                                             className="text-left text-[11px] text-sky-700 dark:text-sky-400 hover:underline"
                                           >
-                                            Düzenle ({2 - changeCount} hak)
+                                            {rule.label}
                                           </button>
                                         ) : (
                                           <span className="text-[11px] text-slate-500 dark:text-slate-400">Tarih kilitli</span>
@@ -379,6 +425,7 @@ export function AuditPlannerPanel(props: {
                                       onChange={(e) => onUpdateStatus(a.id, e.target.value as AuditStatus)}
                                     >
                                       <option value="planned">Planlandı</option>
+                                      <option value="pending_approval">Onay Bekliyor</option>
                                       <option value="completed">Tamamlandı</option>
                                       <option value="cancelled">İptal edildi</option>
                                     </Select>
@@ -485,10 +532,19 @@ export function AuditPlannerPanel(props: {
             </div>
           )}
 
+          {createClash.length > 0 && (
+            <div className="rounded-md border border-rose-500/40 bg-rose-100 dark:bg-rose-500/10 px-3 py-2">
+              <p className="text-[11px] font-semibold text-rose-700 dark:text-rose-300">
+                {createClash.join(", ")} bu lokasyonun saha sorumlusu; kendi lokasyonunu denetleyen ekipte yer alamaz.
+                Başka bir ekip seçin ya da ekibi düzenleyin.
+              </p>
+            </div>
+          )}
+
           <div className="flex justify-end">
             <PrimaryButton
               onClick={submitSubPlan}
-              disabled={!plannedDate || !locationId || !assignedTeamId || dateOutOfRange}
+              disabled={!plannedDate || !locationId || !assignedTeamId || dateOutOfRange || createClash.length > 0}
             >
               Denetim Planı Oluştur
             </PrimaryButton>
@@ -510,13 +566,14 @@ export function AuditPlannerPanel(props: {
               </div>
               {subPlans.filter((s) => !s.parentPlanId).map((a) => {
                 const locObj = locations.find((x) => x.id === a.locationId);
-                const loc = locObj?.name ?? "-";
-                const team = teams.find((x) => x.id === a.assignedTeamId)?.name ?? "-";
+                const loc = locObj?.name ?? (a.locationId ? "Silinmiş lokasyon" : "-");
+                const team = teams.find((x) => x.id === a.assignedTeamId)?.name ?? (a.assignedTeamId ? "Silinmiş ekip" : "-");
                 const sahaSort = (locObj?.fieldManagerUserIds ?? []).length > 0
                   ? (locObj!.fieldManagerUserIds!.map((id) => users.find((u) => u.id === id)?.name ?? id).join(", "))
                   : "-";
+                const rule = dateRule(a);
                 const changeCount = a.dateChangeCount ?? 0;
-                const canChangeDate = changeCount < 2;
+                const canChangeDate = rule.canChange;
                 const isEditingDate = editingDateId === a.id;
                 return (
                   <div key={a.id} className="grid grid-cols-12 items-center gap-2 border-t border-slate-300 dark:border-slate-800/80 px-3 py-2">
@@ -536,7 +593,7 @@ export function AuditPlannerPanel(props: {
                               type="button"
                               onClick={() => {
                                 if (editingDateVal && editingDateVal !== a.plannedDate) {
-                                  onUpdateDate(a.id, editingDateVal, changeCount + 1);
+                                  onUpdateDate(a.id, editingDateVal, changeCount + (rule.spends ? 1 : 0));
                                 }
                                 setEditingDateId(null);
                               }}
@@ -562,7 +619,7 @@ export function AuditPlannerPanel(props: {
                               onClick={() => { setEditingDateId(a.id); setEditingDateVal(a.plannedDate); }}
                               className="text-left text-[11px] text-sky-700 dark:text-sky-400 hover:underline"
                             >
-                              Düzenle ({2 - changeCount} hak)
+                              {rule.label}
                             </button>
                           ) : (
                             <span className="text-[11px] text-slate-500 dark:text-slate-400">Tarih kilitli</span>
@@ -583,6 +640,7 @@ export function AuditPlannerPanel(props: {
                         onChange={(e) => onUpdateStatus(a.id, e.target.value as AuditStatus)}
                       >
                         <option value="planned">Planlandı</option>
+                                      <option value="pending_approval">Onay Bekliyor</option>
                         <option value="completed">Tamamlandı</option>
                         <option value="cancelled">İptal edildi</option>
                       </Select>

@@ -25,9 +25,8 @@ interface UsersTableProps {
   unlockingUserId: string | null
   lockingUserId: string | null
   /*
-   * "Kilidi Aç" ve "Şifre Sıfırla" yalnız godmin'e. İkisinin ucu da sunucuda
-   * godmin kapısının arkasında; bu ekranı açabilen Super Admin ya da Content
-   * Manager Core Team düğmeyi görüp tıklıyor ve 403 alıyordu.
+   * Hesap düğmeleri (kilit, şifre, sil) yalnız hesap yönetebilene: Merkez Ekip,
+   * Super Admin ve godmin. Uçları Biltim'in kendi uçları; yetki orada da aynı.
    */
   showGodminActions: boolean
 }
@@ -243,10 +242,7 @@ export function UsersTable({
                         </button>
                       ) : null}
 
-                      {/*
-                        Silme de godmin kapısının arkasında (hard-delete): diğer
-                        rollere düğmeyi göstermek, basınca 403 almak demekti.
-                      */}
+                      {/* Kalıcı silme: hesap yönetebilene. */}
                       {showGodminActions ? (
                         <button
                           type="button"

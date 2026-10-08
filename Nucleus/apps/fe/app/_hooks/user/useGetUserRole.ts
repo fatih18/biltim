@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { useStore } from "@store/globalStore";
+import { currentUserIdOf, isGodminUser } from "@/app/_utils/currentUser";
 
 type UserRole = { id: string; name: string };
 
@@ -10,6 +11,9 @@ type UseGetUserRoleResult = {
     roleName: string | null;
     roleId: string | null;
     roles: UserRole[];
+    /** The install's root account: `is_god` or a role named "godmin". */
+    isGod: boolean;
+    userId: string;
     isLoading: boolean;
     error: string | null;
     refetch: () => void;
@@ -41,6 +45,8 @@ export function useGetUserRole(): UseGetUserRoleResult {
     }, [store.user]);
 
     const isLoading = !store.isLoginChecked;
+    const isGod = useMemo(() => isGodminUser(store.user), [store.user]);
+    const userId = useMemo(() => currentUserIdOf(store.user), [store.user]);
     const role = useMemo(() => roles[0] ?? null, [roles]);
     const roleName = role?.name ?? null;
     const roleId = role?.id ?? null;
@@ -50,6 +56,8 @@ export function useGetUserRole(): UseGetUserRoleResult {
         roleName,
         roleId,
         roles,
+        isGod,
+        userId,
         isLoading,
         error: null,
         refetch: () => {},

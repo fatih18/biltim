@@ -1,6 +1,8 @@
 import { type CreateNucleusServerOptions, createNucleusServer } from 'nucleus-core-ts/server'
+import { applyBootFixes } from './boot'
 import { closePool } from './db'
 import { enforceBusinessRules } from './guards/businessRules'
+import { BiltimRoutes } from './routes/biltim'
 import { ReportsRoutes } from './routes/reports'
 
 /**
@@ -34,7 +36,7 @@ async function main() {
   await createNucleusServer({
     config,
     port,
-    routes: [ReportsRoutes],
+    routes: [ReportsRoutes, BiltimRoutes],
     /*
      * The 5S rules that the screens enforce and the API did not.
      *
@@ -49,6 +51,9 @@ async function main() {
     // on every restart. `onStop` runs after nucleus's own teardown steps.
     onStop: [closePool],
   })
+
+  // After the server is up, so the framework's schema push has run first.
+  await applyBootFixes()
 
   console.log(`\n✅ Biltim API listening on http://localhost:${port}`)
   console.log(`📘 Docs: http://localhost:${port}/docs`)

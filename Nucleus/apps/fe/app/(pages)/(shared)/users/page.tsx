@@ -1,5 +1,7 @@
 'use client'
 import { InfiniteScroll } from '@/app/_components/Global/InfiniteScroll'
+import { isGodminUser } from '@/app/_utils/currentUser'
+import { ADMIN_ROLES, hasPrivilege } from '@/app/_utils/routeAccess'
 
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '@store/globalStore'
@@ -35,8 +37,19 @@ export default function UsersPage() {
 
   const hasUsers = usersStore.users && usersStore.users.data.length > 0
 
-  // Kilit açma ve şifre koyma yalnız godmin'e açık; bkz. isGodmin.
-  const canManageAccess = useMemo(() => isGodmin(store.user), [store.user])
+  /*
+   * Hesap yönetimi Merkez Ekip, Super Admin ve godmin'e açık (#20/#21).
+   *
+   * nucleus'un ekle/sil/kilitle/şifre uçları yalnız godmin'e açıktı; Merkez
+   * Ekip bu ekranı açıp hiçbir şey yapamıyordu ve her yeni denetçi godmin
+   * hesabını bekliyordu. Artık hepsi Biltim'in kendi uçlarından
+   * (be-nucleus/src/routes/biltim.ts) gidiyor; yetki orada da aynı.
+   */
+  const canManageAccess = useMemo(() => {
+    const u: any = store.user
+    const roleNames = ((u?.data ?? u)?.roles ?? []).map((r: any) => String(r?.name ?? ''))
+    return isGodminUser(store.user) || hasPrivilege(roleNames, ADMIN_ROLES)
+  }, [store.user])
 
   const selectedUser = useMemo(() => {
     if (!usersStore.selectedUserId || !usersStore.users) return undefined
@@ -132,12 +145,13 @@ export default function UsersPage() {
      * yalnız godmin'e gösteriyor.
      */
     return await new Promise<void>((resolve) => {
-      actions.ADMIN_CREATE_USER?.start({
+      ;(actions as any).BILTIM_CREATE_USER?.start({
         payload: {
           email: payload.email.trim(),
           password: payload.password,
           roleIds: payload.roleIds,
-          profile: { firstName: payload.firstName.trim(), lastName: payload.lastName.trim() },
+          firstName: payload.firstName.trim(),
+          lastName: payload.lastName.trim(),
         },
         onAfterHandle: () => {
           // Yeni kişi listenin başka bir sayfasında kalmasın.
@@ -148,7 +162,7 @@ export default function UsersPage() {
           toast.success('Kullanıcı oluşturuldu.')
           resolve()
         },
-        onErrorHandle: (error) => {
+        onErrorHandle: (error: unknown) => {
           console.error('Create user failed:', error)
 
           if (isDuplicateEmailError(error)) {
@@ -193,7 +207,7 @@ export default function UsersPage() {
      * demek, oturum yenilemeyle düzelmez; ikinci deneme yalnız aynı reddi
      * tekrarlıyordu.
      */
-    actions.ADMIN_HARD_DELETE_USER?.start({
+    ;(actions as any).BILTIM_DELETE_USER?.start({
       payload: { userId: userIdToDelete },
       onAfterHandle: () => {
         usersStore.removeUser(userIdToDelete)
@@ -202,7 +216,7 @@ export default function UsersPage() {
         usersStore.setNeedsRefresh(true)
         toast.success('Kullanıcı silindi.')
       },
-      onErrorHandle: (error) => {
+      onErrorHandle: (error: unknown) => {
         console.error('Delete user failed:', error)
         usersStore.setModalVisibility('delete', false)
         usersStore.setSelectedUserId(null)
@@ -242,14 +256,14 @@ export default function UsersPage() {
     })
     if (!confirmed) return
     setLockingUserId(userId)
-    actions.ADMIN_LOCK_USER?.start({
+    ;(actions as any).BILTIM_LOCK_USER?.start({
       payload: { userId },
       onAfterHandle: () => {
         setLockingUserId(null)
         usersStore.setNeedsRefresh(true)
         toast.success('Hesap kilitlendi; kullanıcının açık oturumları kapatıldı.')
       },
-      onErrorHandle: (error) => {
+      onErrorHandle: (error: unknown) => {
         setLockingUserId(null)
         const reasons = readServerReasons(error)
         toast.error(reasons.length > 0 ? reasons.join(' ') : 'Hesap kilitlenemedi.')
@@ -261,7 +275,7 @@ export default function UsersPage() {
     if (!canManageAccess) return
     setUnlockingUserId(userId)
 
-    actions.ADMIN_UNLOCK_USER?.start({
+    ;(actions as any).BILTIM_UNLOCK_USER?.start({
       payload: { userId },
       onAfterHandle: () => {
         setUnlockingUserId(null)
@@ -271,7 +285,7 @@ export default function UsersPage() {
         usersStore.setNeedsRefresh(true)
         toast.success('Hesabın kilidi açıldı.')
       },
-      onErrorHandle: (error) => {
+      onErrorHandle: (error: unknown) => {
         setUnlockingUserId(null)
         toast.error(readServerReasons(error).join(' ') || 'Kilit açılamadı.')
       },
@@ -291,9 +305,9 @@ export default function UsersPage() {
     if (!userId) return Promise.resolve(['Kullanıcı seçili değil.'])
 
     return new Promise((resolve) => {
-      actions.ADMIN_SET_USER_PASSWORD?.start({
+      ;(actions as any).BILTIM_SET_USER_PASSWORD?.start({
         payload: { userId, password },
-        onAfterHandle: (data) => {
+        onAfterHandle: (data: unknown) => {
           const result = (data ?? {}) as { signedOut?: unknown; lockoutCleared?: unknown }
           // Modal yalnız bu kullanıcı için hâlâ açıksa kapansın; bu arada
           // başka biri seçildiyse onun modalı ve seçimi yerinde kalmalı.
@@ -308,7 +322,7 @@ export default function UsersPage() {
           toast.success(passwordSetMessage(result.signedOut))
           resolve(null)
         },
-        onErrorHandle: (error) => {
+        onErrorHandle: (error: unknown) => {
           const reasons = readServerReasons(error)
           resolve(reasons.length > 0 ? reasons : ['Şifre değiştirilemedi.'])
         },
@@ -388,7 +402,7 @@ export default function UsersPage() {
           isOpen={usersStore.modals.create}
           onClose={() => usersStore.setModalVisibility('create', false)}
           onSubmit={handleCreate}
-          isSubmitting={Boolean(actions.ADMIN_CREATE_USER?.state?.isPending)}
+          isSubmitting={Boolean((actions as any).BILTIM_CREATE_USER?.state?.isPending)}
         />
 
         <UsersDeleteModal
@@ -399,7 +413,7 @@ export default function UsersPage() {
             usersStore.setModalVisibility('delete', false)
             usersStore.setSelectedUserId(null)
           }}
-          isSubmitting={Boolean(actions.ADMIN_HARD_DELETE_USER?.state?.isPending)}
+          isSubmitting={Boolean((actions as any).BILTIM_DELETE_USER?.state?.isPending)}
         />
 
         <UsersSetPasswordModal
@@ -410,7 +424,7 @@ export default function UsersPage() {
             usersStore.setModalVisibility('setPassword', false)
             usersStore.setSelectedUserId(null)
           }}
-          isSubmitting={Boolean(actions.ADMIN_SET_USER_PASSWORD?.state?.isPending)}
+          isSubmitting={Boolean((actions as any).BILTIM_SET_USER_PASSWORD?.state?.isPending)}
         />
 
         <UsersDetailsDrawer
@@ -437,27 +451,6 @@ export default function UsersPage() {
   )
 }
 
-/*
- * `set-user-password` ve `unlock-user` sunucuda godmin kapısının arkasında
- * (nucleus requireGodmin.ts). Kapının tanımı: kişinin kendi satırında
- * `is_god` açık YA DA adı tam olarak "godmin" olan bir rolü var. Aynı tanım
- * burada; büyük/küçük harf katlanmıyor, çünkü sunucu da katlamıyor. Kaynak
- * /auth/me: LoginChecker'ın doldurduğu kullanıcı, rolleriyle birlikte geliyor.
- */
-function isGodmin(user: unknown): boolean {
-  if (!user || typeof user !== 'object') return false
-  type GodFlags = { is_god?: unknown; isGod?: unknown }
-  // /auth/me: { user: { isGod, … }, roles: [{ name }], … } — bayrak `user`
-  // içinde, roller yanında. Zarflı ya da düz gelmesine göre ikisine de bak.
-  const envelope = user as { data?: unknown }
-  const me = (envelope.data ?? user) as GodFlags & { user?: GodFlags; roles?: unknown }
-  const flags = [me, me.user].filter(Boolean) as GodFlags[]
-  if (flags.some((f) => f.is_god === true || f.isGod === true)) return true
-  return (
-    Array.isArray(me.roles) &&
-    me.roles.some((role) => (role as { name?: unknown } | null)?.name === 'godmin')
-  )
-}
 
 /*
  * Oturum kapanıp kapanmadığını sunucu söylüyor (`signedOut`, silinen oturum

@@ -128,6 +128,21 @@ const custom = {
 
   // 2 — bu projeye özel
   GET_REPORTS_DASHBOARD: { method: 'GET', path: '/reports/dashboard' },
+  /*
+   * Kişinin ekipleri ve sorumlu olduğu lokasyonlar. Ana sayfa ve bulgular
+   * listesi, bir saha sorumlusuna yalnız kendi satırlarını SUNUCUDAN istemek
+   * için bunu okuyor (sekme sayıları satırlarla aynı olsun diye).
+   */
+  BILTIM_MY_SCOPE: { method: 'GET', path: '/biltim/me/scope' },
+  /*
+   * Merkez Ekip'in kullanıcı yönetimi. nucleus'un aynı işi yapan uçları
+   * yalnız godmin'e açık; bunlar Merkez Ekip, Super Admin ve godmin'e.
+   */
+  BILTIM_CREATE_USER: { method: 'POST', path: '/biltim/users' },
+  BILTIM_DELETE_USER: { method: 'POST', path: '/biltim/users/delete' },
+  BILTIM_LOCK_USER: { method: 'POST', path: '/biltim/users/lock' },
+  BILTIM_UNLOCK_USER: { method: 'POST', path: '/biltim/users/unlock' },
+  BILTIM_SET_USER_PASSWORD: { method: 'POST', path: '/biltim/users/password' },
 } as unknown as Record<string, TranslatedEndpoint>
 
 export const NucleusEndpoints = { ...systemTables, ...generated, ...custom }
