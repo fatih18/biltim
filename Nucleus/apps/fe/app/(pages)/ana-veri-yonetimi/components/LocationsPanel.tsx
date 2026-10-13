@@ -13,8 +13,8 @@ export function LocationsPanel(props: {
     items: LocationEntity[];
     users: User[];
     usersLoading?: boolean;
-    onCreate: (data: { name: string; managerUserId?: string | null; fieldManagerUserIds?: string[] }) => void;
-    onUpdate: (id: string, data: { name: string; isActive: boolean; managerUserId?: string | null; fieldManagerUserIds?: string[] }) => void;
+    onCreate: (data: { name: string; managerUserId?: string | null; fieldManagerUserIds?: string[]; departmentName?: string | null; mapX?: number | null; mapY?: number | null }) => void;
+    onUpdate: (id: string, data: { name: string; isActive: boolean; managerUserId?: string | null; fieldManagerUserIds?: string[]; departmentName?: string | null; mapX?: number | null; mapY?: number | null }) => void;
     onDelete: (id: string) => void;
 }) {
     const { items, users, usersLoading, onCreate, onUpdate, onDelete } = props;
@@ -27,6 +27,9 @@ export function LocationsPanel(props: {
     const [name, setName] = React.useState("");
     const [isActive, setIsActive] = React.useState(true);
     const [managerUserId, setManagerUserId] = React.useState<string>("");
+    const [departmentName, setDepartmentName] = React.useState("");
+    const [mapX, setMapX] = React.useState("");
+    const [mapY, setMapY] = React.useState("");
     const [fieldManagerUserIds, setFieldManagerUserIds] = React.useState<string[]>([]);
     const [fmDropdownOpen, setFmDropdownOpen] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
@@ -61,6 +64,9 @@ export function LocationsPanel(props: {
         setName("");
         setIsActive(true);
         setManagerUserId("");
+        setDepartmentName("");
+        setMapX("");
+        setMapY("");
         setFieldManagerUserIds([]);
         setFmDropdownOpen(false);
         setError(null);
@@ -73,6 +79,9 @@ export function LocationsPanel(props: {
         setName(it.name);
         setIsActive(it.isActive);
         setManagerUserId(it.managerUserId ?? "");
+        setDepartmentName(it.departmentName ?? "");
+        setMapX(it.mapX == null ? "" : String(it.mapX));
+        setMapY(it.mapY == null ? "" : String(it.mapY));
         setFieldManagerUserIds(it.fieldManagerUserIds ?? []);
         setFmDropdownOpen(false);
         setError(null);
@@ -88,11 +97,20 @@ export function LocationsPanel(props: {
     function submit() {
         const n = normalizeName(name);
         if (!n) return setError("İsim zorunlu.");
+        const coord = (v: string) => (v.trim() === "" ? null : Number(v));
+        const x = coord(mapX);
+        const y = coord(mapY);
+        if ((x === null) !== (y === null)) return setError("Kroki konumu için iki değeri de girin ya da ikisini de boş bırakın.");
+        if ([x, y].some((v) => v !== null && (!Number.isFinite(v) || v < 0 || v > 100)))
+            return setError("Kroki konumu 0 ile 100 arasında olmalı.");
 
         const payload = {
             name: n,
             managerUserId: managerUserId || null,
             fieldManagerUserIds,
+            departmentName: departmentName.trim() || null,
+            mapX: x === null ? null : Math.round(x),
+            mapY: y === null ? null : Math.round(y),
         };
 
         if (mode === "create") {
@@ -164,6 +182,9 @@ export function LocationsPanel(props: {
                                         {!it.isActive && (
                                             <span className="ml-2 text-[11px] font-medium text-slate-500 dark:text-slate-400 no-underline">(Pasif)</span>
                                         )}
+                                        {it.departmentName ? (
+                                            <span className="block text-[11px] font-normal text-slate-500 dark:text-slate-400">{it.departmentName}</span>
+                                        ) : null}
                                     </div>
 
                                     <div className="col-span-3 text-xs text-slate-700 dark:text-slate-300 truncate" title={managerName}>
@@ -251,6 +272,46 @@ export function LocationsPanel(props: {
                             </Select>
                         </div>
                     ) : null}
+
+                    {/*
+                      * Raporlardaki "Müdürlük Bazlı Özet" ve Excel'deki Müdürlük
+                      * sütunu bu alandan geliyor. Formda yoktu; bu yüzden canlıda
+                      * bütün denetimler "Tanımsız" altında toplanıyordu.
+                      */}
+                    <div>
+                        <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">Müdürlük</label>
+                        <Input
+                            value={departmentName}
+                            maxLength={255}
+                            placeholder="Örn. Üretim Müdürlüğü (opsiyonel)"
+                            onChange={(e) => setDepartmentName(e.target.value)}
+                        />
+                    </div>
+
+                    {/* Raporlardaki "Fabrika Krokisi" ısı haritası bu iki değeri okuyor. */}
+                    <div>
+                        <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">Kroki konumu (%)</label>
+                        <div className="grid grid-cols-2 gap-2">
+                            <Input
+                                type="number"
+                                min={0}
+                                max={100}
+                                inputMode="numeric"
+                                placeholder="Soldan (0–100)"
+                                value={mapX}
+                                onChange={(e) => setMapX(e.target.value)}
+                            />
+                            <Input
+                                type="number"
+                                min={0}
+                                max={100}
+                                inputMode="numeric"
+                                placeholder="Üstten (0–100)"
+                                value={mapY}
+                                onChange={(e) => setMapY(e.target.value)}
+                            />
+                        </div>
+                    </div>
 
                     <div>
                         <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">Müdür</label>

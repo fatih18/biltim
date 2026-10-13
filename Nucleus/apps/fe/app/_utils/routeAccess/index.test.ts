@@ -1,5 +1,12 @@
 import { describe, expect, it } from "bun:test";
-import { canAccessRoute, hasPrivilege, normalizeRoleName, requirementFor } from "./index";
+import {
+  ADMIN_ROLES,
+  CENTRAL_ROLES,
+  canAccessRoute,
+  hasPrivilege,
+  normalizeRoleName,
+  requirementFor,
+} from "./index";
 
 const BASIC = ["basic"];
 const AUDITOR = ["Denetçi"];
@@ -140,6 +147,29 @@ describe("hasPrivilege", () => {
   it("is not fooled by an empty list on either side", () => {
     expect(hasPrivilege([], ["manager"])).toBe(false);
     expect(hasPrivilege(["manager"], [])).toBe(false);
+  });
+});
+
+describe("who plans audits and who approves them", () => {
+  // Customer notes rows 12, 17, 29: approving, reopening, re-dating and
+  // correcting a carried-out audit is Merkez Ekip's, Super Admin's and
+  // godmin's. The plant manager still plans and sees every audit.
+  it("keeps the manager among those who plan", () => {
+    expect(hasPrivilege(MANAGER, CENTRAL_ROLES)).toBe(true);
+    expect(hasPrivilege(CONTENT_CORE, CENTRAL_ROLES)).toBe(true);
+  });
+
+  it("does not let a manager approve or correct a carried-out audit", () => {
+    expect(hasPrivilege(MANAGER, ADMIN_ROLES)).toBe(false);
+    expect(hasPrivilege(["Manager", "Denetçi"], ADMIN_ROLES)).toBe(false);
+    expect(hasPrivilege(["Field Manager"], ADMIN_ROLES)).toBe(false);
+  });
+
+  it("lets Merkez Ekip, Super Admin and godmin do it", () => {
+    expect(hasPrivilege(CONTENT_CORE, ADMIN_ROLES)).toBe(true);
+    expect(hasPrivilege(SUPER, ADMIN_ROLES)).toBe(true);
+    expect(hasPrivilege(["godmin"], ADMIN_ROLES)).toBe(true);
+    expect(hasPrivilege(["basic"], ADMIN_ROLES, true)).toBe(true);
   });
 });
 

@@ -48,14 +48,18 @@ export function hasPrivilege(
 }
 
 /**
- * Merkez Ekip and above: the people who plan, approve and correct audits.
+ * Merkez Ekip and above, plus the plant manager: the people who plan audits and
+ * see every one. Approving, reopening, re-dating or correcting an audit that
+ * was already carried out is narrower — that is ADMIN_ROLES.
  * The server's `isCentral` (be-nucleus/src/guards/caller.ts) uses this list.
  */
 export const CENTRAL_ROLES = ["content manager core team", "super admin", "manager"] as const;
 
 /**
- * Who may manage accounts and remove evidence from a closed finding — not a
- * plant manager. The server's `isAdmin` uses this list.
+ * Who may manage accounts, remove evidence from a closed finding or reopen it,
+ * and approve, reopen, re-date or correct a carried-out audit (customer notes
+ * rows 12, 17, 29) — not a plant manager. godmin comes in through
+ * `hasPrivilege`'s flag. The server's `isAdmin` uses this list.
  */
 export const ADMIN_ROLES = ["content manager core team", "super admin"] as const;
 

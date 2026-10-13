@@ -15,9 +15,11 @@ import {
     type User,
 } from "./components";
 import { useGenericApiActions } from "@/app/_hooks/UseNucleusApi";
+import { readListResponse } from "@/app/_hooks/UseServerList";
 import { TeamsTab } from "./components/TeamsTab";
 import { toast } from "sonner";
 import { useGetUserRole } from "@/app/_hooks/user/useGetUserRole";
+import { ADMIN_ROLES, hasPrivilege } from "@/app/_utils/routeAccess";
 import { confirmDialog } from "@/app/_components/Global/ConfirmDialog";
 
 type MasterKind = "actions" | "findingTypes" | "locations";
@@ -90,6 +92,14 @@ function toMasterEntity(row: any): MasterEntity {
     };
 }
 
+/** Kroki koordinatı: 0–100 arası tam sayı, yoksa null. */
+function percentOrNull(value: unknown): number | null {
+    if (value === null || value === undefined || value === "") return null;
+    const n = Number(value);
+    if (!Number.isFinite(n)) return null;
+    return Math.min(100, Math.max(0, Math.round(n)));
+}
+
 function toLocationEntity(row: any): LocationEntity {
     return {
         ...toMasterEntity(row),
@@ -97,6 +107,9 @@ function toLocationEntity(row: any): LocationEntity {
         fieldManagerUserIds: Array.isArray(row?.field_manager_user_ids)
             ? row.field_manager_user_ids
             : [],
+        departmentName: row?.department_name ?? row?.departmentName ?? null,
+        mapX: percentOrNull(row?.map_x ?? row?.mapX),
+        mapY: percentOrNull(row?.map_y ?? row?.mapY),
     };
 }
 
@@ -180,6 +193,54 @@ function planRowToAuditLike(row: any): Audit {
         dateRangeEnd: row?.date_range_end ?? null,
         title: row?.title ?? null,
     } as any;
+}
+
+/** nucleus clamps every list `limit` to this, whatever is asked for. */
+const PLAN_PAGE_SIZE = 200;
+/** 200 × 100 plans under one period is far past any real quarter; a guard, not a limit. */
+const MAX_CHILD_PAGES = 100;
+
+/**
+ * Every plan under a period plan, by id, paged until the server says there is
+ * no more. `null` when any page fails or the guard is hit — the caller must
+ * not read a partial list as the whole one.
+ */
+async function fetchChildPlanIds(A: any, parentId: string): Promise<string[] | null> {
+    const start = safeStart(A, PLAN_KEYS.GET);
+    if (!start) return null;
+
+    const ids = new Set<string>();
+    for (let page = 1; page <= MAX_CHILD_PAGES; page++) {
+        const result = await new Promise<{ items: any[]; hasNext: boolean } | null>((resolve) =>
+            start({
+                payload: {
+                    page,
+                    limit: PLAN_PAGE_SIZE,
+                    filters: [{ field: "parent_plan_id", operator: "eq", value: parentId }],
+                    // A fixed order, so no row moves between pages while they are read.
+                    orderBy: [
+                        { column: "created_at", direction: "asc" },
+                        { column: "id", direction: "asc" },
+                    ],
+                },
+                onAfterHandle: (res: any) => resolve(readListResponse<any>(res)),
+                onErrorHandle: (error: any) => {
+                    console.error(`${PLAN_KEYS.GET} (children) error`, error);
+                    resolve(null);
+                },
+            })
+        );
+        if (!result) return null;
+        for (const row of result.items) {
+            const childId = String(row?.id ?? row?._id ?? "");
+            if (childId) ids.add(childId);
+        }
+        // A short page is the last one, whether or not the meta says so.
+        if (result.items.length === 0 || (!result.hasNext && result.items.length < PLAN_PAGE_SIZE)) {
+            return [...ids];
+        }
+    }
+    return null;
 }
 
 export default function Page() {
@@ -281,7 +342,12 @@ export default function Page() {
 
     const [teams, setTeams] = React.useState<AuditTeamLite[]>([]);
     const [teamsLoading, setTeamsLoading] = React.useState(false);
-    const { isGod } = useGetUserRole();
+    const { isGod, roles: myRoles } = useGetUserRole();
+    // Approving (Tamamlandı), reopening and re-dating a carried-out audit: not the plant manager.
+    const isAdmin = React.useMemo(
+        () => hasPrivilege(myRoles.map((r) => r.name), ADMIN_ROLES, isGod),
+        [myRoles, isGod]
+    );
     /*
      * Who is on which team, for the planner's checks: the same auditor on two
      * audits in one day (#26), and a location's field manager on the team
@@ -430,7 +496,7 @@ export default function Page() {
     );
 
     const createLocationEntity = React.useCallback(
-        (data: { name: string; managerUserId?: string | null; fieldManagerUserIds?: string[] }) => {
+        (data: { name: string; managerUserId?: string | null; fieldManagerUserIds?: string[]; departmentName?: string | null; mapX?: number | null; mapY?: number | null }) => {
             const A = actionsRef.current as any;
             const key = API_KEYS.locations.ADD;
             const start = safeStart(A, key);
@@ -442,6 +508,9 @@ export default function Page() {
                     is_active: true,
                     manager_user_id: data.managerUserId ?? null,
                     field_manager_user_ids: data.fieldManagerUserIds ?? [],
+                    department_name: data.departmentName?.trim() || null,
+                    map_x: percentOrNull(data.mapX),
+                    map_y: percentOrNull(data.mapY),
                 },
                 onAfterHandle: (res: any) => {
                     const createdRaw = extractArray(res)?.[0] ?? res?.data?.[0] ?? res?.data ?? res;
@@ -501,7 +570,7 @@ export default function Page() {
     );
 
     const updateLocationEntity = React.useCallback(
-        (id: string, data: { name: string; isActive: boolean; managerUserId?: string | null; fieldManagerUserIds?: string[] }) => {
+        (id: string, data: { name: string; isActive: boolean; managerUserId?: string | null; fieldManagerUserIds?: string[]; departmentName?: string | null; mapX?: number | null; mapY?: number | null }) => {
             const A = actionsRef.current as any;
             const key = API_KEYS.locations.UPDATE;
             const start = safeStart(A, key);
@@ -514,12 +583,15 @@ export default function Page() {
                     is_active: data.isActive,
                     manager_user_id: data.managerUserId ?? null,
                     field_manager_user_ids: data.fieldManagerUserIds ?? [],
+                    department_name: data.departmentName?.trim() || null,
+                    map_x: percentOrNull(data.mapX),
+                    map_y: percentOrNull(data.mapY),
                 },
                 onAfterHandle: () => {
                     setLocations((prev) =>
                         prev.map((x) =>
                             x.id === id
-                                ? { ...x, name: data.name, isActive: data.isActive, managerUserId: data.managerUserId, fieldManagerUserIds: data.fieldManagerUserIds ?? [] }
+                                ? { ...x, name: data.name, isActive: data.isActive, managerUserId: data.managerUserId, fieldManagerUserIds: data.fieldManagerUserIds ?? [], departmentName: data.departmentName?.trim() || null, mapX: percentOrNull(data.mapX), mapY: percentOrNull(data.mapY) }
                                 : x
                         )
                     );
@@ -576,15 +648,29 @@ export default function Page() {
 
         setPlansLoading(true);
 
-        start({
-            payload: { page: 1, limit: 500, orderBy: "planned_date", orderDirection: "desc" },
-            onAfterHandle: (res: any) => {
-                const rows = extractArray(res);
-                const mapped = rows.map(planRowToAuditLike);
-                setAuditPlans(mapped);
-                setPlansLoading(false);
-            },
-            onErrorHandle: (error: any) => {
+        /*
+         * Page by page. nucleus caps a page at 200 whatever `limit` says, so
+         * the old single request for 500 quietly dropped every plan past the
+         * 200th — the oldest ones, since period plans' empty dates sort first.
+         */
+        const PAGE = 200;
+        const collected: any[] = [];
+        const readPage = (page: number) =>
+            start({
+                payload: { page, limit: PAGE, orderBy: "planned_date", orderDirection: "desc" },
+                onAfterHandle: (res: any) => {
+                    const rows = extractArray(res);
+                    collected.push(...rows);
+                    if (rows.length === PAGE && page < 50) {
+                        readPage(page + 1);
+                        return;
+                    }
+                    setAuditPlans(collected.map(planRowToAuditLike));
+                    setPlansLoading(false);
+                },
+                onErrorHandle: (error: any) => handleError(error),
+            });
+        const handleError = (error: any) => {
                 if (error?.name === "AbortError") {
                     setPlansLoading(false);
                     return;
@@ -595,8 +681,8 @@ export default function Page() {
                 console.error(`${key} error`, error);
                 toast.error("Denetim planları yüklenirken bir hata oluştu.");
                 setPlansLoading(false);
-            },
-        });
+        };
+        readPage(1);
     }, []);
 
     React.useEffect(() => {
@@ -722,7 +808,28 @@ export default function Page() {
         const start = safeStart(A, key);
         if (!start) return;
 
-        const children = auditPlans.filter((x) => x.parentPlanId === id);
+        /*
+         * The children are read from the server, every page of them. They
+         * used to be picked out of `auditPlans`, which is one capped page of
+         * the whole board (the server clamps any limit to 200) — a period
+         * whose plans fell outside it lost its row and left those plans
+         * behind, pointing at nothing. A sub-plan has no children, so only a
+         * period plan (or one this screen does not hold) is asked about.
+         */
+        const known = auditPlans.find((x) => x.id === id);
+        const isSubPlan = !!known && (!!known.locationId || !!known.assignedTeamId);
+        let children: string[] = [];
+        if (!isSubPlan) {
+            const found = await fetchChildPlanIds(A, id);
+            if (found === null) {
+                // Not knowing the children is not "no children": deleting the
+                // period now would orphan whichever ones there are.
+                toast.error("Bağlı denetim planları okunamadı; plan silinmedi. Lütfen tekrar deneyin.");
+                return;
+            }
+            children = found;
+        }
+
         const ok = await confirmDialog({
             title: "Plan silinsin mi?",
             message:
@@ -753,8 +860,8 @@ export default function Page() {
                 })
             );
 
-        for (const child of children) {
-            if (!(await remove(child.id))) return;
+        for (const childId of children) {
+            if (!(await remove(childId))) return;
         }
         if (await remove(id)) toast.success(children.length > 0 ? "Dönem planı ve bağlı planlar silindi." : "Plan silindi.");
     }, [auditPlans]);
@@ -829,6 +936,7 @@ export default function Page() {
                         onDelete={(id) => void deletePlan(id)}
                         teamMembers={teamMembers}
                         isGod={isGod}
+                        isAdmin={isAdmin}
                     />
                 ) : tab === "teams" ? (
                     <TeamsTab

@@ -1,7 +1,7 @@
 'use client'
 
 import { relativeTime } from '@/app/(pages)/(shared)/logs/labels'
-import { forgetSignedInUser } from '@/app/_utils/offlineIdentity'
+import { forgetSignedInUser, looksOffline } from '@/app/_utils/offlineIdentity'
 import { readListResponse } from '@/app/_hooks/UseServerList'
 import { useGSAP } from '@gsap/react'
 import { useStore } from '@store/globalStore'
@@ -36,6 +36,7 @@ import type {
 } from '../types'
 import { useGetUserRole } from '@/app/_hooks/user/useGetUserRole'
 import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi' // ✅ sadece NotificationDropdown’da kullanılıyor
+import { toast } from 'sonner'
 
 gsap.registerPlugin(useGSAP)
 
@@ -69,6 +70,9 @@ function NotificationDropdown({
   const [notificationList, setNotificationList] = useState<NotificationItem[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
+  // The latest server count, for callbacks that outlive the render they were made in.
+  const unreadCountRef = useRef(0)
+  unreadCountRef.current = unreadCount
   const dropdownRef = useRef<HTMLDivElement>(null)
   const globalStore = useStore()
   const router = useRouter()
@@ -100,14 +104,10 @@ function NotificationDropdown({
     if (!userId) return
     setIsLoading(true)
 
+    // The module's list takes only limit/offset/type; it is already the
+    // caller's own rows. Anything else in the payload was silently dropped.
     actions.GET_NOTIFICATIONS?.start({
-      payload: {
-        page: 1,
-        limit: 20,
-        orderBy: 'created_at',
-        orderDirection: 'desc',
-        filters: { user_id: userId },
-      },
+      payload: { limit: 20 },
       onAfterHandle: (data) => {
         /*
          * The notifications route answers a bare array, not the {items,meta}
@@ -118,8 +118,8 @@ function NotificationDropdown({
          */
         const { items } = readListResponse<NotificationItem>(data)
         setNotificationList(items)
-        setUnreadCount(items.filter((n) => !n.is_seen).length)
         setIsLoading(false)
+        markAllAsSeen(items)
       },
       onErrorHandle: () => {
         console.error('Failed to load notifications')
@@ -128,34 +128,26 @@ function NotificationDropdown({
     })
   }
 
+  /*
+   * The badge reads the server's own unread count. It used to count the
+   * list — which returns read and unread alike — so after every reload the
+   * badge showed all notifications ever received (#33).
+   */
   const loadUnreadCount = () => {
     if (!userId) return
-
-    actions.GET_NOTIFICATIONS?.start({
-      payload: {
-        page: 1,
-        limit: 100,
-        filters: { user_id: userId, is_seen: false },
+    ;(actions as any).NOTIFICATION_UNSEEN_COUNT?.start({
+      payload: {},
+      onAfterHandle: (data: unknown) => {
+        const count = Number((data as { count?: unknown } | undefined)?.count ?? 0)
+        setUnreadCount(Number.isFinite(count) ? count : 0)
       },
-      onAfterHandle: (data) => {
-        setUnreadCount(readListResponse<NotificationItem>(data).items.length)
-      },
+      onErrorHandle: (error: unknown) => console.error('Unread count failed', error),
     })
   }
 
   const markAsSeen = (notificationId: string) => {
-    /*
-     * UPDATE_NOTIFICATION is one of the overridden keys in
-     * lib/api/endpoints.nucleus.ts and already maps to PATCH — which is what
-     * this needs, since a PUT would replace the record and demand user_id and
-     * title that a "mark seen" does not send.
-     */
-    actions.UPDATE_NOTIFICATION?.start({
-      payload: {
-        _id: notificationId,
-        is_seen: true,
-        seen_at: new Date(),
-      },
+    ;(actions as any).NOTIFICATION_MARK_SEEN?.start({
+      payload: { notification_id: notificationId },
       onAfterHandle: () => {
         setNotificationList((prev) =>
           prev.map((n) =>
@@ -166,12 +158,31 @@ function NotificationDropdown({
         )
         setUnreadCount((prev) => Math.max(0, prev - 1))
       },
+      onErrorHandle: (error: unknown) => console.error('Mark seen failed', error),
     })
   }
 
-  const markAllAsSeen = () => {
-    const unseenIds = notificationList.filter((n) => !n.is_seen).map((n) => n.id)
-    for (const id of unseenIds) markAsSeen(id)
+  /*
+   * Opening the panel is reading it (#33: "birden fazla kez girmemize rağmen
+   * hala bildirim butonu görünüyor"). The items stay listed — just no longer
+   * counted as new. One request for all, not one per item.
+   *
+   * Decided by the server's count, not by the 20 rows loaded: older unseen
+   * rows count too, and zeroing the badge here without the server brought it
+   * back on the next reload. The badge is re-read from the server afterwards.
+   */
+  const markAllAsSeen = (items: NotificationItem[] = notificationList) => {
+    if (unreadCountRef.current <= 0 && !items.some((n) => !n.is_seen)) return
+    ;(actions as any).NOTIFICATION_MARK_ALL_SEEN?.start({
+      payload: {},
+      onAfterHandle: () => {
+        setNotificationList((prev) =>
+          prev.map((n) => (n.is_seen ? n : { ...n, is_seen: true, seen_at: new Date().toISOString() }))
+        )
+        loadUnreadCount()
+      },
+      onErrorHandle: (error: unknown) => console.error('Mark all seen failed', error),
+    })
   }
 
   const handleNotificationClick = (notif: NotificationItem) => {
@@ -219,7 +230,7 @@ function NotificationDropdown({
                   </span>
                   <button
                     type="button"
-                    onClick={markAllAsSeen}
+                    onClick={() => markAllAsSeen()}
                     className="text-xs text-slate-700 dark:text-slate-300 hover:text-slate-900 hover:dark:text-white"
                   >
                     Tümünü okundu işaretle
@@ -826,19 +837,32 @@ export function ClientSide({
    * Yap"tan sonra aynı bilgisayarı açan kişi önceki kullanıcı olarak içerideydi.
    * nucleus istemcisi tarayıcının bütün çerezlerini iletiyor ve sunucunun
    * silme talimatlarını (Max-Age=0) tarayıcıya uyguluyor.
+   *
+   * Çevrimdışıyken çıkış yapılmıyor. İstek sunucuya ulaşmıyor; oturum ve
+   * httpOnly çerezleri yerinde kalıyor. Yerel kimliği silip /login'e gitmek
+   * yalnız "çıktı" gibi görünüyordu: bağlantı gelince sayfayı açan kişi önceki
+   * kullanıcı olarak içerideydi. Kullanıcı oturumda kalır ve neden söylenir.
    */
   async function handleLogout(): Promise<undefined> {
+    const offlineMessage = 'Çıkış yapmak için internet bağlantısı gerekiyor.'
+    if (looksOffline()) {
+      toast.error(offlineMessage)
+      return undefined
+    }
     try {
       await FactoryFunction({}, 'LOGOUT_V2')
     } catch (error) {
+      if (looksOffline(error)) {
+        toast.error(offlineMessage)
+        return undefined
+      }
       console.error('Logout failed:', error)
-    } finally {
-      onLogout()
-      forgetSignedInUser()
-      globalStore.user = undefined
-      globalStore.isLoginChecked = false
-      router.push('/login')
     }
+    onLogout()
+    forgetSignedInUser()
+    globalStore.user = undefined
+    globalStore.isLoginChecked = false
+    router.push('/login')
     return undefined
   }
 

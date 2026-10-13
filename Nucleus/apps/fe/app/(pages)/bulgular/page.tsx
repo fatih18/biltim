@@ -17,6 +17,7 @@ import { EmptyState } from "@/app/_components/Global/EmptyState";
 import { ADMIN_ROLES, CENTRAL_ROLES, hasPrivilege } from "@/app/_utils/routeAccess";
 import { useMyScope } from "@/app/_hooks/user/useMyScope";
 import { toast } from "sonner";
+import { readServerReasons } from "@/app/_components/Global/PasswordRules";
 
 type FindingStatus = "open" | "in_progress" | "closed";
 
@@ -166,6 +167,8 @@ export default function FiveSFindingsListPage() {
   const canDeleteFinding = hasPrivilege(myRoleNames, DELETE_ALLOWED_ROLES);
   // #31: evidence on a closed finding is removed only by Merkez Ekip / Super Admin.
   const canRemoveClosedPhotos = hasPrivilege(myRoleNames, ADMIN_ROLES, isGod);
+  // Reopening a closed finding is the same circle's; the server refuses anyone else.
+  const canReopenFinding = canRemoveClosedPhotos;
   const canRemovePhotosOf = (f: { status?: string | null }) => f.status !== "closed" || canRemoveClosedPhotos;
   /*
    * #7/#24: a field manager sees the findings of the locations they are
@@ -286,24 +289,51 @@ export default function FiveSFindingsListPage() {
       status: statusFilter || undefined,
       detected_date_gte: dateFrom || undefined,
       detected_date_lte: dateTo || undefined,
+      /*
+       * "Denetim bulguları" is everything that is not a single finding — and
+       * that includes rows with NO form_title. A bare `neq` became SQL `<>`,
+       * which is never true for NULL, so those audit findings vanished from
+       * the audit filter while still showing under "Tümü".
+       *
+       * Sent as an `or` group. The map dialect has no way to spell OR, but the
+       * translation passes an explicit operator through unchanged, and nucleus
+       * reads an `or`/`and` condition by its `value` alone (the `field` the
+       * map key adds is ignored for a group; the nested fields are the ones
+       * it checks and resolves).
+       */
       form_title:
         sourceFilter === "single"
           ? "Tekil Bulgu"
           : sourceFilter === "audit"
-            ? { operator: "neq", value: "Tekil Bulgu" }
+            ? {
+                operator: "or",
+                value: [
+                  { field: "form_title", operator: "neq", value: "Tekil Bulgu" },
+                  { field: "form_title", operator: "isNull", value: true },
+                ],
+              }
             : undefined,
     }),
     [locationFilter, statusFilter, dateFrom, dateTo, sourceFilter, scopedLocationFilter]
   );
 
-  // finding_no last, so equal dates or locations still come out in one order.
+  /*
+   * Ties broken by creation time, always. Finding numbers repeated after the
+   * numbering sequence was reset (#22, Foto 2: two #1, two #2) and with
+   * finding_no alone the repeats came back in arbitrary order — the list
+   * "was not sorted". The backend now keeps new numbers unique.
+   */
   const listSort = useMemo(
     () =>
       sortField === "finding_no"
-        ? [{ field: "finding_no", direction: sortDir }]
+        ? [
+            { field: "finding_no", direction: sortDir },
+            { field: "created_at", direction: sortDir },
+          ]
         : [
             { field: sortField, direction: sortDir },
             { field: "finding_no", direction: "desc" as const },
+            { field: "created_at", direction: "desc" as const },
           ],
     [sortField, sortDir]
   );
@@ -367,6 +397,11 @@ export default function FiveSFindingsListPage() {
 
     const newStatus = (value as FindingStatus) || "open";
 
+    if (finding.status === "closed" && newStatus !== "closed" && !canReopenFinding) {
+      setErrorMsg("Kapanmış bulguyu yalnızca Merkez Ekip yeniden açabilir.");
+      return;
+    }
+
     if (newStatus === "closed" && !canCloseFinding) {
       setErrorMsg("Bulgu kapatma işlemi yalnızca Saha Sorumlusu tarafından yapılabilir.");
       return;
@@ -388,6 +423,9 @@ export default function FiveSFindingsListPage() {
       onErrorHandle: (err) => {
         console.error("UPDATE_FIVE_S_FINDING (status) error", err);
         setSavingStatusForId(null);
+        // The select snaps back on reload; say why instead of leaving it silent.
+        const reasons = readServerReasons(err);
+        toast.error(reasons.length > 0 ? reasons.join(" ") : "Bulgu durumu değiştirilemedi.");
         serverList.reload();
       },
     });
@@ -414,19 +452,43 @@ export default function FiveSFindingsListPage() {
 
       const { after } = normalizePhotos(finding);
       const nextAfter: PhotoItem[] = [...after];
+      /*
+       * Which files of THIS batch actually reached storage. A failed upload
+       * used to be logged and forgotten: the queue was cleared anyway and, if
+       * the finding already had an older after photo, "Kaydet" closed it on
+       * the strength of evidence nobody had just added.
+       */
+      const uploadedFiles = new Set<File>();
 
       for (const file of queue) {
         try {
           const uploaded = await uploadAnswerPhoto({ file });
           if (uploaded?.fileId) {
             nextAfter.push({ file_id: uploaded.fileId, url: null });
+            uploadedFiles.add(file);
           } else if (uploaded?.fileUrl) {
             const uuid = extractUuidMaybe(uploaded.fileUrl);
             nextAfter.push({ file_id: uuid, url: uploaded.fileUrl });
+            uploadedFiles.add(file);
           }
         } catch (err) {
           console.error("AFTER PHOTO UPLOAD error", err);
         }
+      }
+
+      const failedCount = queue.length - uploadedFiles.size;
+
+      // Nothing of this batch landed: the finding is unchanged, so there is
+      // nothing to save and certainly nothing to close. The files stay queued
+      // for another try.
+      if (uploadedFiles.size === 0) {
+        setUploadingFindingId(null);
+        toast.error(
+          queue.length === 1
+            ? "Fotoğraf yüklenemedi. Lütfen tekrar deneyin."
+            : `${queue.length} fotoğrafın hiçbiri yüklenemedi. Lütfen tekrar deneyin.`
+        );
+        return;
       }
 
       const last = nextAfter[nextAfter.length - 1] ?? null;
@@ -437,9 +499,11 @@ export default function FiveSFindingsListPage() {
        * finding — the photo IS the evidence that it is resolved, and choosing
        * "Kapandı" from a second control afterwards was the step people
        * missed. More photos can still be added to a closed finding.
+       *
+       * Only a photo uploaded by this "Kaydet" counts; reaching here means at
+       * least one did.
        */
-      const autoClose =
-        canCloseFinding && !isAuditor && finding.status !== "closed" && nextAfter.length > 0;
+      const autoClose = canCloseFinding && !isAuditor && finding.status !== "closed";
 
       setFindings((prev) =>
         prev.map((f) =>
@@ -465,13 +529,30 @@ export default function FiveSFindingsListPage() {
         },
         onAfterHandle: () => {
           setUploadingFindingId(null);
-          setAfterUploadQueue((prev) => ({ ...prev, [finding.id]: [] }));
+          // Only the files that were saved leave the queue; a failed one stays
+          // so "Kaydet" can be pressed again for it.
+          setAfterUploadQueue((prev) => ({
+            ...prev,
+            [finding.id]: (prev[finding.id] ?? []).filter((f) => !uploadedFiles.has(f)),
+          }));
           setErrorMsg(null);
           if (autoClose) toast.success(`#${finding.finding_no ?? ""} bulgusu kapatıldı.`);
+          if (failedCount > 0) {
+            toast.error(
+              `${failedCount} fotoğraf yüklenemedi; listede bırakıldı, tekrar "Kaydet" ile deneyebilirsiniz.`
+            );
+          }
         },
         onErrorHandle: (err) => {
           console.error("UPDATE_FIVE_S_FINDING (after photos) error", err);
           setUploadingFindingId(null);
+          // This save can also close the finding; a refusal says why.
+          const reasons = readServerReasons(err);
+          toast.error(
+            reasons.length > 0
+              ? `Fotoğraflar bulguya kaydedilemedi: ${reasons.join(" ")}`
+              : "Fotoğraflar bulguya kaydedilemedi. Lütfen tekrar deneyin."
+          );
           serverList.reload();
         },
       });
@@ -634,7 +715,9 @@ export default function FiveSFindingsListPage() {
     });
   };
 
-  // Madde 1: Aynı soruya + lokasyona ait mükerrer AÇIK bulguları tek satırda göster
+  // Madde 1: Aynı soruya + lokasyona ait mükerrer, kapanmamış (açık ya da devam eden)
+  // bulguları tek satırda göster. Denetim ekranı ikisini de açık sayıyor; yalnız
+  // 'open' birleşince ikizlerden biri 'Devam ediyor' olduğu an iki satır geri geliyordu.
   const rows = useMemo(() => {
     const questionIdOf = (f: FiveSFinding) => {
       const fromField = (f.question_id ?? "").toString().trim();
@@ -657,9 +740,9 @@ export default function FiveSFindingsListPage() {
 
     for (const f of findings) {
       const qid = questionIdOf(f);
-      const isOpen = f.status === "open";
+      const notClosed = f.status !== "closed";
       const key =
-        isOpen && qid
+        notClosed && qid
           ? `${qid}__${(f.location_name ?? "").trim().toLocaleLowerCase("tr")}`
           : "";
 
@@ -911,6 +994,8 @@ export default function FiveSFindingsListPage() {
                   const afterSingleUrl = afterCount === 1 ? resolvePhotoUrl(after[0]!) : null;
 
                   const canClose = hasAfterPhoto(f);
+                  // A closed finding is reopened only by Merkez Ekip / Super Admin / godmin.
+                  const reopenLocked = f.status === "closed" && !canReopenFinding;
 
                   return (
                     <tr
@@ -960,17 +1045,19 @@ export default function FiveSFindingsListPage() {
                           <select
                             value={f.status || "open"}
                             onChange={(e) => handleStatusChange(f, e.target.value)}
-                            disabled={savingStatusForId === f.id || isAuditor}
+                            disabled={savingStatusForId === f.id || isAuditor || reopenLocked}
                             title={
                               isAuditor
                                 ? "Denetçi rolüyle bulgu durumu güncellenemez."
-                                : !canCloseFinding
-                                  ? "Bulgu kapatma işlemi yalnızca Saha Sorumlusu tarafından yapılabilir."
-                                  : !canClose
-                                    ? "Kapatmak için \"Sonrası Fotoğraf\" yükleyin."
-                                    : undefined
+                                : reopenLocked
+                                  ? "Kapanmış bulguyu yalnızca Merkez Ekip yeniden açabilir."
+                                  : !canCloseFinding
+                                    ? "Bulgu kapatma işlemi yalnızca Saha Sorumlusu tarafından yapılabilir."
+                                    : !canClose
+                                      ? "Kapatmak için \"Sonrası Fotoğraf\" yükleyin."
+                                      : undefined
                             }
-                            className={`w-full truncate rounded-md px-2 py-1 text-[11px] outline-none ring-sky-500/30 focus:ring-2 ${statusBadgeClass( f.status )} ${isAuditor ?"cursor-not-allowed opacity-50" : ""}`}
+                            className={`w-full truncate rounded-md px-2 py-1 text-[11px] outline-none ring-sky-500/30 focus:ring-2 ${statusBadgeClass( f.status )} ${isAuditor || reopenLocked ? "cursor-not-allowed opacity-50" : ""}`}
                           >
                             <option value="open">Açık</option>
                             <option value="in_progress">Devam ediyor</option>

@@ -2,8 +2,53 @@ import { Type as t } from '@sinclair/typebox'
 import { type AnyRoute, defineRoute, type RouteGroup } from 'nucleus-core-ts/server'
 import { type Row, query } from '../db'
 import { todayAtPlant } from '../guards/businessRules'
-import { callerById, isCentral } from '../guards/caller'
+import { type Caller, callerById, isCentral } from '../guards/caller'
 import { buildWorkbook, type Column, statusTr, xlsxResponse } from './excel'
+import { locationFormXlsx } from './locationForm'
+
+/* ───────────────────────── who may read reports ───────────────────────── */
+
+/**
+ * The roles that work in the 5S programme. Every report — the dashboard, each
+ * Excel, the location form — is for them and nobody else.
+ *
+ * nucleus only checks that someone is signed in before these routes, and
+ * config.json leaves public sign-up open with the default role 'basic', which
+ * holds no 5S claim. Without this, such an account got 403 on GET
+ * /fiveSFindings but downloaded the whole findings register, and the location
+ * form with its photos, from here.
+ */
+export const REPORT_ROLES = [
+  'godmin',
+  'super admin',
+  'content manager core team',
+  'manager',
+  'field manager',
+  'auditor',
+] as const
+
+export function maySeeReports(caller: Caller | null): boolean {
+  if (!caller) return false
+  return caller.isGod || caller.roles.some((r) => (REPORT_ROLES as readonly string[]).includes(r))
+}
+
+/**
+ * The guard on the whole /reports group, so a route added later is covered
+ * without remembering to. Group guards run after nucleus's auth middleware,
+ * which sets `x-user-id`. A caller it cannot name gets the same 403: closed,
+ * never open.
+ */
+export async function refuseNonReportReaders(
+  { request }: { request: Request },
+  read?: Parameters<typeof callerById>[1]
+): Promise<Response | undefined> {
+  const caller = await callerById(request.headers.get('x-user-id')?.trim() ?? '', read)
+  if (maySeeReports(caller)) return undefined
+  return new Response(JSON.stringify({ success: false, message: 'Raporları görme yetkiniz yok.' }), {
+    status: 403,
+    headers: { 'content-type': 'application/json' },
+  })
+}
 
 /** Only YYYY-MM-DD reaches SQL; anything else becomes "no filter". */
 function parseDate(value: unknown): string | null {
@@ -46,16 +91,72 @@ const dateWindow = {
   date_to: t.Optional(t.String()),
 }
 
-async function loadDashboard(from: string | null, to: string | null) {
+/* ───────────────────────── field manager scope ───────────────────────── */
 
+/**
+ * The user whose locations a report is narrowed to, when the caller is a field
+ * manager and nothing more; null = no narrowing (Merkez Ekip and above, or
+ * anyone not a field manager).
+ */
+async function fieldManagerScope(request: Request): Promise<string | null> {
+  const caller = await callerById(request.headers.get('x-user-id') ?? '')
+  if (!caller || isCentral(caller) || !caller.roles.includes('field manager')) return null
+  return caller.userId
+}
+
+/**
+ * ` AND <column> names one of the locations user $n field-manages`, for a
+ * report narrowed by `fieldManagerScope`.
+ *
+ * The match is done in SQL, both sides through Postgres' lower(). The export
+ * used to lowercase the location names in JS and compare them to
+ * lower(f.location_name), and the two disagree on Turkish capitals: JS turns
+ * "İdari" into "i̇dari" (i + combining dot, 6 characters), Postgres on this
+ * install's en_US.UTF-8 into "idari" (5) — so a field manager of a location
+ * spelled with "İ" got an empty file.
+ *
+ * Managing no location matches nothing: the narrowed report is empty, never
+ * the whole plant's.
+ */
+function inManagedLocations(column: string, paramIndex: number): string {
+  return ` AND lower(trim(${column})) IN (
+      SELECT lower(trim(fm_l.name)) FROM five_s_locations fm_l
+       WHERE coalesce(fm_l.field_manager_user_ids, '[]'::jsonb) ? $${paramIndex}::text)`
+}
+
+/** A query's scope clause and params together, like `dateRange`. */
+function scoped(userId: string | null, params: unknown[]) {
+  if (!userId) return { on: (_column: string) => '', params }
+  const index = params.length + 1
+  return { on: (column: string) => inManagedLocations(column, index), params: [...params, userId] }
+}
+
+async function loadDashboard(
+  from: string | null,
+  to: string | null,
+  scopeUserId: string | null = null,
+  // "Overdue" is judged on the plant's calendar. The pool's CURRENT_DATE is
+  // UTC (db.ts), still yesterday between 00:00 and 03:00 in Istanbul.
+  today: string = todayAtPlant()
+) {
     const f = dateRange('f.detected_date', from, to, 1)
-    const fWhere = `f.is_active = true${f.sql}`
-    const fp = f.params
+    // #7/#24: a field manager's dashboard counts their locations, as their
+    // register and export do; every finding query is narrowed by location_name.
+    const fScope = scoped(scopeUserId, f.params)
+    const fWhere = `f.is_active = true${f.sql}${fScope.on('f.location_name')}`
+    const fp = fScope.params
 
     // audit_date is a timestamp, so the upper bound has to cover the whole day.
     const a = dateRange('a.audit_date', from, to ? `${to} 23:59:59` : null, 1)
-    const aWhere = `a.is_active = true${a.sql}`
-    const ap = a.params
+    // …and every audit query by the audited place, department_name.
+    const aScope = scoped(scopeUserId, a.params)
+    const aWhere = `a.is_active = true${a.sql}${aScope.on('a.department_name')}`
+    const ap = aScope.params
+    // Findings joined under those audits are narrowed too (same $n).
+    const fUnderA = aScope.on('f.location_name')
+    // Plans and the map have no date window; their $1 is the user.
+    const nScope = scoped(scopeUserId, [])
+    const np = nScope.params
     /*
      * An audit, as opposed to the row the single-finding form files its
      * finding under (#23). Those carry no plan, no answers and a score of 0;
@@ -94,12 +195,12 @@ async function loadDashboard(from: string | null, to: string | null) {
       query(
         `SELECT f.id, f.finding_no, f.location_name, f.finding_type, f.description,
                 f.action_to_take, f.due_date, f.responsible_name, f.detected_date,
-                (CURRENT_DATE - f.due_date)::int AS overdue_days
+                ($${fp.length + 1}::date - f.due_date)::int AS overdue_days
          FROM five_s_findings f
          WHERE ${fWhere} AND f.status = 'open'
-           AND f.due_date IS NOT NULL AND f.due_date < CURRENT_DATE
+           AND f.due_date IS NOT NULL AND f.due_date < $${fp.length + 1}::date
          ORDER BY f.due_date ASC LIMIT 500`,
-        fp
+        [...fp, today]
       ),
       query(
         `SELECT a.department_name, l.department_name AS directorate_name,
@@ -137,8 +238,16 @@ async function loadDashboard(from: string | null, to: string | null) {
                 count(*) FILTER (WHERE p.field_manager_attended = false)::int AS field_manager_missed
          FROM five_s_audit_plans p
          WHERE p.is_active = true
-           AND (p.location_id IS NOT NULL OR p.assigned_team_id IS NOT NULL)
-         GROUP BY p.status`
+           AND (p.location_id IS NOT NULL OR p.assigned_team_id IS NOT NULL)${
+             // A plan names its place by id; a field manager's are the plans of their locations.
+             scopeUserId
+               ? ` AND p.location_id IN (
+                   SELECT fm_l.id FROM five_s_locations fm_l
+                    WHERE coalesce(fm_l.field_manager_user_ids, '[]'::jsonb) ? $1::text)`
+               : ''
+           }
+         GROUP BY p.status`,
+        np
       ),
       query(
         `SELECT coalesce(t.name, 'Ekipsiz') AS team_name,
@@ -148,7 +257,7 @@ async function loadDashboard(from: string | null, to: string | null) {
                      THEN round(count(f.id)::numeric / count(DISTINCT a.id), 2)
                      ELSE 0 END AS avg_findings_per_audit
          FROM five_s_audits a
-         LEFT JOIN five_s_findings f ON f.audit_id = a.id AND f.is_active = true
+         LEFT JOIN five_s_findings f ON f.audit_id = a.id AND f.is_active = true${fUnderA}
          LEFT JOIN five_s_audit_plans p ON p.id = a.plan_id
          LEFT JOIN five_s_audit_teams t ON t.id = p.assigned_team_id
          WHERE ${aScored} GROUP BY t.name ORDER BY avg_findings_per_audit DESC`,
@@ -164,21 +273,43 @@ async function loadDashboard(from: string | null, to: string | null) {
        * the three add up to the total, and a finding past its termin is overdue
        * whether or not anyone has started it — restricting that to 'open' hid
        * exactly the late work that needs chasing.
+       *
+       * avg_total is one vote per audit. It was taken over the audits JOINED
+       * to their findings, so an audit with nine findings weighed nine times
+       * and one with none once: on the local data Üretim averaged 99.40 here
+       * against 96.43 on the scores card, from the same seven audits. The
+       * findings are counted per audit first (fc) and the location is picked
+       * once per audit (loc — two rows spelling one name would double it
+       * again), so nothing fans an audit out before the average.
        */
       query(
-        `SELECT coalesce(l.department_name, 'Tanımsız') AS department_name,
+        `SELECT coalesce(loc.department_name, 'Tanımsız') AS department_name,
                 count(DISTINCT a.id) FILTER (WHERE ${isAudit})::int AS audit_count,
                 round(avg(a.total_score) FILTER (WHERE ${isAudit}), 2) AS avg_total,
-                count(f.id) FILTER (WHERE f.status = 'open')::int AS open_findings,
-                count(f.id) FILTER (WHERE f.status = 'in_progress')::int AS in_progress_findings,
-                count(f.id) FILTER (WHERE f.status = 'closed')::int AS closed_findings,
-                count(f.id) FILTER (WHERE f.status <> 'closed' AND f.due_date < CURRENT_DATE)::int
-                  AS overdue_findings
+                coalesce(sum(fc.open_findings), 0)::int AS open_findings,
+                coalesce(sum(fc.in_progress_findings), 0)::int AS in_progress_findings,
+                coalesce(sum(fc.closed_findings), 0)::int AS closed_findings,
+                coalesce(sum(fc.overdue_findings), 0)::int AS overdue_findings
          FROM five_s_audits a
-         LEFT JOIN five_s_locations l ON lower(trim(l.name)) = lower(trim(a.department_name))
-         LEFT JOIN five_s_findings f ON f.audit_id = a.id AND f.is_active = true
-         WHERE ${aWhere} GROUP BY l.department_name ORDER BY audit_count DESC`,
-        ap
+         LEFT JOIN LATERAL (
+           SELECT l.department_name FROM five_s_locations l
+            WHERE lower(trim(l.name)) = lower(trim(a.department_name))
+            ORDER BY l.is_active DESC NULLS LAST, l.id
+            LIMIT 1
+         ) loc ON true
+         LEFT JOIN (
+           SELECT f.audit_id,
+                  count(*) FILTER (WHERE f.status = 'open') AS open_findings,
+                  count(*) FILTER (WHERE f.status = 'in_progress') AS in_progress_findings,
+                  count(*) FILTER (WHERE f.status = 'closed') AS closed_findings,
+                  count(*) FILTER (WHERE f.status <> 'closed' AND f.due_date < $${ap.length + 1}::date)
+                    AS overdue_findings
+             FROM five_s_findings f
+            WHERE f.is_active = true AND f.audit_id IS NOT NULL${fUnderA}
+            GROUP BY f.audit_id
+         ) fc ON fc.audit_id = a.id
+         WHERE ${aWhere} GROUP BY loc.department_name ORDER BY audit_count DESC`,
+        [...ap, today]
       ),
       query(
         `SELECT l.id, l.name, l.map_x, l.map_y, l.department_name,
@@ -190,9 +321,10 @@ async function loadDashboard(from: string | null, to: string | null) {
          FROM five_s_locations l
          LEFT JOIN five_s_findings f
            ON lower(trim(f.location_name)) = lower(trim(l.name)) AND f.is_active = true
-         WHERE l.is_active = true
+         WHERE l.is_active = true${nScope.on('l.name')}
          GROUP BY l.id, l.name, l.map_x, l.map_y, l.department_name
-         ORDER BY open_findings DESC`
+         ORDER BY open_findings DESC`,
+        np
       ),
     ])
 
@@ -217,10 +349,10 @@ const dashboard = defineRoute({
   path: '/dashboard',
   query: t.Object(dateWindow),
   detail: { tags: ['Reports'], summary: '5S dashboard aggregates' },
-  handler: async ({ query: q }) => {
+  handler: async ({ query: q, request }) => {
     const from = parseDate(q?.date_from)
     const to = parseDate(q?.date_to)
-    const data = await loadDashboard(from, to)
+    const data = await loadDashboard(from, to, await fieldManagerScope(request))
     return {
       success: true,
       message: 'Dashboard report aggregates',
@@ -355,7 +487,7 @@ const dashboardXlsx = defineRoute({
   path: '/dashboard.xlsx',
   query: t.Object({ ...dateWindow, section: t.Optional(t.String()) }),
   detail: { tags: ['Reports'], summary: 'Dashboard reports as an Excel workbook' },
-  handler: async ({ query: q }) => {
+  handler: async ({ query: q, request }) => {
     const from = parseDate(q?.date_from)
     const to = parseDate(q?.date_to)
     const wanted = String(q?.section ?? '').trim()
@@ -366,7 +498,8 @@ const dashboardXlsx = defineRoute({
         headers: { 'content-type': 'application/json' },
       })
     }
-    const data = await loadDashboard(from, to)
+    // The workbook carries what the screen shows this caller, no more (#7/#24).
+    const data = await loadDashboard(from, to, await fieldManagerScope(request))
     const buffer = await buildWorkbook(
       keys.map((k) => ({ name: SECTIONS[k].title, columns: SECTIONS[k].columns, rows: data[k] }))
     )
@@ -389,22 +522,36 @@ const findingsQuery = t.Object({
   location_name: t.Optional(t.String()),
   status: t.Optional(t.String()),
   source: t.Optional(t.String()),
+  // '1': only findings with a before AND an after photo (the "Önce / Sonra
+  // Fotoğraflı Bulgular" card), so its file lists what the card lists.
+  with_photos: t.Optional(t.String()),
 })
 
+/** The photo columns `hasPhoto` reads. */
+const PHOTO_COLUMNS = ['before', 'after']
+  .flatMap((side) => [`f.photo_${side}_files`, `f.photo_${side}_file_id`, `f.photo_${side}_url`])
+  .join(', ')
+
 /**
- * The locations a field manager answers for, when that is all they may see.
- * null = no narrowing (Merkez Ekip and above, or anyone not a field manager).
+ * Does the finding carry a photo on this side? Any of the three places a photo
+ * has been kept counts: the array column (a non-empty list), or the
+ * single-photo id / url columns that preceded it. The array is read as
+ * photos.ts reads it, also when it arrives as JSON text.
  */
-async function fieldManagerLocations(request: Request): Promise<string[] | null> {
-  const caller = await callerById(request.headers.get('x-user-id') ?? '')
-  if (!caller || isCentral(caller) || !caller.roles.includes('field manager')) return null
-  const rows = await query(
-    `select name from five_s_locations
-      where coalesce(field_manager_user_ids, '[]'::jsonb) ? $1::text`,
-    [caller.userId]
-  )
-  return rows.map((r) => String(r.name ?? '').trim().toLowerCase()).filter(Boolean)
+export function hasPhoto(f: Row, side: 'before' | 'after'): boolean {
+  let list: unknown = f[`photo_${side}_files`]
+  if (typeof list === 'string') {
+    try {
+      list = JSON.parse(list)
+    } catch {
+      list = []
+    }
+  }
+  if (Array.isArray(list) && list.length > 0) return true
+  return [f[`photo_${side}_file_id`], f[`photo_${side}_url`]].some((v) => String(v ?? '').trim() !== '')
 }
+
+export const hasBeforeAndAfterPhotos = (f: Row) => hasPhoto(f, 'before') && hasPhoto(f, 'after')
 
 async function findingsWorkbook(
   q: Record<string, string | undefined> | undefined,
@@ -416,6 +563,7 @@ async function findingsWorkbook(
   const source = String(q?.source ?? '').trim()
   const from = parseDate(q?.date_from)
   const to = parseDate(q?.date_to)
+  const withPhotos = ['1', 'true'].includes(String(q?.with_photos ?? '').trim().toLowerCase())
 
   const clauses: string[] = []
   const params: unknown[] = []
@@ -431,16 +579,17 @@ async function findingsWorkbook(
   if (source === 'single_finding') clauses.push(" AND a.source = 'single_finding'")
   if (source === 'audit') clauses.push(" AND a.source IS DISTINCT FROM 'single_finding'")
   // #7/#24: the export shows a field manager what their register shows.
-  const scoped = await fieldManagerLocations(request)
-  if (scoped) {
-    clauses.push(` AND lower(trim(f.location_name)) = ANY($${i++}::text[])`)
-    params.push(scoped)
+  // Matched in SQL, not against names lowercased in JS (see inManagedLocations).
+  const scopeUserId = await fieldManagerScope(request)
+  if (scopeUserId) {
+    clauses.push(inManagedLocations('f.location_name', i++))
+    params.push(scopeUserId)
   }
   const range = dateRange('f.detected_date', from, to, i)
   clauses.push(range.sql)
   params.push(...range.params)
 
-  const rows: Row[] = await query(
+  const all: Row[] = await query(
     `SELECT f.finding_no, f.detected_date, f.location_name, f.finding_type,
             coalesce(f.step_code, '') AS step_code, f.description, f.action_to_take,
             f.due_date, f.completed_at, f.responsible_name, f.auditor_name, f.status,
@@ -448,17 +597,18 @@ async function findingsWorkbook(
                  WHEN a.id IS NOT NULL THEN 'Denetim' ELSE '' END AS source_label,
             CASE WHEN a.id IS NOT NULL AND a.source IS DISTINCT FROM 'single_finding'
                  THEN concat_ws(' – ', a.department_name, to_char(a.audit_date, 'DD.MM.YYYY'))
-                 ELSE '' END AS audit_label
+                 ELSE '' END AS audit_label${withPhotos ? `, ${PHOTO_COLUMNS}` : ''}
      FROM five_s_findings f
      LEFT JOIN five_s_audits a ON a.id = f.audit_id
      WHERE f.is_active = true${clauses.join('')}
      ORDER BY f.finding_no ASC NULLS LAST`,
     params
   )
+  const rows = withPhotos ? all.filter(hasBeforeAndAfterPhotos) : all
 
   const buffer = await buildWorkbook([
     {
-      name: forceOpen ? 'Açık Bulgular' : 'Bulgular',
+      name: withPhotos ? 'Önce-Sonra Fotoğraflı Bulgular' : forceOpen ? 'Açık Bulgular' : 'Bulgular',
       columns: [
         { header: 'Bulgu No', key: 'finding_no', kind: 'number', width: 10 },
         { header: 'Kaynak', key: 'source_label', width: 14 },
@@ -479,10 +629,8 @@ async function findingsWorkbook(
     },
   ])
   const suffix = locationName ? `-${locationName}` : ''
-  return xlsxResponse(
-    buffer,
-    `5s-${forceOpen ? 'acik-bulgu' : 'bulgu'}-raporu${suffix}-${todayAtPlant()}.xlsx`
-  )
+  const kind = withPhotos ? 'fotografli-bulgu' : forceOpen ? 'acik-bulgu' : 'bulgu'
+  return xlsxResponse(buffer, `5s-${kind}-raporu${suffix}-${todayAtPlant()}.xlsx`)
 }
 
 const openFindings = defineRoute({
@@ -502,11 +650,16 @@ const findingsXlsx = defineRoute({
 })
 
 /**
- * Mounted under `/reports`, behind nucleus's guard chain as before.
+ * Mounted under `/reports`, behind nucleus's guard chain as before, and then
+ * behind the 5S-role check for every route in the group.
  *
  * `AnyRoute[]` is load-bearing: `defineRoute` keeps `path` as a literal
  * type, so two routes with different paths are different types and cannot
  * share an array without it.
  */
-const routes: AnyRoute[] = [dashboard, dashboardXlsx, openFindings, findingsXlsx]
-export const ReportsRoutes: RouteGroup = { prefix: '/reports', routes }
+const routes: AnyRoute[] = [dashboard, dashboardXlsx, openFindings, findingsXlsx, locationFormXlsx]
+export const ReportsRoutes: RouteGroup = {
+  prefix: '/reports',
+  guards: [(context) => refuseNonReportReaders(context)],
+  routes,
+}

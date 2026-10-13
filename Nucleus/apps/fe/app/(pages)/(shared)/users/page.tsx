@@ -3,7 +3,7 @@ import { InfiniteScroll } from '@/app/_components/Global/InfiniteScroll'
 import { isGodminUser } from '@/app/_utils/currentUser'
 import { ADMIN_ROLES, hasPrivilege } from '@/app/_utils/routeAccess'
 
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '@store/globalStore'
 import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
 import { readServerReasons } from '@/app/_components/Global/PasswordRules'
@@ -45,11 +45,99 @@ export default function UsersPage() {
    * hesabını bekliyordu. Artık hepsi Biltim'in kendi uçlarından
    * (be-nucleus/src/routes/biltim.ts) gidiyor; yetki orada da aynı.
    */
-  const canManageAccess = useMemo(() => {
+  const callerRoleNames = useMemo((): string[] => {
     const u: any = store.user
-    const roleNames = ((u?.data ?? u)?.roles ?? []).map((r: any) => String(r?.name ?? ''))
-    return isGodminUser(store.user) || hasPrivilege(roleNames, ADMIN_ROLES)
+    return ((u?.data ?? u)?.roles ?? []).map((r: any) => String(r?.name ?? ''))
   }, [store.user])
+  const callerIsGod = useMemo(() => isGodminUser(store.user), [store.user])
+
+  const canManageAccess = useMemo(
+    () => callerIsGod || hasPrivilege(callerRoleNames, ADMIN_ROLES),
+    [callerIsGod, callerRoleNames]
+  )
+
+  /*
+   * Rütbe: godmin > Super Admin > Merkez Ekip > diğerleri — sunucunun kuralının
+   * aynısı (be-nucleus/src/routes/biltim.ts, `mayAssignRole` / `mayTarget`).
+   *
+   * Sunucu Merkez Ekip'in bir Super Admin'e dokunmasını ve yeni hesaba Super
+   * Admin rolü vermesini reddediyor. Ekran yine de düğmeleri ve rolü sunuyordu:
+   * tıklayan 403 görüyordu, yani ekran yapılamayacak bir işi öneriyordu. Gizleme
+   * yetki kontrolü DEĞİL — o sunucuda — ama önerilen her düğme çalışmalı.
+   */
+  const caller = useMemo<Ranked>(
+    () => ({ isGod: callerIsGod, roles: callerRoleNames }),
+    [callerIsGod, callerRoleNames]
+  )
+
+  /*
+   * Rütbe bilgisi sunucudan, tek uçtan (GET /biltim/users/ranks): bu kişinin
+   * verebileceği roller ve değiştiremeyeceği hesaplar. Ekran önceden GET
+   * /roles ve /user_roles okuyordu; Merkez Ekip'in ikisine de yetkisi yok —
+   * rol listesi hiç yüklenmiyor (kullanıcı eklerken rol seçilemiyordu) ve
+   * Super Admin satırlarında sunucunun reddedeceği düğmeler görünüyordu.
+   */
+  const [rankInfo, setRankInfo] = useState<{
+    roles: Array<{ id: string; name: string; alias: string | null; description: string | null; is_system: boolean }>
+    protectedIds: Set<string>
+  } | null>(null)
+  const rankRequestRef = useRef(0)
+  const rankStartedRef = useRef(false)
+  useEffect(() => {
+    if (!canManageAccess) return
+    // İlk açılışta bir kez, sonra her "Yenile"de (ve oluşturma/silme sonrası).
+    if (rankStartedRef.current && !usersStore.needsRefresh) return
+    rankStartedRef.current = true
+    const requestId = ++rankRequestRef.current
+    ;(actions as any).BILTIM_USER_RANKS?.start({
+      payload: {},
+      onAfterHandle: (data: unknown) => {
+        if (rankRequestRef.current !== requestId) return
+        const d = (data ?? {}) as { roles?: unknown; protected?: unknown }
+        setRankInfo({
+          roles: Array.isArray(d.roles)
+            ? (d.roles as Array<Record<string, unknown>>).map((r) => ({
+                id: String(r.id ?? ''),
+                name: String(r.name ?? ''),
+                alias: r.alias == null ? null : String(r.alias),
+                description: r.description == null ? null : String(r.description),
+                is_system: r.is_system === true || r.isSystem === true,
+              }))
+            : [],
+          protectedIds: new Set(Array.isArray(d.protected) ? (d.protected as unknown[]).map(String) : []),
+        })
+      },
+      // Okunamazsa önceki bilgi korunur; son sözü yine sunucu söyler.
+      onErrorHandle: (error: unknown) => console.error('User ranks failed', error),
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canManageAccess, usersStore.needsRefresh])
+
+  const canManageUser = (userId: string): boolean => {
+    if (!canManageAccess) return false
+    const row = usersStore.users?.data.find((u) => u.id === userId)
+    // Satır rolleri taşıyorsa onlar da sayılır; bugün taşımıyor (null ya da yok).
+    const rawRoles: unknown = row?.roles
+    const rowRoles = Array.isArray(rawRoles)
+      ? rawRoles.map((r) => String((r as { name?: unknown } | null)?.name ?? ''))
+      : []
+    const target: Ranked = { isGod: row?.is_god === true, roles: rowRoles }
+    if (rankInfo?.protectedIds.has(userId)) return false
+    return mayTarget(caller, target)
+  }
+
+  // Sabit kimlikli: oluşturma modalı rol listesini bununla süzüyor.
+  const canAssignRole = useCallback(
+    (role: { name: string }) => mayAssignRole(caller, role.name),
+    [caller]
+  )
+
+  /** Sunucunun reddedeceği bir hesaba dokunmadan önce, aynı sözle. */
+  const refuseOutranked = (userId: string): boolean => {
+    if (canManageUser(userId)) return false
+    toast.error('Sizden üst yetkideki bir hesap (ör. Super Admin) bu ekrandan değiştirilemez.')
+    return true
+  }
 
   const selectedUser = useMemo(() => {
     if (!usersStore.selectedUserId || !usersStore.users) return undefined
@@ -246,6 +334,7 @@ export default function UsersPage() {
    */
   async function handleLockUser(userId: string) {
     if (!canManageAccess) return
+    if (refuseOutranked(userId)) return
     const target = usersStore.users?.data.find((u) => u.id === userId)
     const confirmed = await confirmDialog({
       title: 'Hesap kilitlensin mi?',
@@ -273,6 +362,7 @@ export default function UsersPage() {
 
   function handleUnlockUser(userId: string) {
     if (!canManageAccess) return
+    if (refuseOutranked(userId)) return
     setUnlockingUserId(userId)
 
     ;(actions as any).BILTIM_UNLOCK_USER?.start({
@@ -372,6 +462,7 @@ export default function UsersPage() {
                   toast.error('Kendi hesabını silemezsin.')
                   return
                 }
+                if (refuseOutranked(userId)) return
                 usersStore.setSelectedUserId(userId)
                 usersStore.setModalVisibility('delete', true)
               }}
@@ -380,11 +471,13 @@ export default function UsersPage() {
               lockingUserId={lockingUserId}
               onSetPassword={(userId) => {
                 if (!canManageAccess) return
+                if (refuseOutranked(userId)) return
                 usersStore.setSelectedUserId(userId)
                 usersStore.setModalVisibility('setPassword', true)
               }}
               unlockingUserId={unlockingUserId}
               showGodminActions={canManageAccess}
+              canManageUser={canManageUser}
             />
 
             {hasUsers ? (
@@ -403,6 +496,8 @@ export default function UsersPage() {
           onClose={() => usersStore.setModalVisibility('create', false)}
           onSubmit={handleCreate}
           isSubmitting={Boolean((actions as any).BILTIM_CREATE_USER?.state?.isPending)}
+          canAssignRole={canAssignRole}
+          assignableRoles={rankInfo?.roles}
         />
 
         <UsersDeleteModal
@@ -468,6 +563,47 @@ function passwordSetMessage(signedOut: unknown): string {
     return 'Şifre değiştirildi. Kullanıcının oturumları kapatıldı.'
   }
   return 'Şifre değiştirildi.'
+}
+
+/* ───────────────────────── rütbe ───────────────────────── */
+
+/*
+ * Sunucunun tablosunun aynısı (be-nucleus/src/routes/biltim.ts `RANK`). Burada
+ * adı geçmeyen roller (Müdür, Saha Sorumlusu, Denetçi) Merkez Ekip'in altında.
+ * İkisi ayrışırsa ekran ya çalışmayan düğme gösterir ya da çalışanı gizler;
+ * değiştirirken ikisini birlikte değiştirin.
+ */
+const ACCOUNT_RANK: Record<string, number> = {
+  godmin: 3,
+  'super admin': 2,
+  'content manager core team': 1,
+}
+const GODMIN_RANK = 3
+
+type Ranked = { isGod: boolean; roles: string[] }
+
+function roleRank(name: unknown): number {
+  return ACCOUNT_RANK[String(name ?? '').trim().toLowerCase()] ?? 0
+}
+
+function highestRank(who: Ranked): number {
+  if (who.isGod) return GODMIN_RANK
+  return who.roles.reduce((max, r) => Math.max(max, roleRank(r)), 0)
+}
+
+/** godmin her rolü verir; başkası godmin'i asla, kendi rolünü ya da altını verir. */
+function mayAssignRole(caller: Ranked, roleName: unknown): boolean {
+  if (caller.isGod) return true
+  const name = String(roleName ?? '').trim().toLowerCase()
+  if (name === 'godmin') return false
+  if (caller.roles.some((r) => r.trim().toLowerCase() === name)) return true
+  return roleRank(name) < highestRank(caller)
+}
+
+/** Akranına evet, üstüne hayır; godmin hesabına yalnız godmin. */
+function mayTarget(caller: Ranked, target: Ranked): boolean {
+  if (caller.isGod) return true
+  return highestRank(target) <= highestRank(caller)
 }
 
 function buildFilters(filters: StoreProps['filters']) {

@@ -18,6 +18,10 @@ import { Download, Loader2, RefreshCw } from 'lucide-react'
 import { DateInput } from '@/app/_components/DateInput'
 import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
 import { resolvePhotoUrl } from "@/app/_utils/photos"
+import { useGetUserRole } from '@/app/_hooks/user/useGetUserRole'
+import { useMyScope } from '@/app/_hooks/user/useMyScope'
+import { CENTRAL_ROLES, hasPrivilege } from '@/app/_utils/routeAccess'
+import { toast } from 'sonner'
 
 /* ───────────── Types ───────────── */
 
@@ -155,6 +159,24 @@ type FindingPhotoRow = {
   status?: string
   photo_before_files?: PhotoItem[] | null
   photo_after_files?: PhotoItem[] | null
+  photo_before_file_id?: string | null
+  photo_before_url?: string | null
+  photo_after_file_id?: string | null
+  photo_after_url?: string | null
+}
+
+/*
+ * One side's photos, from the list column or, on older rows, the single-photo
+ * columns before it — the same reading as the findings register and as the
+ * server's with_photos filter, so the card and its Excel hold the same rows.
+ */
+function sidePhotos(f: FindingPhotoRow, side: 'before' | 'after'): PhotoItem[] {
+  const list = side === 'before' ? f.photo_before_files : f.photo_after_files
+  const arr = Array.isArray(list) ? list : []
+  const fileId = side === 'before' ? f.photo_before_file_id : f.photo_after_file_id
+  const url = side === 'before' ? f.photo_before_url : f.photo_after_url
+  const source = arr.length > 0 ? arr : fileId || url ? [{ file_id: fileId ?? null, url: url ?? null }] : []
+  return source.filter((x) => x?.file_id || x?.url)
 }
 
 /*
@@ -165,14 +187,37 @@ type FindingPhotoRow = {
  */
 const photoUrl = resolvePhotoUrl
 
-function BeforeAfterReport() {
+function BeforeAfterReport({ dateFrom, dateTo }: { dateFrom: string; dateTo: string }) {
   const actions = useGenericApiActions()
   const [rows, setRows] = React.useState<FindingPhotoRow[]>([])
   const [loading, setLoading] = React.useState(false)
+  const { roles, isGod, isLoading: rolesLoading } = useGetUserRole()
+  const { scope, failed: scopeFailed } = useMyScope()
+
+  /*
+   * A field manager sees the findings of their own locations here, as on every
+   * other card and in the register (#7/#24) — the same location names the
+   * register filters by. Nothing is asked until we know whose findings to ask
+   * for, and a scope that could not be read matches nothing, not everything.
+   */
+  const roleNames = roles.map((r) => r.name)
+  const scoped = hasPrivilege(roleNames, ['field manager']) && !hasPrivilege(roleNames, CENTRAL_ROLES, isGod)
+  const ready = !rolesLoading && (!scoped || !!scope || scopeFailed)
+  const locationFilter = React.useMemo((): unknown => {
+    if (!scoped) return undefined
+    const mine = scope?.fieldManagerLocationNames ?? []
+    // An empty list means "no filter" in this dialect; every finding has a location, so isNull is "none".
+    return mine.length > 0 ? mine : { operator: 'isNull', value: true }
+  }, [scoped, scope])
+
+  // Only the newest request may fill the card when the date window changes quickly.
+  const requestSeq = React.useRef(0)
 
   React.useEffect(() => {
+    if (!ready) return
     const a = (actions as any).GET_FIVE_S_FINDINGS
     if (!a?.start) return
+    const mine = ++requestSeq.current
     setLoading(true)
     a.start({
       payload: {
@@ -180,23 +225,30 @@ function BeforeAfterReport() {
         limit: 30,
         orderBy: 'created_at',
         orderDirection: 'desc',
-        filters: { status: 'closed' },
+        // The dashboard's date window, on the same column the Excel export filters.
+        filters: {
+          status: 'closed',
+          location_name: locationFilter,
+          detected_date_gte: dateFrom || undefined,
+          detected_date_lte: dateTo || undefined,
+        },
       },
       onAfterHandle: (resp: any) => {
+        if (mine !== requestSeq.current) return
         const root = resp?.data
         const arr: FindingPhotoRow[] = root?.data ?? (Array.isArray(root) ? root : [])
-        setRows(
-          (arr ?? []).filter(
-            (f) =>
-              (f.photo_before_files?.length ?? 0) > 0 && (f.photo_after_files?.length ?? 0) > 0
-          )
-        )
+        setRows((arr ?? []).filter((f) => sidePhotos(f, 'before').length > 0 && sidePhotos(f, 'after').length > 0))
         setLoading(false)
       },
-      onErrorHandle: () => setLoading(false),
+      onErrorHandle: () => {
+        if (mine !== requestSeq.current) return
+        setRows([])
+        setLoading(false)
+      },
     })
+    // `actions` is new on every render; see fetchData below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [ready, locationFilter, dateFrom, dateTo])
 
   if (loading) return <div className="text-xs text-slate-600 dark:text-slate-400">Yükleniyor...</div>
   if (rows.length === 0)
@@ -205,8 +257,8 @@ function BeforeAfterReport() {
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {rows.slice(0, 12).map((f) => {
-        const before = photoUrl(f.photo_before_files?.[0])
-        const after = photoUrl(f.photo_after_files?.[0])
+        const before = photoUrl(sidePhotos(f, 'before')[0])
+        const after = photoUrl(sidePhotos(f, 'after')[0])
         return (
           <div key={f.id} className="rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/40 p-2">
             <div className="mb-1.5 flex items-center justify-between text-[11px]">
@@ -237,6 +289,108 @@ function BeforeAfterReport() {
           </div>
         )
       })}
+    </div>
+  )
+}
+
+/* ───────────── Bölge 5S formu (F2) ───────────── */
+
+/*
+ * The plant's own yearly workbook for one area — "5S Denetim Bulgu ve Soru
+ * Formu": the findings sheet with photos and one question sheet per audit.
+ * Built by the backend (/reports/location-form.xlsx) in the layout of the
+ * file the customer sent.
+ */
+function LocationFormExport() {
+  const actions = useGenericApiActions()
+  const { roles, isGod } = useGetUserRole()
+  const { scope } = useMyScope()
+  // A field manager is offered their own locations; the server refuses the rest.
+  const roleNames = roles.map((r) => r.name)
+  const scoped = hasPrivilege(roleNames, ['field manager']) && !hasPrivilege(roleNames, CENTRAL_ROLES, isGod)
+  const [allLocations, setLocations] = React.useState<string[]>([])
+  const locations = scoped
+    ? allLocations.filter((l) =>
+        (scope?.fieldManagerLocationNames ?? []).some(
+          (n) => n.trim().toLocaleLowerCase('tr') === l.toLocaleLowerCase('tr')
+        )
+      )
+    : allLocations
+  const [location, setLocation] = React.useState('')
+  const thisYear = new Date().getFullYear()
+  const [year, setYear] = React.useState(String(thisYear))
+  const [busy, setBusy] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    const a = (actions as any).GET_FIVE_S_LOCATIONS
+    if (!a?.start) return
+    a.start({
+      payload: { page: 1, limit: 500, orderBy: 'name', orderDirection: 'asc', filters: { is_active: true } },
+      onAfterHandle: (res: any) => {
+        const root = res?.data
+        const arr: any[] = root?.data ?? (Array.isArray(root) ? root : Array.isArray(res) ? res : [])
+        setLocations([...new Set(arr.map((l) => String(l?.name ?? '').trim()).filter(Boolean))])
+      },
+      onErrorHandle: () => setLocations([]),
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const download = async () => {
+    if (!location) return
+    setBusy(true)
+    setError(null)
+    try {
+      await downloadWorkbook('/reports/location-form.xlsx', { location_name: location, year })
+    } catch (err) {
+      setError((err as Error).message || 'Form indirilemedi')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap items-end gap-3">
+      <div className="space-y-1">
+        <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300">Lokasyon</label>
+        <select
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+          className="min-w-[220px] rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2 text-xs"
+        >
+          <option value="">Lokasyon seçin</option>
+          {locations.map((l) => (
+            <option key={l} value={l}>
+              {l}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="space-y-1">
+        <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300">Yıl</label>
+        <select
+          value={year}
+          onChange={(e) => setYear(e.target.value)}
+          className="rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2 text-xs"
+        >
+          {[thisYear, thisYear - 1, thisYear - 2].map((y) => (
+            <option key={y} value={y}>
+              {y}
+            </option>
+          ))}
+        </select>
+      </div>
+      <button
+        type="button"
+        onClick={download}
+        disabled={!location || busy}
+        className="inline-flex items-center gap-1.5 rounded-md border border-emerald-700/50 bg-white dark:bg-slate-950/60 px-3 py-2 text-xs font-medium text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 hover:dark:bg-emerald-950/30 disabled:opacity-50"
+      >
+        {busy ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+        Bulgu ve Soru Formu (Excel)
+      </button>
+      {error && <span className="text-xs text-rose-700 dark:text-rose-300">{error}</span>}
     </div>
   )
 }
@@ -339,7 +493,8 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
         })
       } catch (err) {
         console.error('report export error', err)
-        setError((err as Error).message || 'Excel indirilemedi')
+        // A toast, not the load-error state: that one replaces the whole dashboard.
+        toast.error((err as Error).message || 'Excel indirilemedi')
       } finally {
         setExporting(null)
       }
@@ -781,19 +936,33 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
 
       {!compact && (
         <>
+          <Card
+            title="5S Denetim Bulgu ve Soru Formu"
+            subtitle="Bir lokasyonun yılı, gönderdiğiniz form düzeninde: fotoğraflı bulgu listesi ve her denetimin soru-cevap sayfası"
+          >
+            <LocationFormExport />
+          </Card>
+
           {/* Rapor 11: Fabrika krokisi ısı haritası */}
           <Card title="Fabrika Krokisi — Bulgu Isı Haritası" subtitle="Açık bulgu sayısına göre kırmızı/sarı/yeşil; büyüklük yoğunluğu gösterir" {...exp('mapHeat')}>
             <FactoryMapHeat mapHeat={data?.mapHeat ?? []} />
           </Card>
 
           {/* Rapor 3: Önce / Sonra fotoğraflı rapor */}
+          {/*
+            The Excel holds the card's set: closed, in the date window, with at
+            least one before AND one after photo (with_photos=1), narrowed to a
+            field manager's locations by the server.
+          */}
           <Card
             title="Önce / Sonra Fotoğraflı Bulgular"
             subtitle="Kapatılmış bulguların iyileştirme fotoğrafları"
-            onExport={() => exportSection('closedFindings', '/reports/findings.xlsx', { status: 'closed' })}
+            onExport={() =>
+              exportSection('closedFindings', '/reports/findings.xlsx', { status: 'closed', with_photos: '1' })
+            }
             exporting={exporting === 'closedFindings'}
           >
-            <BeforeAfterReport />
+            <BeforeAfterReport dateFrom={dateFrom} dateTo={dateTo} />
           </Card>
         </>
       )}

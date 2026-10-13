@@ -32,4 +32,9 @@ export type User = { id: string; name: string; roles?: { name: string }[] };
 export type LocationEntity = MasterEntity & {
     managerUserId?: string | null;
     fieldManagerUserIds?: string[];
+    /** Müdürlük. Raporların "Müdürlük Bazlı Özet"i ve Excel'deki Müdürlük sütunu bunu okuyor. */
+    departmentName?: string | null;
+    /** Fabrika krokisindeki yer, yüzde olarak (soldan / üstten). Raporlardaki ısı haritası okuyor. */
+    mapX?: number | null;
+    mapY?: number | null;
 };

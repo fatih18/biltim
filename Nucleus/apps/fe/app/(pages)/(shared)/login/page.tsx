@@ -7,6 +7,7 @@ import { type FormEvent, useState } from 'react'
 import { FiEye, FiLock, FiMail } from 'react-icons/fi'
 import { AbstractAnimatedBackground, SocialLoginButton } from '@/app/_components'
 import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
+import { rememberSignedInUser } from '@/app/_utils/offlineIdentity'
 
 /** Turns a refusal into something the person at the keyboard can act on. */
 function loginErrorText(error: unknown, code?: number | null): string {
@@ -94,6 +95,13 @@ export default function Login() {
             if (meData) {
               store.user = meData
               store.isLoginChecked = true
+              /*
+               * LoginChecker keeps this copy for opening the audit form
+               * offline, but it skips its own read once store.user is set —
+               * so after a fresh login nothing was kept, and the first
+               * offline start went to /login.
+               */
+              rememberSignedInUser(meData)
             }
             router.push('/')
           },

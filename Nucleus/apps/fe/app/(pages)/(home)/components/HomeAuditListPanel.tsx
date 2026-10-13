@@ -108,11 +108,14 @@ export function HomeAuditListPanel(props: {
     tab: HomeTab;
     onTabChange: (tab: HomeTab) => void;
     counts: Record<HomeTab, number | null>;
+    /** Denetimin yapıldığı gün, denetim kimliğine göre (onay bekleyen ve tamamlanan sekmeleri). */
+    auditDateById?: Record<string, string>;
     dateEditRule: (plan: AuditPlanRow) => DateEditRule;
     onUpdatePlanDate: (planId: string, dateYYYYMMDD: string, newCount: number) => void;
     getDateConflicts?: (planId: string, newDate: string) => string[];
 }) {
     const {
+        auditDateById,
         plans,
         locInfoById,
         parentPlanRangeById,
@@ -157,6 +160,12 @@ export function HomeAuditListPanel(props: {
     const saveEdit = (plan: AuditPlanRow) => {
         if (!editingId) return;
         if (!editDate) return;
+        // Kaydet on the same date moved nothing; it must not spend one of the
+        // two changes either.
+        if (editDate === normalizeDateYYYYMMDD(plan.planned_date)) {
+            cancelEdit();
+            return;
+        }
         // A godmin move, or Merkez Ekip correcting a finished audit, does not
         // use up one of the plan's two changes.
         const newCount = (plan.date_change_count ?? 0) + (dateEditRule(plan).spends ? 1 : 0);
@@ -293,6 +302,18 @@ export function HomeAuditListPanel(props: {
                                         ) : (
                                             <div className="flex flex-col gap-0.5">
                                                 <span className="text-sm text-slate-800 dark:text-slate-200">{normalizeDateYYYYMMDD(p.planned_date) || "-"}</span>
+                                                {/*
+                                                  * Tarih sütunu planın tarihidir. Denetim başka bir gün
+                                                  * yapıldıysa (canlıda 08.10 planlı bir denetim 02.10'da
+                                                  * yapılmış) o gün ayrıca görünsün; yoksa liste iki farklı
+                                                  * denetimi aynı tarihte gösteriyordu.
+                                                  */}
+                                                {(() => {
+                                                    const done = normalizeDateYYYYMMDD((p.audit_id && auditDateById?.[p.audit_id]) || "");
+                                                    return done && done !== normalizeDateYYYYMMDD(p.planned_date) ? (
+                                                        <span className="text-[11px] text-slate-600 dark:text-slate-400">Yapıldı: {done}</span>
+                                                    ) : null;
+                                                })()}
                                                 {editable ? (
                                                     <button
                                                         type="button"

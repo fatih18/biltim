@@ -29,6 +29,12 @@ interface UsersTableProps {
    * Super Admin ve godmin. Uçları Biltim'in kendi uçları; yetki orada da aynı.
    */
   showGodminActions: boolean
+  /*
+   * Bu satırın hesabına dokunulabilir mi: sunucu, çağırandan üst rütbedeki
+   * hesabı (Merkez Ekip için Super Admin ve godmin) reddediyor. Verilmezse
+   * her satır `showGodminActions`'a uyar.
+   */
+  canManageUser?: (userId: string) => boolean
 }
 
 export function UsersTable({
@@ -42,6 +48,7 @@ export function UsersTable({
   unlockingUserId,
   lockingUserId,
   showGodminActions,
+  canManageUser,
 }: UsersTableProps) {
   if (!users) {
     return (
@@ -137,6 +144,8 @@ export function UsersTable({
                 </span>
               )
 
+              const showAccountActions = showGodminActions && (canManageUser?.(user.id) ?? true)
+
               return (
                 <tr key={user.id} className="transition-colors hover:bg-slate-100 hover:dark:bg-white/5">
                   <td className="px-4 py-4 whitespace-nowrap">
@@ -202,7 +211,7 @@ export function UsersTable({
                         satırda duran bir "Kilidi Aç" düğmesi, kilitlinin hangisi
                         olduğunu tabloda aramak demekti.
                       */}
-                      {showGodminActions && user.is_locked ? (
+                      {showAccountActions && user.is_locked ? (
                         <button
                           type="button"
                           disabled={unlockingUserId === user.id}
@@ -220,7 +229,7 @@ export function UsersTable({
                         kapatır ve açık oturumlarını sonlandırır; geçmiş kayıtlar
                         yerinde kalır. "Kilidi Aç" ile geri alınır.
                       */}
-                      {showGodminActions && !user.is_locked ? (
+                      {showAccountActions && !user.is_locked ? (
                         <button
                           type="button"
                           disabled={lockingUserId === user.id}
@@ -232,7 +241,7 @@ export function UsersTable({
                         </button>
                       ) : null}
 
-                      {showGodminActions ? (
+                      {showAccountActions ? (
                         <button
                           type="button"
                           className="inline-flex items-center gap-1 text-sm font-semibold text-sky-700 dark:text-sky-300 hover:text-sky-800 hover:dark:text-sky-200 transition-colors"
@@ -243,7 +252,7 @@ export function UsersTable({
                       ) : null}
 
                       {/* Kalıcı silme: hesap yönetebilene. */}
-                      {showGodminActions ? (
+                      {showAccountActions ? (
                         <button
                           type="button"
                           className="inline-flex items-center gap-1 text-sm font-semibold text-rose-700 dark:text-rose-300 hover:text-rose-700 hover:dark:text-rose-200 transition-colors"

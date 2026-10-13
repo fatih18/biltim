@@ -7,7 +7,12 @@ import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
 import { useGetUserRole } from '@/app/_hooks/user/useGetUserRole'
 import { canAccessRoute, requirementFor } from '@/app/_utils/routeAccess'
 import { Loader } from '../Loader'
-import { looksOffline, rememberedSignedInUser, rememberSignedInUser } from '@/app/_utils/offlineIdentity'
+import {
+  forgetSignedInUser,
+  looksOffline,
+  rememberedSignedInUser,
+  rememberSignedInUser,
+} from '@/app/_utils/offlineIdentity'
 
 const unauthPaths = ['/login', '/register']
 /*
@@ -58,19 +63,31 @@ export function LoginChecker({ children }: { children: React.ReactNode }) {
         rememberSignedInUser(data)
       },
 
-      onErrorHandle: (error: unknown) => {
+      onErrorHandle: (error: unknown, code?: number | null) => {
         /*
          * Offline is not signed out. The iPad in the field has no connection;
          * sending it to /login (which cannot load either) left the auditor no
          * way into the form that is built to work offline.
          */
-        const remembered = looksOffline(error) ? rememberedSignedInUser() : null
+        const offline = looksOffline(error)
+        const remembered = offline ? rememberedSignedInUser() : null
         if (remembered) {
           store.user = remembered as never
           store.isLoginChecked = true
           isCheckingRef.current = false
           return
         }
+
+        /*
+         * Online, and the server says there is no session (expired, revoked,
+         * signed out on another tab). The copy kept for offline use belongs
+         * to that session: kept, the next offline start would open the form
+         * as this person — with their plans — for whoever holds the tablet.
+         */
+        // Only a real "no such session / no such user" answer. A deploy-time
+        // 502/503 or an unreachable backend ("fetch failed") is not one, and
+        // wiping the copy then stranded the auditor offline.
+        if (!offline && (code === 401 || code === 403 || code === 404)) void forgetSignedInUser()
 
         store.user = undefined
         store.isLoginChecked = true

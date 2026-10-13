@@ -2,11 +2,11 @@
 
 import { useModal } from '@/app/_hooks/UseModal'
 import { containsTr } from '@/app/_utils/textSearch'
-import type { RoleJSON } from '@monorepo/db-entities/schemas/default/role'
-import type { UserRoleJSON } from '@monorepo/db-entities/schemas/default/user_role'
 import { Check, Loader2, Search, Shield, X } from 'lucide-react'
 import { confirmDialog } from '@/app/_components/Global/ConfirmDialog'
+import { readServerReasons } from '@/app/_components/Global/PasswordRules'
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
 
 interface UsersManageRolesModalProps {
@@ -15,15 +15,58 @@ interface UsersManageRolesModalProps {
   onClose: () => void
 }
 
+/** One role as GET /biltim/users/roles describes it for this account. */
+export type AccountRole = {
+  id: string
+  name: string
+  description: string | null
+  is_system: boolean
+  assigned: boolean
+  /** Whether THIS caller may give or take this role on this account. */
+  assignable: boolean
+  claims: Array<{ id: string; action: string; method: string; path: string }>
+}
+
+export function readAccountRoles(data: unknown): { editable: boolean; roles: AccountRole[] } {
+  const d = (data ?? {}) as { editable?: unknown; roles?: unknown }
+  const roles = Array.isArray(d.roles) ? (d.roles as Array<Record<string, unknown>>) : []
+  return {
+    editable: d.editable === true,
+    roles: roles.map((r) => ({
+      id: String(r.id ?? ''),
+      name: String(r.name ?? ''),
+      description: r.description == null ? null : String(r.description),
+      is_system: r.is_system === true || r.isSystem === true,
+      assigned: r.assigned === true,
+      assignable: r.assignable === true,
+      claims: Array.isArray(r.claims)
+        ? (r.claims as Array<Record<string, unknown>>).map((c) => ({
+            id: String(c.id ?? ''),
+            action: String(c.action ?? ''),
+            method: String(c.method ?? ''),
+            path: String(c.path ?? ''),
+          }))
+        : [],
+    })),
+  }
+}
+
+/*
+ * Reads and writes through /biltim/users/roles. The generic /userRoles routes
+ * this used write only for the godmin, and Merkez Ekip cannot read /roles or
+ * /userRoles, so for Merkez Ekip the modal opened empty. The server now also
+ * says which roles this caller may change on this account, and the buttons
+ * follow it instead of offering what would be refused.
+ */
 export function UsersManageRolesModal({ isOpen, userId, onClose }: UsersManageRolesModalProps) {
   const modal = useModal(onClose, { enabled: isOpen })
 
   const actions = useGenericApiActions()
   const [search, setSearch] = useState('')
-  const [roles, setRoles] = useState<RoleJSON[]>([])
-  const [assignedRoleIds, setAssignedRoleIds] = useState<string[]>([])
-  const [assignmentMap, setAssignmentMap] = useState<Record<string, string>>({})
+  const [roles, setRoles] = useState<AccountRole[]>([])
+  const [editable, setEditable] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [pendingRoleIds, setPendingRoleIds] = useState<string[]>([])
 
   useEffect(() => {
@@ -33,57 +76,30 @@ export function UsersManageRolesModal({ isOpen, userId, onClose }: UsersManageRo
 
     setIsLoading(true)
     setRoles([])
-    setAssignedRoleIds([])
-    setAssignmentMap({})
+    setEditable(false)
+    setLoadError(null)
     setPendingRoleIds([])
     setSearch('')
 
-    actions.GET_USER_ROLES?.start({
-      payload: {
-        page: 1,
-        limit: 100,
-        filters: { user_id: userId },
-      },
-      onAfterHandle: (userRolesData) => {
-        const list = (userRolesData?.data ?? []) as UserRoleJSON[]
-        const nextAssignedIds: string[] = []
-        const nextMap: Record<string, string> = {}
-
-        for (const item of list) {
-          if (item.role_id) {
-            nextAssignedIds.push(item.role_id)
-            nextMap[item.role_id] = item.id
-          }
-        }
-
-        actions.GET_ROLES?.start({
-          payload: {
-            page: 1,
-            limit: 100,
-          },
-          onAfterHandle: (rolesData) => {
-            setIsLoading(false)
-            if (!rolesData) {
-              return
-            }
-            setRoles(rolesData.data as RoleJSON[])
-            setAssignedRoleIds(nextAssignedIds)
-            setAssignmentMap(nextMap)
-          },
-          onErrorHandle: (error) => {
-            setIsLoading(false)
-            console.error('Get roles failed:', error)
-          },
-        })
-      },
-      onErrorHandle: (error) => {
+    // biome-ignore lint/suspicious/noExplicitAny: custom endpoint, untyped payload
+    ;(actions as any).BILTIM_USER_ROLES?.start({
+      payload: { userId },
+      onAfterHandle: (data: unknown) => {
         setIsLoading(false)
-        console.error('Get user roles failed:', error)
+        const result = readAccountRoles(data)
+        setRoles(result.roles)
+        setEditable(result.editable)
+      },
+      onErrorHandle: (error: unknown) => {
+        setIsLoading(false)
+        const reasons = readServerReasons(error)
+        setLoadError(reasons.length > 0 ? reasons.join(' ') : 'Roller yüklenemedi.')
       },
     })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, userId])
 
-  const assignedSet = new Set(assignedRoleIds)
+  const assignedCount = roles.filter((role) => role.assigned).length
 
   /*
    * Filtered here, not on the server, and deliberately: the modal has to show
@@ -108,13 +124,13 @@ export function UsersManageRolesModal({ isOpen, userId, onClose }: UsersManageRo
     return pendingRoleIds.includes(roleId)
   }
 
-  async function handleToggle(role: RoleJSON) {
-    if (!userId) {
+  async function handleToggle(role: AccountRole) {
+    if (!userId || !role.assignable) {
       return
     }
 
     const roleId = role.id
-    const currentlyAssigned = assignedSet.has(roleId)
+    const currentlyAssigned = role.assigned
 
     /*
      * Taking a role away is destructive and silent: the person keeps their
@@ -123,12 +139,14 @@ export function UsersManageRolesModal({ isOpen, userId, onClose }: UsersManageRo
      * role a user has must ask too.
      */
     if (currentlyAssigned) {
-      const isLastRole = assignedRoleIds.length === 1
+      const isLastRole = assignedCount === 1
       const confirmed = await confirmDialog({
         title: 'Rol kaldırılsın mı?',
-        message: isLastRole
-          ? `"${role.name}" bu kullanıcının tek rolü. Kaldırılırsa uygulamada hiçbir ekranı açamaz.`
-          : `"${role.name}" rolünün açtığı ekranlar ve yetkiler bu kullanıcıdan alınır.`,
+        message: `${
+          isLastRole
+            ? `"${role.name}" bu kullanıcının tek rolü. Kaldırılırsa uygulamada hiçbir ekranı açamaz.`
+            : `"${role.name}" rolünün açtığı ekranlar ve yetkiler bu kullanıcıdan alınır.`
+        } Kullanıcının açık oturumları kapatılır.`,
         confirmLabel: 'Rolü kaldır',
         cancelLabel: 'Vazgeç',
         tone: 'danger',
@@ -139,57 +157,28 @@ export function UsersManageRolesModal({ isOpen, userId, onClose }: UsersManageRo
     }
 
     setPendingRoleIds((prev) => (prev.includes(roleId) ? prev : [...prev, roleId]))
+    const done = () => setPendingRoleIds((prev) => prev.filter((id) => id !== roleId))
 
-    if (currentlyAssigned) {
-      const relationId = assignmentMap[roleId]
-      if (!relationId) {
-        setPendingRoleIds((prev) => prev.filter((id) => id !== roleId))
-        return
-      }
-
-      actions.DELETE_USER_ROLE?.start({
-        payload: { _id: relationId },
-        onAfterHandle: () => {
-          setAssignedRoleIds((prev) => prev.filter((id) => id !== roleId))
-          setAssignmentMap((prev) => {
-            const next = { ...prev }
-            delete next[roleId]
-            return next
-          })
-          setPendingRoleIds((prev) => prev.filter((id) => id !== roleId))
-        },
-        onErrorHandle: (error) => {
-          console.error('Delete user role failed:', error)
-          setPendingRoleIds((prev) => prev.filter((id) => id !== roleId))
-        },
-      })
-    } else {
-      actions.ADD_USER_ROLE?.start({
-        payload: {
-          user_id: userId,
-          role_id: roleId,
-        },
-        onAfterHandle: (created) => {
-          if (!created) {
-            setPendingRoleIds((prev) => prev.filter((id) => id !== roleId))
-            return
-          }
-
-          const createdRelation = created as unknown as UserRoleJSON
-
-          setAssignedRoleIds((prev) => (prev.includes(roleId) ? prev : [...prev, roleId]))
-          setAssignmentMap((prev) => ({
-            ...prev,
-            [roleId]: createdRelation.id,
-          }))
-          setPendingRoleIds((prev) => prev.filter((id) => id !== roleId))
-        },
-        onErrorHandle: (error) => {
-          console.error('Add user role failed:', error)
-          setPendingRoleIds((prev) => prev.filter((id) => id !== roleId))
-        },
-      })
-    }
+    // biome-ignore lint/suspicious/noExplicitAny: custom endpoint, untyped payload
+    ;(actions as any).BILTIM_SET_USER_ROLE?.start({
+      payload: { userId, roleId, assigned: !currentlyAssigned },
+      onAfterHandle: (data: unknown) => {
+        done()
+        const d = (data ?? {}) as { assigned?: unknown }
+        const assigned = typeof d.assigned === 'boolean' ? d.assigned : !currentlyAssigned
+        setRoles((prev) => prev.map((r) => (r.id === roleId ? { ...r, assigned, claims: assigned ? r.claims : [] } : r)))
+        toast.success(
+          assigned
+            ? `"${role.name}" rolü verildi; yeni ekranlar kullanıcının sayfayı yenilemesiyle görünür.`
+            : `"${role.name}" rolü kaldırıldı; kullanıcının açık oturumları kapatıldı.`
+        )
+      },
+      onErrorHandle: (error: unknown) => {
+        done()
+        const reasons = readServerReasons(error)
+        toast.error(reasons.length > 0 ? reasons.join(' ') : 'Rol değiştirilemedi.')
+      },
+    })
   }
 
   if (!isOpen || !userId) {
@@ -255,14 +244,23 @@ export function UsersManageRolesModal({ isOpen, userId, onClose }: UsersManageRo
                 <Loader2 className="animate-spin" size={28} />
                 <span>Roller yükleniyor...</span>
               </div>
+            ) : loadError ? (
+              <div className="rounded-2xl border border-rose-300 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/10 p-10 text-center text-rose-700 dark:text-rose-200">
+                {loadError}
+              </div>
             ) : filteredRoles.length === 0 ? (
               <div className="rounded-2xl border border-slate-300 dark:border-white/10 bg-slate-100 dark:bg-white/5 p-10 text-center text-slate-700 dark:text-slate-300">
                 Mevcut filtrelerle rol bulunamadı.
               </div>
             ) : (
               <div className="space-y-4">
+                {!editable ? (
+                  <div className="rounded-2xl border border-amber-300 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-200">
+                    Bu hesabın rollerini değiştiremezsiniz (kendi hesabınız ya da sizden üst yetkideki bir hesap).
+                  </div>
+                ) : null}
                 {filteredRoles.map((role) => {
-                  const isAssigned = assignedSet.has(role.id)
+                  const isAssigned = role.assigned
                   const isBusy = isPending(role.id)
 
                   return (
@@ -288,16 +286,18 @@ export function UsersManageRolesModal({ isOpen, userId, onClose }: UsersManageRo
                           <button
                             type="button"
                             onClick={() => handleToggle(role)}
-                            disabled={isBusy}
+                            disabled={isBusy || !role.assignable}
                             aria-label={
                               isAssigned
                                 ? `${role.name} rolünü kaldır`
                                 : `${role.name} rolünü ata`
                             }
                             title={
-                              isAssigned
-                                ? `${role.name} rolünü kaldır`
-                                : `${role.name} rolünü ata`
+                              !role.assignable
+                                ? 'Bu rolü bu hesapta değiştirme yetkiniz yok'
+                                : isAssigned
+                                  ? `${role.name} rolünü kaldır`
+                                  : `${role.name} rolünü ata`
                             }
                             className={`group inline-flex w-32 cursor-pointer items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
                               isAssigned

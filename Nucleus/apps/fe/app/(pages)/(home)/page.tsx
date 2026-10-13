@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useGenericApiActions } from "@/app/_hooks/UseNucleusApi";
 import { useGetUserRole } from "@/app/_hooks/user/useGetUserRole";
 import { useMyScope } from "@/app/_hooks/user/useMyScope";
-import { CENTRAL_ROLES, hasPrivilege } from "@/app/_utils/routeAccess";
+import { ADMIN_ROLES, CENTRAL_ROLES, hasPrivilege } from "@/app/_utils/routeAccess";
 import { confirmDialog } from "@/app/_components/Global/ConfirmDialog";
 
 import { HomeAuditListPanel } from "./components/HomeAuditListPanel";
@@ -211,6 +211,7 @@ export default function Page() {
   }, [actions]);
 
   const [plans, setPlans] = React.useState<AuditPlanRow[]>([]);
+  const [auditDateById, setAuditDateById] = React.useState<Record<string, string>>({});
   const [parentPlans, setParentPlans] = React.useState<AuditPlanRow[]>([]);
   /*
    * Which tab is showing, and what the server says each one holds.
@@ -364,6 +365,7 @@ export default function Page() {
         }));
         setPlans(mapped as AuditPlanRow[]);
         okuIlgili(mapped);
+        okuDenetimTarihleri(mapped);
         const meta = (res?.pagination ?? res?.meta ?? res?.data?.meta) as
           | { totalItems?: number; total?: number }
           | undefined;
@@ -421,6 +423,31 @@ export default function Page() {
           });
         },
         onErrorHandle: (e: any) => reportReadFailure(`${GET_USERS_KEY}`, e),
+      });
+    };
+
+    /*
+     * Onay bekleyen ve tamamlanan satırlarda denetimin yapıldığı gün. Plan
+     * satırı yalnız planın tarihini taşıyor; denetim satırları tek sorguda,
+     * kimlikleriyle okunuyor. Okunamazsa sütun yalnız plan tarihini gösterir.
+     */
+    const okuDenetimTarihleri = (planRows: any[]) => {
+      const ids = [...new Set(planRows.map((p) => p?.audit_id).filter(Boolean).map(String))];
+      if (ids.length === 0) return;
+      const startAudits = safeStart(A, AUDIT_KEYS.GET);
+      if (!startAudits) return;
+      startAudits({
+        payload: { page: 1, limit: ids.length, filters: { id: ids } },
+        onAfterHandle: (res: any) => {
+          const next: Record<string, string> = {};
+          for (const a of extractArray(res) as any[]) {
+            const id = a?.id ? String(a.id) : "";
+            const day = a?.audit_date ?? a?.auditDate;
+            if (id && day) next[id] = String(day);
+          }
+          setAuditDateById((prev) => ({ ...prev, ...next }));
+        },
+        onErrorHandle: (e: any) => console.error(`${AUDIT_KEYS.GET} (tarih) error`, e),
       });
     };
 
@@ -565,6 +592,17 @@ export default function Page() {
   // nothing else — no report summary — on an otherwise empty home screen.
   const isPrivilegedUser = React.useMemo(
     () => hasPrivilege(roleNames, CENTRAL_ROLES, isGod),
+    [roleNames, isGod]
+  );
+  /*
+   * Approving a sent audit, and correcting or re-dating one that was carried
+   * out, is Merkez Ekip's, Super Admin's and godmin's — not the plant
+   * manager's (customer notes rows 12, 17, 29). The manager keeps everything
+   * isPrivilegedUser gives: every plan, planning, moving planned dates,
+   * deleting plans. The server refuses the same (isAdmin).
+   */
+  const isAdminUser = React.useMemo(
+    () => hasPrivilege(roleNames, ADMIN_ROLES, isGod),
     [roleNames, isGod]
   );
 
@@ -891,9 +929,9 @@ export default function Page() {
    * changes. The server applies the same rule (businessRules.ts).
    *
    *  - planned: the team leader, or Merkez Ekip, while changes remain;
-   *  - done (sent or approved): Merkez Ekip only, as a correction that does
-   *    not spend a change (#16) — the leader could rewrite the date of an
-   *    audit that had already been carried out;
+   *  - done (sent or approved): Merkez Ekip / Super Admin only (not the
+   *    plant manager), as a correction that does not spend a change (#16) —
+   *    the leader could rewrite the date of an audit already carried out;
    *  - the godmin: any plan, any number of times, nothing spent (#32).
    */
   const dateEditRule = React.useCallback(
@@ -902,14 +940,14 @@ export default function Page() {
       const left = Math.max(0, MAX_DATE_CHANGES - used);
       const done = plan.status === "completed" || plan.status === "pending_approval";
       if (isGod) return { allowed: true, spends: false, remaining: null };
-      if (done) return { allowed: isPrivilegedUser, spends: false, remaining: null };
+      if (done) return { allowed: isAdminUser, spends: false, remaining: null };
       const team = teams.find((t) => t.id === plan.assigned_team_id);
       const isLeader =
         !!currentUserId && !!team?.leaderUserId && String(team.leaderUserId) === String(currentUserId);
       if (!isLeader && !isPrivilegedUser) return { allowed: false, spends: true, remaining: left };
       return { allowed: left > 0, spends: true, remaining: left, locked: left === 0 };
     },
-    [teams, currentUserId, isGod, isPrivilegedUser]
+    [teams, currentUserId, isGod, isPrivilegedUser, isAdminUser]
   );
 
   const updatePlanDate = React.useCallback((planId: string, dateYYYYMMDD: string, newCount: number) => {
@@ -999,8 +1037,16 @@ export default function Page() {
       const benimKadro = kadro(teamId);
       for (const a of same) {
         if (a.assigned_team_id === teamId) continue;
+        /*
+         * Lider yalnızca 2) numaralı uyarının zaten adını verdiği planlarda
+         * dışarıda kalır — yani o ekibin lideri de aynı kişiyse. Lider öteki
+         * ekipte sadece ÜYE ise lider uyarısı çıkmaz; burada da atlanınca
+         * çakışma hiç görünmüyordu.
+         */
+        const digerLider = teams.find((t) => t.id === a.assigned_team_id)?.leaderUserId;
+        const liderUyarildi = !!leaderId && String(digerLider ?? "") === String(leaderId);
         const ortak = [...kadro(a.assigned_team_id)].filter(
-          (id) => benimKadro.has(id) && id !== String(leaderId ?? "")
+          (id) => benimKadro.has(id) && !(liderUyarildi && id === String(leaderId))
         );
         if (ortak.length > 0) {
           const names = ortak.map((id) => userNameById.get(id) ?? id).join(", ");
@@ -1035,7 +1081,7 @@ export default function Page() {
           plans={plans}
           onStartAudit={startAudit}
           canStartPlan={canStartPlan}
-          onApprovePlan={isPrivilegedUser ? approvePlan : undefined}
+          onApprovePlan={isAdminUser ? approvePlan : undefined}
           approvingId={approvingId}
           onDeletePlan={isPrivilegedUser ? deletePlan : undefined}
           currentUserId={currentUserId}
@@ -1049,11 +1095,12 @@ export default function Page() {
           dateEditRule={dateEditRule}
           onUpdatePlanDate={updatePlanDate}
           getDateConflicts={getDateConflicts}
-          onEditCompletedAudit={isPrivilegedUser ? openAuditAnswersEdit : undefined}
-          onEditScores={isPrivilegedUser ? openAuditEdit : undefined}
+          onEditCompletedAudit={isAdminUser ? openAuditAnswersEdit : undefined}
+          onEditScores={isAdminUser ? openAuditEdit : undefined}
           tab={tab}
           onTabChange={setTab}
           counts={counts}
+          auditDateById={auditDateById}
         />
 
         {isPrivilegedUser && (

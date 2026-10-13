@@ -6,8 +6,9 @@
  * submission offline (IndexedDB) and sends it when the connection returns —
  * but the page itself could not be loaded, so none of that was reachable.
  *
- *   pages        network first; the last good copy when offline
- *   /_next/static  cache first — file names carry a content hash
+ *   pages           network first; the last good copy when offline
+ *   /_next/static   cache first — file names carry a content hash
+ *   images, fonts   stale-while-revalidate — same name, content may change
  *   everything else (API, reports, files, server actions): not touched
  *
  * Browsers run service workers only in a secure context: HTTPS, or localhost.
@@ -18,28 +19,99 @@
 const VERSION = 'biltim-5s-v1'
 const PAGES = `${VERSION}-pages`
 const ASSETS = `${VERSION}-assets`
+const MEDIA = `${VERSION}-media`
 
 // The screens an auditor needs in the field.
 const OFFLINE_PAGES = ['/denetim', '/']
 
-const STATIC_ASSET = /^\/_next\/static\/|\.(?:woff2?|png|jpe?g|svg|ico|webp)$/
+const HASHED_ASSET = /^\/_next\/static\//
+const OTHER_ASSET = /\.(?:woff2?|ttf|otf|png|jpe?g|gif|svg|ico|webp|avif)$/
 const NEVER = /^\/(?:reports|cdn|files|biltim|api|auth)\b/
+// A /_next/static path as it appears in HTML, in the inline RSC payload
+// (where quotes are escaped — hence the backslash) and in CSS url(...).
+const ASSET_REF = /\/_next\/static\/[^"'\s)\\]+/g
 
-async function cachePage(cache, path) {
+const referencedAssets = (text) => [...new Set(text.match(ASSET_REF) ?? [])]
+
+// A stylesheet names its fonts relative to itself: url(../media/x.woff2).
+function stylesheetAssets(css, cssPath) {
+  const base = new URL(cssPath, self.location.origin)
+  const found = []
+  for (const m of css.matchAll(/url\(\s*['"]?([^'")]+)['"]?\s*\)/g)) {
+    try {
+      const path = new URL(m[1], base).pathname
+      if (HASHED_ASSET.test(path)) found.push(path)
+    } catch {
+      // data: URIs and the like
+    }
+  }
+  return found
+}
+
+/*
+ * Page updates and pruning run one at a time. Two navigations close together
+ * could otherwise interleave: one prune lists the cache after the other page
+ * was stored but before its scripts were, and deletes them.
+ */
+let queue = Promise.resolve()
+function serial(task) {
+  const run = queue.then(task, task)
+  queue = run.catch(() => undefined)
+  return run
+}
+
+async function fetchAssets(urls) {
+  const cache = await caches.open(ASSETS)
+  await Promise.all(
+    urls.map((url) => cache.match(url).then((hit) => hit ?? cache.add(url).catch(() => undefined)))
+  )
+}
+
+/*
+ * The asset cache only ever grew. Every deploy renames every chunk, so after a
+ * few releases the iPad held each build's scripts — megabytes nothing will
+ * load again, counted against Safari's storage quota, the same quota the
+ * offline queue's photos need. Kept: what the cached pages reference, and what
+ * the kept stylesheets reference (fonts, background images). Everything else
+ * in the hashed cache goes.
+ */
+async function pruneAssets() {
+  const pages = await caches.open(PAGES)
+  const assets = await caches.open(ASSETS)
+  const keep = new Set()
+  for (const req of await pages.keys()) {
+    const res = await pages.match(req)
+    if (!res) continue
+    for (const path of referencedAssets(await res.text())) keep.add(path)
+  }
+  for (const path of [...keep]) {
+    if (!path.endsWith('.css')) continue
+    const css = await assets.match(path)
+    if (!css) continue
+    for (const ref of stylesheetAssets(await css.text(), path)) keep.add(ref)
+  }
+  for (const req of await assets.keys()) {
+    if (!keep.has(new URL(req.url).pathname)) await assets.delete(req)
+  }
+}
+
+/** A good page response: stored, its scripts fetched, the old ones dropped. */
+function storePage(path, res) {
+  return serial(async () => {
+    const cache = await caches.open(PAGES)
+    await cache.put(path, res.clone())
+    // The page is useless offline without its scripts and styles.
+    await fetchAssets(referencedAssets(await res.text()))
+    await pruneAssets()
+  })
+}
+
+async function cachePage(path) {
   try {
     const res = await fetch(path, { credentials: 'same-origin' })
     // Not signed in: the answer is the login page under another URL. Keep nothing.
     if (!res.ok || res.redirected) return
-    await cache.put(path, res.clone())
-    // The page is useless offline without its scripts and styles.
-    const html = await res.text()
-    const assets = [...new Set(html.match(/\/_next\/static\/[^"'\s)\\]+/g) ?? [])]
-    const assetCache = await caches.open(ASSETS)
-    await Promise.all(
-      assets.map((url) =>
-        assetCache.match(url).then((hit) => hit ?? assetCache.add(url).catch(() => undefined))
-      )
-    )
+    await storePage(path, res)
   } catch {
     // Offline at install time; the pages are cached as they are visited.
   }
@@ -47,7 +119,7 @@ async function cachePage(cache, path) {
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()
-  event.waitUntil(caches.open(PAGES).then((cache) => Promise.all(OFFLINE_PAGES.map((p) => cachePage(cache, p)))))
+  event.waitUntil(Promise.all(OFFLINE_PAGES.map((p) => cachePage(p))))
 })
 
 self.addEventListener('activate', (event) => {
@@ -55,6 +127,8 @@ self.addEventListener('activate', (event) => {
     caches
       .keys()
       .then((keys) => Promise.all(keys.filter((k) => !k.startsWith(VERSION)).map((k) => caches.delete(k))))
+      // Also drops what an earlier worker cached without pruning.
+      .then(() => serial(pruneAssets).catch(() => undefined))
       .then(() => self.clients.claim())
   )
 })
@@ -66,14 +140,39 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return
   if (NEVER.test(url.pathname)) return
 
-  if (STATIC_ASSET.test(url.pathname)) {
+  if (HASHED_ASSET.test(url.pathname)) {
     event.respondWith(
       caches.open(ASSETS).then(async (cache) => {
         const hit = await cache.match(req)
         if (hit) return hit
         const res = await fetch(req)
-        if (res.ok) cache.put(req, res.clone())
+        if (res.ok) event.waitUntil(cache.put(req, res.clone()).catch(() => undefined))
         return res
+      })
+    )
+    return
+  }
+
+  /*
+   * A logo or an icon keeps its name when it is replaced, so cache-first would
+   * show the old one for good. The cached copy answers at once (and offline);
+   * the network refreshes it for next time.
+   */
+  if (OTHER_ASSET.test(url.pathname)) {
+    event.respondWith(
+      caches.open(MEDIA).then(async (cache) => {
+        const hit = await cache.match(req)
+        const refresh = fetch(req)
+          .then(async (res) => {
+            if (res.ok) await cache.put(req, res.clone())
+            return res
+          })
+          .catch(() => undefined)
+        if (hit) {
+          event.waitUntil(refresh)
+          return hit
+        }
+        return (await refresh) ?? Response.error()
       })
     )
     return
@@ -82,29 +181,15 @@ self.addEventListener('fetch', (event) => {
   if (req.mode === 'navigate') {
     event.respondWith(
       (async () => {
-        const cache = await caches.open(PAGES)
         try {
           const res = await fetch(req)
           if (res.ok && !res.redirected) {
-            cache.put(url.pathname, res.clone())
             // Its scripts too, so this page opens offline next time.
-            res
-              .clone()
-              .text()
-              .then((html) => {
-                const assets = [...new Set(html.match(/\/_next\/static\/[^"'\s)\\]+/g) ?? [])]
-                return caches
-                  .open(ASSETS)
-                  .then((ac) =>
-                    Promise.all(
-                      assets.map((a) => ac.match(a).then((hit) => hit ?? ac.add(a).catch(() => undefined)))
-                    )
-                  )
-              })
-              .catch(() => undefined)
+            event.waitUntil(storePage(url.pathname, res.clone()).catch(() => undefined))
           }
           return res
         } catch {
+          const cache = await caches.open(PAGES)
           const copy = (await cache.match(url.pathname)) ?? (await cache.match('/denetim'))
           if (copy) return copy
           return new Response(

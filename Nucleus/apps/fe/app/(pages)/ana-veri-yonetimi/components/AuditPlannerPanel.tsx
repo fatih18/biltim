@@ -36,10 +36,17 @@ export function AuditPlannerPanel(props: {
   teamMembers?: Array<{ teamId: string; userId: string }>;
   /** The godmin moves any date any number of times, spending nothing (#32). */
   isGod?: boolean;
+  /**
+   * Merkez Ekip / Super Admin / godmin. Only they approve an audit (Tamamlandı),
+   * reopen a completed one, or move the date of one already carried out —
+   * not the plant manager (customer notes rows 12, 17, 29).
+   */
+  isAdmin?: boolean;
 }) {
   const { locations, teams, audits, users, onCreateParentPlan, onCreate, onUpdateStatus, onUpdateDate, onDelete } = props;
   const teamMembers = props.teamMembers ?? [];
   const isGod = props.isGod ?? false;
+  const canFinish = isGod || (props.isAdmin ?? false);
 
   /** The team's people: its leader and its active members. */
   const peopleOf = (teamId: string) =>
@@ -64,8 +71,34 @@ export function AuditPlannerPanel(props: {
   const dateRule = (a: Audit) => {
     const used = a.dateChangeCount ?? 0;
     const done = a.status === "completed" || a.status === "pending_approval";
-    const free = isGod || done;
+    // A carried-out audit's date is a correction: admins only, nothing spent.
+    if (done) return { canChange: canFinish, spends: false, label: "Tarihi Düzenle" };
+    const free = isGod;
     return { canChange: free || used < 2, spends: !free, label: free ? "Tarihi Düzenle" : `Düzenle (${2 - used} hak)` };
+  };
+
+  /*
+   * The plan's status menu. "Planlandı" is not offered once the plan has an
+   * audit_id: the audit form drops such plans, so a sent audit set back to
+   * planned could never be redone. "Tamamlandı" (approving) and reopening a
+   * completed plan are for admins only; the server refuses the same.
+   */
+  const renderStatusSelect = (a: Audit) => {
+    const lockedCompleted = a.status === "completed" && !canFinish;
+    return (
+      <Select
+        className="py-1 text-xs disabled:cursor-not-allowed disabled:opacity-60"
+        value={a.status}
+        disabled={lockedCompleted}
+        title={lockedCompleted ? "Tamamlanmış denetimi yalnız Merkez Ekip yeniden açabilir." : undefined}
+        onChange={(e) => onUpdateStatus(a.id, e.target.value as AuditStatus)}
+      >
+        <option value="planned" disabled={!!a.auditId}>Planlandı</option>
+        <option value="pending_approval">Onay Bekliyor</option>
+        <option value="completed" disabled={!canFinish}>Tamamlandı</option>
+        <option value="cancelled">İptal edildi</option>
+      </Select>
+    );
   };
 
   // ── Parent plan form ────────────────────────────────────────────────────────
@@ -148,7 +181,17 @@ export function AuditPlannerPanel(props: {
     const mine = peopleOf(teamId);
     for (const plan of same) {
       if (plan.assignedTeamId === teamId) continue;
-      const shared = [...peopleOf(plan.assignedTeamId)].filter((id) => mine.has(id) && id !== String(leaderId ?? ""));
+      /*
+       * The leader is left out only where the leader warning above already
+       * names them — the other team is LED by the same person. When our
+       * leader is merely a member of that other team, no leader warning fires,
+       * and dropping them here hid the clash altogether.
+       */
+      const otherLeaderId = teams.find((t) => t.id === plan.assignedTeamId)?.leaderUserId;
+      const leaderAlreadyWarned = !!leaderId && String(otherLeaderId ?? "") === String(leaderId);
+      const shared = [...peopleOf(plan.assignedTeamId)].filter(
+        (id) => mine.has(id) && !(leaderAlreadyWarned && id === String(leaderId))
+      );
       if (shared.length > 0) {
         const cLoc = locations.find((l) => l.id === plan.locationId)?.name ?? "-";
         warns.push(`Denetçi (${shared.map(nameOf).join(", ")}) bu tarihte "${cLoc}" denetiminde de görevli.`);
@@ -419,16 +462,7 @@ export function AuditPlannerPanel(props: {
                                     <Badge>{auditStatusLabelTr(a.status)}</Badge>
                                   </div>
                                   <div className="col-span-2 flex justify-end gap-2">
-                                    <Select
-                                      className="py-1 text-xs"
-                                      value={a.status}
-                                      onChange={(e) => onUpdateStatus(a.id, e.target.value as AuditStatus)}
-                                    >
-                                      <option value="planned">Planlandı</option>
-                                      <option value="pending_approval">Onay Bekliyor</option>
-                                      <option value="completed">Tamamlandı</option>
-                                      <option value="cancelled">İptal edildi</option>
-                                    </Select>
+                                    {renderStatusSelect(a)}
                                     <DangerButton className="py-1.5" onClick={() => onDelete(a.id)}>Sil</DangerButton>
                                   </div>
                                   {a.note && (
@@ -634,16 +668,7 @@ export function AuditPlannerPanel(props: {
                       <Badge>{auditStatusLabelTr(a.status)}</Badge>
                     </div>
                     <div className="col-span-2 flex justify-end gap-2">
-                      <Select
-                        className="py-1 text-xs"
-                        value={a.status}
-                        onChange={(e) => onUpdateStatus(a.id, e.target.value as AuditStatus)}
-                      >
-                        <option value="planned">Planlandı</option>
-                                      <option value="pending_approval">Onay Bekliyor</option>
-                        <option value="completed">Tamamlandı</option>
-                        <option value="cancelled">İptal edildi</option>
-                      </Select>
+                      {renderStatusSelect(a)}
                       <DangerButton className="py-1.5" onClick={() => onDelete(a.id)}>Sil</DangerButton>
                     </div>
                     {a.note && (

@@ -6,8 +6,11 @@ import { confirmDialog } from '@/app/_components/Global/ConfirmDialog'
 import { readServerReasons } from '@/app/_components/Global/PasswordRules'
 import Dexie, { type Table } from 'dexie'
 
+import { useStore } from '@store/globalStore'
 import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
 import { useGetUserRole } from '@/app/_hooks/user/useGetUserRole'
+import { currentUserIdOf } from '@/app/_utils/currentUser'
+import { looksOffline } from '@/app/_utils/offlineIdentity'
 import { hasPrivilege } from '@/app/_utils/routeAccess'
 import { UploadedFileInfo, useUploadAnswerPhoto } from '../bulgular/hooks/useUploadAnswersPhoto'
 import { Question, questions as FALLBACK_QUESTIONS, StepCode, steps as FALLBACK_STEPS, Step } from './constants'
@@ -24,11 +27,15 @@ import {
 } from '@/app/_utils/photos'
 import { toast } from "sonner";
 import {
-  computeStepScores,
-  computeTotalScore,
+  answerRowsFor,
+  answersStillToSend,
+  type AnswerRowPayload,
+  scoreAudit,
   formatScore,
   isExplanationRequired,
+  mapOpenFindingsByQuestion,
   RATING_FACTOR,
+  requiresNewFinding,
   TARGET_SCORE,
 } from './_utils/scoring'
 
@@ -53,6 +60,12 @@ interface AuditFormHeader {
   department: string
   auditorName: string
   date: string // YYYY-MM-DD
+  /**
+   * "Bölge sorumlusu denetime katıldı" — ticked by the auditor. Not ticked,
+   * the audit scores 0 (Notlar 07.10, Kurallar). Optional so drafts saved
+   * before it existed still restore.
+   */
+  fieldManagerAttended?: boolean
 }
 
 type AnswersState = Record<string, QuestionAnswer>
@@ -253,6 +266,108 @@ function isUuid(value: unknown): value is string {
   )
 }
 
+/*
+ * A failed call, with the HTTP status the client already had.
+ *
+ * startAsPromise used to reject with the error body alone. The status went
+ * nowhere, so every "is this a refusal?" check below read `err.status` off a
+ * body that never had one — always NaN — and a request the server turned down
+ * on purpose went into the offline queue like a lost connection, to be retried
+ * forever. createApiHook hands the code to onErrorHandle; it is kept here.
+ * `status` is null when no response came back at all (network).
+ */
+type ApiCallError = Error & { body: unknown; status: number | null }
+
+function apiCallError(body: unknown, code: number | null | undefined): ApiCallError {
+  const message =
+    typeof body === 'string'
+      ? body
+      : String((body as { message?: unknown } | null)?.message ?? 'Request failed')
+  const err = new Error(message) as ApiCallError
+  err.body = body
+  err.status = typeof code === 'number' ? code : null
+  return err
+}
+
+/*
+ * A photo upload that failed during the offline replay, as an ApiCallError.
+ * The upload hook throws a plain Error and writes the HTTP code into its
+ * message ("File upload failed (503): …"); it is read back so the queue's
+ * refusal rule applies to it like to any other request. No code (no
+ * connection) is a passing failure, and the submission stays queued.
+ */
+function photoUploadError(err: unknown): ApiCallError {
+  const message = String((err as { message?: unknown } | null)?.message ?? err ?? '')
+  const code = Number(/\((\d{3})\)/.exec(message)?.[1])
+  return apiCallError(`Fotoğraf yüklenemedi: ${message}`, Number.isFinite(code) ? code : null)
+}
+
+/*
+ * One list read is capped at 200 rows by nucleus (MAX_PAGE_SIZE), whatever
+ * `limit` asks for; lists that may be longer are read page by page.
+ */
+const LIST_PAGE_SIZE = 200
+const LIST_MAX_PAGES = 50
+
+/*
+ * The answers that mean "the server read this and said no" — sending the same
+ * request again will get the same answer. 401 (session), 408 (timeout), 429
+ * (rate limit), 5xx and no answer at all are conditions that pass, so those
+ * still go to, and stay in, the offline queue.
+ */
+const REFUSAL_STATUSES = new Set([400, 403, 404, 409, 415, 422])
+
+function isRefusal(err: unknown): boolean {
+  const status = (err as Partial<ApiCallError> | null)?.status
+  return typeof status === 'number' && REFUSAL_STATUSES.has(status)
+}
+
+/**
+ * A failure the offline copy should cover: no connection, no answer, a
+ * timeout, a rate limit or a server error — the same conditions that keep a
+ * submission in the queue. A refusal (4xx) is not one: the data is not
+ * missing, the request is wrong.
+ */
+function isPassingFailure(err: unknown): boolean {
+  if (looksOffline(err)) return true
+  const status = (err as Partial<ApiCallError> | null)?.status
+  return status == null || status === 408 || status === 429 || status >= 500
+}
+
+function serverReasonsOf(err: unknown): string[] {
+  return readServerReasons((err as Partial<ApiCallError> | null)?.body ?? err)
+}
+
+function describeApiError(err: unknown): string {
+  const reasons = serverReasonsOf(err)
+  if (reasons.length > 0) return reasons.join(' ')
+  return String((err as { message?: unknown } | null)?.message ?? err ?? 'sync error')
+}
+
+/** What to tell the auditor when the form could not even be put in the offline queue. */
+function offlineSaveFailedText(err: unknown): string {
+  const e = err as { name?: unknown; message?: unknown; inner?: { name?: unknown } } | null
+  const quota = /quota/i.test(`${e?.name ?? ''} ${e?.inner?.name ?? ''} ${e?.message ?? ''}`)
+  return quota
+    ? 'Cihazın depolama alanı dolu: kayıt çevrimdışı kuyruğa alınamadı. Bu ekranı kapatmayın; cihazda yer açıp (ör. eski fotoğrafları silerek) ya da internete bağlanıp tekrar kaydedin.'
+    : 'Kayıt çevrimdışı kuyruğa alınamadı (tarayıcı depolaması kullanılamıyor). Bu ekranı kapatmayın; internete bağlanınca tekrar kaydedin.'
+}
+
+/*
+ * Who is filling the form: the signed-in user, as the login check holds them
+ * (offline, the copy it remembered for this device). Not the user stored in
+ * an offline snapshot — that is whoever last read the plans on this tablet.
+ */
+function identityOf(user: unknown): { id: string; name: string } {
+  const envelope = (user && typeof user === 'object' ? user : {}) as { data?: unknown }
+  const me = (envelope.data ?? envelope) as Record<string, any>
+  const id = currentUserIdOf(user) || String(me?.sub ?? me?.userId ?? '')
+  const first = me?.profile?.first_name ?? me?.profile?.firstName ?? me?.first_name ?? ''
+  const last = me?.profile?.last_name ?? me?.profile?.lastName ?? me?.last_name ?? ''
+  const name = `${first} ${last}`.trim() || String(me?.name ?? me?.email ?? '')
+  return { id, name }
+}
+
 /* ───────────────────────────── Offline Dexie ───────────────────────────── */
 /**
  * ✅ Tek dosyada “offline queue + draft”:
@@ -309,10 +424,55 @@ type OfflineAuditSubmission = {
     score_s5: string
     /** 'single_finding' for the row a single finding is filed under (#23). */
     source?: string
+    /*
+     * The plan's location and the signed-in auditor, as the online save sends
+     * them. The replay dropped both. Missing on submissions queued before
+     * they were stored.
+     */
+    location_id?: string
+    auditor_id?: string
   }
   findings: OfflineFindingPayload[]
+  /*
+   * The per-question answers (five_s_audit_answers), built exactly as the
+   * online save posts them (scoring.ts → answerRowsFor). The queue carried
+   * only the audit row and the findings, so an audit sent offline reached the
+   * server with no answer rows at all. Missing on submissions queued before
+   * this field existed; those replay without answers.
+   */
+  answers?: AnswerRowPayload[]
+  /** The questions whose answer row already reached the server; a retry skips them. */
+  syncedAnswerQuestionIds?: string[]
+  /*
+   * Photo row id -> what its upload returned. A finding whose second photo
+   * failed is retried later; the photo that did get through is not uploaded
+   * a second time.
+   */
+  syncedPhotoUploads?: Record<string, UploadedFileInfo>
+  /*
+   * Photos the server refused for good (too large, a 4xx, or an upload that
+   * returned no file id). Retrying cannot help, so the finding goes without
+   * them and the auditor is told; the queue does not stall on them.
+   */
+  skippedPhotoIds?: string[]
+  /*
+   * "Bölge sorumlusu denetime katıldı" as it was when the form was queued,
+   * as a plain true/false — or null when the location has no field manager
+   * and the rule does not apply. The replay stamps the plan with exactly this.
+   * The header's own field is optional (drafts from before the tick), and an
+   * untouched box there is `undefined`, which the replay sent as "no record".
+   * Missing on submissions queued before this field existed.
+   */
+  fieldManagerAttended?: boolean | null
   // status info
   lastError?: string | null
+  /*
+   * Set when the server REFUSED this submission (a 4xx such as a business
+   * rule), as opposed to not answering. Retrying would get the same answer, so
+   * the sync skips it and the screen lists it with the reason until the
+   * auditor retries or removes it.
+   */
+  setAsideAt?: number | null
   /*
    * What of this submission already reached the server.
    *
@@ -404,7 +564,11 @@ const db = typeof window !== 'undefined' ? new FiveSOfflineDB() : (null as any)
 export default function FiveSAuditFormPage() {
   const actions = useGenericApiActions()
   const { uploadAnswerPhoto } = useUploadAnswerPhoto()
-  const { roleName, roles, isGod, isLoading: roleLoading } = useGetUserRole()
+  const { roleName, roles, isGod, userId: signedInUserId, isLoading: roleLoading } = useGetUserRole()
+  // Read through a ref by fetchAssignment, which runs once from the mount effect.
+  const store = useStore()
+  const signedInUserRef = useRef<unknown>(null)
+  signedInUserRef.current = store.user
 
   const [questions, setQuestions] = useState<Question[]>(FALLBACK_QUESTIONS)
   const [steps, setSteps] = useState<Step[]>(FALLBACK_STEPS)
@@ -457,6 +621,15 @@ export default function FiveSAuditFormPage() {
   const [editAudit, setEditAudit] = useState<{
     id: string
     answerIdByQuestion: Map<string, string>
+    /*
+     * The rating each question was saved with. A correction asks for — and
+     * writes — a finding only for an answer it moves down from İyi (or from no
+     * answer); an Orta/Kötü that was already there got its finding when the
+     * audit was saved (scoring.ts → requiresNewFinding).
+     */
+    originalRatingByQuestion: Map<string, Rating | null>
+    /** The attendance tick as the form opened; an untouched one is not rewritten. */
+    initialFieldManagerAttended: boolean
     hadAnswers: boolean
   } | null>(null)
   const [singleFinding, setSingleFinding] = useState<{
@@ -466,6 +639,15 @@ export default function FiveSAuditFormPage() {
     actionToTake: ActionToTake | ''
     dueDate: string
     linkedQuestionId: string
+    /*
+     * The single finding's own place and day. The modal's Lokasyon and Tarih
+     * were bound to the audit's header, so picking a neighbouring location
+     * there — even then pressing İptal — moved the planned audit itself to
+     * that location (and a future day made it unsavable). They start from the
+     * header's values and stay the modal's.
+     */
+    location: string
+    date: string
   }>({
     findingType: '',
     explanation: '',
@@ -473,6 +655,8 @@ export default function FiveSAuditFormPage() {
     actionToTake: '',
     dueDate: '',
     linkedQuestionId: '',
+    location: '',
+    date: '',
   })
 
   const [assignmentLoading, setAssignmentLoading] = useState(true)
@@ -490,7 +674,9 @@ export default function FiveSAuditFormPage() {
     members: TeamMemberRowLite[]
     teams: TeamRow[]
     usersById: Map<string, string>
-  }>({ members: [], teams: [], usersById: new Map() })
+    /** normLoc(location name) -> every field manager of that location. */
+    fieldManagerIdsByLoc: Map<string, string[]>
+  }>({ members: [], teams: [], usersById: new Map(), fieldManagerIdsByLoc: new Map() })
 
   const [locationResponsibleMap, setLocationResponsibleMap] = useState<
     Map<string, { userId: string; userName: string }>
@@ -500,6 +686,15 @@ export default function FiveSAuditFormPage() {
 
   const [findingsLoading, setFindingsLoading] = useState(false)
   const [findings, setFindings] = useState<FiveSFindingLite[]>([])
+  /*
+   * Single findings waiting in the offline queue, by the question they are
+   * linked to. They are not on the server yet, so the open-findings list read
+   * from it cannot show them — and offline the form then demanded a second
+   * finding for the very defect just recorded.
+   */
+  const [queuedSingleFindings, setQueuedSingleFindings] = useState<Array<{ questionId: string; location: string }>>([])
+  /** Queued submissions the server refused (setAsideAt), shown with the reason. */
+  const [refusedSubmissions, setRefusedSubmissions] = useState<Array<{ id: string; label: string; error: string }>>([])
   const [activeFinding, setActiveFinding] = useState<FiveSFindingLite | null>(null)
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -517,23 +712,20 @@ export default function FiveSAuditFormPage() {
     setPreviewUrl(url)
   }
 
+  /** Single findings still in the offline queue for one location, by question. */
+  const queuedQuestionIdsAt = (location: string) => {
+    const here = normLoc(location)
+    if (!here) return []
+    return queuedSingleFindings.filter((q) => normLoc(q.location) === here).map((q) => q.questionId)
+  }
   // Madde 1: Açık bulgusu olan sorular (soru satırı uyarısı için)
-  const openFindingsByQuestion = useMemo(() => {
-    const map = new Map<string, number>()
-    for (const f of findings) {
-      // "Devam ediyor" is not closed either; it is still the open finding.
-      if (String(f.status ?? '') === 'closed') continue
-      const fromField = (f.question_id ?? '').toString().trim()
-      const fromDesc =
-        f.description?.match(/Soru ID:\s*(\S+)/)?.[1] ??
-        f.description?.match(/Bağlı Soru:\s*(\S+)/)?.[1] ??
-        ''
-      const qid = fromField || fromDesc
-      if (!qid) continue
-      map.set(qid, (map.get(qid) ?? 0) + 1)
-    }
-    return map
-  }, [findings])
+  // Question id -> the numbers of its open findings (#35: the row shows "#7",
+  // not just a count). Rules in scoring.ts → mapOpenFindingsByQuestion.
+  const openFindingsByQuestion = useMemo(
+    () => mapOpenFindingsByQuestion(findings, queuedQuestionIdsAt(header.department)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [findings, queuedSingleFindings, header.department]
+  )
 
   /*
    * A non-good answer normally has to carry a finding — type, action, due date.
@@ -548,7 +740,22 @@ export default function FiveSAuditFormPage() {
    * they are filled in.
    */
   const needsFindingDetails = (questionId: string, ans: { rating: Rating | null }) =>
-    !!ans.rating && ans.rating !== 'good' && !openFindingsByQuestion.has(questionId)
+    requiresNewFinding(ans.rating, {
+      hasOpenFinding: openFindingsByQuestion.has(questionId),
+      storedRating: editAudit ? (editAudit.originalRatingByQuestion.get(questionId) ?? null) : undefined,
+    })
+
+  /*
+   * #12: an answer a correction leaves exactly as it was saved. It passed the
+   * form's checks when the audit was sent; re-checking it now (an old record
+   * may predate the explanation rule) would block saving over a question the
+   * editor never touched.
+   */
+  const isUnchangedStoredAnswer = (questionId: string, rating: Rating | null | undefined) =>
+    !!editAudit &&
+    rating != null &&
+    editAudit.originalRatingByQuestion.has(questionId) &&
+    editAudit.originalRatingByQuestion.get(questionId) === rating
 
   // Offline / Sync UI
   /*
@@ -562,8 +769,27 @@ export default function FiveSAuditFormPage() {
   const [planDate, setPlanDate] = useState<string>('')
   const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true)
   const [syncing, setSyncing] = useState(false)
+  const syncingRef = useRef(false)
   const [queuedCount, setQueuedCount] = useState<number>(0)
   const draftSaveTimer = useRef<number | null>(null)
+
+  /*
+   * A save in flight. Nothing stopped a second tap: a double tap — or a
+   * second one on a slow field connection — sent two audits for one plan,
+   * each with its own answers, findings and plan stamp. A ref, not only the
+   * state, for the same reason as syncingRef: a second tap can arrive before
+   * React has re-rendered the button as disabled.
+   *
+   * An audit that went through (sent, or queued offline) keeps the form
+   * locked ('done'): the page is leaving, or the plan's audit is already in
+   * the queue, and sending it again is exactly the duplicate this prevents.
+   */
+  const submitLockRef = useRef(false)
+  const [submitState, setSubmitState] = useState<'idle' | 'saving' | 'done'>('idle')
+  // The single-finding modal's save; unlocked after every attempt, since a
+  // second single finding is a legitimate thing to record.
+  const singleSaveLockRef = useRef(false)
+  const [singleSaving, setSingleSaving] = useState(false)
 
   // Madde 13: plan başına sunucu taslak kaydının id'si
   const serverDraftIdRef = useRef<string | null>(null)
@@ -584,6 +810,8 @@ export default function FiveSAuditFormPage() {
   const openSingleFindingModal = () => {
     setSingleFinding((prev) => ({
       ...prev,
+      location: header.department,
+      date: header.date,
       dueDate: prev.dueDate || header.date,
       linkedQuestionId: '',
     }))
@@ -625,11 +853,28 @@ export default function FiveSAuditFormPage() {
 
   canOpenAnyPlanRef.current = canOpenAnyPlan
 
-  const stepScores = useMemo(
-    () => computeStepScores(steps, questions, answers),
-    [answers, questions, steps]
+  /*
+   * The attendance rule needs someone to attend. A location with no field
+   * manager defined has nobody whose absence could zero the audit: the box is
+   * not shown, the rule is not applied, and the plan records no attendance
+   * (null) rather than a "did not attend" that nobody could have avoided.
+   */
+  const locationHasFieldManager = locationResponsibleMap.has(normLoc(header.department))
+  /** What the plan is stamped with: the tick, or null where the rule does not apply. */
+  const fieldManagerAttendanceToRecord: boolean | null = locationHasFieldManager
+    ? header.fieldManagerAttended === true
+    : null
+
+  // The plain 5S sum plus the plant's own rules (scoring.ts → scoreAudit).
+  const auditScore = useMemo(
+    () =>
+      scoreAudit(steps, questions, answers, {
+        fieldManagerAttended: !locationHasFieldManager || header.fieldManagerAttended === true,
+      }),
+    [answers, questions, steps, header.fieldManagerAttended, locationHasFieldManager]
   )
-  const totalScore = useMemo(() => computeTotalScore(stepScores), [stepScores])
+  const stepScores = auditScore.stepScores
+  const totalScore = auditScore.total
 
   // Gerçek zamanlı eksik/tamamlanmamış soru seti
   const liveUnanswered = useMemo(() => {
@@ -637,6 +882,7 @@ export default function FiveSAuditFormPage() {
     for (const q of questions) {
       const ans = answers[q.id]
       if (!ans || !ans.rating) { s.add(q.id); continue }
+      if (isUnchangedStoredAnswer(q.id, ans.rating)) continue
       if (isExplanationRequired(q, ans) && !ans.explanation.trim()) s.add(q.id)
       if (needsFindingDetails(q.id, ans)) {
         if (!ans.findingType) s.add(q.id)
@@ -647,7 +893,7 @@ export default function FiveSAuditFormPage() {
       }
     }
     return s
-  }, [questions, answers, header.department, openFindingsByQuestion])
+  }, [questions, answers, header.department, openFindingsByQuestion, editAudit])
 
   // Kaydet butonuna basıldıktan sonra highlight'lar aktif olsun
   const [hasAttempted, setHasAttempted] = useState(false)
@@ -661,9 +907,10 @@ export default function FiveSAuditFormPage() {
           args?.onAfterHandle?.(data)
           resolve(data)
         },
-        onErrorHandle: (err: any) => {
-          args?.onErrorHandle?.(err)
-          reject(err)
+        onErrorHandle: (err: any, code?: number | null, requestId?: string) => {
+          args?.onErrorHandle?.(err, code, requestId)
+          // The status goes with it: see apiCallError.
+          reject(apiCallError(err, code))
         },
       })
     })
@@ -692,9 +939,10 @@ export default function FiveSAuditFormPage() {
       const next: AnswersState = { ...prev, [questionId]: { ...current, rating } }
       return next
     })
-    // A question that already has an open finding needs no second one; the
-    // detail panel stays one click away but is not forced open.
-    if (rating !== 'good' && !openFindingsByQuestion.has(questionId)) openDetailModal(questionId)
+    // A question that already has an open finding needs no second one (nor an
+    // answer a correction found already below İyi); the detail panel stays one
+    // click away but is not forced open.
+    if (needsFindingDetails(questionId, { rating })) openDetailModal(questionId)
   }
 
   const handleExplanationChange = (questionId: string, explanation: string) => {
@@ -769,6 +1017,16 @@ export default function FiveSAuditFormPage() {
     setSingleFinding((prev) => ({ ...prev, [field]: value }))
   }
 
+  /*
+   * The modal's place and day. Inside a planned audit (or a correction) they
+   * stay the modal's own. With no plan there is no audit to disturb, and the
+   * page's open-findings panel follows the place picked here, as it did.
+   */
+  const handleSingleFindingPlaceChange = (field: 'location' | 'date', value: string) => {
+    handleSingleFindingFieldChange(field, value)
+    if (!assignedPlan && !editAudit) handleHeaderChange(field === 'location' ? 'department' : 'date', value)
+  }
+
   const handleSingleFindingPhotosAdd = (files: FileList | null) => {
     if (!files || files.length === 0) return
     const incoming = Array.from(files)
@@ -785,13 +1043,89 @@ export default function FiveSAuditFormPage() {
     }))
   }
 
+  /*
+   * The queue as the screen shows it: what is waiting to be sent (the count,
+   * and the single findings among it), and what the server refused.
+   */
   const refreshQueuedCount = async () => {
     try {
       if (!db) return
-      const c = await db.submissions.count()
-      setQueuedCount(c)
+      const all = (await db.submissions.toArray()) as OfflineAuditSubmission[]
+      const pending = all.filter((s) => !s.setAsideAt)
+      setQueuedCount(pending.length)
+      setQueuedSingleFindings(
+        pending
+          .filter((s) => s.auditPayload?.source === 'single_finding')
+          .flatMap((s) =>
+            (s.findings ?? [])
+              .filter((f) => !!f.question_id)
+              .map((f) => ({ questionId: String(f.question_id), location: String(f.location_name ?? '') }))
+          )
+      )
+      setRefusedSubmissions(
+        all
+          .filter((s) => !!s.setAsideAt)
+          .map((s) => ({
+            id: s.id,
+            label: `${s.auditPayload?.source === 'single_finding' ? 'Tekil bulgu' : 'Denetim'} — ${
+              s.auditPayload?.department_name ?? '-'
+            } · ${s.auditPayload?.audit_date ?? '-'}`,
+            error: s.lastError ?? '',
+          }))
+      )
     } catch {
       // ignore
+    }
+  }
+
+  /** A refused submission goes back into the queue; the auto-sync picks it up when online. */
+  const retryRefusedSubmission = async (id: string) => {
+    try {
+      await db?.submissions.update(id, { setAsideAt: null })
+    } finally {
+      await refreshQueuedCount()
+    }
+  }
+
+  const discardRefusedSubmission = async (id: string, label: string) => {
+    const ok = await confirmDialog({
+      title: 'Kayıt kuyruktan çıkarılsın mı?',
+      message: `${label} sunucu tarafından reddedildi ve cihazda bekliyor. Çıkarılırsa bu kayıt ve fotoğrafları cihazdan silinir; geri alınamaz.`,
+      confirmLabel: 'Kuyruktan çıkar',
+      cancelLabel: 'Vazgeç',
+      tone: 'danger',
+    })
+    if (!ok || !db) return
+    try {
+      /*
+       * The audit may already be on the server — a finding was refused after
+       * the audit itself got through. Then the plan must still leave the
+       * "planned" list before the device forgets it, or the same plan is
+       * offered again and audited twice.
+       */
+      const s = (await db.submissions.get(id)) as OfflineAuditSubmission | undefined
+      if (s?.syncedAuditId && s.planId && s.auditPayload?.source !== 'single_finding') {
+        try {
+          await stampPlanSent(
+            s.planId,
+            s.syncedAuditId,
+            typeof (s as { fieldManagerAttended?: unknown }).fieldManagerAttended === 'boolean'
+              ? ((s as { fieldManagerAttended?: boolean }).fieldManagerAttended as boolean)
+              : null
+          )
+        } catch (err) {
+          console.error('plan stamp before discard failed', err)
+        }
+      }
+      await db.transaction('rw', db.submissions, db.submissionPhotos, async () => {
+        await db.submissionPhotos.where('submissionId').equals(id).delete()
+        await db.submissions.delete(id)
+      })
+    } catch (err) {
+      console.error('refused submission not removed', err)
+      toast.error('Kayıt kuyruktan çıkarılamadı.')
+    } finally {
+      await refreshQueuedCount()
     }
   }
 
@@ -917,6 +1251,10 @@ export default function FiveSAuditFormPage() {
           // back as a form the API refuses to accept.
           date: auditDateFor(String(h.date ?? prev.date), prev.date),
           auditorName: String(h.auditorName ?? prev.auditorName),
+          // The tick decides the score; the colleague taking over the tablet
+          // must see the one that was set, not an empty box.
+          fieldManagerAttended:
+            typeof h.fieldManagerAttended === 'boolean' ? h.fieldManagerAttended : prev.fieldManagerAttended,
         }))
       }
 
@@ -1009,7 +1347,9 @@ export default function FiveSAuditFormPage() {
   }
 
   const enqueueSubmission = async (submission: OfflineAuditSubmission, photos: SubmissionPhotoRow[]) => {
-    if (!db) return
+    // Returning quietly here let the caller announce "kuyruğa eklendi" for a
+    // form that was stored nowhere.
+    if (!db) throw new Error('offline storage unavailable')
     await db.transaction('rw', db.submissions, db.submissionPhotos, async () => {
       await db.submissions.put(submission)
       if (photos.length) await db.submissionPhotos.bulkPut(photos)
@@ -1017,23 +1357,89 @@ export default function FiveSAuditFormPage() {
     await refreshQueuedCount()
   }
 
+  /*
+   * The audit an earlier replay of this submission already created, found by
+   * the uuid the submission presents (client_submission_id). Null when there
+   * is none or it cannot be read; the refusal then stands.
+   */
+  const findAuditOfSubmission = async (submissionUuid: string): Promise<string | null> => {
+    const startGet = safeStart(actions as any, AUDIT_KEYS.GET)
+    if (!startGet || !isUuid(submissionUuid)) return null
+    try {
+      const resp = await startAsPromise(startGet, {
+        payload: {
+          page: 1,
+          limit: 1,
+          filters: [{ field: 'client_submission_id', operator: 'eq', value: submissionUuid }],
+        },
+      })
+      const row = (extractArray(resp) as any[]).find(
+        (a) => String(a?.client_submission_id ?? a?.clientSubmissionId ?? '') === submissionUuid
+      )
+      return row?.id ? String(row.id) : null
+    } catch {
+      return null
+    }
+  }
+
+  /*
+   * The finding an earlier replay already created, found by its
+   * client_finding_id. A reply lost on a flaky link leaves the finding on the
+   * server but not in syncedFindingIds; with the unique index the retry gets
+   * 409, and this picks up the existing row instead of setting the whole
+   * submission aside.
+   */
+  const findingExists = async (clientFindingId: string): Promise<boolean> => {
+    const startGet = safeStart(actions as any, FINDINGS_KEYS.GET)
+    if (!startGet || !isUuid(clientFindingId)) return false
+    try {
+      const resp = await startAsPromise(startGet, {
+        payload: {
+          page: 1,
+          limit: 1,
+          filters: [{ field: 'client_finding_id', operator: 'eq', value: clientFindingId }],
+        },
+      })
+      return (extractArray(resp) as any[]).some(
+        (f) => String(f?.client_finding_id ?? f?.clientFindingId ?? '') === clientFindingId
+      )
+    } catch {
+      return false
+    }
+  }
+
   const syncOfflineQueue = async () => {
     if (!db) return
-    if (syncing) return
+    /*
+     * A ref, not the `syncing` state: the auto-sync effect and the button each
+     * hold the state of the render they came from, so both could start a
+     * replay — and two replays of the same submission, before either has
+     * written `syncedAuditId`, create the audit twice.
+     */
+    if (syncing || syncingRef.current) return
+    syncingRef.current = true
     setSyncing(true)
+
+    let refusedNow = 0
+    let sentNow = 0
+    let answersRefusedNow = 0
+    let skippedPhotosNow = 0
 
     try {
       const A = actions as any
       const startAudit = A?.ADD_FIVE_S_AUDIT?.start
       const startFinding = A?.ADD_FIVE_S_FINDING?.start
+      const startAnswer = A?.[ANSWER_KEYS.ADD]?.start
 
       if (!startAudit || !startFinding) {
         console.warn('Sync: required actions not found')
         return
       }
 
-      const all = await db.submissions.orderBy('createdAt').toArray()
+      const all = (await db.submissions.orderBy('createdAt').toArray()) as OfflineAuditSubmission[]
       for (const s of all) {
+        // Refused before: the same request would be refused again.
+        if (s.setAsideAt) continue
         try {
           // 1) create audit — unless a previous attempt already did
           //
@@ -1047,31 +1453,48 @@ export default function FiveSAuditFormPage() {
 
           let auditResp: any = null
           if (!s.syncedAuditId) {
-            auditResp = await startAsPromise(startAudit, {
-              payload: {
-                department_name: s.auditPayload.department_name,
-                auditor_name: s.auditPayload.auditor_name,
-                audit_date: atUtcMidnight(s.auditPayload.audit_date),
-                total_score: s.auditPayload.total_score,
-                target_score: s.auditPayload.target_score,
-                score_s1: s.auditPayload.score_s1,
-                score_s2: s.auditPayload.score_s2,
-                score_s3: s.auditPayload.score_s3,
-                score_s4: s.auditPayload.score_s4,
-                score_s5: s.auditPayload.score_s5,
-                // The column exists so the server can recognise a replay of
-                // the same queued form; nothing was ever writing it.
-                client_submission_id: submissionUuid,
-                /*
-                 * Which plan this was, and whether it is a single finding. The
-                 * replay dropped both: an audit done offline reached the server
-                 * attached to no plan, the plan stayed "Planlandı" forever, and
-                 * a queued single finding counted as a 0-point audit.
-                 */
-                plan_id: s.planId ?? undefined,
-                source: s.auditPayload.source ?? undefined,
-              },
-            })
+            try {
+              auditResp = await startAsPromise(startAudit, {
+                payload: {
+                  department_name: s.auditPayload.department_name,
+                  auditor_name: s.auditPayload.auditor_name,
+                  audit_date: atUtcMidnight(s.auditPayload.audit_date),
+                  total_score: s.auditPayload.total_score,
+                  target_score: s.auditPayload.target_score,
+                  score_s1: s.auditPayload.score_s1,
+                  score_s2: s.auditPayload.score_s2,
+                  score_s3: s.auditPayload.score_s3,
+                  score_s4: s.auditPayload.score_s4,
+                  score_s5: s.auditPayload.score_s5,
+                  // The column exists so the server can recognise a replay of
+                  // the same queued form; nothing was ever writing it.
+                  client_submission_id: submissionUuid,
+                  /*
+                   * Which plan this was, and whether it is a single finding. The
+                   * replay dropped both: an audit done offline reached the server
+                   * attached to no plan, the plan stayed "Planlandı" forever, and
+                   * a queued single finding counted as a 0-point audit.
+                   */
+                  plan_id: s.planId ?? undefined,
+                  source: s.auditPayload.source ?? undefined,
+                  // As the online save sends them; absent on older submissions.
+                  location_id: s.auditPayload.location_id || undefined,
+                  auditor_id: s.auditPayload.auditor_id || undefined,
+                },
+              })
+            } catch (err) {
+              /*
+               * A refusal (409: the plan's audit already exists, or the
+               * client_submission_id is taken) may be THIS submission: an
+               * earlier attempt created the audit and its answer never came
+               * back. Then that audit is the one to resume against; setting
+               * the submission aside would leave it with no answers, no
+               * findings and no plan stamp.
+               */
+              const mine = isRefusal(err) ? await findAuditOfSubmission(submissionUuid) : null
+              if (!mine) throw err
+              auditResp = { id: mine }
+            }
           }
 
           const auditId =
@@ -1091,7 +1514,31 @@ export default function FiveSAuditFormPage() {
             await db.submissions.update(s.id, { syncedAuditId: auditId })
           }
 
-          // 2) findings
+          /*
+           * 2) the per-question answers, the same rows the online save posts.
+           *
+           * One at a time, each written down as it lands, so a retry after a
+           * dropped connection resumes with the next question instead of
+           * posting the ones already there a second time. As online, a
+           * refused answer is reported and does not hold the audit back; a
+           * passing failure stops here and keeps the submission queued.
+           */
+          const answersSent = new Set(s.syncedAnswerQuestionIds ?? [])
+          for (const row of answersStillToSend(s.answers, s.syncedAnswerQuestionIds)) {
+            if (!startAnswer) throw new Error('Sync: answer action not found')
+            try {
+              await startAsPromise(startAnswer, { payload: { audit_id: auditId, ...row } })
+            } catch (err) {
+              if (!isRefusal(err)) throw err
+              answersRefusedNow += 1
+              console.error('Sync: answer refused', s.id, row.question_id, describeApiError(err))
+            }
+            answersSent.add(row.question_id)
+            s.syncedAnswerQuestionIds = [...answersSent]
+            await db.submissions.update(s.id, { syncedAnswerQuestionIds: s.syncedAnswerQuestionIds })
+          }
+
+          // 3) findings
           const photos = await db.submissionPhotos.where('submissionId').equals(s.id).toArray()
           const byQuestion = new Map<string, SubmissionPhotoRow[]>()
           for (const p of photos) {
@@ -1110,84 +1557,188 @@ export default function FiveSAuditFormPage() {
             const key = String(f.questionId)
             const relatedPhotos = byQuestion.get(key) ?? []
 
-            // upload photos and build before files
+            /*
+             * Upload photos and build before files.
+             *
+             * A failed upload stops this submission here. It used to be logged
+             * and skipped: the finding was created without that photo and the
+             * blobs were deleted at cleanup, so on a flaky link the "before"
+             * photos were lost for good. Now the finding waits, the
+             * submission and its blobs stay queued, and the next sync resumes
+             * — photos that did get through are not uploaded again, findings
+             * already created are not created again.
+             */
             const uploaded: UploadedFileInfo[] = []
+            /*
+             * A refusal that retrying cannot fix (413: too large; any 4xx;
+             * an answer with no file id) skips that one photo instead of
+             * stalling the submission forever or setting it aside with
+             * "discard everything" as the only way out. Passing failures (no
+             * connection, 5xx, 401, 408, 429) still stop here and retry.
+             */
+            const skipForGood = async (photoId: string) => {
+              s.skippedPhotoIds = [...new Set([...(s.skippedPhotoIds ?? []), photoId])]
+              await db.submissions.update(s.id, { skippedPhotoIds: s.skippedPhotoIds })
+              skippedPhotosNow += 1
+            }
             for (const p of relatedPhotos) {
+              const done = s.syncedPhotoUploads?.[p.id]
+              if (done) {
+                uploaded.push(done)
+                continue
+              }
+              if (s.skippedPhotoIds?.includes(p.id)) continue
               const file = new File([p.blob], p.name, { type: p.type, lastModified: p.lastModified })
+              let up: UploadedFileInfo | undefined
               try {
-                const up = await uploadAnswerPhoto({ file })
-                if (up?.fileId || up?.fileUrl) uploaded.push(up)
+                up = await uploadAnswerPhoto({ file })
               } catch (err) {
                 console.error('Sync upload error', err)
+                const failure = photoUploadError(err)
+                if (failure.status === 413 || isRefusal(failure)) {
+                  await skipForGood(p.id)
+                  continue
+                }
+                throw failure
               }
+              if (!up?.fileId && !up?.fileUrl) {
+                await skipForGood(p.id)
+                continue
+              }
+              uploaded.push(up)
+              s.syncedPhotoUploads = { ...(s.syncedPhotoUploads ?? {}), [p.id]: up }
+              await db.submissions.update(s.id, { syncedPhotoUploads: s.syncedPhotoUploads })
             }
 
             const primary = uploaded[0]
             const beforeArr = toPhotoArr(uploaded)
 
-            await startAsPromise(startFinding, {
-              payload: {
-                audit_id: auditId,
-                question_id: f.question_id ?? (f.questionId !== 'SINGLE' ? f.questionId : undefined),
-                step_code:
-                  f.step_code ??
-                  (f.questionId !== 'SINGLE' ? String(f.questionId).split('-')[0] : undefined),
-                auditor_user_id: f.auditor_user_id ?? undefined,
-                // Eski kuyruktaki geçersiz (UUID olmayan) id'leri temizle
-                client_finding_id: isUuid(f.client_finding_id) ? f.client_finding_id : genUUID(),
-                detected_date: f.detected_date,
-                location_name: f.location_name,
-                finding_type: f.finding_type,
-                description: f.description,
-                action_to_take: f.action_to_take,
-                due_date: f.due_date || undefined,
-                responsible_name: f.responsible_name,
-                responsible_user_id: f.responsible_user_id || undefined,
-                auditor_name: f.auditor_name || s.auditPayload.auditor_name || undefined,
-                form_title: f.form_title || undefined,
+            try {
+              await startAsPromise(startFinding, {
+                payload: {
+                  audit_id: auditId,
+                  question_id: f.question_id ?? (f.questionId !== 'SINGLE' ? f.questionId : undefined),
+                  step_code:
+                    f.step_code ??
+                    (f.questionId !== 'SINGLE' ? String(f.questionId).split('-')[0] : undefined),
+                  auditor_user_id: f.auditor_user_id ?? undefined,
+                  // Eski kuyruktaki geçersiz (UUID olmayan) id'leri temizle
+                  client_finding_id: isUuid(f.client_finding_id) ? f.client_finding_id : genUUID(),
+                  detected_date: f.detected_date,
+                  location_name: f.location_name,
+                  finding_type: f.finding_type,
+                  description: f.description,
+                  action_to_take: f.action_to_take,
+                  due_date: f.due_date || undefined,
+                  responsible_name: f.responsible_name,
+                  responsible_user_id: f.responsible_user_id || undefined,
+                  auditor_name: f.auditor_name || s.auditPayload.auditor_name || undefined,
+                  form_title: f.form_title || undefined,
 
-                photo_before_files: beforeArr,
-                photo_before_file_id: primary?.fileId,
-                photo_before_url: primary?.fileUrl,
-              },
-            })
+                  photo_before_files: beforeArr,
+                  photo_before_file_id: primary?.fileId,
+                  photo_before_url: primary?.fileUrl,
+                },
+              })
+            } catch (err) {
+              // Already on the server from an attempt whose reply was lost.
+              if (!(isRefusal(err) && (await findingExists(f.client_finding_id)))) throw err
+            }
 
             alreadySynced.add(f.client_finding_id)
             await db.submissions.update(s.id, { syncedFindingIds: [...alreadySynced] })
           }
 
-          // 3) the plan goes to Merkez Ekip for approval, as the online path does
+          // 4) the plan goes to Merkez Ekip for approval, as the online path does
           if (s.planId && s.auditPayload.source !== 'single_finding') {
-            await stampPlanSent(s.planId, auditId, null)
+            // The tick as queued; older submissions only had it on the header.
+            const fromHeader = s.header?.fieldManagerAttended
+            const attended: boolean | null =
+              s.fieldManagerAttended !== undefined
+                ? s.fieldManagerAttended
+                : typeof fromHeader === 'boolean'
+                  ? fromHeader
+                  : null
+            try {
+              await stampPlanSent(s.planId, auditId, attended)
+            } catch (err) {
+              if (!isRefusal(err)) throw err
+              /*
+               * The plan was deleted (or otherwise refuses the stamp) while
+               * this sat in the queue. The audit and its findings are on the
+               * server by now; keeping the submission would only retry the
+               * stamp forever and, worse, offer to resend an audit that exists.
+               * So it is cleaned up, and the auditor is told the plan part did
+               * not go through.
+               */
+              const note = describeApiError(err)
+              console.warn('Sync: plan not stamped, submission cleaned up', s.id, note)
+              toast.warning(
+                `${s.auditPayload.department_name} denetimi gönderildi ancak plan onaya gönderilemedi: ${note}. Lütfen Merkez Ekibe bildirin.`
+              )
+            }
           }
 
-          // 4) cleanup submission
+          // 5) cleanup submission
           await db.transaction('rw', db.submissions, db.submissionPhotos, async () => {
             await db.submissionPhotos.where('submissionId').equals(s.id).delete()
             await db.submissions.delete(s.id)
           })
+          sentNow += 1
           await refreshQueuedCount()
         } catch (err: any) {
-          const msg = String(err?.message ?? err ?? 'sync error')
+          const msg = describeApiError(err)
           console.error('Sync submission failed', s.id, msg)
-          await db.submissions.update(s.id, { lastError: msg })
+          if (isRefusal(err)) {
+            /*
+             * The server read the audit (or a finding) and said no. That
+             * answer does not change on the next try, and retrying it on every
+             * reconnect is what kept a refused form "in the queue" for good.
+             * What already got through stays recorded (syncedAuditId /
+             * syncedFindingIds), so a retry after the cause is fixed resumes.
+             */
+            refusedNow += 1
+            await db.submissions.update(s.id, { lastError: msg, setAsideAt: Date.now() })
+          } else {
+            await db.submissions.update(s.id, { lastError: msg })
+          }
           // tek bir kayıt patladıysa diğerlerini denemeye devam edelim
         }
       }
     } finally {
+      syncingRef.current = false
       setSyncing(false)
+      await refreshQueuedCount()
     }
+
+    if (refusedNow > 0) {
+      toast.error(
+        `${refusedNow} çevrimdışı kayıt sunucu tarafından reddedildi; sebebiyle birlikte cihazda bekletiliyor.`
+      )
+    }
+    // Same words as the online save: the audit itself went through.
+    if (answersRefusedNow > 0) {
+      toast.error(
+        `${answersRefusedNow} soru yanıtı kaydedilemedi. Denetim kaydedildi, ayrıntı için yöneticinize bildirin.`
+      )
+    }
+    if (skippedPhotosNow > 0) {
+      toast.error(
+        `${skippedPhotosNow} fotoğraf sunucu tarafından kabul edilmedi (ör. dosya çok büyük); ilgili bulgu fotoğrafsız gönderildi.`
+      )
+    }
+    // What was just sent is on the server now; the open-findings list should say so.
+    if (sentNow > 0 && header.department?.trim()) void fetchFindings(header.department)
   }
 
-  const fetchFindings = async (locationName: string) => {
+  /** One location's open findings; the panel's list, and the single-finding modal's check (R3). */
+  const readOpenFindings = async (locationName: string): Promise<FiveSFindingLite[]> => {
     const loc = (locationName ?? '').trim()
-    if (!loc) {
-      setFindings([])
-      return
-    }
+    if (!loc) return []
+    // Per user and location, like the assignment snapshot.
+    const snapshotKey = signedInUserId ? `findings:${signedInUserId}:${normLoc(loc)}` : ''
 
     try {
-      setFindingsLoading(true)
       const A = actions as any
       const startFindings = safeStart(A, FINDINGS_KEYS.GET)
 
@@ -1215,14 +1766,68 @@ export default function FiveSAuditFormPage() {
 
       const list = extractArray(resp) as FiveSFindingLite[]
       const filtered = (list ?? []).filter((f) => normLoc(String(f?.location_name ?? '')) === normLoc(loc))
-      setFindings(filtered)
+      if (snapshotKey) void saveSnapshot(snapshotKey, filtered)
+      return filtered
     } catch (e) {
+      /*
+       * Offline, the open findings as last read here. They are what stops the
+       * form from demanding a second finding for a question that already has
+       * one, and what raises the "İyi seçildi ama açık bulgu var" warning;
+       * with an empty list offline both silently stopped working.
+       */
+      const snap = snapshotKey && isPassingFailure(e) ? await loadSnapshot<FiveSFindingLite[]>(snapshotKey) : null
+      if (snap) return snap
       console.error('fetchFindings error', e)
+      return []
+    }
+  }
+
+  const fetchFindings = async (locationName: string) => {
+    const loc = (locationName ?? '').trim()
+    if (!loc) {
       setFindings([])
+      return
+    }
+    try {
+      setFindingsLoading(true)
+      setFindings(await readOpenFindings(loc))
     } finally {
       setFindingsLoading(false)
     }
   }
+
+  /*
+   * The single-finding modal's place may not be the audit's. Its open
+   * findings are read on their own then, so the modal can say when the
+   * linked question already has one there (R3).
+   */
+  const [singleFindingPlaceFindings, setSingleFindingPlaceFindings] = useState<FiveSFindingLite[]>([])
+  const singleFindingOtherPlace =
+    singleFindingOpen && !!singleFinding.location.trim() && normLoc(singleFinding.location) !== normLoc(header.department)
+      ? singleFinding.location.trim()
+      : ''
+  useEffect(() => {
+    if (!singleFindingOtherPlace) {
+      setSingleFindingPlaceFindings((prev) => (prev.length ? [] : prev))
+      return
+    }
+    let stale = false
+    void readOpenFindings(singleFindingOtherPlace).then((list) => {
+      if (!stale) setSingleFindingPlaceFindings(list)
+    })
+    return () => {
+      stale = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [singleFindingOtherPlace])
+  const singleFindingLinkedOpen: string[] = (() => {
+    const qid = singleFinding.linkedQuestionId
+    if (!singleFindingOpen || !qid || !singleFinding.location.trim()) return []
+    const map = singleFindingOtherPlace
+      ? mapOpenFindingsByQuestion(singleFindingPlaceFindings, queuedQuestionIdsAt(singleFindingOtherPlace))
+      : openFindingsByQuestion
+    return map.get(qid) ?? []
+  })()
 
   const buildTeamMemberOptions = (
     teamId: string,
@@ -1258,11 +1863,49 @@ export default function FiveSAuditFormPage() {
       const startFindingTypes = safeStart(A, FINDING_TYPE_KEYS.GET)
       const startActionToTake = safeStart(A, ACTION_KEYS.GET)
 
+      /*
+       * Every row a list read matches, page by page (LIST_PAGE_SIZE). Asking
+       * for `limit: 1000` got the first 200 rows and no word about the rest.
+       * A tie-breaking sort keeps the pages from overlapping; ids are also
+       * de-duplicated in case they do.
+       */
+      async function readAllPages(startFn: (args: any) => void, payload: Record<string, unknown>): Promise<any[]> {
+        const rows: any[] = []
+        const seen = new Set<string>()
+        for (let page = 1; page <= LIST_MAX_PAGES; page++) {
+          const resp = await startAsPromise(startFn, { payload: { ...payload, page, limit: LIST_PAGE_SIZE } })
+          const batch = extractArray(resp)
+          for (const row of batch) {
+            const id = row?.id != null ? String(row.id) : ''
+            if (id && seen.has(id)) continue
+            if (id) seen.add(id)
+            rows.push(row)
+          }
+          const hasNext = resp?.pagination?.hasNext ?? resp?.data?.pagination?.hasNext
+          if (batch.length < LIST_PAGE_SIZE || hasNext === false) break
+        }
+        return rows
+      }
+
       async function readReferenceData() {
         const [plansR, teamsR, membersR, locsR, findingTypesR, actionR, usersR] = await Promise.all([
+        /*
+         * Only the plans this screen can open: active, still planned. The
+         * whole table was read with limit 1000, which nucleus clamps to 200
+         * sorted newest date first — past ~200 plans an older open plan the
+         * home page offers was cut off and the form said "Ekibinize planlanan
+         * bir denetim yok". An audit being corrected reads its own plan by id.
+         */
         startPlans
-          ? startAsPromise(startPlans, {
-            payload: { page: 1, limit: 1000, orderBy: 'planned_date', orderDirection: 'desc' },
+          ? readAllPages(startPlans, {
+            filters: [
+              { field: 'status', operator: 'eq', value: 'planned' },
+              { field: 'is_active', operator: 'eq', value: true },
+            ],
+            sort: [
+              { field: 'planned_date', direction: 'desc' },
+              { field: 'id', direction: 'asc' },
+            ],
           })
           : Promise.resolve(null),
 
@@ -1272,9 +1915,14 @@ export default function FiveSAuditFormPage() {
           })
           : Promise.resolve(null),
 
+        // Active memberships only (nothing here reads the others), every page of them.
         startMembers
-          ? startAsPromise(startMembers, {
-            payload: { page: 1, limit: 5000, orderBy: 'created_at', orderDirection: 'desc' },
+          ? readAllPages(startMembers, {
+            filters: [{ field: 'is_active', operator: 'eq', value: true }],
+            sort: [
+              { field: 'created_at', direction: 'desc' },
+              { field: 'id', direction: 'asc' },
+            ],
           })
           : Promise.resolve(null),
 
@@ -1296,8 +1944,18 @@ export default function FiveSAuditFormPage() {
           })
           : Promise.resolve(null),
 
+        // Capped the same way (limit 500 -> 200): a team member past the
+        // 200th user had no name and dropped out of "Denetimi Yapan".
+        // A stable order, as the other two paged reads have: without one the
+        // pages are LIMIT/OFFSET over an unordered scan, and a login rewriting
+        // a user row between two pages can skip someone.
         startUsers
-          ? startAsPromise(startUsers, { payload: { page: 1, limit: 500 } })
+          ? readAllPages(startUsers, {
+            sort: [
+              { field: 'created_at', direction: 'asc' },
+              { field: 'id', direction: 'asc' },
+            ],
+          })
           : Promise.resolve(null),
         ])
         return {
@@ -1311,7 +1969,6 @@ export default function FiveSAuditFormPage() {
         }
       }
       type Sources = {
-        meData: any
         plans: any[]
         teams: any[]
         members: any[]
@@ -1320,32 +1977,47 @@ export default function FiveSAuditFormPage() {
         actionList: any[]
         users: any[]
       }
-      const readOnline = async (): Promise<Sources> => {
-        const meResp = startMe ? await startAsPromise(startMe, { payload: {} }) : null
-        const meDataOnline = meResp?.data ?? meResp?.response?.data ?? meResp
-        const responses = await readReferenceData()
-        return { meData: meDataOnline, ...responses }
-      }
 
+      /*
+       * Identity is the signed-in user (see identityOf) — online or not. The
+       * snapshot used to carry its own copy of "me", so a tablet that two
+       * auditors share opened offline as whoever had last read the plans:
+       * their name in "Denetimi Yapan", their team's plans on the list.
+       */
+      const signedIn = identityOf(signedInUserRef.current)
+      let uidVal = signedIn.id
+      let auditorFallback = signedIn.name
+      if (!uidVal && startMe && !looksOffline()) {
+        const meResp = await startAsPromise(startMe, { payload: {} })
+        const me = identityOf(meResp?.data ?? meResp?.response?.data ?? meResp)
+        uidVal = me.id
+        auditorFallback = auditorFallback || me.name
+      }
+      setCurrentUserId(uidVal)
+
+      // One snapshot per user: what this person's plans looked like, not the last reader's.
+      const snapshotKey = uidVal ? `assignment:${uidVal}` : ''
       let sources: Sources
       try {
-        sources = await readOnline()
-        void saveSnapshot('assignment', sources)
+        sources = await readReferenceData()
+        if (snapshotKey) {
+          void saveSnapshot(snapshotKey, sources)
+          // The old shared snapshot carried another person's identity; drop it.
+          void db?.snapshots.delete('assignment').catch(() => undefined)
+        }
       } catch (err) {
-        const snap = await loadSnapshot<Sources>('assignment')
+        /*
+         * Only a missing connection falls back to the snapshot. A refusal
+         * (a permission removed, a session ended) answered with yesterday's
+         * plans would let the form be filled in for work the server will
+         * not take.
+         */
+        if (!isPassingFailure(err)) throw err
+        const snap = snapshotKey ? await loadSnapshot<Sources>(snapshotKey) : null
         if (!snap) throw err
         sources = snap
         toast.message('İnternet yok: form, son çevrimiçi okunan plan bilgileriyle açıldı.')
       }
-
-      const meData = sources.meData
-      const uidVal = String(meData?.sub ?? meData?.userId ?? meData?.id ?? '')
-      setCurrentUserId(uidVal)
-
-      const first = meData?.profile?.first_name ?? meData?.first_name ?? ''
-      const last = meData?.profile?.last_name ?? meData?.last_name ?? ''
-      const fullName = `${first} ${last}`.trim()
-      const auditorFallback = fullName || meData?.name || meData?.email || ''
 
       const plansResp = sources.plans
       const teamsResp = sources.teams
@@ -1389,11 +2061,23 @@ export default function FiveSAuditFormPage() {
       // Mevcut kullanıcıyı da ekle (fallback)
       if (uidVal && auditorFallback) usersById.set(uidVal, auditorFallback)
 
-      for (const l of locs) {
-        if (!l?.is_active || !l?.name) continue
+      /*
+       * Passive locations count too. A location made passive keeps its open
+       * plans — the delete guard itself says "lokasyonu pasif yapın" while
+       * plans are open — and skipping it hid the attendance tick, left the
+       * rule's zero unapplied and recorded no attendance for those plans.
+       * Active ones go first, and a passive one never replaces an active one
+       * that has the same name.
+       */
+      const fieldManagerIdsByLoc = new Map<string, string[]>()
+      const activeFirst = [...locs].sort((a, b) => Number(!!b?.is_active) - Number(!!a?.is_active))
+      for (const l of activeFirst) {
+        if (!l?.name) continue
+        if (!l.is_active && fieldManagerIdsByLoc.has(normLoc(l.name))) continue
         const ids: string[] = Array.isArray((l as any).field_manager_user_ids)
-          ? (l as any).field_manager_user_ids
+          ? (l as any).field_manager_user_ids.map(String)
           : []
+        fieldManagerIdsByLoc.set(normLoc(l.name), ids)
         const firstId = ids[0] ?? ''
         const userName = firstId ? (usersById.get(firstId) ?? '') : ''
         if (firstId) {
@@ -1402,7 +2086,7 @@ export default function FiveSAuditFormPage() {
       }
       setLocationResponsibleMap(new Map(pendingLocRespMap))
 
-      assignmentDataRef.current = { members, teams, usersById }
+      assignmentDataRef.current = { members, teams, usersById, fieldManagerIdsByLoc }
 
       const memberSetByTeam = new Map<string, Set<string>>()
       for (const m of members) {
@@ -1442,16 +2126,42 @@ export default function FiveSAuditFormPage() {
           toast.error('Düzenlenecek denetim bulunamadı.')
           return
         }
-        const plan =
-          plans.find((p) => String(p.id) === String(audit.plan_id ?? '')) ??
-          plans.find((p) => String(p.id) === String(new URLSearchParams(window.location.search).get('planId') ?? ''))
+        /*
+         * The audit's plan, read by its id. It was looked up in the list
+         * above, which holds only the open plans (and once held only the
+         * first 200 of all of them): an audit's plan is not open any more, so
+         * it was missed, and the attendance tick then opened as "attended" —
+         * a stored 0 for the field manager's absence was quietly lifted by
+         * the next save.
+         */
+        const editPlanId =
+          String(audit.plan_id ?? audit.planId ?? '').trim() ||
+          String(new URLSearchParams(window.location.search).get('planId') ?? '').trim()
+        let plan: PlanRow | undefined
+        let planUnreadable = false
+        if (editPlanId && startPlans) {
+          try {
+            const planResp = await startAsPromise(startPlans, {
+              payload: { page: 1, limit: 1, filters: [{ field: 'id', operator: 'eq', value: editPlanId }] },
+            })
+            const row = (extractArray(planResp) as any[]).find((p) => String(p?.id ?? '') === editPlanId)
+            if (row) plan = { ...row, planned_date: normalizeDateYYYYMMDD(row?.planned_date) } as PlanRow
+          } catch (err) {
+            console.error('edit: plan not read', err)
+            planUnreadable = true
+          }
+        }
+        // Not there (deleted, or the read failed): the list, as before.
+        if (!plan && editPlanId) plan = plans.find((p) => String(p.id) === editPlanId)
         const answerRows = extractArray(answersResp) as any[]
         const answerIdByQuestion = new Map<string, string>()
+        const originalRatingByQuestion = new Map<string, Rating | null>()
         const loaded: AnswersState = {}
         for (const row of answerRows) {
           const qid = String(row?.question_id ?? '')
           if (!qid) continue
           answerIdByQuestion.set(qid, String(row.id))
+          originalRatingByQuestion.set(qid, (row?.rating ?? null) as Rating | null)
           loaded[qid] = {
             questionId: qid,
             rating: (row?.rating ?? null) as Rating | null,
@@ -1463,7 +2173,42 @@ export default function FiveSAuditFormPage() {
             locationName: '',
           }
         }
-        setEditAudit({ id: String(audit.id), answerIdByQuestion, hadAnswers: answerRows.length > 0 })
+        /*
+         * Attended unless the plan holds the NEW tick's "no".
+         *
+         * Before the tick existed the plan's field_manager_attended was a
+         * guess — "was the field manager's name among the auditors?" — and was
+         * false for most audits whose score was never zeroed. Read as the
+         * tick, opening such an audit for a correction zeroed it. The tick is
+         * the only writer that zeroes the audit with its "no" (scoreAudit), so
+         * a recorded false on an audit stored with a non-zero total is the old
+         * guess, not the tick, and is not held against it.
+         *
+         * With no plan to read (deleted, the read failed, or the audit never
+         * had one) attendance is unknown, and an unknown is not a "yes": a
+         * stored 0 might be the tick's, so the box opens empty and the 0
+         * stays unless the editor ticks it.
+         */
+        const recordedAttendance = (plan as any)?.field_manager_attended
+        const storedTotal = Number(audit.total_score ?? audit.totalScore ?? Number.NaN)
+        const initialFieldManagerAttended = plan
+          ? !(recordedAttendance === false && storedTotal === 0)
+          : storedTotal !== 0
+        // Said only where the rule applies: a location with a field manager.
+        if (!plan && storedTotal === 0 && pendingLocRespMap.has(normLoc(String(audit.department_name ?? '')))) {
+          toast.warning(
+            planUnreadable
+              ? 'Denetimin planı okunamadı; bölge sorumlusunun katılıp katılmadığı bilinmiyor. Kayıtlı 0 puan korunuyor: katıldıysa "Bölge sorumlusu denetime katıldı" kutusunu işaretleyin.'
+              : 'Denetimin planı bulunamadı; bölge sorumlusunun katılıp katılmadığı bilinmiyor. Kayıtlı 0 puan korunuyor: katıldıysa "Bölge sorumlusu denetime katıldı" kutusunu işaretleyin.'
+          )
+        }
+        setEditAudit({
+          id: String(audit.id),
+          answerIdByQuestion,
+          originalRatingByQuestion,
+          initialFieldManagerAttended,
+          hadAnswers: answerRows.length > 0,
+        })
         setAnswers((prev) => ({ ...prev, ...loaded }))
         if (plan) {
           setAssignedPlan(plan)
@@ -1475,6 +2220,7 @@ export default function FiveSAuditFormPage() {
           department: String(audit.department_name ?? ''),
           auditorName: String(audit.auditor_name ?? ''),
           date: normalizeDateYYYYMMDD(String(audit.audit_date ?? '')) || header.date,
+          fieldManagerAttended: initialFieldManagerAttended,
         })
         return
       }
@@ -1490,11 +2236,32 @@ export default function FiveSAuditFormPage() {
         const ids: unknown[] = Array.isArray(loc?.field_manager_user_ids) ? loc.field_manager_user_ids : []
         return !!uidVal && ids.map(String).includes(String(uidVal))
       }
+      /*
+       * A plan whose audit is already in this device's offline queue is done
+       * as far as the auditor is concerned. Offline the snapshot still lists
+       * it as "planned" — it was read before the audit was filled in — and
+       * online the server keeps saying so until the queue is replayed; either
+       * way it was offered again and a second audit for it could be queued.
+       * A refused submission no longer stands for the plan, unless its audit
+       * already reached the server.
+       */
+      const queuedPlanIds = new Set<string>()
+      try {
+        const queued = ((await db?.submissions.toArray()) ?? []) as OfflineAuditSubmission[]
+        for (const s of queued) {
+          if (!s.planId || s.auditPayload?.source === 'single_finding') continue
+          if (s.setAsideAt && !s.syncedAuditId) continue
+          queuedPlanIds.add(String(s.planId))
+        }
+      } catch {
+        // No offline store: nothing is queued.
+      }
       const activePlans = plans.filter(
         (p) =>
           p?.is_active &&
           p?.status === 'planned' &&
           !p?.audit_id &&
+          !queuedPlanIds.has(String(p.id)) &&
           (canOpenAnyPlanRef.current || !isFieldManagerOf(p))
       )
       const matched = activePlans.filter((p) => {
@@ -1851,6 +2618,46 @@ export default function FiveSAuditFormPage() {
   )
 
   /*
+   * Queued records the server refused. They are not retried on their own any
+   * more (that loop never ended), so they have to be visible: what it was,
+   * why it was refused, and a way to try again or let it go.
+   */
+  const RefusedQueueNotice =
+    refusedSubmissions.length > 0 ? (
+      <div className="mt-3 rounded-md border border-rose-400/60 bg-rose-50 dark:bg-rose-950/30 px-3 py-2 text-[11px] text-rose-800 dark:text-rose-200">
+        <div className="font-semibold">
+          Sunucunun reddettiği {refusedSubmissions.length} kayıt cihazda bekliyor (otomatik gönderilmez)
+        </div>
+        <ul className="mt-1 space-y-1.5">
+          {refusedSubmissions.map((r) => (
+            <li key={r.id} className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+              <span>
+                <span className="font-medium">{r.label}</span>
+                {r.error ? <span className="block text-rose-700 dark:text-rose-300">{r.error}</span> : null}
+              </span>
+              <span className="flex shrink-0 gap-1">
+                <button
+                  type="button"
+                  onClick={() => void retryRefusedSubmission(r.id)}
+                  className="rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/60 px-2 py-0.5 text-[11px] text-slate-800 dark:text-slate-200 hover:bg-slate-100 hover:dark:bg-slate-900"
+                >
+                  Tekrar dene
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void discardRefusedSubmission(r.id, r.label)}
+                  className="rounded-md border border-rose-400/60 px-2 py-0.5 text-[11px] text-rose-700 dark:text-rose-300 hover:bg-rose-100 hover:dark:bg-rose-950/50"
+                >
+                  Kuyruktan çıkar
+                </button>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ) : null
+
+  /*
    * #3: which audit a finding came from, written on the finding itself so the
    * register can show and filter it. Same words as the backend's backfill of
    * older rows (be-nucleus/src/boot.ts).
@@ -1874,13 +2681,18 @@ export default function FiveSAuditFormPage() {
     return descriptionLines.join('\n')
   }
 
-  const enqueueAuditAndFindingsFromForm = async () => {
+  /**
+   * Queues the form for the offline replay; true when it is safely stored.
+   * `clientSubmissionId` is the uuid an online attempt already sent, so the
+   * replay can recognise that audit if the attempt did reach the server.
+   */
+  const enqueueAuditAndFindingsFromForm = async (clientSubmissionId?: string): Promise<boolean> => {
     const { S1, S2, S3, S4, S5 } = stepScores
 
     const submissionId = makeUid('sub')
     const planId = assignedPlan?.id ?? null
 
-    const auditPayload = {
+    const auditPayload: OfflineAuditSubmission['auditPayload'] = {
       department_name: header.department.trim(),
       auditor_name: header.auditorName.trim(),
       audit_date: header.date,
@@ -1891,6 +2703,8 @@ export default function FiveSAuditFormPage() {
       score_s3: (S3 ?? 0).toFixed(2),
       score_s4: (S4 ?? 0).toFixed(2),
       score_s5: (S5 ?? 0).toFixed(2),
+      location_id: assignedPlan?.location_id || undefined,
+      auditor_id: currentUserId || undefined,
     }
 
     const nonGoodAnswers = Object.values(answers).filter((ans) => ans.rating && ans.rating !== 'good')
@@ -1903,6 +2717,7 @@ export default function FiveSAuditFormPage() {
       const q = questions.find((qq) => qq.id === ans.questionId)
       if (!q) continue
       if (!ans.findingType) continue
+      if (!needsFindingDetails(ans.questionId, ans)) continue
 
       const effectiveLocationName = ans.locationName?.trim() || header.department.trim() || 'Bilinmeyen Lokasyon'
       const description = buildFindingDescriptionFromAnswer(ans, q, header.teamName)
@@ -1949,14 +2764,33 @@ export default function FiveSAuditFormPage() {
       header,
       auditPayload,
       findings: findingsPayload,
+      // The same rows the online save writes, decided now, against the open
+      // findings the form knows about now.
+      answers: answerRowsFor(questions, answers, (qid) => openFindingsByQuestion.has(qid), new Date().toISOString()),
+      fieldManagerAttended: fieldManagerAttendanceToRecord,
       lastError: null,
+      clientSubmissionId: isUuid(clientSubmissionId) ? clientSubmissionId : undefined,
     }
 
-    await enqueueSubmission(submission, photoRows)
+    /*
+     * Photos are stored as blobs, and a tablet's browser storage fills up.
+     * When the queue write failed the error went nowhere: the auditor saw
+     * nothing, or — when the store was missing — "kuyruğa eklendi" for a form
+     * kept nowhere, and closed the screen. The draft is cleared only after the
+     * form is safely queued, and a failure says so.
+     */
+    try {
+      await enqueueSubmission(submission, photoRows)
+    } catch (err) {
+      console.error('offline enqueue failed', err)
+      toast.error(offlineSaveFailedText(err))
+      return false
+    }
     await clearDraft(planId, header)
 
     setSubmitted(true)
     toast.success('İnternet yok veya kayıt hatası oluştu. Form offline kuyruğa eklendi. İnternet gelince otomatik senkronlanır.')
+    return true
   }
 
   /*
@@ -1985,15 +2819,11 @@ export default function FiveSAuditFormPage() {
     // Gönderilen planı yerel listeden çıkar; tekrar görünüp seçilememeli
     setAvailablePlans((prev) => prev.filter((p) => p.id !== planId))
     try {
-      // Denetim planına uyum raporu için katılım bilgisi:
-      // Denetçi(ler) formu gönderdiğine göre katıldı sayılır; saha sorumlusu ise
-      // "Denetimi Yapan" listesinde adı geçiyorsa katılmış kabul edilir.
-      const responsible = locationResponsibleMap.get(normLoc(header.department)) ?? null
-      const fieldManagerAttended = responsible
-        ? selectedAuditors.includes(responsible.userName)
-        : null
-
-      await stampPlanSent(planId, auditId, fieldManagerAttended)
+      // Denetim planına uyum raporu için katılım bilgisi: denetçi(ler) formu
+      // gönderdiğine göre katıldı sayılır; saha sorumlusunu denetçi işaretler.
+      // The auditor's own tick, which also decides the score — no record
+      // (null, the field left untouched) where the location has no field manager.
+      await stampPlanSent(planId, auditId, fieldManagerAttendanceToRecord)
     } catch (err) {
       /*
        * This is not "kritik değil". If the plan is not stamped, it stays
@@ -2070,10 +2900,14 @@ export default function FiveSAuditFormPage() {
   /*
    * #12: save Merkez Ekip's correction of a carried-out audit. The audit row
    * gets the recomputed scores, each answer row its new rating, and an answer
-   * newly rated below "İyi" gets its finding. The plan is not touched: it was
-   * stamped when the audit was sent.
+   * newly rated below "İyi" gets its finding. The plan's status is not
+   * touched (it was stamped when the audit was sent); its attendance record
+   * only when the editor changed the tick.
+   *
+   * Runs under handleSubmit's in-flight lock (its only caller), which stays
+   * held through every write here; true once the correction is saved.
    */
-  const submitAuditEdit = async (target: NonNullable<typeof editAudit>) => {
+  const submitAuditEdit = async (target: NonNullable<typeof editAudit>): Promise<boolean> => {
     const A = actions as any
     const { S1, S2, S3, S4, S5 } = stepScores
     try {
@@ -2090,9 +2924,26 @@ export default function FiveSAuditFormPage() {
         },
       })
     } catch (err: any) {
-      const reasons = readServerReasons(err)
+      const reasons = serverReasonsOf(err)
       toast.error(reasons.length ? `Denetim güncellenemedi: ${reasons.join(' ')}` : 'Denetim güncellenemedi.')
-      return
+      return false
+    }
+
+    /*
+     * The attendance tick decides the score, so a corrected tick goes to the
+     * plan too — but only a tick the editor actually changed. Written on every
+     * save, it replaced the plan's record with whatever the box showed, and
+     * the box of an audit from before the tick shows a default, not a fact.
+     */
+    const tickChanged =
+      locationHasFieldManager && (header.fieldManagerAttended === true) !== target.initialFieldManagerAttended
+    if (assignedPlan?.id && tickChanged) {
+      const startPlan = safeStart(A, planUpdateKey)
+      if (startPlan) {
+        await startAsPromise(startPlan, {
+          payload: { _id: assignedPlan.id, field_manager_attended: header.fieldManagerAttended === true },
+        }).catch((err: unknown) => console.error('plan attendance not updated', err))
+      }
     }
 
     const answeredAt = new Date().toISOString()
@@ -2132,21 +2983,41 @@ export default function FiveSAuditFormPage() {
 
     toast.success('Denetim güncellendi.')
     window.location.href = '/'
+    return true
   }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    // See submitLockRef: one save at a time, and none after one went through.
+    if (submitLockRef.current) return
+    submitLockRef.current = true
+    setSubmitState('saving')
+    let done = false
+    try {
+      done = await submitForm()
+    } finally {
+      if (done) {
+        setSubmitState('done')
+      } else {
+        submitLockRef.current = false
+        setSubmitState('idle')
+      }
+    }
+  }
+
+  /** The form's save; true once the audit went through (sent, corrected, or queued). */
+  const submitForm = async (): Promise<boolean> => {
     setHasAttempted(true)
 
     const missing = new Set<string>()
 
     if (!header.teamName || !header.department || !header.date) {
       toast.error('Ekip, Lokasyon ve Tarih alanları plan üzerinden otomatik gelmelidir.')
-      return
+      return false
     }
     if (!header.auditorName) {
       toast.error('Denetimi Yapan alanı zorunludur.')
-      return
+      return false
     }
 
     for (const q of questions) {
@@ -2155,6 +3026,9 @@ export default function FiveSAuditFormPage() {
         missing.add(q.id)
         continue
       }
+
+      // Same rule as liveUnanswered: an answer a correction did not touch is not re-checked.
+      if (isUnchangedStoredAnswer(q.id, ans.rating)) continue
 
       if (isExplanationRequired(q, ans) && !ans.explanation.trim()) missing.add(q.id)
 
@@ -2169,10 +3043,24 @@ export default function FiveSAuditFormPage() {
 
     if (missing.size > 0) {
       setMissingQuestions(new Set(missing))
-      return
+      return false
     }
 
     setMissingQuestions(new Set())
+
+    // The rule scores the audit 0 without the tick; make sure that is meant.
+    // Not asked where the location has no field manager: the rule does not apply.
+    if (locationHasFieldManager && header.fieldManagerAttended !== true) {
+      const ok = await confirmDialog({
+        title: 'Bölge sorumlusu katılmadı olarak kaydedilecek',
+        message:
+          '"Bölge sorumlusu denetime katıldı" işaretli değil. Kurala göre denetim puanı 0 olarak kaydedilecek. Devam edilsin mi?',
+        confirmLabel: 'Yine de kaydet',
+        cancelLabel: 'Vazgeç',
+        tone: 'danger',
+      })
+      if (!ok) return false
+    }
 
     // Madde 1: Açık bulgusu olan sorular "İyi" işaretlendiyse denetçiyi uyar
     const goodButOpen = questions.filter(
@@ -2187,24 +3075,35 @@ export default function FiveSAuditFormPage() {
         confirmLabel: 'Yine de kaydet',
         tone: 'danger',
       })
-      if (!ok) return
+      if (!ok) return false
     }
 
     if (editAudit) {
-      await submitAuditEdit(editAudit)
-      return
+      return await submitAuditEdit(editAudit)
     }
 
     // offline ise direkt queue
     if (!isOnline) {
-      await enqueueAuditAndFindingsFromForm()
-      return
+      return await enqueueAuditAndFindingsFromForm()
     }
 
     const { S1, S2, S3, S4, S5 } = stepScores
 
+    /*
+     * The audit row first, then — awaited, under the same lock — its answers,
+     * findings and plan stamp. They used to run in an onAfterHandle that
+     * nothing waited for, so the save "finished" while they were still being
+     * written.
+     *
+     * The row carries a client_submission_id, the same one the offline queue
+     * gets if this attempt seems to fail: a request that timed out after the
+     * server had saved it is then found again by the replay instead of being
+     * filed as a second audit.
+     */
+    const clientSubmissionId = genUUID()
+    let data: any
     try {
-      await startAsPromise((actions as any).ADD_FIVE_S_AUDIT?.start, {
+      data = await startAsPromise((actions as any).ADD_FIVE_S_AUDIT?.start, {
         payload: {
           department_name: header.department.trim(),
           auditor_name: header.auditorName.trim(),
@@ -2222,112 +3121,118 @@ export default function FiveSAuditFormPage() {
           plan_id: assignedPlan?.id ?? undefined,
           location_id: assignedPlan?.location_id ?? undefined,
           auditor_id: currentUserId || undefined,
-        },
-
-        onAfterHandle: async (data: any) => {
-          const auditId = data?.data?.id ?? data?.id ?? data?.data?.[0]?.id ?? null
-
-          if (!auditId) {
-            console.warn('Audit ID bulunamadı, findings kaydı atlanıyor.')
-            setSubmitted(true)
-            return
-          }
-
-          /*
-           * Per-question answers.
-           *
-           * The audit row keeps only the five step totals, and a finding is
-           * written only for a non-good answer. That left every "İyi" with no
-           * record at all: after a completed audit nothing could say what was
-           * answered for a given question, and the score could not be
-           * recomputed from its parts. `five_s_audit_answers` was designed for
-           * exactly this (rating / explanation / finding_type per question) and
-           * was never written to. It is supplementary to the audit itself, so a
-           * failure here reports but does not fail the submission.
-           */
-          const answeredAt = new Date().toISOString()
-          const answerJobs = questions
-            .filter((q) => !!answers[q.id]?.rating)
-            .map(async (q) => {
-              const ans = answers[q.id]
-              if (!ans?.rating) return
-              await startAsPromise((actions as any).ADD_FIVE_S_AUDIT_ANSWER?.start, {
-                payload: {
-                  audit_id: auditId,
-                  question_id: q.id,
-                  step_code: q.stepCode,
-                  rating: ans.rating,
-                  explanation: ans.explanation?.trim() || undefined,
-                  finding_type: ans.findingType || undefined,
-                  has_open_finding:
-                    ans.rating !== 'good' && (!!ans.findingType || openFindingsByQuestion.has(q.id)),
-                  answered_at: answeredAt,
-                },
-              })
-            })
-
-          const answerResults = await Promise.allSettled(answerJobs)
-          const failedAnswers = answerResults.filter((r) => r.status === 'rejected')
-          if (failedAnswers.length > 0) {
-            console.error('Soru yanıtları kaydedilemedi', failedAnswers)
-            toast.error(
-              `${failedAnswers.length} soru yanıtı kaydedilemedi. Denetim kaydedildi, ayrıntı için yöneticinize bildirin.`
-            )
-          }
-
-          const nonGoodAnswers = Object.values(answers).filter((ans) => ans.rating && ans.rating !== 'good')
-          if (nonGoodAnswers.length === 0) {
-            setSubmitted(true)
-            await clearDraft(assignedPlan?.id ?? null, header)
-
-            if (assignedPlan?.id && auditId) {
-              await markPlanCompleted(assignedPlan.id, auditId)
-            }
-
-            // Madde 9: otomatik yeni denetime geçiş yok — ana sayfaya dön
-            if (typeof window !== 'undefined') {
-              toast.success('Denetim başarıyla kaydedildi.')
-              window.location.href = '/'
-            }
-            return
-          }
-
-          const nonGoodWithType = nonGoodAnswers.filter((ans) => !!ans.findingType)
-          const detectedDate = header.date
-
-          const jobs = nonGoodWithType.map((ans) => createFindingForAnswer(ans, auditId, detectedDate))
-
-          await Promise.all(jobs)
-          setSubmitted(true)
-          await clearDraft(assignedPlan?.id ?? null, header)
-
-          if (assignedPlan?.id && auditId) {
-            await markPlanCompleted(assignedPlan.id, auditId)
-          }
-
-          console.log('Audit + findings (+ photos) başarıyla kaydedildi.')
-
-          // Madde 9: otomatik yeni denetime geçiş yok — ana sayfaya dön
-          if (typeof window !== 'undefined') {
-            toast.success('Denetim başarıyla kaydedildi.')
-            window.location.href = '/'
-          }
+          client_submission_id: clientSubmissionId,
         },
       })
     } catch (err) {
       /*
        * A refusal is not a lost connection. Anything the server turned down
-       * on purpose (4xx: a rule such as #27) went into the offline queue too,
-       * which then retried it forever and told the auditor "kuyruğa eklendi".
+       * on purpose (4xx: a rule such as #27, or a 409 for a plan whose audit
+       * was already sent) went into the offline queue too, which then retried
+       * it forever and told the auditor "kuyruğa eklendi". (This check could
+       * never fire before startAsPromise carried the status; see
+       * apiCallError.) 401/408/429/5xx and no answer are passing conditions
+       * and still go to the queue.
        */
-      const status = Number((err as any)?.status ?? (err as any)?.statusCode ?? (err as any)?.code)
-      if (status >= 400 && status < 500) {
-        const reasons = readServerReasons(err)
+      if (isRefusal(err)) {
+        const reasons = serverReasonsOf(err)
         toast.error(reasons.length ? reasons.join(' ') : 'Denetim kaydedilemedi.')
-        return
+        return false
       }
       console.error('ADD_FIVE_S_AUDIT failed -> offline queue', err)
-      await enqueueAuditAndFindingsFromForm()
+      return await enqueueAuditAndFindingsFromForm(clientSubmissionId)
+    }
+
+    // The audit exists from here on: whatever happens next, the form stays locked.
+    try {
+      await finishSentAudit(data)
+    } catch (err) {
+      console.error('Audit saved; a later step failed', err)
+      toast.error('Denetim kaydedildi ancak sonraki adımlarda hata oluştu. Lütfen yöneticinize bildirin.')
+    }
+    return true
+  }
+
+  /** What follows a saved audit row: its answers, findings, draft cleanup and plan stamp. */
+  const finishSentAudit = async (data: any) => {
+    const auditId = data?.data?.id ?? data?.id ?? data?.data?.[0]?.id ?? null
+
+    if (!auditId) {
+      console.warn('Audit ID bulunamadı, findings kaydı atlanıyor.')
+      setSubmitted(true)
+      return
+    }
+
+    /*
+     * Per-question answers.
+     *
+     * The audit row keeps only the five step totals, and a finding is
+     * written only for a non-good answer. That left every "İyi" with no
+     * record at all: after a completed audit nothing could say what was
+     * answered for a given question, and the score could not be
+     * recomputed from its parts. `five_s_audit_answers` was designed for
+     * exactly this (rating / explanation / finding_type per question) and
+     * was never written to. It is supplementary to the audit itself, so a
+     * failure here reports but does not fail the submission. The rows are
+     * the ones the offline queue stores and replays (answerRowsFor).
+     */
+    const answeredAt = new Date().toISOString()
+    const answerJobs = answerRowsFor(questions, answers, (qid) => openFindingsByQuestion.has(qid), answeredAt).map(
+      (row) =>
+        startAsPromise((actions as any).ADD_FIVE_S_AUDIT_ANSWER?.start, {
+          payload: { audit_id: auditId, ...row },
+        })
+    )
+
+    const answerResults = await Promise.allSettled(answerJobs)
+    const failedAnswers = answerResults.filter((r) => r.status === 'rejected')
+    if (failedAnswers.length > 0) {
+      console.error('Soru yanıtları kaydedilemedi', failedAnswers)
+      toast.error(
+        `${failedAnswers.length} soru yanıtı kaydedilemedi. Denetim kaydedildi, ayrıntı için yöneticinize bildirin.`
+      )
+    }
+
+    const nonGoodAnswers = Object.values(answers).filter((ans) => ans.rating && ans.rating !== 'good')
+    if (nonGoodAnswers.length === 0) {
+      setSubmitted(true)
+      await clearDraft(assignedPlan?.id ?? null, header)
+
+      if (assignedPlan?.id && auditId) {
+        await markPlanCompleted(assignedPlan.id, auditId)
+      }
+
+      // Madde 9: otomatik yeni denetime geçiş yok — ana sayfaya dön
+      if (typeof window !== 'undefined') {
+        toast.success('Denetim başarıyla kaydedildi.')
+        window.location.href = '/'
+      }
+      return
+    }
+
+    // A question that already has an open finding gets no second one
+    // (Notlar 07.10, satır 3/16), even if a type was picked in its panel.
+    const nonGoodWithType = nonGoodAnswers.filter(
+      (ans) => !!ans.findingType && needsFindingDetails(ans.questionId, ans)
+    )
+    const detectedDate = header.date
+
+    const jobs = nonGoodWithType.map((ans) => createFindingForAnswer(ans, auditId, detectedDate))
+
+    await Promise.all(jobs)
+    setSubmitted(true)
+    await clearDraft(assignedPlan?.id ?? null, header)
+
+    if (assignedPlan?.id && auditId) {
+      await markPlanCompleted(assignedPlan.id, auditId)
+    }
+
+    console.log('Audit + findings (+ photos) başarıyla kaydedildi.')
+
+    // Madde 9: otomatik yeni denetime geçiş yok — ana sayfaya dön
+    if (typeof window !== 'undefined') {
+      toast.success('Denetim başarıyla kaydedildi.')
+      window.location.href = '/'
     }
   }
 
@@ -2379,7 +3284,23 @@ export default function FiveSAuditFormPage() {
   }
 
   const handleSingleFindingSave = async () => {
+    // See singleSaveLockRef: a double tap filed the same single finding twice.
+    if (singleSaveLockRef.current) return
+    singleSaveLockRef.current = true
+    setSingleSaving(true)
+    try {
+      await saveSingleFinding()
+    } finally {
+      singleSaveLockRef.current = false
+      setSingleSaving(false)
+    }
+  }
+
+  const saveSingleFinding = async () => {
     const isNoPlanFlow = !assignedPlan
+    // The modal's own place and day, not the audit header's (see singleFinding.location).
+    const loc = (singleFinding.location || '').trim()
+    const findingDate = singleFinding.date
 
     if (isNoPlanFlow && !canCreateSingleFinding) {
       toast.error('Tekil bulgu girişi için yetkiniz yok.')
@@ -2394,8 +3315,8 @@ export default function FiveSAuditFormPage() {
     }
 
     if (isNoPlanFlow) {
-      if (!header.department?.trim()) { toast.error('Lokasyon alanı zorunludur.'); return }
-      if (!header.date) { toast.error('Tarih alanı zorunludur.'); return }
+      if (!loc) { toast.error('Lokasyon alanı zorunludur.'); return }
+      if (!findingDate) { toast.error('Tarih alanı zorunludur.'); return }
       if (!header.teamName) setHeader((prev) => ({ ...prev, teamName: 'Content Manager Core Team' }))
     }
 
@@ -2418,8 +3339,33 @@ export default function FiveSAuditFormPage() {
     if (!singleFinding.actionToTake.trim()) { toast.error('Alınacak faaliyet alanı zorunludur.'); return }
     if (!singleFinding.dueDate) { toast.error('Termin tarihi zorunludur.'); return }
 
-    const loc = (header.department || '').trim()
     if (!loc) { toast.error('Lokasyon alanı zorunludur.'); return }
+    if (!findingDate) { toast.error('Tarih alanı zorunludur.'); return }
+
+    /*
+     * One defect, one finding (R3). The audit form stops asking for a second
+     * finding on a question that already has an open one here; this modal
+     * made the twin anyway, with no word about it. Same data as the question
+     * rows' "⚠ Açık bulgu" — read again when the modal names another place.
+     */
+    if (singleFinding.linkedQuestionId) {
+      const openHere =
+        normLoc(loc) === normLoc(header.department)
+          ? openFindingsByQuestion
+          : mapOpenFindingsByQuestion(await readOpenFindings(loc), queuedQuestionIdsAt(loc))
+      const twins = openHere.get(singleFinding.linkedQuestionId) ?? []
+      if (twins.length > 0) {
+        const ok = await confirmDialog({
+          title: 'Bu soruya bağlı açık bulgu var',
+          message: `${singleFinding.linkedQuestionId} sorusunun ${loc} lokasyonunda henüz kapanmamış bulgusu var. Aynı sorun için ikinci bir bulgu açılsın mı?`,
+          items: twins,
+          confirmLabel: 'Yine de kaydet',
+          cancelLabel: 'Vazgeç',
+          tone: 'danger',
+        })
+        if (!ok) return
+      }
+    }
 
     // offline ise: audit + single finding kuyruğa
     if (!isOnline) {
@@ -2430,11 +3376,11 @@ export default function FiveSAuditFormPage() {
         id: submissionId,
         createdAt: Date.now(),
         planId,
-        header,
+        header: { ...header, department: loc, date: findingDate },
         auditPayload: {
-          department_name: header.department.trim(),
+          department_name: loc,
           auditor_name: header.auditorName.trim(),
-          audit_date: header.date,
+          audit_date: findingDate,
           // Not an audit: the carrier row a single finding needs. See below.
           source: 'single_finding',
           total_score: '0.00',
@@ -2454,7 +3400,7 @@ export default function FiveSAuditFormPage() {
               : null,
             auditor_user_id: currentUserId || null,
             client_finding_id: genUUID(),
-            detected_date: header.date,
+            detected_date: findingDate,
             location_name: loc || 'Bilinmeyen Lokasyon',
             finding_type: singleFinding.findingType,
             description: [
@@ -2489,21 +3435,29 @@ export default function FiveSAuditFormPage() {
         })
       }
 
-      await enqueueSubmission(submission, photoRows)
+      // Same as the audit form: a failed queue write must not read as saved.
+      try {
+        await enqueueSubmission(submission, photoRows)
+      } catch (err) {
+        console.error('offline enqueue (single finding) failed', err)
+        toast.error(offlineSaveFailedText(err))
+        return
+      }
 
       toast.success('Offline: Tekil bulgu kuyruğa eklendi. İnternet gelince otomatik gönderilecek.')
       setSingleFindingOpen(false)
-      setSingleFinding({ findingType: '', explanation: '', photos: [], actionToTake: '', dueDate: '', linkedQuestionId: '' })
+      setSingleFinding({ findingType: '', explanation: '', photos: [], actionToTake: '', dueDate: '', linkedQuestionId: '', location: '', date: '' })
       return
     }
 
-    // online: mevcut akış
+    // online: mevcut akış — every step awaited, under the save lock
+    let data: any
     try {
-      await startAsPromise((actions as any).ADD_FIVE_S_AUDIT?.start, {
+      data = await startAsPromise((actions as any).ADD_FIVE_S_AUDIT?.start, {
         payload: {
-          department_name: header.department.trim(),
+          department_name: loc,
           auditor_name: header.auditorName.trim(),
-          audit_date: atUtcMidnight(header.date),
+          audit_date: atUtcMidnight(findingDate),
           /*
            * A finding is stored against an audit row, so a single finding gets
            * one — with every score at 0. That row is a carrier, not an audit,
@@ -2523,84 +3477,94 @@ export default function FiveSAuditFormPage() {
           score_s4: '0.00',
           score_s5: '0.00',
         },
-
-        onAfterHandle: async (data: any) => {
-          const auditId = data?.data?.id ?? data?.id ?? data?.data?.[0]?.id ?? null
-          if (!auditId) {
-            toast.error('Tekil bulgu için audit kaydı oluşturulamadı.')
-            return
-          }
-
-          const uploadedPhotos: UploadedFileInfo[] = []
-          for (const f of singleFinding.photos ?? []) {
-            try {
-              const up = await uploadAnswerPhoto({ file: f })
-              if (up?.fileId || up?.fileUrl) uploadedPhotos.push(up)
-            } catch (err) {
-              console.error('Tekil bulgu fotoğraf upload error', err)
-            }
-          }
-
-          const primary = uploadedPhotos[0]
-          const beforeArr = toPhotoArr(uploadedPhotos)
-
-          const descriptionLines: string[] = [
-            'TEKİL BULGU',
-            `Ekip: ${header.teamName || 'Content Manager Core Team'}`,
-            ...(singleFinding.linkedQuestionId
-              ? [
-                  `Bağlı Soru: ${singleFinding.linkedQuestionId}`,
-                  `Soru Metni: ${questions.find((q) => q.id === singleFinding.linkedQuestionId)?.text ?? ''}`,
-                ]
-              : []),
-            `Bulgu Tipi: ${singleFinding.findingType}`,
-            `Açıklama: ${singleFinding.explanation.trim()}`,
-            `Alınacak Faaliyet: ${singleFinding.actionToTake.trim()}`,
-          ]
-          const description = descriptionLines.join('\n')
-
-          const singleLocResp = locationResponsibleMap.get(normLoc(loc || '')) ?? null
-
-          try {
-            await startAsPromise((actions as any).ADD_FIVE_S_FINDING?.start, {
-              payload: {
-                audit_id: auditId,
-                question_id: singleFinding.linkedQuestionId || undefined,
-                step_code: singleFinding.linkedQuestionId
-                  ? singleFinding.linkedQuestionId.split('-')[0]
-                  : undefined,
-                auditor_user_id: currentUserId || undefined,
-                client_finding_id: genUUID(),
-                detected_date: header.date,
-                location_name: loc || 'Bilinmeyen Lokasyon',
-                finding_type: singleFinding.findingType,
-                description,
-                responsible_name: singleLocResp?.userName || header.auditorName,
-                responsible_user_id: singleLocResp?.userId || undefined,
-                action_to_take: singleFinding.actionToTake.trim(),
-                due_date: singleFinding.dueDate || undefined,
-                auditor_name: header.auditorName.trim(),
-                form_title: SINGLE_FINDING_TITLE,
-
-                photo_before_files: beforeArr,
-                photo_before_file_id: primary?.fileId,
-                photo_before_url: primary?.fileUrl,
-              },
-            })
-
-            toast.success('Tekil bulgu başarıyla kaydedildi.')
-            setSingleFindingOpen(false)
-            setSingleFinding({ findingType: '', explanation: '', photos: [], actionToTake: '', dueDate: '', linkedQuestionId: '' })
-            fetchFindings(header.department)
-          } catch (err) {
-            console.error('TEKİL BULGU ADD_FIVE_S_FINDING error', err)
-            toast.error('Tekil bulgu kaydedilirken bir hata oluştu.')
-          }
-        },
       })
     } catch (err) {
-      console.error('TEKİL BULGU audit error -> offline queue', err)
-      toast.error('Kayıt sırasında hata oluştu. İnternet sorunu olabilir. Tekrar deneyin veya offline kuyruğa ekleyin.')
+      console.error('TEKİL BULGU audit error', err)
+      // A refusal says why; anything else may be the connection.
+      const reasons = isRefusal(err) ? serverReasonsOf(err) : []
+      toast.error(
+        reasons.length
+          ? `Tekil bulgu kaydedilemedi: ${reasons.join(' ')}`
+          : 'Kayıt sırasında hata oluştu. İnternet sorunu olabilir. Tekrar deneyin veya offline kuyruğa ekleyin.'
+      )
+      return
+    }
+
+    const auditId = data?.data?.id ?? data?.id ?? data?.data?.[0]?.id ?? null
+    if (!auditId) {
+      toast.error('Tekil bulgu için audit kaydı oluşturulamadı.')
+      return
+    }
+
+    const uploadedPhotos: UploadedFileInfo[] = []
+    for (const f of singleFinding.photos ?? []) {
+      try {
+        const up = await uploadAnswerPhoto({ file: f })
+        if (up?.fileId || up?.fileUrl) uploadedPhotos.push(up)
+      } catch (err) {
+        console.error('Tekil bulgu fotoğraf upload error', err)
+      }
+    }
+
+    const primary = uploadedPhotos[0]
+    const beforeArr = toPhotoArr(uploadedPhotos)
+
+    const descriptionLines: string[] = [
+      'TEKİL BULGU',
+      `Ekip: ${header.teamName || 'Content Manager Core Team'}`,
+      ...(singleFinding.linkedQuestionId
+        ? [
+            `Bağlı Soru: ${singleFinding.linkedQuestionId}`,
+            `Soru Metni: ${questions.find((q) => q.id === singleFinding.linkedQuestionId)?.text ?? ''}`,
+          ]
+        : []),
+      `Bulgu Tipi: ${singleFinding.findingType}`,
+      `Açıklama: ${singleFinding.explanation.trim()}`,
+      `Alınacak Faaliyet: ${singleFinding.actionToTake.trim()}`,
+    ]
+    const description = descriptionLines.join('\n')
+
+    const singleLocResp = locationResponsibleMap.get(normLoc(loc || '')) ?? null
+
+    try {
+      await startAsPromise((actions as any).ADD_FIVE_S_FINDING?.start, {
+        payload: {
+          audit_id: auditId,
+          question_id: singleFinding.linkedQuestionId || undefined,
+          step_code: singleFinding.linkedQuestionId
+            ? singleFinding.linkedQuestionId.split('-')[0]
+            : undefined,
+          auditor_user_id: currentUserId || undefined,
+          client_finding_id: genUUID(),
+          detected_date: findingDate,
+          location_name: loc || 'Bilinmeyen Lokasyon',
+          finding_type: singleFinding.findingType,
+          description,
+          responsible_name: singleLocResp?.userName || header.auditorName,
+          responsible_user_id: singleLocResp?.userId || undefined,
+          action_to_take: singleFinding.actionToTake.trim(),
+          due_date: singleFinding.dueDate || undefined,
+          auditor_name: header.auditorName.trim(),
+          form_title: SINGLE_FINDING_TITLE,
+
+          photo_before_files: beforeArr,
+          photo_before_file_id: primary?.fileId,
+          photo_before_url: primary?.fileUrl,
+        },
+      })
+
+      toast.success('Tekil bulgu başarıyla kaydedildi.')
+      setSingleFindingOpen(false)
+      setSingleFinding({ findingType: '', explanation: '', photos: [], actionToTake: '', dueDate: '', linkedQuestionId: '', location: '', date: '' })
+      fetchFindings(header.department)
+    } catch (err) {
+      console.error('TEKİL BULGU ADD_FIVE_S_FINDING error', err)
+      const reasons = isRefusal(err) ? serverReasonsOf(err) : []
+      toast.error(
+        reasons.length
+          ? `Tekil bulgu kaydedilemedi: ${reasons.join(' ')}`
+          : 'Tekil bulgu kaydedilirken bir hata oluştu.'
+      )
     }
   }
 
@@ -2663,8 +3627,8 @@ export default function FiveSAuditFormPage() {
               </label>
 
               <select
-                value={header.department}
-                onChange={(e) => handleHeaderChange('department', e.target.value)}
+                value={singleFinding.location}
+                onChange={(e) => handleSingleFindingPlaceChange('location', e.target.value)}
                 className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-2 py-1.5 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
               >
                 <option value="">Seçiniz</option>
@@ -2687,11 +3651,11 @@ export default function FiveSAuditFormPage() {
                * screen said who that was, so whoever raised it could not tell
                * whether it would reach anyone.
                */}
-              {header.department ? (
+              {singleFinding.location ? (
                 <p className="mt-1 text-[11px] text-slate-600 dark:text-slate-400">
                   Saha Sorumlusu:{' '}
                   <span className="font-medium text-slate-800 dark:text-slate-200">
-                    {locationResponsibleMap.get(normLoc(header.department))?.userName ||
+                    {locationResponsibleMap.get(normLoc(singleFinding.location))?.userName ||
                       'Bu lokasyona saha sorumlusu tanımlı değil'}
                   </span>
                 </p>
@@ -2703,8 +3667,8 @@ export default function FiveSAuditFormPage() {
                 Tarih <span className="text-rose-400">(zorunlu)</span>
               </label>
               <DateInput
-                value={header.date}
-                onChange={(value) => handleHeaderChange('date', value)}
+                value={singleFinding.date}
+                onChange={(value) => handleSingleFindingPlaceChange('date', value)}
                 className="date-dark w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
               />
             </div>
@@ -2757,6 +3721,12 @@ export default function FiveSAuditFormPage() {
                 </option>
               ))}
             </select>
+            {singleFindingLinkedOpen.length > 0 ? (
+              <p className="mt-1 rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-900 dark:text-amber-300">
+                ⚠ Bu soruya bu lokasyonda henüz kapanmamış bulgu var ({singleFindingLinkedOpen.join(', ')}). Aynı
+                sorun için ikinci bir bulgu açmak üzeresiniz; kaydederken onayınız istenecek.
+              </p>
+            ) : null}
           </div>
 
           <div>
@@ -2857,7 +3827,7 @@ export default function FiveSAuditFormPage() {
               Termin Tarihi <span className="text-rose-400">(zorunlu)</span>
             </label>
             <DateInput
-              value={singleFinding.dueDate || header.date}
+              value={singleFinding.dueDate || singleFinding.date}
               onChange={(value) => handleSingleFindingFieldChange('dueDate', value)}
               className="date-dark w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
             />
@@ -2875,9 +3845,10 @@ export default function FiveSAuditFormPage() {
           <button
             type="button"
             onClick={handleSingleFindingSave}
-            className="rounded-md bg-emerald-500 px-4 py-1.5 font-semibold text-slate-950 hover:bg-emerald-400"
+            disabled={singleSaving}
+            className="rounded-md bg-emerald-500 px-4 py-1.5 font-semibold text-slate-950 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Kaydet
+            {singleSaving ? 'Kaydediliyor…' : 'Kaydet'}
           </button>
         </div>
       </div>
@@ -2960,6 +3931,7 @@ export default function FiveSAuditFormPage() {
                   <span className="ml-2 text-slate-500 dark:text-slate-400">• Kuyruk: {queuedCount}</span>
                 ) : null}
               </div>
+              {RefusedQueueNotice}
             </div>
 
             {queuedCount > 0 ? (
@@ -3159,6 +4131,7 @@ export default function FiveSAuditFormPage() {
                   </button>
                 ) : null}
               </p>
+              {RefusedQueueNotice}
             </div>
 
             <div className="flex flex-col gap-2 items-stretch md:items-end">
@@ -3190,6 +4163,13 @@ export default function FiveSAuditFormPage() {
                     {formatScore(totalScore)} / 100
                   </span>
                   <span className="text-xs text-slate-500 dark:text-slate-400">{totalScore >= 75 ? 'Hedef üstü' : 'Hedef altında'}</span>
+                  {auditScore.adjustments.length > 0 ? (
+                    <ul className="mt-1 space-y-0.5 text-[11px] text-amber-700 dark:text-amber-300">
+                      {auditScore.adjustments.map((a) => (
+                        <li key={a}>• {a}</li>
+                      ))}
+                    </ul>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -3277,8 +4257,20 @@ export default function FiveSAuditFormPage() {
                                 className="min-w-0 flex-1 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-2 py-1 text-xs"
                               >
                                 <option value="">Kişi seçin</option>
+                                {/*
+                                  Not the location's own field managers: nobody
+                                  audits the place they are responsible for
+                                  (#27), and this list offered them as
+                                  "ekip dışından" auditors of their own place.
+                                */}
                                 {[...assignmentDataRef.current.usersById.entries()]
                                   .filter(([id, name]) => !teamMemberOptions.some((m) => m.id === id || m.name === name))
+                                  .filter(
+                                    ([id]) =>
+                                      !(
+                                        assignmentDataRef.current.fieldManagerIdsByLoc.get(normLoc(header.department)) ?? []
+                                      ).includes(id)
+                                  )
                                   .sort((a, b) => a[1].localeCompare(b[1], 'tr'))
                                   .map(([id, name]) => (
                                     <option key={id} value={id}>
@@ -3319,6 +4311,39 @@ export default function FiveSAuditFormPage() {
                   />
                 )}
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">Denetime aktif katılan denetçileri seçin (birden fazla seçilebilir).</p>
+              </div>
+
+              {/*
+                Kurallar (Notlar 07.10): the auditor ticks whether the
+                location's field manager took part. Not ticked, the audit
+                scores 0 — the plant's rule, applied by scoreAudit.
+              */}
+              <div className="space-y-1 sm:col-span-2">
+                {locationHasFieldManager ? (
+                  <label className="flex cursor-pointer items-start gap-2 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={header.fieldManagerAttended === true}
+                      onChange={(e) => setHeader((prev) => ({ ...prev, fieldManagerAttended: e.target.checked }))}
+                      className="mt-0.5 accent-emerald-500"
+                    />
+                    <span>
+                      <span className="font-medium text-slate-800 dark:text-slate-200">Bölge sorumlusu denetime katıldı</span>
+                      {locationResponsibleMap.get(normLoc(header.department))?.userName ? (
+                        <span className="text-slate-600 dark:text-slate-400">
+                          {' '}({locationResponsibleMap.get(normLoc(header.department))?.userName})
+                        </span>
+                      ) : null}
+                      <span className="block text-[11px] text-slate-500 dark:text-slate-400">
+                        İşaretlenmezse denetim puanı 0 olarak kaydedilir.
+                      </span>
+                    </span>
+                  </label>
+                ) : (
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Bu lokasyona saha sorumlusu tanımlı değil; bölge sorumlusu katılım kuralı uygulanmaz.
+                  </p>
+                )}
               </div>
 
               <div className="space-y-1">
@@ -3410,7 +4435,7 @@ export default function FiveSAuditFormPage() {
                                     className="ml-2 inline-flex items-center rounded-sm bg-amber-500/20 px-1.5 py-0.5 text-[11px] font-semibold text-amber-900 dark:text-amber-300 ring-1 ring-amber-500/40"
                                     title="Bu soruya bağlı henüz kapanmamış bulgu var"
                                   >
-                                    ⚠ Açık bulgu ({openFindingsByQuestion.get(q.id)})
+                                    ⚠ Açık bulgu {openFindingsByQuestion.get(q.id)?.join(', ')}
                                   </span>
                                 )}
                               </td>
@@ -3512,7 +4537,7 @@ export default function FiveSAuditFormPage() {
                               )}
                               {openFindingsByQuestion.has(q.id) && (
                                 <span className="ml-1 inline-flex items-center rounded-sm bg-amber-500/20 px-1 py-0.5 text-[11px] font-semibold text-amber-700 dark:text-amber-300">
-                                  ⚠ Açık bulgu ({openFindingsByQuestion.get(q.id)})
+                                  ⚠ Açık bulgu {openFindingsByQuestion.get(q.id)?.join(', ')}
                                 </span>
                               )}
                             </div>
@@ -3661,13 +4686,19 @@ export default function FiveSAuditFormPage() {
                   </button>
                   <button
                     type="submit"
-                    disabled={hasAttempted && liveUnanswered.size > 0}
+                    disabled={submitState !== 'idle' || (hasAttempted && liveUnanswered.size > 0)}
                     title={hasAttempted && liveUnanswered.size > 0 ? `${liveUnanswered.size} soru yanıtlanmadan form kaydedilemez.` : undefined}
-                    className={`inline-flex items-center gap-1.5 justify-center rounded-md px-4 py-2 text-xs font-semibold transition-colors ${ hasAttempted && liveUnanswered.size > 0 ?'cursor-not-allowed bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
+                    className={`inline-flex items-center gap-1.5 justify-center rounded-md px-4 py-2 text-xs font-semibold transition-colors ${ submitState !== 'idle' || (hasAttempted && liveUnanswered.size > 0) ?'cursor-not-allowed bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
                         : 'bg-sky-500 text-slate-950 hover:bg-sky-400'
                     }`}
                   >
-                    {editAudit ? 'Değişiklikleri Kaydet' : 'Formu Kaydet'}
+                    {submitState === 'saving'
+                      ? 'Kaydediliyor…'
+                      : submitState === 'done'
+                        ? 'Kaydedildi'
+                        : editAudit
+                          ? 'Değişiklikleri Kaydet'
+                          : 'Formu Kaydet'}
                     {hasAttempted && liveUnanswered.size > 0 && (
                       <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white">
                         {liveUnanswered.size}

@@ -78,8 +78,10 @@ SELECT 'Auditor', a FROM unnest(ARRAY[
 -- status, audit_id, auditor_attended, field_manager_attended. Bu yetki
 -- verilmeyince denetim kaydediliyor ama plan `planned` kalıyordu — denetçi aynı
 -- denetimi tekrar görür, planlayan yapılmadı sanır. Ölçüldü: denetim 100.00
--- puanla kaydedildi, plan damgalanmadı. `planned_date` bilerek YOK: denetçi
--- denetimi tamamlayabilir ama tarihini oynatamaz.
+-- puanla kaydedildi, plan damgalanmadı. `planned_date` ve `date_change_count`
+-- burada yok; onları boot.ts veriyor, çünkü planlanmış denetimin tarihini ekip
+-- lideri (bir denetçi) en fazla 2 kez değiştirebilir. Bunu yalnız ekip liderine
+-- bırakan kural sunucudaki iş kuralı katmanında (guards/businessRules.ts).
 INSERT INTO wanted
 SELECT 'Auditor', c.action
 FROM main.claims c

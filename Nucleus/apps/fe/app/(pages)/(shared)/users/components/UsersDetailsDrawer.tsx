@@ -1,8 +1,6 @@
 'use client'
 
-import type { RoleJSON } from '@monorepo/db-entities/schemas/default/role'
 import type { UserJSON } from '@monorepo/db-entities/schemas/default/user'
-import type { UserRoleJSON } from '@monorepo/db-entities/schemas/default/user_role'
 import {
   Activity,
   Calendar,
@@ -24,7 +22,7 @@ import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
 import { useUsersStore } from '@/app/_store/usersStore'
-import { UsersManageRolesModal } from './UsersManageRolesModal'
+import { type AccountRole, readAccountRoles, UsersManageRolesModal } from './UsersManageRolesModal'
 
 interface UsersDetailsDrawerProps {
   isOpen: boolean
@@ -61,7 +59,7 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
   const actions = useGenericApiActions()
   const [isVisible, setIsVisible] = useState(false)
   const [shouldRender, setShouldRender] = useState(false)
-  const [rolesWithClaims, setRolesWithClaims] = useState<RoleJSON[]>([])
+  const [rolesWithClaims, setRolesWithClaims] = useState<AccountRole[]>([])
   const [isLoadingRoles, setIsLoadingRoles] = useState(false)
   const [rolesErrorCode, setRolesErrorCode] = useState<number | null>(null)
 
@@ -89,46 +87,16 @@ export function UsersDetailsDrawer({ isOpen, user, onClose }: UsersDetailsDrawer
     setIsLoadingRoles(true)
     setRolesErrorCode(null)
 
-    actions.GET_USER_ROLES?.start({
-      payload: {
-        page: 1,
-        limit: 100,
-        filters: { user_id: user.id },
+    // Merkez Ekip /roles ve /userRoles okuyamıyor; rolleri bu hesabın kendi
+    // ucundan alıyoruz (rol modalıyla aynı kaynak).
+    // biome-ignore lint/suspicious/noExplicitAny: custom endpoint, untyped payload
+    ;(actions as any).BILTIM_USER_ROLES?.start({
+      payload: { userId: user.id },
+      onAfterHandle: (data: unknown) => {
+        setIsLoadingRoles(false)
+        setRolesWithClaims(readAccountRoles(data).roles.filter((role) => role.assigned))
       },
-      onAfterHandle: (userRolesData) => {
-        const list = (userRolesData?.data ?? []) as UserRoleJSON[]
-        if (list.length === 0) {
-          setRolesWithClaims([])
-          setIsLoadingRoles(false)
-          return
-        }
-
-        actions.GET_ROLES?.start({
-          payload: {
-            page: 1,
-            limit: 100,
-            relations: ['claims'],
-          } as never,
-          onAfterHandle: (rolesData) => {
-            setIsLoadingRoles(false)
-            if (!rolesData) {
-              setRolesWithClaims([])
-              return
-            }
-            const rolesList = rolesData.data as RoleJSON[]
-            const roleIdSet = new Set(list.map((item) => item.role_id))
-            const filtered = rolesList.filter((role) => roleIdSet.has(role.id))
-            setRolesWithClaims(filtered)
-          },
-          onErrorHandle: (error, code) => {
-            setIsLoadingRoles(false)
-            setRolesWithClaims([])
-            setRolesErrorCode(code ?? null)
-            console.error('Get roles for user failed:', error)
-          },
-        })
-      },
-      onErrorHandle: (error, code) => {
+      onErrorHandle: (error: unknown, code?: number) => {
         setIsLoadingRoles(false)
         setRolesWithClaims([])
         setRolesErrorCode(code ?? null)

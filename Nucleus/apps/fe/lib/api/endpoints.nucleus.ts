@@ -98,7 +98,16 @@ const custom = {
 
   // 1 — bildirimler
   GET_NOTIFICATIONS: { method: 'GET', path: '/notifications/' },
-  UPDATE_NOTIFICATION: { method: 'PATCH', path: '/notifications/:id' },
+  /*
+   * Bildirim modülünün kendi uçları (#33). Yalnız arayanın kendi
+   * bildirimlerine dokunuyor ve yetki istemiyor. Önceden okundu işareti
+   * jenerik tablo ucuna (PATCH /notifications/:id) gidiyordu: denetçi ve saha
+   * sorumlusunda o yetki yok, istek 403 alıyor ve sessizce düşüyordu — zildeki
+   * sayı hiç azalmıyordu. Sayaç da okunmuşları ayırt etmiyordu.
+   */
+  NOTIFICATION_MARK_SEEN: { method: 'POST', path: '/notifications/:notification_id/seen' },
+  NOTIFICATION_MARK_ALL_SEEN: { method: 'POST', path: '/notifications/seen-all' },
+  NOTIFICATION_UNSEEN_COUNT: { method: 'GET', path: '/notifications/unseen-count' },
 
   // 1 — doğrulama akışı tabloları (nucleus bunları jenerik CRUD olarak sunuyor)
   GET_VERIFICATION_STEPS: { method: 'GET', path: '/verificationSteps/' },
@@ -143,6 +152,15 @@ const custom = {
   BILTIM_LOCK_USER: { method: 'POST', path: '/biltim/users/lock' },
   BILTIM_UNLOCK_USER: { method: 'POST', path: '/biltim/users/unlock' },
   BILTIM_SET_USER_PASSWORD: { method: 'POST', path: '/biltim/users/password' },
+  // Verilebilecek roller ve bu kişinin değiştiremeyeceği hesaplar (Merkez Ekip de okuyabilir).
+  BILTIM_USER_RANKS: { method: 'GET', path: '/biltim/users/ranks' },
+  /*
+   * Bir hesabın rolleri ve rol ata/kaldır. Jenerik /userRoles yazımı yalnız
+   * godmin'e açık olduğu için Merkez Ekip mevcut kullanıcının rolünü
+   * değiştiremiyordu.
+   */
+  BILTIM_USER_ROLES: { method: 'GET', path: '/biltim/users/roles' },
+  BILTIM_SET_USER_ROLE: { method: 'POST', path: '/biltim/users/roles' },
 } as unknown as Record<string, TranslatedEndpoint>
 
 export const NucleusEndpoints = { ...systemTables, ...generated, ...custom }

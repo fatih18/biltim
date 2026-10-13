@@ -22,6 +22,18 @@ interface UsersCreateModalProps {
     roleIds: string[]
   }) => void
   isSubmitting: boolean
+  /*
+   * Çağıranın verebileceği roller. Sunucu Super Admin'i yalnız bir Super
+   * Admin'den, godmin rolünü yalnız godmin'den kabul ediyor; listede durup
+   * seçilen bir rol "Bu rolü verme yetkiniz yok" ile dönüyordu. Verilmezse
+   * hepsi listelenir.
+   */
+  canAssignRole?: (role: RoleJSON) => boolean
+  /**
+   * Sunucunun verdiği, bu kişinin atayabileceği roller (GET /biltim/users/ranks).
+   * Verilirse GET /roles okunmaz — Merkez Ekip o uca erişemiyor.
+   */
+  assignableRoles?: Array<{ id: string; name: string; alias: string | null; description: string | null; is_system: boolean }>
 }
 
 const normalize = (v: string) =>
@@ -68,6 +80,8 @@ export function UsersCreateModal({
   onClose,
   onSubmit,
   isSubmitting,
+  canAssignRole,
+  assignableRoles: serverRoles,
 }: UsersCreateModalProps) {
   const actions = useGenericApiActions()
 
@@ -82,6 +96,11 @@ export function UsersCreateModal({
   // bulunamadı" demek yanlış yönlendiriyordu (canlıda oturum süresi dolunca
   // GET /roles 401 döndü ve form "Rol bulunamadı" gösterdi).
   const [rolesError, setRolesError] = useState<string | null>(null)
+
+  const assignableRoles = useMemo(
+    () => (canAssignRole ? availableRoles.filter(canAssignRole) : availableRoles),
+    [availableRoles, canAssignRole]
+  )
 
   const rolesById = useMemo(() => {
     return new Map(availableRoles.map((r) => [r.id, r]))
@@ -155,6 +174,11 @@ export function UsersCreateModal({
     setAvailableRoles([])
     setRolesError(null)
 
+    if (serverRoles && serverRoles.length > 0) {
+      setAvailableRoles(serverRoles as unknown as RoleJSON[])
+      return
+    }
+
     setIsLoadingRoles(true)
     actions.GET_ROLES?.start({
       payload: { page: 1, limit: 100 },
@@ -175,7 +199,7 @@ export function UsersCreateModal({
       },
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen])
+  }, [isOpen, serverRoles])
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -328,10 +352,10 @@ export function UsersCreateModal({
                   </div>
                 ) : rolesError ? (
                   <p className="text-xs text-rose-700 dark:text-rose-300">{rolesError}</p>
-                ) : availableRoles.length === 0 ? (
+                ) : assignableRoles.length === 0 ? (
                   <p className="text-xs text-slate-500 dark:text-slate-400">Rol bulunamadı.</p>
                 ) : (
-                  availableRoles.map((role) => {
+                  assignableRoles.map((role) => {
                     const isSelected = selectedRoleIds.includes(role.id)
                     const disabled = !isSelected && !canToggleOn(role.id)
 
