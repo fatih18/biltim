@@ -14,7 +14,7 @@ import type { DayConflictLoader } from "./_hooks/useDayConflicts";
 import { canOpenAuditReport, isFieldManagerOnly } from "./_utils/auditReport";
 import { TAB_STATUS_FILTERS } from "./_utils/tabStatus";
 import { RejectPlanDialog } from "./_components/RejectPlanDialog";
-import { canApprovePlan, canCorrectRejectedPlan, canRejectPlan, isCarriedOutPlan, isOnPlanTeam } from "@/app/_utils/planReview";
+import { isCarriedOutPlan, rowActionsFor } from "@/app/_utils/planReview";
 
 import { HomeAuditListPanel } from "./components/HomeAuditListPanel";
 import { EditAuditModal, type EditableAudit } from "./components/EditAuditModal";
@@ -1040,6 +1040,13 @@ export default function Page() {
     );
   };
 
+  // Onayla, Reddet and "Düzelt ve Yeniden Gönder" of one row, decided in one place (planReview).
+  const rowActionsOf = (plan: AuditPlanRow) =>
+    rowActionsFor(
+      { status: plan.status, auditId: plan.audit_id, teamId: plan.assigned_team_id },
+      { isAdmin: isAdminUser, myTeamIds: scope?.teamIds ?? [] }
+    );
+
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-50 px-4 py-6 md:px-8">
       <div className="mx-auto max-w-7xl space-y-6">
@@ -1048,19 +1055,12 @@ export default function Page() {
           onStartAudit={startAudit}
           canStartPlan={canStartPlan}
           onApprovePlan={approvePlan}
-          canApprove={(plan) => canApprovePlan({ status: plan.status, isAdmin: isAdminUser })}
+          canApprove={(plan) => rowActionsOf(plan).approve}
           approvingId={approvingId}
           onRejectPlan={setRejecting}
-          canReject={(plan) => canRejectPlan({ status: plan.status, isAdmin: isAdminUser })}
+          canReject={(plan) => rowActionsOf(plan).reject}
           onCorrectRejected={openAuditAnswersEdit}
-          canCorrectRejected={(plan) =>
-            canCorrectRejectedPlan({
-              status: plan.status,
-              auditId: plan.audit_id,
-              isAdmin: isAdminUser,
-              isTeamMember: isOnPlanTeam(plan.assigned_team_id, scope?.teamIds ?? []),
-            })
-          }
+          canCorrectRejected={(plan) => rowActionsOf(plan).correct}
           onDeletePlan={isPrivilegedUser ? deletePlan : undefined}
           currentUserId={currentUserId}
           locInfoById={locInfoById}

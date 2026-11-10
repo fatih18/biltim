@@ -76,6 +76,37 @@ export function canCorrectRejectedPlan(input: {
   return isPlanRejected(input.status) && !!input.auditId && (input.isAdmin || input.isTeamMember)
 }
 
+/** What a list row knows about its plan, as plain values. */
+export type RowActionPlan = {
+  status: string
+  auditId: string | null | undefined
+  teamId: string | null | undefined
+}
+
+/** Who is looking: whether they are an admin, and the teams they lead or belong to. */
+export type RowActionPerson = { isAdmin: boolean; myTeamIds: readonly string[] }
+
+export type RowActions = { approve: boolean; reject: boolean; correct: boolean }
+
+/**
+ * Which review buttons a plan's row offers this person: Onayla, Reddet and
+ * Düzelt ve Yeniden Gönder. The home page asks this one function for all three,
+ * and its test pins the same function, so the page and the test cannot compose
+ * the rules differently.
+ */
+export function rowActionsFor(plan: RowActionPlan, person: RowActionPerson): RowActions {
+  return {
+    approve: canApprovePlan({ status: plan.status, isAdmin: person.isAdmin }),
+    reject: canRejectPlan({ status: plan.status, isAdmin: person.isAdmin }),
+    correct: canCorrectRejectedPlan({
+      status: plan.status,
+      auditId: plan.auditId,
+      isAdmin: person.isAdmin,
+      isTeamMember: isOnPlanTeam(plan.teamId, person.myTeamIds),
+    }),
+  }
+}
+
 /** Saving a correction on a rejected plan sends it again; on any other plan it only saves. */
 export function shouldResendAfterCorrection(status: string | null | undefined): boolean {
   return isPlanRejected(status)

@@ -1,15 +1,18 @@
 import { describe, expect, it } from 'bun:test'
-import { canApprovePlan, canCorrectRejectedPlan, canRejectPlan, isOnPlanTeam, isPlanRejected } from './index'
+import {
+  canApprovePlan,
+  isPlanRejected,
+  rowActionsFor,
+  type RowActionPerson as Person,
+  type RowActionPlan as Plan,
+} from './index'
 
 /*
  * What a row of the home page's audit list offers, per person and per status
- * (R30). The page composes these functions exactly as below; the list shows a
- * button only where the answer is true, so nobody is offered one the server
- * would refuse.
+ * (R30). The page asks rowActionsFor, the function tested here, for every
+ * button; the list shows a button only where the answer is true, so nobody is
+ * offered one the server would refuse.
  */
-
-type Person = { isAdmin: boolean; myTeamIds: string[] }
-type Plan = { status: string; auditId: string | null; teamId: string }
 
 const admin: Person = { isAdmin: true, myTeamIds: [] }
 const team: Person = { isAdmin: false, myTeamIds: ['team-1'] }
@@ -17,18 +20,9 @@ const adminOnTeam: Person = { isAdmin: true, myTeamIds: ['team-1'] }
 const other: Person = { isAdmin: false, myTeamIds: ['team-9'] }
 const nobody: Person = { isAdmin: false, myTeamIds: [] }
 
+/** The row's buttons, and whether the reason note shows (it does, to every viewer of a rejected plan). */
 function offered(plan: Plan, person: Person) {
-  return {
-    approve: canApprovePlan({ status: plan.status, isAdmin: person.isAdmin }),
-    reject: canRejectPlan({ status: plan.status, isAdmin: person.isAdmin }),
-    correct: canCorrectRejectedPlan({
-      status: plan.status,
-      auditId: plan.auditId,
-      isAdmin: person.isAdmin,
-      isTeamMember: isOnPlanTeam(plan.teamId, person.myTeamIds),
-    }),
-    note: isPlanRejected(plan.status),
-  }
+  return { ...rowActionsFor(plan, person), note: isPlanRejected(plan.status) }
 }
 
 const sent: Plan = { status: 'pending_approval', auditId: 'audit-1', teamId: 'team-1' }
