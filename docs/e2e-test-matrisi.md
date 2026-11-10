@@ -1,6 +1,6 @@
 # Biltim — uçtan uca test matrisi
 
-Koddan çıkarıldı: 8 ekran, 404 senaryo.
+Koddan çıkarıldı: 8 ekran, 408 senaryo.
 Her satır arayüzden izlenebilir bir adım dizisidir; "beklenen" sütunu neyin kanıt sayılacağını söyler.
 
 ## Raporlar (/raporlar) — "5S Raporları"  (36 senaryo)
@@ -950,7 +950,7 @@ Her satır arayüzden izlenebilir bir adım dizisidir; "beklenen" sütunu neyin 
    - Beklenen: A gününün altında plan satırı durur: Tarih sütununda A ve altında "Yapıldı: B" yazar, satırdaki işlemler (Onayla, Reddet, tarih düzenleme, rapor) yalnız bu satırdadır. B gününün altında aynı denetimin ikinci satırı çıkar: sol kenarı mavi çizgili, açık mavi zeminli; Tarih sütununda "Yapıldı: B" ve altında "Plan: A", durum rozeti ve altında "Aynı denetim" yazar; satırda işlem düğmesi YOKTUR. Satır, sekmenin sıralama yönüne (Plan / Yaklaşan'da eskiden yeniye, Onay Bekleyen ve Tamamlanan'da yeniden eskiye) göre B gününün plan satırlarından sonra gelir. Listenin altında "Listede N denetim var. M tanesi planlandığından farklı bir günde yapıldığı için yapıldığı günde de görünür. ..." notu çıkar; sekme sayaçları ve toplamlar denetimi bir kez sayar, tekrar satırı sayıyı artırmaz. Planı okunan sayfanın dışında kalan denetimin tekrar satırı da B gününde çıkar (Plan: A), bu satırın planı listede başka bir yerde YOKTUR ve not "<K> denetimin planı bu sayfanın dışında kaldığı için yalnız yapıldığı günde görünür." der; bu okuma sekmenin kendi koşullarıyla yapılır (sekmenin durumu ve kişinin kapsamı), yani başka sekmenin planı ya da kişinin görmediği bir plan tekrar satırı olmaz. Bu okuma başarısız olursa liste yine açılır ve altında "Planı bu sayfanın dışında kalan denetimler okunamadı; bunlar yapıldıkları günde listelenmemiş olabilir. Sayfayı yenileyin." uyarısı çıkar. Aynı gün planlanıp yapılan denetimde tekrar satırı yoktur. Gün karşılaştırması saat dilimine bağlı değildir: planlı gün ile yapıldığı gün 'YYYY-AA-GG' ilk 10 karakterle kıyaslanır, 23:30 UTC'deki bir tarih tarayıcının diliminde ertesi güne kaymaz.
    - Roller: Ana sayfayı açan herkes. Denetçi ve saha sorumlusu yalnız kendi kapsamındaki planların tekrar satırını görür; "Tamamlanan" sekmesinde yalnız onaylanmış planların tekrar satırı çıkar.
 
-## Denetim formu — 5S Denetim Formu (Sahalar), /denetim  (64 senaryo)
+## Denetim formu — 5S Denetim Formu (Sahalar), /denetim  (68 senaryo)
 
 1. **Yükleme durumu**  _[düşük · okur]_
    - Adımlar: /denetim adresini aç, sayfa ilk açılırken ekrana bak.
@@ -1079,7 +1079,7 @@ Her satır arayüzden izlenebilir bir adım dizisidir; "beklenen" sütunu neyin 
 
 26. **Denetimi Yapan çoklu seçim**  _[düşük · okur]_
    - Adımlar: Tam formda 'Denetimi Yapan' kutusuna ('Seçiniz ▾') bas, açılan listeden iki kişiyi işaretle, sonra kutunun dışındaki boş alana tıklayarak listeyi kapat.
-   - Beklenen: Kutuda iki isim virgülle birleşmiş görünür ('Ali Veli, Ayşe Yıldız'); tekrar açıp aynı kişiyi kaldırınca isim listeden ve kutudan çıkar. Liste yalnızca planın ekip üyeleri + ekip lideri ile dolar. Altında 'Denetime aktif katılan denetçileri seçin (birden fazla seçilebilir).' notu vardır.
+   - Beklenen: Kutuda iki isim virgülle birleşmiş görünür ('Ali Veli, Ayşe Yıldız'); tekrar açıp aynı kişiyi kaldırınca isim listeden ve kutudan çıkar. Liste planın ekip lideri ve etkin üyeleriyle dolar (planı ekip dışından açan kişi kendi adıyla da listelenir: 62-65). Altında 'Denetime aktif katılan denetçileri seçin (birden fazla seçilebilir).' notu vardır.
    - Roller: Formu açabilen herkes.
 
 27. **Denetimi Yapan serbest metin (ekip üyesi yoksa)**  _[düşük · okur]_
@@ -1272,6 +1272,27 @@ Her satır arayüzden izlenebilir bir adım dizisidir; "beklenen" sütunu neyin 
    - Beklenen: Yeniden gönderim (rejected > pending_approval) ve onay (completed) 422 almaz; eski bulgular fotoğraf için tekrar taranmaz, çünkü düzeltme ekranı eski bir bulguya "önce" fotoğrafı ekleyemez. Düzeltmede yeni açılan bulgular formda kontrol edilir (fotoğraf yüklemesi başarısızsa yeniden gönderim zaten tutulur). Zaten gönderilmiş ya da onaylanmış denetimler anahtar sonradan açılsa da etkilenmez: kural yalnız "planned" durumdan gönderilmiş duruma ilk geçişte işler.
    - Roller: Planın ekibi (lider ve aktif üye) ile Merkez Ekip, Super Admin, godmin; kural sunucuda herkes için aynıdır.
 
+
+
+65. **Denetimi Yapan: taslaktaki ekip dışı isim düşer ve nedeni söylenir**  _[YÜKSEK · yazar]_
+   - Adımlar: Bir planı aç, 'Denetimi Yapan' listesinden ekipten iki kişiyi işaretle ve bir saniye bekle (taslak sunucuya ve cihaza yazılır). Ana Veri Yönetimi > Denetim Ekipleri'nde bu iki kişiden birini ekipten çıkar (üyeliği pasif yap). Aynı planı yeniden aç (aynı cihazdan ya da ekipten başka biriyle başka cihazdan).
+   - Beklenen: Form taslaktan dolar ama çıkarılan kişi 'Denetimi Yapan' alanında YOKTUR ve bilgi toast'ı çıkar: 'Taslakta yazılı <Ad Soyad> bu planın ekibinde olmadığı için Denetimi Yapan alanından çıkarıldı. Denetime gerçekten katıldıysa "Ekip dışından kişi ekle" ile yeniden ekleyin.' Taslakta yalnız çıkarılan kişi varsa alana oturum açan kişinin adı gelir. Ekipte kimse çözümlenemediği için alan düz metin kutusuysa taslaktaki isimler oturum açan kişiyle karşılaştırılır; uymayan isim düşer ve toast 'alana yeniden yazın.' ile biter ('Ekip dışından kişi ekle' orada yoktur). Taslak yoksa ya da bütün adlar ekipteyse toast ÇIKMAZ. Ad karşılaştırması Türkçe harf farkını yok sayar ('ÖZGE NECCAR' = 'Özge Neccar'); kullanıcının adı sonradan değiştiyse kişi kimliğinden bulunur ve alanda güncel adıyla görünür. Gönderilmiş denetimin düzeltme ekranı bu kuraldan etkilenmez.
+   - Roller: Formu açabilen herkes. Kural istemcidedir (denetim/_utils/planAuditors.ts); sunucu taslağı olduğu gibi saklar.
+
+66. **Denetimi Yapan: ekipten çıkarılan üye yeni denetimde listede ve alanda görünmez**  _[YÜKSEK · okur]_
+   - Adımlar: Bir ekipten bir üyeyi çıkar (is_active=false) ve ekibe başka birini ekle. O ekibe planlı denetimi 'Denetime Başla →' ile aç (daha önce o plan için taslak yazılmamış olsun), 'Denetimi Yapan' listesini aç.
+   - Beklenen: Liste yalnız ekip lideri ve etkin üyelerle dolar, güncel adlarıyla; çıkarılan kişi listede yoktur ve alanda önceden seçili de gelmez. Sonradan eklenen kişi listede görünür ama kendiliğinden işaretli gelmez. Başka ekibin üyesi listede çıkmaz. Aynı kişi hem lider hem üye ise tek satırdır.
+   - Roller: Formu açabilen herkes.
+
+67. **Denetimi Yapan: ekipte olmayan Merkez Ekip kişisi kendi adıyla önerilir**  _[orta · yazar]_
+   - Adımlar: Planın ekibinde OLMAYAN bir Merkez Ekip hesabıyla planı aç ve 'Denetimi Yapan' listesine bak. Alana yalnız kendi adı yazılıyken planı yeniden aç. Sonra aynı planı ekibin bir üyesiyle başka cihazda aç.
+   - Beklenen: Listede ekip lideri ve etkin üyelerin yanında oturum açan kişinin adı da bir seçenek olarak durur ve alanda önceden seçili gelir; kişi ekibin de üyesiyse tek satırdır. Ekip üyesi taslağı açtığında Merkez Ekip kişisinin adı alanda GELMEZ (taslakta kalan oturum açan kişi adı o ekip için geri dönmez) ve toast'ta adı sayılır. Gönderilmiş denetimin düzeltme ekranında oturum açan kişi listeye ve kayda eklenmez: yalnız denetimde yazılı adlar ve ekip görünür.
+   - Roller: Merkez Ekip, manager, planner ve godmin planı ekip dışından açabilir; ekip üyesi kendi planını açar.
+
+68. **Denetimi Yapan: elle eklenen yedek denetçi taslaktan geri gelir**  _[YÜKSEK · yazar]_
+   - Adımlar: 'Denetimi Yapan' listesinin altındaki 'Ekip dışından kişi ekle' kutusundan planın ekibinde olmayan birini seçip '+'ya bas (kişi listeye ve alana girer). Bir saniye bekle, sayfayı yenile ya da planı yeniden aç. Sonra kişinin işaretini kaldır, bir saniye bekle ve yeniden aç.
+   - Beklenen: Elle eklenen kişi taslaktan dönerken alanda KALIR, listede kendi satırıyla işaretli durur (işareti kaldırılabilir) ve toast ÇIKMAZ. Kişi planın ekibine sonradan üye olmuşsa ekip üyesi olarak gelir; kullanıcı listesinden silinmişse alandan düşer ve toast'ta adı geçer; adı değiştiyse güncel adıyla gelir. İşareti kaldırılmış kişi bir sonraki açılışta alanda ve listede gelmez ('Ekip dışından kişi ekle' ile yeniden eklenebilir). Elle eklenmemiş ekip dışı bir ad (eski sürümde yazılmış, işaretsiz taslak) geri GELMEZ. Düz metin kutusu açıkken (ekipte kimse çözümlenemiyorsa) 'Ekip dışından kişi ekle' yoktur; orada yazılan ekip dışı ad bir sonraki taslakta düşer.
+   - Roller: Formu açabilen herkes. Kişi listesi saha sorumlusunu kendi lokasyonu için sunmaz (#27).
 
 ## Ana Veri Yönetimi — /ana-veri-yonetimi (4 sekme: Veri Girişi, Denetim Planlama, Denetim Ekipleri, Sorular)  (72 senaryo)
 
