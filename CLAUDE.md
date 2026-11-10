@@ -53,14 +53,14 @@ cd Nucleus && bun install && bun run dev        # be-nucleus (1001) + fe (3000)
 
 # arka uç
 cd Nucleus/apps/be-nucleus
-bun test src                 # ~480 test, DB gerekmez
+bun test src                 # ~780 test, DB gerekmez
 bunx tsc --noEmit -p .
 bun run gen                  # config.json değişince: src/drizzle/* yeniden üretilir, COMMIT'le
 
 # ön yüz
 cd Nucleus/apps/fe
 bunx tsc --noEmit -p . --incremental false      # TypeScript 7 (tsgo), saniyeler sürer
-bun test app lib                                 # ~750 test
+bun test app lib                                 # ~1130 test
 NEXT_DIST_DIR=.next-verify bun run build         # canlı .next'e dokunmadan derleme denemesi
 # sonra: rm -rf .next-verify && git checkout -- tsconfig.json
 ```
