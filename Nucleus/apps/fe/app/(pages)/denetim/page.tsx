@@ -15,8 +15,21 @@ import { choosePlan, type PickScope, pickIntro } from './_utils/planChoice'
 import { mayRaiseSingleFinding, mayStartOwnLocation, seesEveryPlan } from './_utils/planAccess'
 import { PlanNotice } from './_components/PlanNotice'
 import { RejectedAuditNotice } from './_components/RejectedAuditNotice'
-import { correctionSavedText, resendFailureText, resendPlan } from './_utils/resendPlan'
-import { correctionBannerText, isPlanRejected, RESEND_LABEL, shouldResendAfterCorrection } from '@/app/_utils/planReview'
+import { EditPlanUnreadable } from './_components/EditPlanUnreadable'
+import { SavedWithGap } from './_components/SavedWithGap'
+import { editPlanVerdict } from './_utils/editPlanRead'
+import { detailsLockOf } from './_utils/findingDetailsLock'
+import { readAllTeams } from './_utils/readAllTeams'
+import {
+  correctionEnd,
+  correctionVerdict,
+  type FindingWrite,
+  resendPlan,
+  type SavedGap,
+  savedLabelOf,
+  tallyFindingWrites,
+} from './_utils/resendPlan'
+import { correctionBannerText, isPlanRejected, PLAN_STATUS_SENT, RESEND_LABEL } from '@/app/_utils/planReview'
 import { UploadedFileInfo, useUploadAnswerPhoto } from '../bulgular/hooks/useUploadAnswersPhoto'
 import { Question, questions as FALLBACK_QUESTIONS, StepCode, steps as FALLBACK_STEPS, Step } from './constants'
 import { DateInput } from '@/app/_components/DateInput'
@@ -167,8 +180,6 @@ function genUUID(): string {
 
 
 const PLAN_KEYS = { GET: 'GET_FIVE_S_AUDIT_PLANS', UPDATE: 'UPDATE_FIVE_S_AUDIT_PLAN' } as const
-/** What the auditor's submission makes of a plan; Merkez Ekip's approval makes it 'completed'. */
-const PLAN_STATUS_SENT = 'pending_approval'
 const USERS_KEYS = { GET: 'GET_USERS' } as const
 const TEAM_KEYS = { GET: 'GET_FIVE_S_AUDIT_TEAMS' } as const
 const TEAM_MEMBER_KEYS = { GET: 'GET_FIVE_S_AUDIT_TEAM_MEMBERS' } as const
@@ -692,6 +703,12 @@ export default function FiveSAuditFormPage() {
    * banner names the reason, and saving the correction sends the plan again.
    */
   const correctingRejected = !!editAudit && isPlanRejected(assignedPlan?.status)
+  /*
+   * The address names a plan (`?planId=`) and it could not be read: the
+   * correction does not open, because without the plan neither the rejected
+   * banner nor the resend would be there (editPlanRead.ts).
+   */
+  const [editPlanUnreadable, setEditPlanUnreadable] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string>('')
   /** The person's real audit teams (_utils/userTeams); what a standalone single finding names as "Ekip" (R19). */
   const [userTeamNames, setUserTeamNames] = useState<string[]>([])
@@ -793,10 +810,14 @@ export default function FiveSAuditFormPage() {
    * queued). Only these waive the Orta/Kötü explanation; an open finding from an
    * earlier audit at the same location does not (singleFinding.ts → explanationMissing).
    */
-  const findingsAddedHere = questionsAddedHere(header.department, {
-    queuedQuestionIds: queuedQuestionIdsAt(header.department),
-    session: sessionFindings,
-  })
+  const findingsAddedHere = questionsAddedHere(
+    header.department,
+    {
+      queuedQuestionIds: queuedQuestionIdsAt(header.department),
+      session: sessionFindings,
+    },
+    assignedPlan?.id ?? null
+  )
 
   /*
    * A non-good answer normally has to carry a finding — type, action, due date.
@@ -857,6 +878,8 @@ export default function FiveSAuditFormPage() {
    */
   const submitLockRef = useRef(false)
   const [submitState, setSubmitState] = useState<'idle' | 'saving' | 'done'>('idle')
+  // A correction that was saved but not sent, or not written in full (resendPlan.ts → correctionEnd).
+  const [savedGap, setSavedGap] = useState<SavedGap | null>(null)
   // The single-finding modal's save; unlocked after every attempt, since a
   // second single finding is a legitimate thing to record.
   const singleSaveLockRef = useRef(false)
@@ -1785,7 +1808,7 @@ export default function FiveSAuditFormPage() {
            * or the form asks for a second one in between (R2/R17).
            */
           if (s.auditPayload.source === 'single_finding') {
-            const replayedFindings = sessionFindingsOfReplay(s.findings, replayedNumbers)
+            const replayedFindings = sessionFindingsOfReplay(s.findings, replayedNumbers, s.planId)
             if (replayedFindings.length > 0) setSessionFindings((prev) => [...prev, ...replayedFindings])
           }
           sentNow += 1
@@ -1985,6 +2008,7 @@ export default function FiveSAuditFormPage() {
   const fetchAssignment = async () => {
     try {
       setAssignmentLoading(true)
+      setEditPlanUnreadable(false)
 
       const A = actions as any
       const startMe = safeStart(A, ME_KEY)
@@ -2043,11 +2067,8 @@ export default function FiveSAuditFormPage() {
           })
           : Promise.resolve(null),
 
-        startTeams
-          ? startAsPromise(startTeams, {
-            payload: { page: 1, limit: 2000, orderBy: 'created_at', orderDirection: 'desc' },
-          })
-          : Promise.resolve(null),
+        // Every page of the teams, in a stable order (readAllTeams.ts): one read stopped at the 200th.
+        startTeams ? readAllTeams(startTeams, apiCallError) : Promise.resolve(null),
 
         // Active memberships only (nothing here reads the others), every page of them.
         startMembers
@@ -2288,6 +2309,17 @@ export default function FiveSAuditFormPage() {
         }
         // Not there (deleted, or the read failed): the list, as before.
         if (!plan && editPlanId) plan = plans.find((p) => String(p.id) === editPlanId)
+        /*
+         * R30: the address names the plan (the home page always does) and it
+         * was neither read by id nor found in the open list. Without it the
+         * form would open without the rejected banner and with a save that
+         * never resends, so it is not opened (editPlanRead.ts).
+         */
+        const addressPlanId = new URLSearchParams(window.location.search).get('planId')
+        if (editPlanVerdict({ addressPlanId, plan: plan ?? null }) === 'unreadable') {
+          setEditPlanUnreadable(true)
+          return
+        }
         const answerRows = extractArray(answersResp) as any[]
         const answerIdByQuestion = new Map<string, string>()
         const originalRatingByQuestion = new Map<string, Rating | null>()
@@ -2331,8 +2363,9 @@ export default function FiveSAuditFormPage() {
           recorded: recordedAttendance,
           storedTotal,
         })
-        // Said only where the rule applies: a location with a field manager.
-        if (attendanceUnknown && pendingLocRespMap.has(normLoc(String(audit.department_name ?? '')))) {
+        // The rule applies only to a location with a field manager; "unknown" is said, and stored, only there.
+        const ruleApplies = pendingLocRespMap.has(normLoc(String(audit.department_name ?? '')))
+        if (attendanceUnknown && ruleApplies) {
           toast.warning(unknownAttendanceWarning(planUnreadable))
         }
         setEditAudit({
@@ -2340,7 +2373,7 @@ export default function FiveSAuditFormPage() {
           answerIdByQuestion,
           originalRatingByQuestion,
           initialFieldManagerAttended,
-          attendanceUnknown,
+          attendanceUnknown: attendanceUnknown && ruleApplies,
           hadAnswers: answerRows.length > 0,
         })
         setAnswers((prev) => ({ ...prev, ...loaded }))
@@ -2903,11 +2936,17 @@ export default function FiveSAuditFormPage() {
   /*
    * One finding for one non-good answer, with its photos. Shared by a new
    * audit and by Merkez Ekip's edit of a carried-out one (#12), so the two
-   * write the same row.
+   * write the same row. It never throws; what it returns says whether the
+   * finding saved and how many photos did not upload, which a correction
+   * counts before it decides to resend (resendPlan.ts → correctionVerdict).
    */
-  const createFindingForAnswer = async (ans: QuestionAnswer, auditId: string, detectedDate: string) => {
+  const createFindingForAnswer = async (
+    ans: QuestionAnswer,
+    auditId: string,
+    detectedDate: string
+  ): Promise<FindingWrite> => {
     const q = questions.find((qq) => qq.id === ans.questionId)
-    if (!q) return
+    if (!q) return { saved: false, failedPhotos: 0 }
 
     const description = buildFindingDescriptionFromAnswer(ans, q, header.teamName)
     const effectiveLocationName =
@@ -2916,12 +2955,15 @@ export default function FiveSAuditFormPage() {
     const responsible2 = locationResponsibleMap.get(normLoc(effectiveLocationName)) ?? null
 
     const uploadedPhotos: UploadedFileInfo[] = []
+    let failedPhotos = 0
     for (const f of ans.photos ?? []) {
       try {
         const up = await uploadAnswerPhoto({ file: f })
         if (up?.fileId || up?.fileUrl) uploadedPhotos.push(up)
+        else failedPhotos += 1
       } catch (err) {
         console.error('Fotoğraf upload error', err)
+        failedPhotos += 1
       }
     }
 
@@ -2952,8 +2994,10 @@ export default function FiveSAuditFormPage() {
           photo_before_url: primary?.fileUrl,
         },
       })
+      return { saved: true, failedPhotos }
     } catch (err) {
       console.error('ADD_FIVE_S_FINDING error', err)
+      return { saved: false, failedPhotos }
     }
   }
 
@@ -3025,36 +3069,36 @@ export default function FiveSAuditFormPage() {
             })
         })
     )
-    const failed = results.filter((r) => r.status === 'rejected').length
-    if (failed > 0) toast.error(`${failed} soru yanıtı güncellenemedi.`)
-
-    await Promise.all(auditRecord.findings.map((ans) => createFindingForAnswer(ans, target.id, header.date)))
+    const failedAnswers = results.filter((r) => r.status === 'rejected').length
+    const findingWrites = await Promise.all(
+      auditRecord.findings.map((ans) => createFindingForAnswer(ans, target.id, header.date))
+    )
 
     /*
      * R30: the correction of a rejected plan sends it again — the same audit,
-     * stamped pending_approval — and only once everything above is written,
-     * because a sent audit no longer takes the team's writes. When something
-     * did not save, or the stamp itself fails, the page stays and says where
-     * to go on; the held lock also keeps a second pass here from adding the
-     * answers twice.
+     * stamped pending_approval — and only once everything above is written
+     * (answers, findings and their photos), because a sent audit no longer
+     * takes the team's writes. The decision is resendPlan.ts → correctionVerdict.
+     * When something did not save, or the stamp itself fails, the page stays,
+     * says what and where to go on (savedGap), and the held lock keeps a second
+     * pass here from adding the answers twice.
      */
-    const rejectedPlan = shouldResendAfterCorrection(assignedPlan?.status) ? assignedPlan : null
-    if (rejectedPlan && failed > 0) {
-      toast.error(
-        `${failed} soru yanıtı kaydedilemedi; eksik düzeltmeyle onaya gitmesin diye denetim yeniden gönderilmedi. Ana sayfada "${RESEND_LABEL}" düğmesiyle denetimi tekrar açıp kaydedin.`,
-        { duration: 20000 }
-      )
+    const verdict = correctionVerdict({
+      status: assignedPlan?.status,
+      failedAnswers,
+      ...tallyFindingWrites(findingWrites),
+    })
+    const stamp =
+      verdict.resend && assignedPlan
+        ? await resendPlan(safeStart(A, planUpdateKey), { id: assignedPlan.id, auditId: target.id })
+        : null
+    const end = correctionEnd(verdict, stamp)
+    if (end.tone === 'error') toast.error(end.text, { duration: 20000 })
+    else toast.success(end.text)
+    if (!end.leave) {
+      setSavedGap(end.gap)
       return true
     }
-    if (rejectedPlan) {
-      const outcome = await resendPlan(safeStart(A, planUpdateKey), { id: rejectedPlan.id, auditId: target.id })
-      if (!outcome.ok) {
-        toast.error(resendFailureText(outcome.message), { duration: 20000 })
-        return true
-      }
-    }
-
-    toast.success(correctionSavedText(rejectedPlan !== null))
     window.location.href = '/'
     return true
   }
@@ -3642,7 +3686,13 @@ export default function FiveSAuditFormPage() {
       if (linkedQuestionId) {
         setSessionFindings((prev) => [
           ...prev,
-          { questionId: linkedQuestionId, location: loc, findingNo: findingNoOf(created) },
+          {
+            questionId: linkedQuestionId,
+            location: loc,
+            findingNo: findingNoOf(created),
+            // The audit it was raised in; a standalone finding is no part of the audit that opens later.
+            auditPlanId: assignedPlan?.id ?? null,
+          },
         ])
       }
 
@@ -3951,6 +4001,9 @@ export default function FiveSAuditFormPage() {
     )
   }
 
+  // R30: the plan named in the address could not be read, so the correction does not open.
+  if (editPlanUnreadable) return <EditPlanUnreadable onRetry={fetchAssignment} />
+
   if (planSelectionMode && availablePlans.length > 0) {
     return (
       <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-50 px-4 py-10 md:px-8">
@@ -4159,11 +4212,20 @@ export default function FiveSAuditFormPage() {
     </span>
   )
   /*
-   * A question that already has an open finding never writes a new one, so the
-   * finding fields (type, photos, action, due date, place) are hidden for it
-   * instead of being labelled "isteğe bağlı" while whatever is typed is dropped.
+   * Where saving writes no new finding — the question has an open finding, or a
+   * correction leaves an answer that was already below İyi — the finding fields
+   * (type, photos, action, due date, place) are hidden instead of being labelled
+   * "isteğe bağlı" while whatever is typed is dropped (findingDetailsLock.ts).
    */
-  const detailsLocked = !!activeQuestion && openFindingsByQuestion.has(activeQuestion.id)
+  const detailsLock =
+    activeQuestion && activeAnswer
+      ? detailsLockOf({
+          rating: activeAnswer.rating,
+          hasOpenFinding: openFindingsByQuestion.has(activeQuestion.id),
+          needsDetails: needsFindingDetails(activeQuestion.id, activeAnswer),
+        })
+      : null
+  const detailsLocked = detailsLock !== null
   // The explanation follows explanationMissing: waived only by a finding added in this audit.
   const explanationRequired =
     !!activeQuestion && activeQuestion.requireExplanation && !findingsAddedHere.has(activeQuestion.id)
@@ -4193,6 +4255,7 @@ export default function FiveSAuditFormPage() {
                     hadAnswers: editAudit.hadAnswers,
                     initialAttended: editAudit.initialFieldManagerAttended,
                     attendanceUnknown: editAudit.attendanceUnknown,
+                    ruleApplies: locationHasFieldManager,
                   })}
                 </p>
               ) : null}
@@ -4507,7 +4570,10 @@ export default function FiveSAuditFormPage() {
                                     ⚠ Yanıt Gerekli
                                   </span>
                                 )}
-                                <OpenFindingNotice labels={openFindingsByQuestion.get(q.id) ?? []} rating={rating} />
+                                <OpenFindingNotice
+                                  labels={openFindingsByQuestion.get(q.id) ?? []}
+                                  rating={recordedAnswers[q.id]?.rating}
+                                />
                               </td>
 
                               {hasAnyDetails && (
@@ -4605,7 +4671,10 @@ export default function FiveSAuditFormPage() {
                               {isMissingMobile && (
                                 <span className="ml-1 inline-flex items-center rounded-sm bg-rose-500/20 px-1 py-0.5 text-[11px] font-semibold text-rose-400">⚠</span>
                               )}
-                              <OpenFindingNotice labels={openFindingsByQuestion.get(q.id) ?? []} rating={rating} />
+                              <OpenFindingNotice
+                                labels={openFindingsByQuestion.get(q.id) ?? []}
+                                rating={recordedAnswers[q.id]?.rating}
+                              />
                             </div>
                             <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-600 dark:text-slate-400">
                               <span className="inline-flex items-center gap-1 rounded-full bg-slate-200 dark:bg-slate-800/80 px-2 py-0.5">
@@ -4730,6 +4799,7 @@ export default function FiveSAuditFormPage() {
                 {isOnline ? 'Form başarıyla gönderildi.' : 'Form offline kuyruğa alındı (internet gelince gönderilecek).'}
               </p>
             )}
+            <SavedWithGap gap={savedGap} />
 
             <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:justify-between">
               <div className="text-[11px] text-slate-600 dark:text-slate-400">
@@ -4765,7 +4835,7 @@ export default function FiveSAuditFormPage() {
                     {submitState === 'saving'
                       ? 'Kaydediliyor…'
                       : submitState === 'done'
-                        ? 'Kaydedildi'
+                        ? savedLabelOf(savedGap)
                         : editAudit
                           ? correctingRejected
                             ? RESEND_LABEL
@@ -4804,7 +4874,7 @@ export default function FiveSAuditFormPage() {
               </div>
 
               <div className="mt-4 space-y-4 text-xs">
-                <FindingDetailsLocked locked={detailsLocked} />
+                <FindingDetailsLocked lock={detailsLock} />
                 <div hidden={detailsLocked}>
                   <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">
                     Bulgu Tipi {detailsMark}

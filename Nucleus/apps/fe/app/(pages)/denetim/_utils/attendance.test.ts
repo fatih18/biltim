@@ -156,8 +156,8 @@ describe("the words", () => {
     NOT_ATTENDED_CONFIRM.message,
     unknownAttendanceWarning(true),
     unknownAttendanceWarning(false),
-    noAnswersNotice({ hadAnswers: false, initialAttended: false, attendanceUnknown: false }),
-    noAnswersNotice({ hadAnswers: false, initialAttended: true, attendanceUnknown: false }),
+    noAnswersNotice({ hadAnswers: false, initialAttended: false, attendanceUnknown: false, ruleApplies: true }),
+    noAnswersNotice({ hadAnswers: false, initialAttended: true, attendanceUnknown: false, ruleApplies: true }),
   ];
 
   it("the label is the customer's wording", () => {
@@ -174,9 +174,9 @@ describe("the words", () => {
   });
 
   it("the correction screen explains a missing answer set by its real cause", () => {
-    expect(noAnswersNotice({ hadAnswers: true, initialAttended: false, attendanceUnknown: false })).toBe("");
-    expect(noAnswersNotice({ hadAnswers: false, initialAttended: false, attendanceUnknown: false })).toContain("katılmadığı için");
-    expect(noAnswersNotice({ hadAnswers: false, initialAttended: true, attendanceUnknown: false })).toContain("eski kayıt");
+    expect(noAnswersNotice({ hadAnswers: true, initialAttended: false, attendanceUnknown: false, ruleApplies: true })).toBe("");
+    expect(noAnswersNotice({ hadAnswers: false, initialAttended: false, attendanceUnknown: false, ruleApplies: true })).toContain("katılmadığı için");
+    expect(noAnswersNotice({ hadAnswers: false, initialAttended: true, attendanceUnknown: false, ruleApplies: true })).toContain("eski kayıt");
   });
 
   it("the unknown-attendance warning names the box it asks to be ticked", () => {

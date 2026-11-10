@@ -90,7 +90,7 @@ describe("openFindingsFor — findings added in this audit count (R2/R17)", () =
   it("a single finding saved a moment ago is the question's open finding even when the read does not list it", () => {
     const map = openFindingsFor("Bölge 3", {
       ...none,
-      session: [{ questionId: "S1-1", location: "Bölge 3", findingNo: 21 }],
+      session: [{ questionId: "S1-1", location: "Bölge 3", findingNo: 21, auditPlanId: null }],
     });
     expect(map.get("S1-1")).toEqual(["#21"]);
   });
@@ -98,7 +98,7 @@ describe("openFindingsFor — findings added in this audit count (R2/R17)", () =
   it("so choosing Orta or Kötü on that question asks for no new finding details", () => {
     const open = openFindingsFor("Bölge 3", {
       ...none,
-      session: [{ questionId: "S1-1", location: "Bölge 3", findingNo: 21 }],
+      session: [{ questionId: "S1-1", location: "Bölge 3", findingNo: 21, auditPlanId: null }],
     });
     const notGood: Rating[] = ["medium", "bad"];
     for (const rating of notGood) {
@@ -114,7 +114,7 @@ describe("openFindingsFor — findings added in this audit count (R2/R17)", () =
     const map = openFindingsFor("Bölge 3", {
       findings: [{ question_id: "S1-1", status: "open", finding_no: 21 }],
       queuedQuestionIds: [],
-      session: [{ questionId: "S1-1", location: "Bölge 3", findingNo: 21 }],
+      session: [{ questionId: "S1-1", location: "Bölge 3", findingNo: 21, auditPlanId: null }],
     });
     expect(map.get("S1-1")).toEqual(["#21"]);
   });
@@ -123,13 +123,13 @@ describe("openFindingsFor — findings added in this audit count (R2/R17)", () =
     const read = openFindingsFor("Bölge 3", {
       findings: [{ question_id: "S1-1", status: "open", finding_no: 21 }],
       queuedQuestionIds: [],
-      session: [{ questionId: "S1-1", location: "Bölge 3", findingNo: null }],
+      session: [{ questionId: "S1-1", location: "Bölge 3", findingNo: null, auditPlanId: null }],
     });
     expect(read.get("S1-1")).toEqual(["#21"]);
 
     const unread = openFindingsFor("Bölge 3", {
       ...none,
-      session: [{ questionId: "S1-1", location: "Bölge 3", findingNo: null }],
+      session: [{ questionId: "S1-1", location: "Bölge 3", findingNo: null, auditPlanId: null }],
     });
     // Neutral wording: a standalone finding seen later from an audit is not "in this audit".
     expect(unread.get("S1-1")).toEqual(["yeni eklendi"]);
@@ -139,13 +139,13 @@ describe("openFindingsFor — findings added in this audit count (R2/R17)", () =
     const map = openFindingsFor("Bölge 3", {
       findings: [{ question_id: "S1-1", status: "open", finding_no: 7 }],
       queuedQuestionIds: ["S1-1"],
-      session: [{ questionId: "S1-1", location: "Bölge 3", findingNo: 21 }],
+      session: [{ questionId: "S1-1", location: "Bölge 3", findingNo: 21, auditPlanId: null }],
     });
     expect(map.get("S1-1")).toEqual(["#7", "kuyrukta", "#21"]);
   });
 
   it("a finding saved for another location does not count here, whatever the letter case", () => {
-    const session = [{ questionId: "S1-1", location: "İDARİ BİNA", findingNo: 5 }];
+    const session = [{ questionId: "S1-1", location: "İDARİ BİNA", findingNo: 5, auditPlanId: null }];
     expect(openFindingsFor("Bölge 3", { ...none, session }).has("S1-1")).toBe(false);
     expect(openFindingsFor("idari bina", { ...none, session }).get("S1-1")).toEqual(["#5"]);
   });

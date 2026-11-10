@@ -32,18 +32,22 @@ export function unknownAttendanceWarning(planUnreadable: boolean): string {
  * asked, on purpose), an audit whose plan could not be read, so nobody can say
  * whether anyone attended (`attendanceUnknown`: the stored 0 is no proof of
  * a "no", and the note must not claim one), and an old record from before
- * answers were stored.
+ * answers were stored. A location with no field manager has no attendance
+ * rule, so the first two are never said there: it is the old-record sentence.
  */
 export function noAnswersNotice(audit: {
   hadAnswers: boolean;
   initialAttended: boolean;
+  /** Already gated by `ruleApplies`: unknown where the rule does not apply is not unknown, it is moot. */
   attendanceUnknown: boolean;
+  /** The location has a field manager, so the attendance rule applies to it. */
+  ruleApplies: boolean;
 }): string {
   if (audit.hadAnswers) return "";
   if (audit.attendanceUnknown) {
     return ` Bu denetimin soru yanıtı kayıtlı değil ve planına ulaşılamadığı için katılım durumu bilinmiyor (puan 0). Yanıtları girerek puanı düzeltebilirsiniz; bölge sorumlusu veya görevlendirdiği kişi katıldıysa önce "${ATTENDANCE_LABEL}" kutusunu işaretleyin.`;
   }
-  if (!audit.initialAttended) {
+  if (!audit.initialAttended && audit.ruleApplies) {
     return ` Bölge sorumlusu veya görevlendirdiği kişi katılmadığı için bu denetimde soru yanıtlanmamış (puan 0); yanıtları girmek için "${ATTENDANCE_LABEL}" kutusunu işaretleyin.`;
   }
   return " Bu denetimin soru yanıtları kaydedilmemiş (eski kayıt); yanıtları yeniden girerek puanı düzeltebilirsiniz.";

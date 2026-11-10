@@ -98,7 +98,8 @@ function ruleQuestion(
   return questions.find((q) => q.stepCode === step.code && q.order === rule.question);
 }
 
-const notGood = (rating: Rating | null | undefined) => rating === "medium" || rating === "bad";
+/** Orta or Kötü: the answers a finding, and the plant's own score rules, are about. */
+export const notGood = (rating: Rating | null | undefined) => rating === "medium" || rating === "bad";
 
 export function scoreAudit(
   steps: readonly Step[],

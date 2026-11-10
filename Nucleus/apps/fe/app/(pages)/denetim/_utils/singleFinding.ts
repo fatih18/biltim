@@ -63,8 +63,18 @@ export function findingNoOf(resp: CreatedRow | null | undefined, depth = 0): num
   return findingNoOf(Array.isArray(resp.data) ? resp.data[0] : resp.data, depth + 1);
 }
 
-/** A single finding this screen saved and the server confirmed, linked to a question. */
-export type SessionFinding = { questionId: string; location: string; findingNo: number | null };
+/*
+ * A single finding this screen saved and the server confirmed, linked to a
+ * question. `auditPlanId` is the plan of the audit that was open when it was
+ * raised, null for a standalone finding: only the former was added "in this
+ * audit" (questionsAddedHere), the latter is just an open finding.
+ */
+export type SessionFinding = {
+  questionId: string;
+  location: string;
+  findingNo: number | null;
+  auditPlanId: string | null;
+};
 
 /*
  * The label of a saved finding the server has not numbered yet. Neutral on
@@ -110,15 +120,19 @@ export function openFindingsFor(
  * The questions that got a single finding during THIS audit, at its location:
  * saved from the modal a moment ago (session) or still waiting in the offline
  * queue. A finding that was already open before the audit started is not one
- * of them (see explanationMissing).
+ * of them (see explanationMissing), and neither is a standalone finding saved
+ * earlier in the same page visit: a session finding counts only when it was
+ * raised inside the audit now open (`auditPlanId`, the plan it started).
  */
 export function questionsAddedHere(
   location: string,
   sources: { queuedQuestionIds: readonly string[]; session: readonly SessionFinding[] },
+  auditPlanId: string | null,
 ): Set<string> {
   const here = foldTr(location);
   const added = new Set<string>(sources.queuedQuestionIds.filter(Boolean));
   for (const saved of sources.session) {
+    if (auditPlanId === null || saved.auditPlanId !== auditPlanId) continue;
     if (saved.questionId && foldTr(saved.location) === here) added.add(saved.questionId);
   }
   return added;
@@ -151,7 +165,8 @@ export type ReplayedFinding = {
 
 /*
  * The single findings a queued submission put on the server, as session
- * findings. Replayed, they leave the queue list at once; without this they
+ * findings, tagged with the plan the submission was queued for. Replayed, they
+ * leave the queue list at once; without this they
  * stopped counting as the question's open finding until the closing read of
  * the findings came back — and the form asked for a second one in between.
  * Only findings linked to a question count; `numbers` is the number the
@@ -160,6 +175,7 @@ export type ReplayedFinding = {
 export function sessionFindingsOfReplay(
   findings: readonly ReplayedFinding[],
   numbers: ReadonlyMap<string, number | null> = new Map(),
+  auditPlanId: string | null = null,
 ): SessionFinding[] {
   const saved: SessionFinding[] = [];
   for (const f of findings) {
@@ -169,6 +185,7 @@ export function sessionFindingsOfReplay(
       questionId,
       location: String(f.location_name ?? ""),
       findingNo: numbers.get(String(f.client_finding_id ?? "")) ?? null,
+      auditPlanId,
     });
   }
   return saved;

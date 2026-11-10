@@ -31,6 +31,7 @@ import {
   type Rating,
   RATING_FACTOR,
   answerRowsFor,
+  notGood,
   scoreAudit,
 } from "./scoring";
 
@@ -58,8 +59,6 @@ export function scoreBodyOf(score: Pick<AuditScore, "stepScores" | "total">): Sc
     score_s5: (S5 ?? 0).toFixed(2),
   };
 }
-
-const isNotGood = (rating: Rating | null | undefined) => rating === "medium" || rating === "bad";
 
 export type AuditRecordInput<A extends RecordableAnswer> = {
   attendance: AttendanceState;
@@ -115,7 +114,7 @@ export function buildAuditRecord<A extends RecordableAnswer>(input: AuditRecordI
     const answer = answers[question.id];
     return answer?.rating ? [{ question, answer }] : [];
   });
-  const nonGood = answered.map((a) => a.answer).filter((a) => isNotGood(a.rating));
+  const nonGood = answered.map((a) => a.answer).filter((a) => notGood(a.rating));
 
   return {
     passive,
@@ -151,5 +150,5 @@ export function showsDetailsColumn(
   stepQuestions: readonly Pick<Question, "id">[],
   recorded: Readonly<Record<string, { rating: Rating | null } | undefined>>,
 ): boolean {
-  return stepQuestions.some((q) => isNotGood(recorded[q.id]?.rating));
+  return stepQuestions.some((q) => notGood(recorded[q.id]?.rating));
 }

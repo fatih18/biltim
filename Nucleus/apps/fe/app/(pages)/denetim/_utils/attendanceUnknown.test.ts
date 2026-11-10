@@ -42,7 +42,7 @@ describe("initialAttendanceOf: the tick a correction opens with", () => {
 });
 
 describe("noAnswersNotice when attendance is unknown", () => {
-  const unknown = noAnswersNotice({ hadAnswers: false, initialAttended: false, attendanceUnknown: true });
+  const unknown = noAnswersNotice({ hadAnswers: false, initialAttended: false, attendanceUnknown: true, ruleApplies: true });
 
   it("does not claim the field manager did not attend", () => {
     expect(unknown).not.toContain("katılmadığı için");
@@ -57,15 +57,53 @@ describe("noAnswersNotice when attendance is unknown", () => {
   });
 
   it("is the same sentence whatever the box opened as, and silent when answers exist", () => {
-    expect(noAnswersNotice({ hadAnswers: false, initialAttended: true, attendanceUnknown: true })).toBe(unknown);
-    expect(noAnswersNotice({ hadAnswers: true, initialAttended: false, attendanceUnknown: true })).toBe("");
+    expect(noAnswersNotice({ hadAnswers: false, initialAttended: true, attendanceUnknown: true, ruleApplies: true })).toBe(
+      unknown,
+    );
+    expect(noAnswersNotice({ hadAnswers: true, initialAttended: false, attendanceUnknown: true, ruleApplies: true })).toBe(
+      "",
+    );
   });
 
   it("still names the recorded no, and the old record, when attendance is known", () => {
-    const notAttended = noAnswersNotice({ hadAnswers: false, initialAttended: false, attendanceUnknown: false });
-    const oldRecord = noAnswersNotice({ hadAnswers: false, initialAttended: true, attendanceUnknown: false });
+    const notAttended = noAnswersNotice({
+      hadAnswers: false,
+      initialAttended: false,
+      attendanceUnknown: false,
+      ruleApplies: true,
+    });
+    const oldRecord = noAnswersNotice({
+      hadAnswers: false,
+      initialAttended: true,
+      attendanceUnknown: false,
+      ruleApplies: true,
+    });
     expect(notAttended).toContain("katılmadığı için");
     expect(oldRecord).toContain("eski kayıt");
     expect(new Set([unknown, notAttended, oldRecord]).size).toBe(3);
+  });
+});
+
+describe("noAnswersNotice where the attendance rule does not apply", () => {
+  /*
+   * A location with no field manager, no readable plan and a stored 0: the
+   * page stores `attendanceUnknown && ruleApplies`, which is false here, and
+   * the notice must not claim a field manager's absence either.
+   */
+  const noRule = noAnswersNotice({
+    hadAnswers: false,
+    initialAttended: false,
+    attendanceUnknown: false,
+    ruleApplies: false,
+  });
+
+  it("does not say attendance is unknown, nor that the field manager did not attend", () => {
+    expect(noRule).not.toContain("bilinmiyor");
+    expect(noRule).not.toContain("katılmadığı");
+    expect(noRule).not.toContain(ATTENDANCE_LABEL);
+  });
+
+  it("is the old-record sentence", () => {
+    expect(noRule).toBe(noAnswersNotice({ hadAnswers: false, initialAttended: true, attendanceUnknown: false, ruleApplies: true }));
   });
 });
