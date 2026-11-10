@@ -1,4 +1,5 @@
-import { query } from './db'
+import { query, transaction } from './db'
+import { backfillFindingClosedAt, installFindingClosedAt } from './findingClosedAt'
 import { ensureUniqueFindingNumbers, renumberDuplicateFindings } from './findingNumbers'
 import { godminGrantLog, grantGodminRole } from './godminRole'
 
@@ -175,6 +176,24 @@ export async function applyBootFixes(): Promise<void> {
     console.error('[boot] tekrar eden bulgu numaraları düzeltilemedi', error)
   }
   await ensureUniqueFindingNumbers()
+
+  /*
+   * A closed finding gets its closing date from the database (findingClosedAt.ts),
+   * on every start, because deploy runs no SQL. Then the findings closed before
+   * the trigger existed are dated from the audit log.
+   */
+  try {
+    await transaction(installFindingClosedAt)
+    console.log('[boot] bulgu kapanma tarihi tetikleyicisi kuruldu (five_s_findings_closed_at)')
+  } catch (error) {
+    console.error('[boot] bulgu kapanma tarihi tetikleyicisi kurulamadı', error)
+  }
+  try {
+    const stamped = await backfillFindingClosedAt()
+    if (stamped > 0) console.log(`[boot] ${stamped} kapanmış bulguya kapanma tarihi denetim kaydından yazıldı`)
+  } catch (error) {
+    console.error('[boot] kapanmış bulguların kapanma tarihi doldurulamadı', error)
+  }
 
   try {
     /*
