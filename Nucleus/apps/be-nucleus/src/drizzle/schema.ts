@@ -1469,6 +1469,9 @@ export const fiveSAuditPlansColumns = {
 	dateChangeCount: integer('date_change_count').notNull().default(0),
 	auditorAttended: boolean('auditor_attended'),
 	fieldManagerAttended: boolean('field_manager_attended'),
+	rejectionReason: text('rejection_reason'),
+	rejectedAt: timestamp('rejected_at'),
+	rejectedBy: uuid('rejected_by'),
 };
 
 export const fiveSAuditPlansIndexes = (t: { plannedDate: PgColumn; createdAt: PgColumn; locationId: PgColumn; assignedTeamId: PgColumn; status: PgColumn; auditId: PgColumn; parentPlanId: PgColumn; quarter: PgColumn }) => [

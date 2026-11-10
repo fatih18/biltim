@@ -542,6 +542,18 @@
         {
           "name": "field_manager_attended",
           "type": "boolean"
+        },
+        {
+          "name": "rejection_reason",
+          "type": "text"
+        },
+        {
+          "name": "rejected_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "rejected_by",
+          "type": "uuid"
         }
       ],
       "indexes": [
