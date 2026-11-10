@@ -403,19 +403,26 @@ tarayıcı → Next server action (factory.nucleus.ts, AUTH_API_URL)
   tetikleyicisi (`five_s_findings_closed_at`) de her açılışta kurulur
   (`findingClosedAt.ts`).
 - Mail (R63/R70): `src/mail/*` arka plan çalışanı, framework'ün `nucleus.sendEmail`'i
-  üstünde. SMTP tanımlanana kadar hiçbir şey gönderilmez ve hiçbir şey bozulmaz;
+  üstünde (Azure Communication Services sağlayıcısı). Azure bilgisi girilene kadar hiçbir şey gönderilmez ve hiçbir şey bozulmaz;
   tanımlanınca plan açılınca ekip + saha sorumluları, plan tamamlanınca (onayda)
   saha sorumlusu mail alır. Yalnız son 48 saatteki planlar (eski planlara toplu mail
   gitmesin). Çalışan, `nucleus` servisini `/biltim/me/scope` isteğinden tutar
   (0.10.115 servisi yalnız handler bağlamında verir): yeniden başlatmadan sonra ilk
   sayfa yüklenene kadar mail beklemede kalır. Durum: `GET /biltim/mail/status`, Ana
   Veri Yönetimi'nin üstündeki durum satırı (yöneticiler) bunu gösterir.
-  AÇMAK İÇİN: sunucu `.env`'ine `SMTP_*` değerleri (bkz. `.env.docker`, `config.json`
-  `email.smtp`) VE `nodemailer` paketi gerekir. `nodemailer` bilerek `package.json`'a
-  EKLENMEDİ: sunucunun npm erişimi çoğu zaman kapalı ve `update.sh` paket dosyası
-  değişince `bun install` ister (başarısızsa teslimat durur). SMTP bilgisi geldiğinde
-  ağ açıkken `cd Nucleus/apps/be-nucleus && bun add nodemailer`, `.env`'e değerler,
-  servisi yeniden başlat; paket yoksa durum satırı bunu açıkça söyler.
+  AÇMAK İÇİN: sunucu `.env`'ine `AZURE_EMAIL_CONNECTION_STRING` ve
+  `AZURE_EMAIL_SENDER_ADDRESS` (isteğe bağlı `AZURE_EMAIL_FROM_NAME`, `APP_BASE_URL`;
+  bkz. `.env.docker`, `config.json` `email.azure`) yazıp servisi yeniden başlat; ikisi
+  de doluysa sağlayıcı açılır (`serverOptions.ts`), yarım ya da boşsa hiç kurulmaz ve
+  log'a bir şey yazılmaz. Yeni paket GEREKMEZ: `@azure/communication-email`
+  nucleus-core-ts'in isteğe bağlı bağımlılığı olarak `bun.lock`'ta ve sunucuda hazır
+  (SMTP/nodemailer ve Gmail bilerek kullanılmıyor: paketleri kurulu değil, `update.sh`
+  paket değişince npm ister). Azure kaynağı müşterinin tenant'ında bir "Communication
+  Services + Email" kaynağı olmalı; gönderen adres onun doğrulanmış MailFrom adresi.
+  Durum satırı üç hâli ayırt eder: değer yok, değer var ama istemci reddetti, paket yok.
+  Tuzak: `config.json`'da `provider: "azure"` sabit kalırsa nucleus 0.10.115 değerler
+  boşken de Azure servisini kurar ve her soruda uyarı basar; bu yüzden `serverOptions.ts`
+  değerler boşsa `provider` anahtarını siler.
 - `/auth/register` herkese açık (rol `basic`). Bu yüzden `/reports/*`'ın
   önünde 5S rolü isteyen bir kapı var. Yeni bir veri ucu yazarken de rol
   kontrolü ekle.
@@ -432,8 +439,9 @@ tarayıcı → Next server action (factory.nucleus.ts, AUTH_API_URL)
   `GODMIN_PASSWORD`'ü değiştirmek bir şey yapmaz. 5 yanlış şifre hesabı 30
   dakika kilitler. Kurtarma kullanıcı ekranındaki şifre/kilit düğmeleriyle
   yapılır.
-- SMTP ortam değişkenleri boşsa mail ve "şifremi unuttum" çalışmaz (bkz. yukarıdaki
-  Mail maddesi ve `.env.docker`).
+- Azure e-posta değişkenleri boşsa mail bildirimleri çalışmaz; "şifremi unuttum" ve
+  magic link de config'de kapalı, mail açılınca kendiliğinden açılmaz (bkz. Mail maddesi
+  ve `.env.docker`).
 - Excel'e yalnız PNG/JPEG/GIF fotoğraf gömülebilir; HEIC/WEBP için hücreye
   not düşülür.
 
@@ -457,7 +465,7 @@ tarayıcı → Next server action (factory.nucleus.ts, AUTH_API_URL)
   numaralar canlıda doluydu); satır 43 ve 48 vaadimiz olduğu gibi yapıldı (planlanandan
   farklı günde yapılan denetim yapıldığı günde de görünür; bulgu Excel'inde Açık ve devam
   eden / Kapalı / Tümü seçimi, ekrandaki süzgeçlerle kesişir); satır 63/70 mail çalışanı
-  (SMTP girilince açılır); satır 72 soru başına `require_photo` (varsayılan KAPALI: yönetici
+  (Azure bilgisi girilince açılır); satır 72 soru başına `require_photo` (varsayılan KAPALI: yönetici
   Ana Veri Yönetimi > Sorular'dan açar); Sayfa1 "özge ekipte görünmemeli": "Denetimi
   Yapan" isimleri taslağa metin olarak kopyalanıp olduğu gibi geri yükleniyordu, artık
   yalnız ekibin güncel üyeleri + oturum açan kişi + elle eklenenler (`planAuditors.ts`).
@@ -466,7 +474,7 @@ tarayıcı → Next server action (factory.nucleus.ts, AUTH_API_URL)
   göndermeme), saha sorumlusu liste/yazma/okuma sınırı (HTTP), bulgu sayımı = Excel satırı,
   fotoğraf kuralı SQL'i, rapor uçları, Reddet korumaları. Chrome'da: satır 16, 30, 34, 39,
   43 (ana sayfa 320–1024 px, açık+koyu), 48 (320/480/768 px), 72 anahtarı (açık+koyu).
-  DOĞRULANMAYAN: iPad'de çevrimdışı tekrar (çevrimdışı foto reddi dahil); gerçek SMTP ile
+  DOĞRULANMAYAN: iPad'de çevrimdışı tekrar (çevrimdışı foto reddi dahil); gerçek Azure Communication Services ile
   gönderim; denetim formunda fotoğraf engeli ve "Denetimi Yapan" akışının ekranda uçtan
   uca denemesi; canlıdaki ilk boot (yukarıdaki şema itmesi notu); gerçek fotoğraflı Excel'in
   boyutu ve süresi; godmin rolünün boot'ta SQL ile verilmesinin JWT'ye yansıma zamanı;

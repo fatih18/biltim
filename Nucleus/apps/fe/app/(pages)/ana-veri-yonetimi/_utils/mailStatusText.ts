@@ -99,7 +99,26 @@ function onText(view: MailStatusView): MailStatusText {
   };
 }
 
+/**
+ * Both Azure values are in and the package loads, yet the provider is not available: the Azure client refused
+ * the values (a malformed or incomplete connection string, an empty access key). Saying "never entered" here
+ * would send the reader looking for a missing value; the values exist and need correcting.
+ */
+function valuesRejectedText(view: MailStatusView): MailStatusText {
+  const parts = [
+    "AZURE_EMAIL_CONNECTION_STRING ve AZURE_EMAIL_SENDER_ADDRESS değerlerini Azure portalındaki Communication Services kaynağıyla karşılaştırıp düzeltin, sonra servisi yeniden başlatın. Bu adımı sistem yöneticisi yapar.",
+    ...offBacklogParts(view),
+  ];
+  return {
+    tone: "off",
+    headline:
+      "Azure e-posta bilgileri girildi ama Azure istemcisi bunları kabul etmedi (bağlantı dizesi eksik ya da hatalı olabilir). Düzelene kadar plan ve denetim postaları gönderilmez.",
+    detail: parts.join(" "),
+  };
+}
+
 export function buildMailStatusText(view: MailStatusView): MailStatusText {
   if (view.available) return onText(view);
-  return view.providerConfigured && !view.packageInstalled ? packageMissingText(view) : offText(view);
+  if (!view.providerConfigured) return offText(view);
+  return view.packageInstalled ? valuesRejectedText(view) : packageMissingText(view);
 }

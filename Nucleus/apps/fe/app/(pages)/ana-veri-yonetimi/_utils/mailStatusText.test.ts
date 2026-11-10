@@ -96,10 +96,20 @@ describe("when the Azure values are in but the @azure/communication-email packag
     expect(detail).not.toContain("süresi dolduğu");
   });
 
-  it("is the plain off line while the package is installed, and while no Azure value is filled in", () => {
-    for (const view of [off({ providerConfigured: true, packageInstalled: true }), off({ providerConfigured: false, packageInstalled: false })]) {
+  it("is the plain off line while no Azure value is filled in, whether or not the package loads", () => {
+    for (const view of [off({ providerConfigured: false, packageInstalled: true }), off({ providerConfigured: false, packageInstalled: false })]) {
       expect(buildMailStatusText(view).headline).toContain("bağlantı bilgisi girilmedi");
     }
+  });
+
+  it("says the values were refused, not missing, when they are in, the package loads and the provider is still off", () => {
+    const text = buildMailStatusText(off({ providerConfigured: true, packageInstalled: true, pending: 2 }));
+    expect(text.tone).toBe("off");
+    expect(text.headline).toContain("girildi ama Azure istemcisi bunları kabul etmedi");
+    expect(text.headline).not.toContain("girilmedi");
+    expect(text.detail).toContain("AZURE_EMAIL_CONNECTION_STRING ve AZURE_EMAIL_SENDER_ADDRESS değerlerini");
+    expect(text.detail).toContain("sistem yöneticisi");
+    expect(text.detail).toContain("2 planın postası bekliyor");
   });
 
   it("never replaces the line of a provider that is running", () => {
