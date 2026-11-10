@@ -1,9 +1,10 @@
 import { Type as t } from '@sinclair/typebox'
 import { defineRoute } from 'nucleus-core-ts/server'
 import { type Row, query } from '../db'
-import { todayAtPlant, toDateKey } from '../guards/businessRules'
-import { callerById, isCentral } from '../guards/caller'
+import { canonicalId, todayAtPlant, toDateKey } from '../guards/businessRules'
+import { callerById } from '../guards/caller'
 import { auditAttendanceNote } from './auditAttendanceNote'
+import { type AuditReportTarget, auditReportRefusal, dayTr, isScopedFieldManager, loadAuditReportTarget } from './auditReport'
 import { excelDay, xlsxResponse } from './excel'
 import { fitBox, locatePhotos, type Photo, photoIds, readPhoto } from './photos'
 
@@ -74,9 +75,16 @@ export function oneAtATime<T>(task: () => Promise<T>): Promise<T> {
   return run
 }
 
-async function buildForm(locationName: string, year: number): Promise<Response> {
+/*
+ * `audit` narrows the workbook to one audit (the report of one audit, row 75):
+ * its own question sheet and the findings raised in it — whatever place or day
+ * they name — instead of the location's year. `$4` is that audit's id, or NULL
+ * for the yearly form, which reads exactly as it did.
+ */
+async function buildForm(locationName: string, year: number, audit: AuditReportTarget | null = null): Promise<Response> {
   const from = `${year}-01-01`
   const to = `${year}-12-31`
+  const auditId = audit?.auditId ?? null
   const [findings, audits, steps, questions, sorumlu] = await Promise.all([
     query(
       `select f.finding_no, f.detected_date, f.location_name, f.finding_type, f.description,
@@ -84,20 +92,23 @@ async function buildForm(locationName: string, year: number): Promise<Response> 
               f.photo_before_files, f.photo_before_file_id, f.photo_before_url,
               f.photo_after_files, f.photo_after_file_id, f.photo_after_url
          from five_s_findings f
-        where f.is_active = true and lower(trim(f.location_name)) = lower(trim($1))
-          and f.detected_date between $2 and $3
+        where f.is_active = true
+          and ($4::text is null and lower(trim(f.location_name)) = lower(trim($1))
+               and f.detected_date between $2 and $3
+               or f.audit_id::text = $4)
         order by f.detected_date asc, f.finding_no asc nulls last`,
-      [locationName, from, to]
+      [locationName, from, to, auditId]
     ),
     query(
       `select a.id, a.plan_id, a.audit_date, a.auditor_name, a.total_score, a.target_score,
               a.score_s1, a.score_s2, a.score_s3, a.score_s4, a.score_s5
          from five_s_audits a
         where a.is_active = true and a.source is distinct from 'single_finding'
-          and lower(trim(a.department_name)) = lower(trim($1))
-          and a.audit_date >= $2 and a.audit_date < ($3::date + 1)
+          and ($4::text is null and lower(trim(a.department_name)) = lower(trim($1))
+               and a.audit_date >= $2 and a.audit_date < ($3::date + 1)
+               or a.id::text = $4)
         order by a.audit_date asc`,
-      [locationName, from, to]
+      [locationName, from, to, auditId]
     ),
     query(`select code, title, max_score, "order" from five_s_steps where is_active order by "order"`),
     query(
@@ -156,7 +167,9 @@ async function buildForm(locationName: string, year: number): Promise<Response> 
   ]
   fs.getCell('A1').value = 'KYS.137/Rev.1/202502'
   fs.mergeCells('A2:J2')
-  fs.getCell('A2').value = `${year} YILI ${LOC} 5S DENETİM BULGU FORMU`
+  fs.getCell('A2').value = audit
+    ? `${LOC} 5S DENETİM BULGU FORMU (${dayTr(audit.auditDay)} DENETİMİ)`
+    : `${year} YILI ${LOC} 5S DENETİM BULGU FORMU`
   fs.getCell('A2').font = { bold: true, size: 13 }
   fs.getCell('A2').alignment = { horizontal: 'center' }
   fs.getCell('A3').value = 'Sorumlu'
@@ -448,17 +461,42 @@ async function buildForm(locationName: string, year: number): Promise<Response> 
     `[location-form] ${locationName} ${year}: ${findings.length} bulgu, ${audits.length} denetim, ${embedded} fotoğraf gömüldü (${embeddedByFile.size} dosya, ${Math.round(embeddedBytes / 1024)} KB), ${missing} okunamadı, ${unsupported} desteklenmeyen, ${capped} sınır dışı`
   )
   const buffer = (await workbook.xlsx.writeBuffer()) as ArrayBuffer
-  return xlsxResponse(buffer, `5S-Denetim-Bulgu-ve-Soru-Formu-${year}-${locationName}.xlsx`)
+  return xlsxResponse(
+    buffer,
+    audit
+      ? `5S-Denetim-Raporu-${locationName}-${audit.auditDay}.xlsx`
+      : `5S-Denetim-Bulgu-ve-Soru-Formu-${year}-${locationName}.xlsx`
+  )
 }
 
 export const locationFormXlsx = defineRoute({
   method: 'GET',
   path: '/location-form.xlsx',
-  query: t.Object({ location_name: t.String(), year: t.Optional(t.String()) }),
-  detail: { tags: ['Reports'], summary: "A location's year as the plant's 5S findings and question form" },
+  query: t.Object({
+    location_name: t.Optional(t.String()),
+    year: t.Optional(t.String()),
+    // One audit's report: its location and year come from the audit itself.
+    audit_id: t.Optional(t.String()),
+  }),
+  detail: {
+    tags: ['Reports'],
+    summary: "A location's year (or one audit) as the plant's 5S findings and question form",
+  },
   handler: async ({ query: q, request }) => {
-    const locationName = String(q?.location_name ?? '').trim()
-    const year = /^\d{4}$/.test(String(q?.year ?? '')) ? Number(q?.year) : Number(todayAtPlant().slice(0, 4))
+    const auditId = canonicalId(q?.audit_id)
+    const audit = auditId ? await loadAuditReportTarget(auditId) : null
+    if (auditId && !audit) {
+      return new Response(JSON.stringify({ success: false, message: 'Denetim bulunamadı.' }), {
+        status: 404,
+        headers: { 'content-type': 'application/json' },
+      })
+    }
+    const locationName = audit?.locationName ?? String(q?.location_name ?? '').trim()
+    const year = audit
+      ? Number(audit.auditDay.slice(0, 4))
+      : /^\d{4}$/.test(String(q?.year ?? ''))
+        ? Number(q?.year)
+        : Number(todayAtPlant().slice(0, 4))
     if (!locationName) {
       return new Response(JSON.stringify({ success: false, message: 'Lokasyon seçilmedi.' }), {
         status: 400,
@@ -468,7 +506,7 @@ export const locationFormXlsx = defineRoute({
 
     // A field manager gets the form of their own locations only, as the register shows them (#7/#24).
     const caller = await callerById(request.headers.get('x-user-id') ?? '')
-    if (caller && !isCentral(caller) && caller.roles.includes('field manager')) {
+    if (caller && isScopedFieldManager(caller)) {
       const own = await query(
         `select 1 from five_s_locations
           where lower(trim(name)) = lower(trim($1))
@@ -483,8 +521,17 @@ export const locationFormXlsx = defineRoute({
       }
     }
 
+    // One audit's report is for an approved audit when a field manager asks (row 75).
+    const refusal = audit ? auditReportRefusal(caller, audit) : null
+    if (refusal) {
+      return new Response(JSON.stringify({ success: false, message: refusal.message }), {
+        status: refusal.status,
+        headers: { 'content-type': 'application/json' },
+      })
+    }
+
     // The checks above answer at once; the build waits its turn.
-    return oneAtATime(() => buildForm(locationName, year))
+    return oneAtATime(() => buildForm(locationName, year, audit))
   },
 })
 

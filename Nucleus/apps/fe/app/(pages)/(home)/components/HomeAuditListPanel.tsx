@@ -6,6 +6,7 @@ import { EmptyState } from "@/app/_components/Global/EmptyState";
 import { SkeletonTable } from "@/app/_components/Global/Skeleton";
 import type { TeamInfo, AuditPlanRow, LocInfo, HomeTab, DateEditRule } from "../page";
 import { TeamLeaderWithMembersTooltip } from "./TeamLeaderWithMembersTooltip";
+import { AuditReportButton } from "./AuditReportButton";
 import { DateInput } from "@/app/_components/DateInput";
 import { DateConflictNotice } from "@/app/_components/DateConflictNotice";
 import { auditStatusLabelTr } from "@/app/_utils/StatusLabels";
@@ -95,6 +96,10 @@ export function HomeAuditListPanel(props: {
     onEditCompletedAudit?: (plan: AuditPlanRow) => void;
     /** Correct only the five totals. */
     onEditScores?: (plan: AuditPlanRow) => void;
+    /** Field manager only: open the report of a completed audit of their own location (R75). */
+    onOpenAuditReport?: (plan: AuditPlanRow) => void;
+    canOpenAuditReport?: (plan: AuditPlanRow) => boolean;
+    auditReportBusyId?: string | null;
     currentUserId?: string;
     /*
      * The two tabs are two SERVER queries, not one list split here.
@@ -131,6 +136,9 @@ export function HomeAuditListPanel(props: {
         onDeletePlan,
         onEditCompletedAudit,
         onEditScores,
+        onOpenAuditReport,
+        canOpenAuditReport,
+        auditReportBusyId,
         tab,
         onTabChange,
         counts,
@@ -419,6 +427,12 @@ export function HomeAuditListPanel(props: {
                                             >
                                                 Puanlar
                                             </button>
+                                        )}
+                                        {onOpenAuditReport && canOpenAuditReport?.(p) && (
+                                            <AuditReportButton
+                                                busy={auditReportBusyId === p.id}
+                                                onOpen={() => onOpenAuditReport(p)}
+                                            />
                                         )}
                                         {onDeletePlan && (
                                             <button

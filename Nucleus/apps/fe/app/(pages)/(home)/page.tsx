@@ -9,6 +9,8 @@ import { useGetUserRole } from "@/app/_hooks/user/useGetUserRole";
 import { useMyScope } from "@/app/_hooks/user/useMyScope";
 import { ADMIN_ROLES, CENTRAL_ROLES, hasPrivilege } from "@/app/_utils/routeAccess";
 import { confirmDialog } from "@/app/_components/Global/ConfirmDialog";
+import { useAuditReport } from "./_hooks/useAuditReport";
+import { canOpenAuditReport, isFieldManagerOnly } from "./_utils/auditReport";
 
 import { HomeAuditListPanel } from "./components/HomeAuditListPanel";
 import { EditAuditModal, type EditableAudit } from "./components/EditAuditModal";
@@ -606,6 +608,21 @@ export default function Page() {
     () => hasPrivilege(roleNames, ADMIN_ROLES, isGod),
     [roleNames, isGod]
   );
+  /*
+   * R75: a field manager opens the report of a COMPLETED audit of their own
+   * location from its row. The server narrows it to the same (own location,
+   * approved audits); the button is only kept off rows it would refuse.
+   */
+  const isFieldManagerUser = isFieldManagerOnly(roleNames, isGod);
+  const auditReport = useAuditReport();
+  const canOpenReport = (plan: AuditPlanRow) =>
+    canOpenAuditReport({
+      planStatus: plan.status,
+      auditId: plan.audit_id,
+      locationId: plan.location_id,
+      isFieldManager: isFieldManagerUser,
+      fieldManagerLocationIds: scope?.fieldManagerLocationIds ?? [],
+    });
 
   /*
    * Decide whose plans to ask for, then ask. Merkez Ekip and above see every
@@ -1033,6 +1050,9 @@ export default function Page() {
           getDateConflicts={getDateConflicts}
           onEditCompletedAudit={isAdminUser ? openAuditAnswersEdit : undefined}
           onEditScores={isAdminUser ? openAuditEdit : undefined}
+          onOpenAuditReport={isFieldManagerUser ? auditReport.open : undefined}
+          canOpenAuditReport={canOpenReport}
+          auditReportBusyId={auditReport.busyId}
           tab={tab}
           onTabChange={setTab}
           counts={counts}
