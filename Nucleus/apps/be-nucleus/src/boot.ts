@@ -1,5 +1,5 @@
 import { query } from './db'
-import { grantGodminRole } from './godminRole'
+import { godminGrantLog, grantGodminRole } from './godminRole'
 
 /**
  * Data corrections that have to reach every install, applied at start-up.
@@ -103,7 +103,7 @@ export async function applyBootFixes(): Promise<void> {
   try {
     // R27: nucleus's table routes honour the godmin ROLE only, never the is_god flag.
     const given = await grantGodminRole()
-    if (given > 0) console.log(`[boot] ${given} godmin hesabına godmin rolü verildi`)
+    if (given.length > 0) console.log(godminGrantLog(given))
   } catch (error) {
     console.error('[boot] godmin rolü verilemedi', error)
   }

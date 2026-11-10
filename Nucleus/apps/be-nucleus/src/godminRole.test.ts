@@ -1,10 +1,20 @@
 import { describe, expect, it } from 'bun:test'
-import { GODMIN_ROLE_GRANT_SQL, grantGodminRole } from './godminRole'
+import { GODMIN_ROLE_GRANT_SQL, godminGrantLog, grantGodminRole } from './godminRole'
 
 describe('the godmin role for every is_god account (R27)', () => {
-  it('reports how many accounts were given the role', async () => {
-    expect(await grantGodminRole(async () => [{ id: 'a' }, { id: 'b' }])).toBe(2)
-    expect(await grantGodminRole(async () => [])).toBe(0)
+  it('reports which accounts were given the role', async () => {
+    expect(await grantGodminRole(async () => [{ user_id: 'a' }, { user_id: 'b' }])).toEqual(['a', 'b'])
+    expect(await grantGodminRole(async () => [])).toEqual([])
+  })
+
+  it('returns the granted user id, not the new row id', () => {
+    expect(GODMIN_ROLE_GRANT_SQL.replace(/\s+/g, ' ')).toContain('returning user_id')
+  })
+
+  it('logs the granted user ids on a [boot] line', () => {
+    const line = godminGrantLog(['u-1', 'u-2'])
+    expect(line.startsWith('[boot] ')).toBe(true)
+    expect(line).toBe('[boot] 2 godmin hesabına godmin rolü verildi: u-1, u-2')
   })
 
   it('runs one statement and no parameters, so a second boot repeats it harmlessly', async () => {

@@ -26,10 +26,18 @@ export const GODMIN_ROLE_GRANT_SQL = `insert into main.user_roles (user_id, role
     join main.roles r on r.name = 'godmin'
    where u.is_god = true
      and not exists (select 1 from main.user_roles ur where ur.user_id = u.id and ur.role_id = r.id)
-  returning id`
+  returning user_id`
 
-/** How many accounts were given the role. */
-export async function grantGodminRole(run: Run = query): Promise<number> {
+/** The ids of the accounts that were given the role. */
+export async function grantGodminRole(run: Run = query): Promise<string[]> {
   const rows = await run(GODMIN_ROLE_GRANT_SQL)
-  return rows.length
+  return rows.map((row) => String(row.user_id))
+}
+
+/**
+ * The boot log line for a grant: the role reaches every flagged account that
+ * lacked it, so the log names exactly which accounts were widened.
+ */
+export function godminGrantLog(userIds: string[]): string {
+  return `[boot] ${userIds.length} godmin hesabına godmin rolü verildi: ${userIds.join(', ')}`
 }
