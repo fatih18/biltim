@@ -142,4 +142,38 @@ describe('findingsFilter', () => {
   it('ignores a status it does not know', () => {
     expect(findingsFilter({ ...none, status: 'bogus' })).toEqual({ sql: '', params: [] })
   })
+
+  it('keeps one status as a plain equality with a scalar parameter', () => {
+    const f = findingsFilter({ ...none, status: 'open' })
+    expect(f.sql).toBe(' AND f.status = $1')
+    expect(f.params).toEqual(['open'])
+  })
+
+  it('matches a list of statuses as one text[] parameter (R48: Açık = open,in_progress)', () => {
+    const f = findingsFilter({ ...none, status: 'open,in_progress' })
+    expect(f.sql).toBe(' AND f.status = ANY($1::text[])')
+    expect(f.params).toEqual([['open', 'in_progress']])
+  })
+
+  it('takes the statuses of a list it knows and drops the rest', () => {
+    expect(findingsFilter({ ...none, status: 'open, bogus ,open' }).params).toEqual(['open'])
+    expect(findingsFilter({ ...none, status: 'bogus,also-bogus' })).toEqual({ sql: '', params: [] })
+    expect(findingsFilter({ ...none, status: ',' })).toEqual({ sql: '', params: [] })
+  })
+
+  it('numbers the status list among the other placeholders, in push order', () => {
+    const f = findingsFilter({
+      ...none,
+      spellings: ['Pres'],
+      status: 'open,in_progress',
+      scopeSpellings: ['Pres'],
+      from: '2026-01-01',
+    })
+    expect(f.params).toEqual([['Pres'], ['open', 'in_progress'], ['Pres'], '2026-01-01'])
+    expect(f.sql).toContain('f.status = ANY($2::text[])')
+    expect(f.sql).toContain('f.location_name = ANY($3::text[])')
+    expect(f.sql).toContain('f.detected_date >= $4')
+    const used = new Set([...f.sql.matchAll(/\$(\d+)/g)].map((m) => Number(m[1])))
+    expect([...used].sort()).toEqual(f.params.map((_, n) => n + 1))
+  })
 })

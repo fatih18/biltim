@@ -4,6 +4,8 @@ import { type Row, query } from '../db'
 import { todayAtPlant } from '../guards/businessRules'
 import { type Caller, callerById, type QueryParam } from '../guards/caller'
 import { buildWorkbook, type Column, statusTr, xlsxResponse } from './excel'
+import { countFindings, FINDINGS_FROM_WHERE } from './findingsCount'
+import { parseStatuses } from './findingStatuses'
 import { locationFormXlsx } from './locationForm'
 import { findingSpellings } from './locationMatch'
 import { DASHBOARD_PHOTO_HINT, PHOTO_COLUMN_WIDTH, PHOTO_COLUMNS, PHOTO_HINT } from './photoReport'
@@ -562,9 +564,14 @@ export function findingsFilter(f: FindingFilters): { sql: string; params: QueryP
     clauses.push(` AND f.location_name = ANY($${i++}::text[])`)
     params.push(f.spellings)
   }
-  if (f.status && ['open', 'in_progress', 'closed'].includes(f.status)) {
+  // `status` names one status or a comma list (R48: Açık = open,in_progress). One keeps its plain equality.
+  const statuses = parseStatuses(f.status)
+  if (statuses.length === 1) {
     clauses.push(` AND f.status = $${i++}`)
-    params.push(f.status)
+    params.push(...statuses)
+  } else if (statuses.length > 1) {
+    clauses.push(` AND f.status = ANY($${i++}::text[])`)
+    params.push(statuses)
   }
   // A single finding raised inside an audit is that audit's finding (R74): only a standalone one is "single_finding".
   if (f.source === 'single_finding') clauses.push(` AND ${STANDALONE_SINGLE}`)
@@ -581,15 +588,16 @@ export function findingsFilter(f: FindingFilters): { sql: string; params: QueryP
   return { sql: clauses.join(''), params }
 }
 
-async function findingsWorkbook(
-  q: Record<string, string | undefined> | undefined,
-  forceOpen: boolean,
-  request: Request
-) {
-  const locationName = String(q?.location_name ?? '').trim()
-  const withPhotos = ['1', 'true'].includes(String(q?.with_photos ?? '').trim().toLowerCase())
+type FindingsRequest = Record<string, string | undefined> | undefined
 
-  const { sql: where, params } = findingsFilter({
+/**
+ * The filter a findings request names, resolved against the stored spellings of
+ * the place and the caller's own scope (a field manager's places, #7/#24). The
+ * workbook and its count both start here, so they name the same findings (R48).
+ */
+async function requestedFilter(q: FindingsRequest, forceOpen: boolean, request: Request) {
+  const locationName = String(q?.location_name ?? '').trim()
+  const filter = findingsFilter({
     spellings: locationName ? await findingSpellings(locationName) : null,
     status: forceOpen ? 'open' : String(q?.status ?? '').trim(),
     source: String(q?.source ?? '').trim(),
@@ -597,6 +605,12 @@ async function findingsWorkbook(
     to: parseDate(q?.date_to),
     scopeSpellings: (await fieldManagerScope(request))?.spellings ?? null,
   })
+  return { locationName, ...filter }
+}
+
+async function findingsWorkbook(q: FindingsRequest, forceOpen: boolean, request: Request) {
+  const withPhotos = ['1', 'true'].includes(String(q?.with_photos ?? '').trim().toLowerCase())
+  const { locationName, sql: where, params } = await requestedFilter(q, forceOpen, request)
 
   const all: Row[] = await query(
     `SELECT f.finding_no, f.detected_date, ${FINDING_PLACE} AS location_name, f.finding_type,
@@ -609,9 +623,7 @@ async function findingsWorkbook(
                  WHEN a.source IS NOT DISTINCT FROM 'single_finding' AND NOT ${STANDALONE_SINGLE}
                  THEN replace(f.form_title, ' · ', ' – ')
                  ELSE '' END AS audit_label, ${PHOTO_COLUMNS}
-     FROM five_s_findings f
-     LEFT JOIN five_s_audits a ON a.id = f.audit_id
-     WHERE f.is_active = true${where}
+     ${FINDINGS_FROM_WHERE}${where}
      ORDER BY f.finding_no ASC NULLS LAST`,
     params
   )
@@ -662,6 +674,30 @@ const findingsXlsx = defineRoute({
   handler: ({ query: q, request }) => findingsWorkbook(q, false, request),
 })
 
+/*
+ * How many findings `findings.xlsx` would list for the same parameters (R48), so
+ * the screen can say "12 açık bulgu indirilecek" before the download. Same
+ * filter, same scope, same rows; `with_photos` is the one parameter it does not
+ * take, because that narrowing happens after the read and the screen never sets it.
+ */
+const findingsCountQuery = t.Object({
+  ...dateWindow,
+  location_name: t.Optional(t.String()),
+  status: t.Optional(t.String()),
+  source: t.Optional(t.String()),
+})
+
+const findingsCount = defineRoute({
+  method: 'GET',
+  path: '/findings-count',
+  query: findingsCountQuery,
+  detail: { tags: ['Reports'], summary: 'How many findings the findings Excel would list' },
+  handler: async ({ query: q, request }) => {
+    const { sql: where, params } = await requestedFilter(q, false, request)
+    return { success: true, message: 'Findings count', data: { total: await countFindings(where, params) } }
+  },
+})
+
 /**
  * Mounted under `/reports`, behind nucleus's guard chain as before, and then
  * behind the 5S-role check for every route in the group.
@@ -670,7 +706,7 @@ const findingsXlsx = defineRoute({
  * type, so two routes with different paths are different types and cannot
  * share an array without it.
  */
-const routes: AnyRoute[] = [dashboard, dashboardXlsx, openFindings, findingsXlsx, locationFormXlsx]
+const routes: AnyRoute[] = [dashboard, dashboardXlsx, openFindings, findingsXlsx, findingsCount, locationFormXlsx]
 export const ReportsRoutes: RouteGroup = {
   prefix: '/reports',
   guards: [(context) => refuseNonReportReaders(context)],
