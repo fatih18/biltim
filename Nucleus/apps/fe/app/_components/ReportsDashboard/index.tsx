@@ -66,7 +66,9 @@ function Card(props: {
   exporting?: boolean
 }) {
   return (
-    <section className={`rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 p-4 ${props.className ??''}`}>
+    // min-w-0: a grid item otherwise cannot shrink below its content, and the chart's wrapper
+    // (recharts) kept the card wider than a 320 px phone.
+    <section className={`min-w-0 rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 p-4 ${props.className ??''}`}>
       <div className="mb-3 flex items-start justify-between gap-2">
         <div>
           <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{props.title}</h3>

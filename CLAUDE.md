@@ -439,8 +439,8 @@ tarayıcı → Next server action (factory.nucleus.ts, AUTH_API_URL)
   Yerelde Chrome'la doğrulananlar: satır 16, 30 (Reddet döngüsü), 34, 39, ana sayfa
   listesi 320–1280 px ve koyu tema; gerçek Postgres'te: rapor uçları (üç rolle) ve
   Reddet korumaları (Müdür ve ekip dışı denemeleri, rejection_* ve kimlik kolonları).
-- Ana sayfadaki Raporlar özeti grafik kartları 320 px'te sayfayı yatay taşırıyor
-  (`ReportsDashboard`, recharts sarmalayıcısı); iPad'de görünmez.
+- Ana sayfadaki Raporlar özeti grafik kartlarının 320 px taşması düzeltildi
+  (`ReportsDashboard` kartına `min-w-0`; Chrome'da 320 px'te scrollWidth = clientWidth).
 - Dosyalar hâlâ 200 satırın üstünde (`denetim/page.tsx` ~5000, `businessRules.ts`
   ~1700, `HomeAuditListPanel.tsx` ~500); 22.10 işlerinin yeni mantığı küçük ayrı
   dosyalara yazıldı, eski monolitler bölünmedi.
