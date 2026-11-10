@@ -146,13 +146,25 @@ export function readUsers(sql: Sql, ids: string[]): Promise<Row[]> {
   )
 }
 
-/** Findings raised by one audit, switched-off ones left out. */
-export async function countAuditFindings(sql: Sql, auditId: string): Promise<number> {
-  const rows = await sql(
-    `select count(*)::int as n from main.five_s_findings f
-      where f.audit_id::text = $1 and f.is_active is not false`,
-    [auditId]
-  )
+/**
+ * The completion mail's clock is `updated_at`, which any later edit of a plan
+ * (its date, say) refreshes, and a plan completed before mail was switched on
+ * has no marker at all. So every tick first marks the completed plans that
+ * already left the window as HANDLED: `completion_mailed_at` then means
+ * "handled, not necessarily mailed". Only plans completed inside the window stay
+ * candidates, and editing an old one can no longer mail anybody. `$1` is the
+ * window in hours; answers how many plans it marked. Idempotent: a second run
+ * finds nothing.
+ */
+export const SWEEP_OLD_COMPLETIONS_SQL = `with handled as (
+  update main.five_s_audit_plans p set completion_mailed_at = ${NOW_UTC}
+   where p.status = 'completed' and p.completion_mailed_at is null
+     and ${SPEC.completion.clock} < ${NOW_UTC} - make_interval(hours => $1::int)
+  returning 1)
+select count(*)::int as n from handled`
+
+export async function sweepOldCompletions(sql: Sql): Promise<number> {
+  const rows = await sql(SWEEP_OLD_COMPLETIONS_SQL, [MAIL_WINDOW_HOURS])
   return countOf(rows[0], 'n')
 }
 

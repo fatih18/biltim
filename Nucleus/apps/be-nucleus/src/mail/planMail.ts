@@ -1,6 +1,7 @@
 import type { Sql } from '../db'
 import { canonicalId, toDateKey } from '../guards/businessRules'
-import { countAuditFindings, readPlanMail, readTeamMemberIds, readUsers } from './queries'
+import { countAuditFindings } from './auditFindings'
+import { readPlanMail, readTeamMemberIds, readUsers } from './queries'
 import { type Audience, resolveAudience } from './recipients'
 import { numberOf, textItemsOf, textOf } from './rows'
 import { buildCompletion, buildInvitation } from './texts'
