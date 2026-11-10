@@ -479,6 +479,20 @@ tarayıcı → Next server action (factory.nucleus.ts, AUTH_API_URL)
   uca denemesi; canlıdaki ilk boot (yukarıdaki şema itmesi notu); gerçek fotoğraflı Excel'in
   boyutu ve süresi; godmin rolünün boot'ta SQL ile verilmesinin JWT'ye yansıma zamanı;
   çift rollü hesabın HTTP üzerinden denemesi.
+- Canlı (bltm-5s) 2026-11-10, sürüm `68d9693`: `update.sh` yedekten sonra (pg_dump
+  `/root/biltim-deploy/pre.dump`) koştu; paket dosyası değişmediği için `bun install`
+  atlandı. Boot günlüğü: `[boot] bulgu #1 → #18`, `#2 → #19` (Bölge 3 tekil bulguları,
+  eski numaraları Bulgular ekranında "eski no" olarak görünür), tetikleyici kuruldu,
+  benzersiz indeks kuruldu. Ekranlardan doğrulandı: Ana Veri Yönetimi mail durum satırı
+  ("kapalı: Azure bilgisi girilmedi"), Sorular ("Fotoğraf opsiyonel"), Bulgular
+  (19 kayıt, Excel seçimi), ana sayfa Tamamlanan sekmesinde R43 tekrar satırları
+  (Su Tesisi 23→22.10, Metalografi 08→07.10), Denetim seçim listesi. Her açılışta şema
+  itmesi 6 ifadeyi uygulayamıyor ve ERROR basıyor: bunlar ESKİ ve zararsız
+  (`audit_logs.created_at SET NOT NULL`, üç doğrulama tablosunun kısıtı,
+  `five_s_audits_client_submission_uq` ve `five_s_findings_client_finding_uq` DROP'u);
+  bizim kolonlarımızdan hiçbiri değil. Excel indirmesi canlıda ~5 sn'den kısa üretildi;
+  Chrome http olduğu için "güvenli olmayan indirme engellendi" uyarısı verir (HTTPS konusu).
+  Mail durumundaki "süresi geçen" yalnız mailin ilk çalıştığı andan sonraki planları sayar.
 - Ana sayfadaki Raporlar özeti grafik kartlarının 320 px taşması düzeltildi
   (`ReportsDashboard` kartına `min-w-0`; Chrome'da 320 px'te scrollWidth = clientWidth).
 - Dosyalar hâlâ 200 satırın üstünde (`denetim/page.tsx` ~5000, `businessRules.ts`
