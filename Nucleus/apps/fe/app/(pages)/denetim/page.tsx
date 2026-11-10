@@ -11,7 +11,9 @@ import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
 import { useGetUserRole } from '@/app/_hooks/user/useGetUserRole'
 import { currentUserIdOf } from '@/app/_utils/currentUser'
 import { looksOffline } from '@/app/_utils/offlineIdentity'
-import { hasPrivilege } from '@/app/_utils/routeAccess'
+import { choosePlan, type PickScope, pickIntro } from './_utils/planChoice'
+import { mayRaiseSingleFinding, mayStartOwnLocation, seesEveryPlan } from './_utils/planAccess'
+import { PlanNotice } from './_components/PlanNotice'
 import { UploadedFileInfo, useUploadAnswerPhoto } from '../bulgular/hooks/useUploadAnswersPhoto'
 import { Question, questions as FALLBACK_QUESTIONS, StepCode, steps as FALLBACK_STEPS, Step } from './constants'
 import { DateInput } from '@/app/_components/DateInput'
@@ -48,7 +50,6 @@ import { NOT_ATTENDED_CONFIRM, noAnswersNotice, unknownAttendanceWarning } from 
 import { OpenFindingNotice } from './_components/OpenFindingNotice'
 import { PhotoPreviewOverlay } from './_components/PhotoPreviewOverlay'
 import { StandaloneFindingEntry } from './_components/StandaloneFindingEntry'
-import { decidePlanEntry } from './_utils/planEntry'
 import {
   explanationMissing,
   findingNoOf,
@@ -687,7 +688,7 @@ export default function FiveSAuditFormPage() {
    * The planned audit the person STARTED, null otherwise. Set only by an
    * explicit start (the address names the plan, or it is picked from the list)
    * or by the correction of a sent audit — never because an audit is assigned
-   * (R16; planEntry.ts). It decides whether "Tekil Bulgu" is in-audit or alone.
+   * (R16; planChoice.ts). It decides whether "Tekil Bulgu" is in-audit or alone.
    */
   const [assignedPlan, setAssignedPlan] = useState<PlanRow | null>(null)
   const [currentUserId, setCurrentUserId] = useState<string>('')
@@ -872,8 +873,8 @@ export default function FiveSAuditFormPage() {
     const names = [roleName ?? '', ...(roles ?? []).map((r) => r.name ?? '')]
     // isGod: the root account's power is its flag, not a role name. Without it
     // godmin could not open a single finding while Merkez Ekip could
-    // (Notlar 07.10, satır 26).
-    return hasPrivilege(names, ['manager', 'content manager core team', 'auditor', 'super admin'], isGod)
+    // (Notlar 07.10, satır 26). The lists live in _utils/planAccess (R27).
+    return mayRaiseSingleFinding(names, isGod)
   }, [roleName, roles, roleLoading, isGod])
 
   /*
@@ -882,17 +883,23 @@ export default function FiveSAuditFormPage() {
    * tells an administrator "your team has no audit", which is true, useless,
    * and a dead end: there is no other way into the form.
    */
-  const [isOwnTeamSelection, setIsOwnTeamSelection] = useState(true)
+  const [planPickScope, setPlanPickScope] = useState<PickScope>('own-team')
+  /** Why the plan clicked on the home page could not be opened (planChoice). */
+  const [planNotice, setPlanNotice] = useState<string | null>(null)
   const canOpenAnyPlanRef = useRef(false)
+  const startOwnLocationRef = useRef(false)
   const canOpenAnyPlan = useMemo(() => {
     if (roleLoading) return false
     const names = [roleName ?? '', ...(roles ?? []).map((r) => r.name ?? '')]
     // 'superadmin' never matched the role as it is spelled ("Super Admin"), and
     // Merkez Ekip — who plans the audits — was missing altogether.
-    return hasPrivilege(names, ['manager', 'content manager core team', 'super admin'], isGod)
+    return seesEveryPlan(names, isGod)
   }, [roleName, roles, roleLoading, isGod])
 
   canOpenAnyPlanRef.current = canOpenAnyPlan
+  // The #27 exemption is narrower than "sees every plan": Müdür is held to it.
+  startOwnLocationRef.current =
+    !roleLoading && mayStartOwnLocation([roleName ?? '', ...(roles ?? []).map((r) => r.name ?? '')], isGod)
 
   /*
    * The attendance rule needs someone to attend. A location with no field
@@ -1907,6 +1914,32 @@ export default function FiveSAuditFormPage() {
       .filter((x) => x.name)
   }
 
+  /*
+   * Opens one plan: the header comes from the plan's own team and location,
+   * never from who is looking (R71). The address-bar click, the single plan
+   * left and the "Denetim Seç" list all end here. The list used to keep the
+   * plan's raw date — a plan dated ahead made an audit the API refuses — and
+   * did not record the plan's own date for the "Plan:" line.
+   */
+  const openPlan = async (plan: PlanRow, meta: { locationName: string; teamName: string }, auditorName: string) => {
+    setAssignedPlan(plan)
+
+    const { members, teams, usersById } = assignmentDataRef.current
+    setTeamMemberOptions(buildTeamMemberOptions(plan.assigned_team_id, members, teams, usersById))
+
+    const nextHeader: AuditFormHeader = {
+      teamName: meta.teamName,
+      department: meta.locationName,
+      date: auditDateFor(plan.planned_date, header.date),
+      auditorName,
+    }
+    setPlanDate(String(plan.planned_date ?? '').slice(0, 10))
+    setHeader(nextHeader)
+
+    // ✅ draft restore (plan-based)
+    await tryRestoreDraft(plan.id, nextHeader)
+  }
+
   const fetchAssignment = async () => {
     try {
       setAssignmentLoading(true)
@@ -2311,79 +2344,41 @@ export default function FiveSAuditFormPage() {
       } catch {
         // No offline store: nothing is queued.
       }
-      const activePlans = plans.filter(
-        (p) =>
-          p?.is_active &&
-          p?.status === 'planned' &&
-          !p?.audit_id &&
-          !queuedPlanIds.has(String(p.id)) &&
-          (canOpenAnyPlanRef.current || !isFieldManagerOf(p))
-      )
-      const matched = activePlans.filter((p) => {
-        const s = memberSetByTeam.get(p.assigned_team_id)
-        return !!s && !!uidVal && s.has(String(uidVal))
+      const activePlans = plans.filter((p) => p?.is_active && p?.status === 'planned' && !p?.audit_id)
+      const metaFor = (p: PlanRow) => ({
+        locationName: locs.find((l) => l.id === p.location_id)?.name ?? '',
+        teamName: teams.find((t) => t.id === p.assigned_team_id)?.name ?? '',
       })
 
-      // Madde 7: Ana sayfadan planId ile gelindiyse o planı direkt seç
-      const urlPlanId =
-        typeof window !== 'undefined'
-          ? new URLSearchParams(window.location.search).get('planId')
-          : null
       /*
-       * An audit starts only on purpose: the address names the plan ("Denetime
-       * Başla" on the home page) or the person picks it from the list. A lone
-       * assigned plan used to be attached here by itself, which left no way to
-       * file a plan-less single finding (Notlar 22.10, satır 16);
-       * `assignedPlan` is now set only by an explicit start.
+       * R71: which plan opens is decided in _utils/planChoice. The plan clicked
+       * on the home page (?planId=) wins over everything — it used to be looked
+       * up among the viewer's own teams only, so Merkez Ekip clicking another
+       * team's plan got the plan of his own region instead. A plan that cannot
+       * be opened is explained, never swapped for another.
        */
-      const entry = decidePlanEntry({
-        requestedPlanId: urlPlanId,
-        ownPlanIds: matched.map((p) => String(p.id)),
-        openablePlanIds: activePlans.map((p) => String(p.id)),
-        canOpenAny: canOpenAnyPlanRef.current,
+      const choice = choosePlan({
+        plans: activePlans,
+        queuedPlanIds,
+        isOnTeam: (teamId) => !!uidVal && !!memberSetByTeam.get(teamId)?.has(String(uidVal)),
+        isFieldManagerOf,
+        seesEveryPlan: canOpenAnyPlanRef.current,
+        mayStartOwnLocation: startOwnLocationRef.current,
+        requestedPlanId:
+          typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('planId') : null,
       })
-      if (entry.kind === 'start') {
-        const target = activePlans.find((p) => String(p.id) === entry.planId)
-        if (target) {
-          const metaMapUrl: Record<string, { locationName: string; teamName: string }> = {
-            [target.id]: {
-              locationName: locs.find((l) => l.id === target.location_id)?.name ?? '',
-              teamName: teams.find((t) => t.id === target.assigned_team_id)?.name ?? '',
-            },
-          }
-          setPlanMetaMap(metaMapUrl)
-          setAssignedPlan(target)
+      setPlanNotice(choice.notice)
 
-          const memberOptsUrl = buildTeamMemberOptions(target.assigned_team_id, members, teams, usersById)
-          setTeamMemberOptions(memberOptsUrl)
-
-          const nextHeaderUrl = {
-            teamName: metaMapUrl[target.id]?.teamName ?? '',
-            department: metaMapUrl[target.id]?.locationName ?? '',
-            date: auditDateFor(target.planned_date, header.date),
-            auditorName: header.auditorName || auditorFallback,
-          } satisfies AuditFormHeader
-          setPlanDate(String(target.planned_date ?? '').slice(0, 10))
-          setHeader(nextHeaderUrl)
-
-          await tryRestoreDraft(target.id, nextHeaderUrl)
-          return
-        }
+      if (choice.kind === 'open') {
+        setPlanMetaMap({ [choice.plan.id]: metaFor(choice.plan) })
+        await openPlan(choice.plan, metaFor(choice.plan), header.auditorName || auditorFallback)
+        return
       }
 
-      if (entry.kind === 'choose') {
-        // Nothing started: the plans are offered next to "Tekil Bulgu +".
-        const offered = activePlans.filter((p) => entry.planIds.includes(String(p.id)))
-        const metaOffered: Record<string, { locationName: string; teamName: string }> = {}
-        for (const p of offered) {
-          metaOffered[p.id] = {
-            locationName: locs.find((l) => l.id === p.location_id)?.name ?? '',
-            teamName: teams.find((t) => t.id === p.assigned_team_id)?.name ?? '',
-          }
-        }
-        setPlanMetaMap(metaOffered)
-        setAvailablePlans(offered)
-        setIsOwnTeamSelection(entry.own)
+      if (choice.kind === 'pick') {
+        setPlanMetaMap(Object.fromEntries(choice.plans.map((p) => [p.id, metaFor(p)])))
+        setAvailablePlans(choice.plans)
+        setPlanPickScope(choice.scope)
         setPlanSelectionMode(true)
         setHeader((prev) => ({ ...prev, auditorName: prev.auditorName || auditorFallback }))
         return
@@ -2404,29 +2399,8 @@ export default function FiveSAuditFormPage() {
 
   const selectPlan = async (plan: PlanRow) => {
     setPlanSelectionMode(false)
-    setAssignedPlan(plan)
-
     const meta = planMetaMap[plan.id] ?? { teamName: '', locationName: '' }
-    /*
-     * The list is now the way into every audit, so this start must do what the
-     * address-named one does: the audit's date cannot run ahead of today (the
-     * API refuses a future audit), and the plan keeps its own date on the
-     * "Plan:" line.
-     */
-    const nextHeader: AuditFormHeader = {
-      teamName: meta.teamName,
-      department: meta.locationName,
-      date: auditDateFor(plan.planned_date, header.date),
-      auditorName: header.auditorName,
-    }
-    setPlanDate(String(plan.planned_date ?? '').slice(0, 10))
-    setHeader(nextHeader)
-
-    const { members, teams, usersById } = assignmentDataRef.current
-    const memberOpts = buildTeamMemberOptions(plan.assigned_team_id, members, teams, usersById)
-    setTeamMemberOptions(memberOpts)
-
-    await tryRestoreDraft(plan.id, nextHeader)
+    await openPlan(plan, meta, header.auditorName)
   }
 
   // BE'den sorular ve adımları çek; DB boşsa fallback constants
@@ -3935,11 +3909,8 @@ export default function FiveSAuditFormPage() {
       <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-50 px-4 py-10 md:px-8">
         <div className="mx-auto max-w-2xl rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 p-6">
           <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">Denetim Seç</h2>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-            {isOwnTeamSelection
-              ? 'Ekibinize atanmış planlı denetimler aşağıda. Denetime başlamak için birini seçin; seçmediğiniz sürece hiçbir denetim başlamaz.'
-              : 'Ekibinize atanmış planlı bir denetim yok. Yetkiniz olduğu için açık denetimlerin tamamı aşağıda listeleniyor.'}
-          </p>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{pickIntro(planPickScope)}</p>
+          <PlanNotice message={planNotice} />
 
           <div className="mt-5 space-y-3">
             {availablePlans.map((p) => {
@@ -3991,6 +3962,7 @@ export default function FiveSAuditFormPage() {
               <div className="mt-2 text-sm text-slate-600 dark:text-slate-400">
                 Planlama ekranından ekibinize bir denetim planlandığında bu form otomatik açılacaktır.
               </div>
+              <PlanNotice message={planNotice} />
 
               <div className="mt-2 text-[11px] text-slate-600 dark:text-slate-400">
                 Durum:{' '}

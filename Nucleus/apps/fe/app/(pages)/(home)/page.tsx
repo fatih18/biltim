@@ -724,10 +724,12 @@ export default function Page() {
   const canStartPlan = React.useCallback(
     (plan: AuditPlanRow) => {
       if (plan.status !== "planned") return false;
-      if (isPrivilegedUser) return true;
+      // Merkez Ekip, Super Admin and the godmin start every plan (R71); the
+      // server's refusal exempts exactly these, Müdür is held to it like the rest.
+      if (isAdminUser) return true;
       return !(scope?.fieldManagerLocationIds ?? []).includes(String(plan.location_id));
     },
-    [isPrivilegedUser, scope]
+    [isAdminUser, scope]
   );
 
   // Madde 7: Ana sayfadan denetim başlatma
