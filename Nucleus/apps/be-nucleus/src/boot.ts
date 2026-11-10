@@ -45,6 +45,18 @@ import { grantGodminRole } from './godminRole'
  * back. The column claims open the two fields; the business-rule guard keeps
  * them to the leader of the plan's own team.
  *
+ * Auditor, again: correcting an audit Merkez Ekip sent back (R30, "Reddet").
+ * The plan's team corrects it through the same screen Merkez Ekip uses, which
+ * PATCHes the audit and its answers; the Auditor role held only POST on both,
+ * so the team's "Düzelt ve Yeniden Gönder" would have answered 403. The new
+ * claims open nothing else: the business-rule guard refuses an Auditor's change
+ * to an existing audit or answer unless its plan is rejected and the caller is
+ * on that plan's team (guards/businessRules.ts). The three new plan columns
+ * (rejection_reason, rejected_at, rejected_by) need no read grant: every role
+ * reads the table through its table-level `get.five_s_audit_plans` claim, and
+ * nucleus filters columns on a read only for a role that has column claims
+ * alone. Writing them needs none either: only the "Reddet" route writes them.
+ *
  * Only claims that exist are granted, and only once.
  */
 const GRANTS: Array<[role: string, action: string]> = [
@@ -65,6 +77,9 @@ const GRANTS: Array<[role: string, action: string]> = [
     ['planned_date', 'date_change_count'].map(
       (column) => ['Auditor', `${method}.five_s_audit_plans.${column}`] as [string, string]
     )
+  ),
+  ...['put', 'patch'].flatMap((method) =>
+    ['five_s_audits', 'five_s_audit_answers'].map((table) => ['Auditor', `${method}.${table}`] as [string, string])
   ),
 ]
 

@@ -2,6 +2,17 @@ import { readFileSync } from 'node:fs'
 import { query } from '../db'
 import { type Caller, carriesCredentials, isAdmin, isAuditorOnly, isCentral, resolveCaller } from './caller'
 import { FINDING_ITEM, FINISHED_AUDIT_FINDING_MESSAGE, findingOfFinishedAudit } from './findingDelete'
+import {
+  REJECTED,
+  REJECTED_AUDIT_MESSAGE,
+  REJECTED_DATE_MESSAGE,
+  REJECTED_RELINK_MESSAGE,
+  REJECTED_RESEND_MESSAGE,
+  REJECTED_STATUS_WRITE_MESSAGE,
+  mayWriteRejected,
+  rejectedPlanTeams,
+  rejectedPlanTeamsOfFinding,
+} from './rejectedPlan'
 
 /**
  * The 5S rules that must hold no matter who is writing.
@@ -317,8 +328,9 @@ async function readBody(ctx: RuleContext): Promise<Record<string, unknown>> {
  * where or by whom those audits were meant to be done.
  *
  * Completed and cancelled plans do not block: they are history, and the
- * customer must be able to clean test data out. The message says what to do
- * instead.
+ * customer must be able to clean test data out. A rejected plan is still open:
+ * its audit is waiting to be corrected and sent again. The message says what
+ * to do instead.
  */
 async function guardMasterDataDelete(path: string, read: Read): Promise<Response | undefined> {
   const target = LOCATION_ITEM.exec(path)
@@ -485,7 +497,8 @@ export function photoCount(row: Record<string, unknown>, side: 'before' | 'after
 /**
  * Open audit plans: not completed, not cancelled and not switched off — the
  * same test the delete guard uses. A cancelled plan will never be audited, so
- * it cannot make anyone audit their own place.
+ * it cannot make anyone audit their own place. A rejected plan is open: it
+ * will be corrected and sent again by its team.
  */
 const OPEN_PLAN = `coalesce(p.is_active, true) and coalesce(p.status, '') not in ('completed', 'cancelled')`
 
@@ -785,6 +798,19 @@ export async function enforceBusinessRules(ctx: RuleContext): Promise<Response |
   }
 
   /*
+   * A plan that was sent back for correction is written by Merkez Ekip and by
+   * its own team (leader or active member), and nobody else. `teams` is what
+   * `rejectedPlanTeams` found: nothing rejected means nothing to judge.
+   */
+  const rejectedRefusal = async (teams: string[]): Promise<Response | undefined> => {
+    if (teams.length === 0) return undefined
+    const caller = await who()
+    if (!caller) return unidentified()
+    const may = await mayWriteRejected(caller, teams, (teamId, userId) => onPlanTeam(read, teamId, idOf(userId)))
+    return may ? undefined : refuse(REJECTED_AUDIT_MESSAGE, 403)
+  }
+
+  /*
    * The godmin's account is not anyone else's to change.
    *
    * The users screen's own routes refuse it, but Super Admin also holds
@@ -831,8 +857,11 @@ export async function enforceBusinessRules(ctx: RuleContext): Promise<Response |
      */
     const findingDelete = FINDING_ITEM.exec(deletePath)
     if (findingDelete) {
-      if (!(await findingOfFinishedAudit(pathId(findingDelete[1]), read))) return undefined
-      return requireCaller(isAdmin, FINISHED_AUDIT_FINDING_MESSAGE, 403)
+      if (await findingOfFinishedAudit(pathId(findingDelete[1]), read)) {
+        return requireCaller(isAdmin, FINISHED_AUDIT_FINDING_MESSAGE, 403)
+      }
+      // A finding of a plan sent back for correction: Merkez Ekip and the plan's team.
+      return rejectedRefusal(await rejectedPlanTeamsOfFinding(read, pathId(findingDelete[1])))
     }
 
     if (!LOCATION_ITEM.test(deletePath) && !TEAM_ITEM.test(deletePath)) return undefined
@@ -1105,7 +1134,9 @@ export async function enforceBusinessRules(ctx: RuleContext): Promise<Response |
       const plan = rows[0]
       const status = str(plan?.status)
       const carrier = str(body.source) === 'single_finding'
-      if (plan && !carrier && (idOf(plan.audit_id) !== '' || status === PENDING_APPROVAL || status === 'completed')) {
+      // A rejected plan keeps its audit: it is corrected and sent again, not redone.
+      const sentAlready = status === PENDING_APPROVAL || status === 'completed' || status === REJECTED
+      if (plan && !carrier && (idOf(plan.audit_id) !== '' || sentAlready)) {
         return refuse('Bu plan için denetim zaten gönderilmiş.', 409)
       }
       managers.push(...jsonIds(plan?.field_manager_user_ids))
@@ -1184,7 +1215,42 @@ export async function enforceBusinessRules(ctx: RuleContext): Promise<Response |
         )
         if (refusal) return refusal
       }
+
+      /*
+       * An audit sent back for correction: Merkez Ekip and the plan's team
+       * write it. The Auditor role holds put/patch on audits and answers for
+       * exactly this (boot.ts), so below Müdür the other side of the rule is
+       * here: changing an EXISTING audit or answer is only ever the team's
+       * correction of a rejected plan. A new answer (POST) is the auditor's
+       * own submission and is left to the rules above.
+       */
+      const rejected = await rejectedPlanTeams(read, ids)
+      const refusal = await rejectedRefusal(rejected)
+      if (refusal) return refusal
+      if (rejected.length === 0 && (auditItem || answerItem)) {
+        const caller = await who()
+        if (!caller) return unidentified()
+        if (!isCentral(caller)) {
+          return refuse(
+            'Kayıtlı bir denetimi yalnız Merkez Ekip ve Müdür düzeltebilir; denetçi yalnız düzeltme için geri gönderilen kendi ekibinin denetimini düzeltebilir.',
+            403
+          )
+        }
+      }
     }
+  }
+
+  /*
+   * The findings of a plan sent back for correction are written by Merkez Ekip
+   * and the plan's team as well: a new finding names its audit in the body, a
+   * stored one hangs under the audit it already has (and under the one it is
+   * moved to).
+   */
+  if (FINDING_COLLECTION.test(path) || findingItem) {
+    const teams = findingItem ? await rejectedPlanTeamsOfFinding(read, pathId(findingItem[1])) : []
+    const named = idOf(body.audit_id)
+    const refusal = await rejectedRefusal([...teams, ...(named ? await rejectedPlanTeams(read, [named]) : [])])
+    if (refusal) return refusal
   }
 
   /*
@@ -1341,6 +1407,9 @@ export async function enforceBusinessRules(ctx: RuleContext): Promise<Response |
     if (refusal) return refusal
   }
 
+  // `rejected` is what the "Reddet" route writes with its reason and its notification; never a plain create.
+  if (planCreate && str(body.status).toLowerCase() === REJECTED) return refuse(REJECTED_STATUS_WRITE_MESSAGE)
+
   if (planItem) {
     const touchesFlow = (['status', 'audit_id', 'auditor_attended', 'field_manager_attended'] as const).some(
       (key) => body[key] !== undefined
@@ -1360,6 +1429,17 @@ export async function enforceBusinessRules(ctx: RuleContext): Promise<Response |
     const storedStatus = str(row.status)
     const incomingStatus = body.status === undefined ? undefined : str(body.status)
     const done = storedStatus === 'completed' || storedStatus === PENDING_APPROVAL
+    const sentBack = storedStatus === REJECTED
+
+    /*
+     * Nobody writes `rejected` through the generic route, so the reason and the
+     * team's notification cannot be skipped. Saving the plan with the status it
+     * already has, spelled the same, changes nothing and is let past (the
+     * planner's edit form sends the whole row back).
+     */
+    if (incomingStatus?.toLowerCase() === REJECTED && !(sentBack && incomingStatus === REJECTED)) {
+      return refuse(REJECTED_STATUS_WRITE_MESSAGE)
+    }
     const used = Number(row.date_change_count ?? 0)
     // `null` is written as null, which the screens read as 0 — so it counts as 0.
     const hasCount = body.date_change_count !== undefined
@@ -1403,27 +1483,44 @@ export async function enforceBusinessRules(ctx: RuleContext): Promise<Response |
      *     Sending the same stamp again (the offline queue replaying a
      *     submission that already went through) changes nothing and passes;
      *   - and the plan must be their team's: its leader or an active member.
+     *
+     * A rejected plan is sent again the same way, from `rejected` with the
+     * audit it already has, by Merkez Ekip or by its own team (Müdür too only
+     * as a member of that team). Its attendance stays correctable — the
+     * correction may fix the tick that scored the audit — but not its audit link.
      */
     if (touchesFlow) {
       const caller = await who()
       if (!caller) return unidentified()
+      const resending = sentBack && incomingStatus === PENDING_APPROVAL
+      if (resending && !isAdmin(caller)) {
+        const on = await team(caller.userId)
+        if (!on.leader && !on.member) return refuse(REJECTED_RESEND_MESSAGE, 403)
+      }
       if (!isCentral(caller)) {
         if (incomingStatus !== undefined && incomingStatus !== storedStatus) {
-          const sending = isPlannedStatus(storedStatus) && incomingStatus === PENDING_APPROVAL && idOf(body.audit_id) !== ''
+          const sameAudit = idOf(body.audit_id) !== '' && idOf(body.audit_id) === idOf(row.audit_id)
+          const sending =
+            (isPlannedStatus(storedStatus) && incomingStatus === PENDING_APPROVAL && idOf(body.audit_id) !== '') ||
+            (resending && sameAudit)
           if (!sending) {
             return refuse(
               'Plan yalnız denetimiyle birlikte "Onay Bekliyor" durumuna gönderilebilir; başka durum değişikliğini Merkez Ekip yapar.'
             )
           }
         }
-        if (done) {
+        if (done || sentBack) {
           const relinks = body.audit_id !== undefined && idOf(body.audit_id) !== idOf(row.audit_id)
-          const reattends = (['auditor_attended', 'field_manager_attended'] as const).some(
-            (key) => body[key] !== undefined && flag(body[key]) !== flag(row[key])
-          )
+          const reattends =
+            done &&
+            (['auditor_attended', 'field_manager_attended'] as const).some(
+              (key) => body[key] !== undefined && flag(body[key]) !== flag(row[key])
+            )
           if (relinks || reattends) {
             return refuse(
-              'Onay bekleyen ya da tamamlanmış bir planın denetim bağlantısı ve katılım bilgisi yalnız Merkez Ekip tarafından değiştirilebilir.'
+              sentBack
+                ? REJECTED_RELINK_MESSAGE
+                : 'Onay bekleyen ya da tamamlanmış bir planın denetim bağlantısı ve katılım bilgisi yalnız Merkez Ekip tarafından değiştirilebilir.'
             )
           }
         }
@@ -1466,10 +1563,10 @@ export async function enforceBusinessRules(ctx: RuleContext): Promise<Response |
      * The date of an audit that has been carried out is a record, not a plan
      * (#16). Merkez Ekip may correct it; the team leader who could move it
      * while it was planned may not rewrite it afterwards, and neither may
-     * Müdür (row 17).
+     * Müdür (row 17). An audit sent back for correction was carried out too.
      */
-    if (done && !isAdmin(caller)) {
-      return refuse('Tamamlanmış denetimin tarihi yalnız Merkez Ekip tarafından değiştirilebilir.')
+    if ((done || sentBack) && !isAdmin(caller)) {
+      return refuse(sentBack ? REJECTED_DATE_MESSAGE : 'Tamamlanmış denetimin tarihi yalnız Merkez Ekip tarafından değiştirilebilir.')
     }
 
     /*

@@ -829,6 +829,7 @@ describe('puan sınırları', () => {
         request: jsonReq('PATCH', '/fiveSAudits/abc', { total_score: v }),
         body: undefined,
         read: reader([]),
+        caller: CENTRAL,
       })
       expect(res).toBeUndefined()
     }
@@ -839,6 +840,7 @@ describe('puan sınırları', () => {
       request: jsonReq('PATCH', '/fiveSAudits/abc', { auditor_name: 'x' }),
       body: undefined,
       read: reader([]),
+      caller: CENTRAL,
     })
     expect(res).toBeUndefined()
   })
@@ -2693,11 +2695,14 @@ describe('deleting a finding of a sent or approved audit', () => {
       read,
       caller: MANAGER,
     })
-    expect(seen).toHaveLength(1)
+    // The second read is the plan sent back for correction (R30), asked by the same id.
+    expect(seen).toHaveLength(2)
     expect(seen[0]?.params).toEqual(['6f0c2a1e-3b4d-4c5e-8f60-718293a4b5c6'])
     expect(seen[0]?.text).toContain("in ('completed', 'pending_approval')")
     expect(seen[0]?.text).toContain('p.audit_id::text = f.audit_id::text')
     expect(seen[0]?.text).toContain('a.plan_id::text')
+    expect(seen[1]?.params).toEqual(['6f0c2a1e-3b4d-4c5e-8f60-718293a4b5c6'])
+    expect(seen[1]?.text).toContain("on p.status = 'rejected'")
   })
 
   it('does not look at the collection, a sub-path or a read', async () => {
@@ -2707,5 +2712,309 @@ describe('deleting a finding of a sent or approved audit', () => {
     for (const r of [req('DELETE', '/fiveSFindings'), req('DELETE', `${FINDING}/photos`), req('GET', FINDING)]) {
       expect(await enforceBusinessRules({ request: r, body: undefined, read: boom, caller: MANAGER })).toBeUndefined()
     }
+  })
+})
+
+describe('a plan sent back for correction, "Reddet" (R30)', () => {
+  const planRow = (row: Record<string, unknown>, onTeam: { leader?: string; member?: boolean } = { member: true }) =>
+    script({
+      'from main.five_s_audit_teams t': [{ leader_user_id: onTeam.leader ?? 'u-lead', is_member: onTeam.member === true }],
+      'from main.five_s_audit_plans where id': [
+        { assigned_team_id: TEAM, date_change_count: 0, planned_date: '2026-10-05', audit_id: AUDIT, ...row },
+      ],
+    })
+  const put = (payload: unknown, read: ReturnType<typeof planRow>, caller: Caller | null = AUDITOR) =>
+    enforceBusinessRules({ request: jsonReq('PUT', '/fiveSAuditPlans/p1', payload), body: undefined, read, caller })
+  const rejected = planRow({ status: 'rejected' })
+  const resend = { status: PENDING_APPROVAL, auditId: AUDIT, auditorAttended: true, fieldManagerAttended: false }
+
+  describe('the status is written by the Reddet route alone', () => {
+    it('refuses writing it through the generic route, for everybody, saying which button to use', async () => {
+      for (const caller of [GOD, SUPER_ADMIN, CENTRAL, MANAGER, AUDITOR, FIELD_MANAGER]) {
+        const res = await put({ status: 'rejected' }, planRow({ status: PENDING_APPROVAL }), caller)
+        expect(res?.status).toBe(400)
+        expect((await res?.json()).message).toContain('"Reddet"')
+      }
+    })
+
+    it('refuses creating a plan that way, even for Super Admin', async () => {
+      const res = await enforceBusinessRules({
+        request: jsonReq('POST', '/fiveSAuditPlans', {
+          plannedDate: '2026-10-20',
+          locationId: 'loc',
+          assignedTeamId: 'team',
+          status: 'rejected',
+        }),
+        body: undefined,
+        read: reader([]),
+        caller: SUPER_ADMIN,
+      })
+      expect(res?.status).toBe(400)
+      expect((await res?.json()).message).toContain('"Reddet"')
+    })
+
+    it('lets a plan that is already rejected be saved with the status it has, and no other spelling', async () => {
+      expect(await put({ status: 'rejected' }, rejected, CENTRAL)).toBeUndefined()
+      expect((await put({ status: 'Rejected' }, rejected, CENTRAL))?.status).toBe(400)
+    })
+  })
+
+  describe('resending it', () => {
+    it('lets a member or the leader of the plan’s team resend it with its own audit', async () => {
+      expect(await put(resend, rejected)).toBeUndefined()
+      expect(await put(resend, planRow({ status: 'rejected' }, { leader: 'u-aud' }))).toBeUndefined()
+      expect(await put({ ...resend, auditId: AUDIT.toUpperCase() }, rejected)).toBeUndefined()
+    })
+
+    it('refuses an auditor from another team, saying who may', async () => {
+      const res = await put(resend, planRow({ status: 'rejected' }, { member: false }))
+      expect(res?.status).toBe(403)
+      expect((await res?.json()).message).toContain('planın ekibi ya da Merkez Ekip')
+    })
+
+    it('refuses a resend with another audit or with none', async () => {
+      expect((await put({ ...resend, auditId: FILE_A }, rejected))?.status).toBe(400)
+      expect((await put({ status: PENDING_APPROVAL }, rejected))?.status).toBe(400)
+    })
+
+    it('lets Merkez Ekip, Super Admin and the godmin resend it; Müdür only as a member of the team', async () => {
+      const outsider = planRow({ status: 'rejected' }, { member: false })
+      for (const caller of [CENTRAL, SUPER_ADMIN, GOD]) {
+        expect(await put({ status: PENDING_APPROVAL }, outsider, caller)).toBeUndefined()
+      }
+      const asManager = await put(resend, outsider, MANAGER)
+      expect(asManager?.status).toBe(403)
+      expect(await put(resend, rejected, MANAGER)).toBeUndefined()
+    })
+
+    it('lets the team make no other status change', async () => {
+      for (const status of ['planned', 'cancelled', 'completed']) {
+        expect((await put({ status }, rejected))?.status).toBe(400)
+      }
+    })
+
+    it('keeps the audit link, and lets the team still correct the attendance tick', async () => {
+      const relink = await put({ auditId: FILE_A }, rejected)
+      expect(relink?.status).toBe(400)
+      expect((await relink?.json()).message).toContain('aynı bağlantıyla')
+      expect(await put({ auditId: FILE_A }, rejected, CENTRAL)).toBeUndefined()
+      const ticked = planRow({ status: 'rejected', field_manager_attended: false })
+      expect(await put({ fieldManagerAttended: true }, ticked)).toBeUndefined()
+    })
+
+    it('answers 401 when it cannot tell who is resending', async () => {
+      expect((await put(resend, rejected, null))?.status).toBe(401)
+    })
+  })
+
+  describe('the date of a rejected plan', () => {
+    const move = { plannedDate: '2026-10-09', dateChangeCount: 1 }
+
+    it('is moved by Merkez Ekip and the godmin only, without spending a change', async () => {
+      const read = planRow({ status: 'rejected', date_change_count: 1 })
+      for (const caller of [CENTRAL, SUPER_ADMIN, GOD]) {
+        expect(await put({ plannedDate: '2026-10-09', dateChangeCount: 1 }, read, caller)).toBeUndefined()
+      }
+      const spends = await put({ plannedDate: '2026-10-09', dateChangeCount: 2 }, read, CENTRAL)
+      expect(spends?.status).toBe(400)
+    })
+
+    it('is not moved by the team leader or by Müdür, like the date of a finished audit', async () => {
+      const read = planRow({ status: 'rejected' }, { leader: 'u-aud' })
+      for (const caller of [AUDITOR, MANAGER]) {
+        const res = await put(move, read, caller)
+        expect(res?.status).toBe(400)
+        expect((await res?.json()).message).toContain('Düzeltme bekleyen denetimin tarihi yalnız Merkez Ekip')
+      }
+    })
+  })
+
+  describe('its audit and answers', () => {
+    const world = (status: string, onTeam: { leader?: string; member?: boolean } = { member: true }) =>
+      script({
+        "where p.status = 'rejected'": status === 'rejected' ? [{ status: 'rejected', assigned_team_id: TEAM }] : [],
+        'from main.five_s_audit_answers where id': [{ audit_id: AUDIT }],
+        'from main.five_s_audit_teams t': [{ leader_user_id: onTeam.leader ?? 'u-lead', is_member: onTeam.member === true }],
+      })
+    const patchAudit = (read: ReturnType<typeof world>, caller: Caller | null) =>
+      enforceBusinessRules({
+        request: jsonReq('PATCH', `/fiveSAudits/${AUDIT}`, { totalScore: '80.00' }),
+        body: undefined,
+        read,
+        caller,
+      })
+    const patchAnswer = (read: ReturnType<typeof world>, caller: Caller | null) =>
+      enforceBusinessRules({
+        request: jsonReq('PATCH', '/fiveSAuditAnswers/ans1', { rating: 'bad' }),
+        body: undefined,
+        read,
+        caller,
+      })
+    const postAnswer = (read: ReturnType<typeof world>, caller: Caller | null) =>
+      enforceBusinessRules({
+        request: jsonReq('POST', '/fiveSAuditAnswers', { auditId: AUDIT, questionId: 'q1', rating: 'good' }),
+        body: undefined,
+        read,
+        caller,
+      })
+
+    it('are written by Merkez Ekip, Super Admin, the godmin and the plan’s team', async () => {
+      for (const caller of [CENTRAL, SUPER_ADMIN, GOD, AUDITOR]) {
+        expect(await patchAudit(world('rejected'), caller)).toBeUndefined()
+        expect(await patchAnswer(world('rejected'), caller)).toBeUndefined()
+        expect(await postAnswer(world('rejected'), caller)).toBeUndefined()
+      }
+      expect(await patchAudit(world('rejected', { leader: 'u-aud', member: false }), AUDITOR)).toBeUndefined()
+    })
+
+    it('are refused to everybody else, Müdür and a field manager included, with a clear message', async () => {
+      const outsider = world('rejected', { member: false })
+      for (const caller of [AUDITOR, FIELD_MANAGER, MANAGER]) {
+        for (const write of [patchAudit, patchAnswer, postAnswer]) {
+          const res = await write(outsider, caller)
+          expect(res?.status).toBe(403)
+          expect((await res?.json()).message).toContain('yalnız planın ekibi ve Merkez Ekip yapabilir')
+        }
+      }
+    })
+
+    it('answer 401 when it cannot tell who is writing', async () => {
+      expect((await patchAudit(world('rejected'), null))?.status).toBe(401)
+    })
+
+    it('asks about both links, by the canonical id', async () => {
+      let asked = ''
+      await enforceBusinessRules({
+        request: jsonReq('PATCH', `/fiveSAudits/${AUDIT.toUpperCase()}`, { auditorName: 'x' }),
+        body: undefined,
+        read: async (text, params) => {
+          if (text.includes("where p.status = 'rejected'")) asked = `${text} ${JSON.stringify(params)}`
+          return []
+        },
+        caller: CENTRAL,
+      })
+      expect(asked).toContain('p.audit_id::text = any($1::text[])')
+      expect(asked).toContain('select a.plan_id::text from main.five_s_audits a')
+      expect(asked).toContain(AUDIT)
+    })
+
+    it('leave the Auditor role with POST alone on an audit that is not rejected', async () => {
+      // boot.ts grants Auditor put/patch on audits and answers for the correction; this is what keeps it to that.
+      const planned = world('planned')
+      for (const write of [patchAudit, patchAnswer]) {
+        const res = await write(planned, AUDITOR)
+        expect(res?.status).toBe(403)
+        expect((await res?.json()).message).toContain('yalnız Merkez Ekip ve Müdür düzeltebilir')
+        expect(await write(planned, MANAGER)).toBeUndefined()
+        expect(await write(planned, CENTRAL)).toBeUndefined()
+      }
+      expect(await postAnswer(planned, AUDITOR)).toBeUndefined()
+    })
+  })
+
+  describe('its findings', () => {
+    const FINDING = '/fiveSFindings/6f0c2a1e-3b4d-4c5e-8f60-718293a4b5c6'
+    const world = (status: string, onTeam: { leader?: string; member?: boolean } = { member: true }) =>
+      script({
+        "on p.status = 'rejected'": status === 'rejected' ? [{ status: 'rejected', assigned_team_id: TEAM }] : [],
+        "where p.status = 'rejected'": status === 'rejected' ? [{ status: 'rejected', assigned_team_id: TEAM }] : [],
+        'from main.five_s_audit_teams t': [{ leader_user_id: onTeam.leader ?? 'u-lead', is_member: onTeam.member === true }],
+      })
+    const newFinding = {
+      auditId: AUDIT,
+      description: 'Kırık raf',
+      locationName: 'Depo',
+      findingType: 'safety',
+      detectedDate: '2026-01-02',
+    }
+    const post = (read: ReturnType<typeof world>, caller: Caller | null) =>
+      enforceBusinessRules({ request: jsonReq('POST', '/fiveSFindings', newFinding), body: undefined, read, caller })
+    const put = (read: ReturnType<typeof world>, caller: Caller | null) =>
+      enforceBusinessRules({
+        request: jsonReq('PUT', FINDING, { description: 'Kırık raf, düzeltildi' }),
+        body: undefined,
+        read,
+        caller,
+      })
+    const remove = (read: ReturnType<typeof world>, caller: Caller | null) =>
+      enforceBusinessRules({ request: req('DELETE', FINDING), body: undefined, read, caller })
+
+    it('are written by Merkez Ekip, Super Admin, the godmin and the plan’s team', async () => {
+      for (const caller of [CENTRAL, SUPER_ADMIN, GOD]) {
+        for (const write of [post, put, remove]) expect(await write(world('rejected', { member: false }), caller)).toBeUndefined()
+      }
+      expect(await post(world('rejected'), AUDITOR)).toBeUndefined()
+      expect(await remove(world('rejected'), AUDITOR)).toBeUndefined()
+    })
+
+    it('are refused to everybody else: a new one, a changed one and a deleted one', async () => {
+      const outsider = world('rejected', { member: false })
+      for (const caller of [FIELD_MANAGER, MANAGER]) {
+        for (const write of [post, put, remove]) {
+          const res = await write(outsider, caller)
+          expect(res?.status).toBe(403)
+          expect((await res?.json()).message).toContain('yalnız planın ekibi ve Merkez Ekip yapabilir')
+        }
+      }
+    })
+
+    it('are untouched while the plan is not rejected', async () => {
+      const open = world('planned', { member: false })
+      for (const write of [post, put, remove]) expect(await write(open, FIELD_MANAGER)).toBeUndefined()
+    })
+
+    it('judge a finding moved into a rejected audit by the audit it is moved to', async () => {
+      const res = await enforceBusinessRules({
+        request: jsonReq('PUT', FINDING, { auditId: AUDIT }),
+        body: undefined,
+        read: script({
+          "where p.status = 'rejected'": [{ status: 'rejected', assigned_team_id: TEAM }],
+          'from main.five_s_audit_teams t': [{ leader_user_id: 'u-lead', is_member: false }],
+        }),
+        caller: FIELD_MANAGER,
+      })
+      expect(res?.status).toBe(403)
+    })
+
+    it('answer 401 when it cannot tell who is writing', async () => {
+      expect((await post(world('rejected'), null))?.status).toBe(401)
+    })
+  })
+
+  describe('one plan, one audit, and an open plan', () => {
+    it('refuses a second audit for a rejected plan, even one that lost its audit link', async () => {
+      const res = await enforceBusinessRules({
+        request: jsonReq('POST', '/fiveSAudits', { planId: PLAN, auditDate: '2026-10-01' }),
+        body: undefined,
+        read: byId(PLAN, [{ field_manager_user_ids: [], status: 'rejected', audit_id: null }]),
+        caller: AUDITOR,
+      })
+      expect(res?.status).toBe(409)
+      expect((await res?.json()).message).toBe('Bu plan için denetim zaten gönderilmiş.')
+    })
+
+    it('still counts it as open: the open-plan tests list only completed and cancelled as finished', async () => {
+      const texts: string[] = []
+      const read = async (text: string) => {
+        texts.push(text)
+        return [{ n: 1 }]
+      }
+      const res = await enforceBusinessRules({
+        request: req('DELETE', '/fiveSLocations/ca47d356-7903-4be0-8dc0-cf2fab0eadb7'),
+        body: undefined,
+        read,
+      })
+      expect(res?.status).toBe(400)
+      await enforceBusinessRules({
+        request: jsonReq('POST', '/fiveSAuditTeamMembers', { teamId: 'T1', userId: 'u-fm' }),
+        body: undefined,
+        read,
+      })
+      expect(texts.length).toBeGreaterThanOrEqual(2)
+      for (const text of texts) {
+        expect(text).toContain("not in ('completed', 'cancelled')")
+        expect(text).not.toContain('rejected')
+      }
+    })
   })
 })
