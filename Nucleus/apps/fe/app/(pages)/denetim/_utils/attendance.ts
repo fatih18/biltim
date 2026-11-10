@@ -66,3 +66,31 @@ export function answersToStore<A>(
 ): Readonly<Record<string, A>> {
   return isAuditPassive(state) ? {} : answers;
 }
+
+/** What Merkez Ekip's correction knows about an audit's attendance when it opens one. */
+export type StoredAttendanceRead = {
+  /** The audit's plan was read. */
+  planFound: boolean;
+  /** The plan's own `field_manager_attended`: true, false, or never written. */
+  recorded: boolean | null | undefined;
+  /** The audit row's stored total; NaN when it holds none. */
+  storedTotal: number;
+};
+
+/**
+ * The tick a correction opens with, and whether that tick is a fact.
+ *
+ * With a plan: attended unless the plan holds the tick's "no" next to a stored
+ * 0 (an older plan's false was a guess, not the tick, and an audit that kept
+ * its points was never zeroed by it). Without a plan nothing says whether
+ * anyone attended: a non-zero total means the score was never zeroed, so
+ * attended; a stored 0 might be the tick's, so the box opens empty and the 0
+ * stays unless the editor ticks it. That empty box is `unknown`, not a "no":
+ * what the screen says about it must not claim one.
+ */
+export function initialAttendanceOf(read: StoredAttendanceRead): { attended: boolean; unknown: boolean } {
+  if (read.planFound) {
+    return { attended: !(read.recorded === false && read.storedTotal === 0), unknown: false };
+  }
+  return { attended: read.storedTotal !== 0, unknown: read.storedTotal === 0 };
+}

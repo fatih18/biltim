@@ -32,23 +32,15 @@ import {
 } from '@/app/_utils/photos'
 import { toast } from "sonner";
 import {
-  answerRowsFor,
   answersStillToSend,
   type AnswerRowPayload,
-  scoreAudit,
   formatScore,
-  RATING_FACTOR,
   requiresNewFinding,
   TARGET_SCORE,
 } from './_utils/scoring'
 import { AttendanceBox, QuestionsFieldset } from './_components'
-import {
-  answersToStore,
-  areAnswersRequired,
-  attendanceForScoring,
-  attendanceToRecord,
-  isAuditPassive,
-} from './_utils/attendance'
+import { initialAttendanceOf } from './_utils/attendance'
+import { buildAuditRecord, questionPoint, showsDetailsColumn } from './_utils/auditRecord'
 import { NOT_ATTENDED_CONFIRM, noAnswersNotice, unknownAttendanceWarning } from './_utils/attendanceText'
 import { OpenFindingNotice } from './_components/OpenFindingNotice'
 import { PhotoPreviewOverlay } from './_components/PhotoPreviewOverlay'
@@ -656,6 +648,8 @@ export default function FiveSAuditFormPage() {
     originalRatingByQuestion: Map<string, Rating | null>
     /** The attendance tick as the form opened; an untouched one is not rewritten. */
     initialFieldManagerAttended: boolean
+    /** The audit's plan could not be read: that tick is empty, not a recorded "no". */
+    attendanceUnknown: boolean
     hadAnswers: boolean
   } | null>(null)
   const [singleFinding, setSingleFinding] = useState<{
@@ -946,24 +940,23 @@ export default function FiveSAuditFormPage() {
   /*
    * Not ticked (and the location has a field manager): the questions are
    * passive, nothing is required, and the audit is stored with score 0 and no
-   * answers. Every decision is in _utils/attendance.ts.
+   * answers. Every decision is in _utils/attendance.ts; what is saved, queued
+   * and sent from it is decided once, by auditRecord (_utils/auditRecord.ts):
+   * the save paths below read the record, never the raw `answers`.
    */
   const attendance = { locationHasFieldManager, fieldManagerAttended: header.fieldManagerAttended }
-  const auditPassive = isAuditPassive(attendance)
-  const answersRequired = areAnswersRequired(attendance)
-  /** What the plan is stamped with: the tick, or null where the rule does not apply. */
-  const fieldManagerAttendanceToRecord: boolean | null = attendanceToRecord(attendance)
+  const auditRecord = buildAuditRecord({
+    attendance,
+    steps,
+    questions,
+    answers,
+    hasOpenFinding: (questionId) => openFindingsByQuestion.has(questionId),
+    needsFinding: (ans) => needsFindingDetails(ans.questionId, ans),
+  })
   /** The answers that are scored, queued, sent and turned into findings; none while passive. */
-  const recordedAnswers = answersToStore(attendance, answers)
+  const { passive: auditPassive, answersRequired, answers: recordedAnswers, score: auditScore } = auditRecord
 
   // The plain 5S sum plus the plant's own rules (scoring.ts → scoreAudit).
-  const auditScore = useMemo(
-    () =>
-      scoreAudit(steps, questions, recordedAnswers, {
-        fieldManagerAttended: attendanceForScoring(attendance),
-      }),
-    [answers, questions, steps, header.fieldManagerAttended, locationHasFieldManager]
-  )
   const stepScores = auditScore.stepScores
   const totalScore = auditScore.total
 
@@ -2333,11 +2326,13 @@ export default function FiveSAuditFormPage() {
          */
         const recordedAttendance = (plan as any)?.field_manager_attended
         const storedTotal = Number(audit.total_score ?? audit.totalScore ?? Number.NaN)
-        const initialFieldManagerAttended = plan
-          ? !(recordedAttendance === false && storedTotal === 0)
-          : storedTotal !== 0
+        const { attended: initialFieldManagerAttended, unknown: attendanceUnknown } = initialAttendanceOf({
+          planFound: !!plan,
+          recorded: recordedAttendance,
+          storedTotal,
+        })
         // Said only where the rule applies: a location with a field manager.
-        if (!plan && storedTotal === 0 && pendingLocRespMap.has(normLoc(String(audit.department_name ?? '')))) {
+        if (attendanceUnknown && pendingLocRespMap.has(normLoc(String(audit.department_name ?? '')))) {
           toast.warning(unknownAttendanceWarning(planUnreadable))
         }
         setEditAudit({
@@ -2345,6 +2340,7 @@ export default function FiveSAuditFormPage() {
           answerIdByQuestion,
           originalRatingByQuestion,
           initialFieldManagerAttended,
+          attendanceUnknown,
           hadAnswers: answerRows.length > 0,
         })
         setAnswers((prev) => ({ ...prev, ...loaded }))
@@ -2759,8 +2755,6 @@ export default function FiveSAuditFormPage() {
    * replay can recognise that audit if the attempt did reach the server.
    */
   const enqueueAuditAndFindingsFromForm = async (clientSubmissionId?: string): Promise<boolean> => {
-    const { S1, S2, S3, S4, S5 } = stepScores
-
     const submissionId = makeUid('sub')
     const planId = assignedPlan?.id ?? null
 
@@ -2768,29 +2762,22 @@ export default function FiveSAuditFormPage() {
       department_name: header.department.trim(),
       auditor_name: header.auditorName.trim(),
       audit_date: header.date,
-      total_score: totalScore.toFixed(2),
+      ...auditRecord.scoreBody,
       target_score: TARGET_SCORE.toFixed(2),
-      score_s1: (S1 ?? 0).toFixed(2),
-      score_s2: (S2 ?? 0).toFixed(2),
-      score_s3: (S3 ?? 0).toFixed(2),
-      score_s4: (S4 ?? 0).toFixed(2),
-      score_s5: (S5 ?? 0).toFixed(2),
       location_id: assignedPlan?.location_id || undefined,
       auditor_id: currentUserId || undefined,
     }
 
-    // A passive audit queues no answers and no findings (recordedAnswers is empty).
-    const nonGoodAnswers = Object.values(recordedAnswers).filter((ans) => ans.rating && ans.rating !== 'good')
+    // A passive audit queues no answers and no findings (auditRecord holds none).
     const detectedDate = header.date
 
     const findingsPayload: OfflineFindingPayload[] = []
     const photoRows: SubmissionPhotoRow[] = []
 
-    for (const ans of nonGoodAnswers) {
+    for (const ans of auditRecord.findings) {
       const q = questions.find((qq) => qq.id === ans.questionId)
       if (!q) continue
       if (!ans.findingType) continue
-      if (!needsFindingDetails(ans.questionId, ans)) continue
 
       const effectiveLocationName = ans.locationName?.trim() || header.department.trim() || 'Bilinmeyen Lokasyon'
       const description = buildFindingDescriptionFromAnswer(ans, q, header.teamName)
@@ -2839,13 +2826,8 @@ export default function FiveSAuditFormPage() {
       findings: findingsPayload,
       // The same rows the online save writes, decided now, against the open
       // findings the form knows about now.
-      answers: answerRowsFor(
-        questions,
-        recordedAnswers,
-        (qid) => openFindingsByQuestion.has(qid),
-        new Date().toISOString()
-      ),
-      fieldManagerAttended: fieldManagerAttendanceToRecord,
+      answers: auditRecord.answerRows(new Date().toISOString()),
+      fieldManagerAttended: auditRecord.attendanceStamp,
       lastError: null,
       clientSubmissionId: isUuid(clientSubmissionId) ? clientSubmissionId : undefined,
     }
@@ -2901,7 +2883,7 @@ export default function FiveSAuditFormPage() {
       // gönderdiğine göre katıldı sayılır; saha sorumlusunu denetçi işaretler.
       // The auditor's own tick, which also decides the score — no record
       // (null, the field left untouched) where the location has no field manager.
-      await stampPlanSent(planId, auditId, fieldManagerAttendanceToRecord)
+      await stampPlanSent(planId, auditId, auditRecord.attendanceStamp)
     } catch (err) {
       /*
        * This is not "kritik değil". If the plan is not stamped, it stays
@@ -2987,18 +2969,12 @@ export default function FiveSAuditFormPage() {
    */
   const submitAuditEdit = async (target: NonNullable<typeof editAudit>): Promise<boolean> => {
     const A = actions as any
-    const { S1, S2, S3, S4, S5 } = stepScores
     try {
       await startAsPromise(A[AUDIT_KEYS.PATCH]?.start, {
         payload: {
           _id: target.id,
           auditor_name: header.auditorName.trim(),
-          total_score: totalScore.toFixed(2),
-          score_s1: (S1 ?? 0).toFixed(2),
-          score_s2: (S2 ?? 0).toFixed(2),
-          score_s3: (S3 ?? 0).toFixed(2),
-          score_s4: (S4 ?? 0).toFixed(2),
-          score_s5: (S5 ?? 0).toFixed(2),
+          ...auditRecord.scoreBody,
         },
       })
     } catch (err: any) {
@@ -3026,10 +3002,8 @@ export default function FiveSAuditFormPage() {
 
     const answeredAt = new Date().toISOString()
     const results = await Promise.allSettled(
-      questions
-        .filter((q) => !!recordedAnswers[q.id]?.rating)
-        .map((q) => {
-          const ans = recordedAnswers[q.id]!
+      auditRecord.answered
+        .map(({ question: q, answer: ans }) => {
           const fields = {
             rating: ans.rating,
             explanation: ans.explanation?.trim() || null,
@@ -3054,10 +3028,7 @@ export default function FiveSAuditFormPage() {
     const failed = results.filter((r) => r.status === 'rejected').length
     if (failed > 0) toast.error(`${failed} soru yanıtı güncellenemedi.`)
 
-    const newFindings = questions
-      .map((q) => recordedAnswers[q.id])
-      .filter((ans): ans is QuestionAnswer => !!ans && needsFindingDetails(ans.questionId, ans) && !!ans.findingType)
-    await Promise.all(newFindings.map((ans) => createFindingForAnswer(ans, target.id, header.date)))
+    await Promise.all(auditRecord.findings.map((ans) => createFindingForAnswer(ans, target.id, header.date)))
 
     /*
      * R30: the correction of a rejected plan sends it again — the same audit,
@@ -3124,8 +3095,8 @@ export default function FiveSAuditFormPage() {
 
     // Passive (attendance box not ticked): nothing is required, Kaydet finishes
     // the audit with score 0 and no answers.
-    for (const q of answersRequired ? questions : []) {
-      const ans = answers[q.id]
+    for (const q of auditRecord.toValidate) {
+      const ans = auditRecord.answers[q.id]
       if (!ans || !ans.rating) {
         missing.add(q.id)
         continue
@@ -3154,7 +3125,7 @@ export default function FiveSAuditFormPage() {
 
     // The rule scores the audit 0 without the tick; make sure that is meant.
     // Not asked where the location has no field manager: the rule does not apply.
-    if (auditPassive) {
+    if (auditRecord.confirmNotAttended) {
       const ok = await confirmDialog({
         title: NOT_ATTENDED_CONFIRM.title,
         message: NOT_ATTENDED_CONFIRM.message,
@@ -3166,9 +3137,7 @@ export default function FiveSAuditFormPage() {
     }
 
     // Madde 1: Açık bulgusu olan sorular "İyi" işaretlendiyse denetçiyi uyar
-    const goodButOpen = questions.filter(
-      (q) => openFindingsByQuestion.has(q.id) && recordedAnswers[q.id]?.rating === 'good'
-    )
+    const goodButOpen = auditRecord.goodButOpen
     if (goodButOpen.length > 0) {
       const ok = await confirmDialog({
         title: 'Kapanmamış bulgu varken "İyi" seçildi',
@@ -3190,8 +3159,6 @@ export default function FiveSAuditFormPage() {
       return await enqueueAuditAndFindingsFromForm()
     }
 
-    const { S1, S2, S3, S4, S5 } = stepScores
-
     /*
      * The audit row first, then — awaited, under the same lock — its answers,
      * findings and plan stamp. They used to run in an onAfterHandle that
@@ -3212,14 +3179,8 @@ export default function FiveSAuditFormPage() {
           auditor_name: header.auditorName.trim(),
           audit_date: atUtcMidnight(header.date),
 
-          total_score: totalScore.toFixed(2),
+          ...auditRecord.scoreBody,
           target_score: TARGET_SCORE.toFixed(2),
-
-          score_s1: (S1 ?? 0).toFixed(2),
-          score_s2: (S2 ?? 0).toFixed(2),
-          score_s3: (S3 ?? 0).toFixed(2),
-          score_s4: (S4 ?? 0).toFixed(2),
-          score_s5: (S5 ?? 0).toFixed(2),
 
           plan_id: assignedPlan?.id ?? undefined,
           location_id: assignedPlan?.location_id ?? undefined,
@@ -3277,10 +3238,10 @@ export default function FiveSAuditFormPage() {
      * exactly this (rating / explanation / finding_type per question) and
      * was never written to. It is supplementary to the audit itself, so a
      * failure here reports but does not fail the submission. The rows are
-     * the ones the offline queue stores and replays (answerRowsFor).
+     * the ones the offline queue stores and replays (auditRecord.answerRows).
      */
     const answeredAt = new Date().toISOString()
-    const answerJobs = answerRowsFor(questions, recordedAnswers, (qid) => openFindingsByQuestion.has(qid), answeredAt).map(
+    const answerJobs = auditRecord.answerRows(answeredAt).map(
       (row) =>
         startAsPromise((actions as any).ADD_FIVE_S_AUDIT_ANSWER?.start, {
           payload: { audit_id: auditId, ...row },
@@ -3296,8 +3257,7 @@ export default function FiveSAuditFormPage() {
       )
     }
 
-    const nonGoodAnswers = Object.values(recordedAnswers).filter((ans) => ans.rating && ans.rating !== 'good')
-    if (nonGoodAnswers.length === 0) {
+    if (auditRecord.nonGood.length === 0) {
       setSubmitted(true)
       await clearDraft(assignedPlan?.id ?? null, header)
 
@@ -3315,12 +3275,9 @@ export default function FiveSAuditFormPage() {
 
     // A question that already has an open finding gets no second one
     // (Notlar 07.10, satır 3/16), even if a type was picked in its panel.
-    const nonGoodWithType = nonGoodAnswers.filter(
-      (ans) => !!ans.findingType && needsFindingDetails(ans.questionId, ans)
-    )
     const detectedDate = header.date
 
-    const jobs = nonGoodWithType.map((ans) => createFindingForAnswer(ans, auditId, detectedDate))
+    const jobs = auditRecord.findings.map((ans) => createFindingForAnswer(ans, auditId, detectedDate))
 
     await Promise.all(jobs)
     setSubmitted(true)
@@ -4235,6 +4192,7 @@ export default function FiveSAuditFormPage() {
                   {noAnswersNotice({
                     hadAnswers: editAudit.hadAnswers,
                     initialAttended: editAudit.initialFieldManagerAttended,
+                    attendanceUnknown: editAudit.attendanceUnknown,
                   })}
                 </p>
               ) : null}
@@ -4486,10 +4444,8 @@ export default function FiveSAuditFormPage() {
             const stepScore = stepScores[step.code]
             const stepRatio = step.maxScore > 0 ? stepScore / step.maxScore : 0
 
-            const hasAnyDetails = stepQuestions.some((q) => {
-              const r = answers[q.id]?.rating
-              return r === 'medium' || r === 'bad'
-            })
+            // Read from the recorded answers: passive, nothing is rated as far as the score is concerned.
+            const hasAnyDetails = showsDetailsColumn(stepQuestions, recordedAnswers)
 
             return (
               <section key={step.code} className="rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80">
@@ -4535,7 +4491,7 @@ export default function FiveSAuditFormPage() {
                         {stepQuestions.map((q) => {
                           const ans = answers[q.id]
                           const rating = ans?.rating
-                          const point = rating != null ? q.maxScore * RATING_FACTOR[rating] : undefined
+                          const point = questionPoint(q, recordedAnswers[q.id])
                           const isMissing = hasAttempted && liveUnanswered.has(q.id)
 
                           return (
@@ -4625,7 +4581,7 @@ export default function FiveSAuditFormPage() {
                   {stepQuestions.map((q) => {
                     const ans = answers[q.id]
                     const rating = ans?.rating
-                    const point = rating != null ? q.maxScore * RATING_FACTOR[rating] : undefined
+                    const point = questionPoint(q, recordedAnswers[q.id])
                     const isOpen = expanded[q.id]
 
                     const ratingLabel =

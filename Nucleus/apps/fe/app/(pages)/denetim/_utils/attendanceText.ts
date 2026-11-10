@@ -28,11 +28,21 @@ export function unknownAttendanceWarning(planUnreadable: boolean): string {
 
 /**
  * The correction screen's note for an audit that has no answer rows.
- * Two different causes: an audit saved without attendance (nothing was asked,
- * on purpose) and an old record from before answers were stored.
+ * Three different causes: an audit saved without attendance (nothing was
+ * asked, on purpose), an audit whose plan could not be read, so nobody can say
+ * whether anyone attended (`attendanceUnknown`: the stored 0 is no proof of
+ * a "no", and the note must not claim one), and an old record from before
+ * answers were stored.
  */
-export function noAnswersNotice(audit: { hadAnswers: boolean; initialAttended: boolean }): string {
+export function noAnswersNotice(audit: {
+  hadAnswers: boolean;
+  initialAttended: boolean;
+  attendanceUnknown: boolean;
+}): string {
   if (audit.hadAnswers) return "";
+  if (audit.attendanceUnknown) {
+    return ` Bu denetimin soru yanıtı kayıtlı değil ve planına ulaşılamadığı için katılım durumu bilinmiyor (puan 0). Yanıtları girerek puanı düzeltebilirsiniz; bölge sorumlusu veya görevlendirdiği kişi katıldıysa önce "${ATTENDANCE_LABEL}" kutusunu işaretleyin.`;
+  }
   if (!audit.initialAttended) {
     return ` Bölge sorumlusu veya görevlendirdiği kişi katılmadığı için bu denetimde soru yanıtlanmamış (puan 0); yanıtları girmek için "${ATTENDANCE_LABEL}" kutusunu işaretleyin.`;
   }
