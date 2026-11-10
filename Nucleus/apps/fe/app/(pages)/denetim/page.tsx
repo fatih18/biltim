@@ -21,6 +21,16 @@ import { SavedWithGap } from './_components/SavedWithGap'
 import { editPlanVerdict } from './_utils/editPlanRead'
 import { detailsLockOf } from './_utils/findingDetailsLock'
 import { readAllTeams } from './_utils/readAllTeams'
+import {
+  buildTeamMemberOptions,
+  draftAuditorsOf,
+  type AuditorOption,
+  recordedAuditorName,
+  removedAuditorsNotice,
+  settleAuditors,
+  withNamedAuditors,
+  withSignedInAuditor,
+} from './_utils/planAuditors'
 import { tallyQuestionWrites, writeQuestion } from './_utils/correctionWrites'
 import {
   correctionEnd,
@@ -136,6 +146,12 @@ interface AuditFormHeader {
    * still restore.
    */
   fieldManagerAttended?: boolean
+  /**
+   * The people behind `auditorName`, written next to it by the draft autosave
+   * only, so a draft finds a renamed person again (_utils/planAuditors). Never
+   * part of an audit; drafts of earlier versions have none.
+   */
+  auditors?: AuditorOption[]
 }
 
 type AnswersState = Record<string, QuestionAnswer>
@@ -751,7 +767,15 @@ export default function FiveSAuditFormPage() {
     usersById: Map<string, string>
     /** normLoc(location name) -> every field manager of that location. */
     fieldManagerIdsByLoc: Map<string, string[]>
-  }>({ members: [], teams: [], usersById: new Map(), fieldManagerIdsByLoc: new Map() })
+    /** Who is filling the form: the one person who may be offered besides the team. */
+    signedIn: AuditorOption
+  }>({
+    members: [],
+    teams: [],
+    usersById: new Map(),
+    fieldManagerIdsByLoc: new Map(),
+    signedIn: { id: '', name: '' },
+  })
 
   const [locationResponsibleMap, setLocationResponsibleMap] = useState<
     Map<string, { userId: string; userName: string }>
@@ -1385,7 +1409,7 @@ export default function FiveSAuditFormPage() {
   }
 
   // Madde 13: önce sunucu taslağı dene (başka kullanıcı/cihaz devri), yoksa lokal
-  const tryRestoreServerDraft = async (planId: string): Promise<boolean> => {
+  const tryRestoreServerDraft = async (planId: string, prefill: string, allowed: AuditorOption[]): Promise<boolean> => {
     if (typeof navigator !== 'undefined' && !navigator.onLine) return false
     try {
       const A = actions as any
@@ -1403,13 +1427,25 @@ export default function FiveSAuditFormPage() {
 
       const h = draft.header as Partial<AuditFormHeader> | null
       if (h && typeof h === 'object') {
+        /*
+         * The draft's names are a copy from when it was written, shared by the
+         * whole team: only the team's current people and the signed-in person
+         * come back from it (_utils/planAuditors).
+         */
+        const settled = settleAuditors({
+          recordedName: h.auditorName,
+          recorded: h.auditors,
+          allowed,
+          prefill,
+        })
+        if (settled.removed.length > 0) toast.message(removedAuditorsNotice(settled.removed))
         setHeader((prev) => ({
           teamName: String(h.teamName ?? prev.teamName),
           department: String(h.department ?? prev.department),
           // Same reason as the local draft: a stored future date would come
           // back as a form the API refuses to accept.
           date: auditDateFor(String(h.date ?? prev.date), prev.date),
-          auditorName: String(h.auditorName ?? prev.auditorName),
+          auditorName: settled.auditorName,
           // The tick decides the score; the colleague taking over the tablet
           // must see the one that was set, not an empty box.
           fieldManagerAttended:
@@ -1431,10 +1467,10 @@ export default function FiveSAuditFormPage() {
     }
   }
 
-  const tryRestoreDraft = async (planId: string | null, h: AuditFormHeader) => {
+  const tryRestoreDraft = async (planId: string | null, h: AuditFormHeader, allowed: AuditorOption[]) => {
     // Önce sunucu taslağı (plan bazlı)
     if (planId) {
-      const restored = await tryRestoreServerDraft(planId)
+      const restored = await tryRestoreServerDraft(planId, h.auditorName, allowed)
       if (restored) return
     }
 
@@ -1443,6 +1479,15 @@ export default function FiveSAuditFormPage() {
       const draftKey = makeDraftKey(planId, h)
       const draft = await db.drafts.get(draftKey)
       if (!draft) return
+
+      // The same rule as the server draft: names come back only for the team's current people.
+      const settled = settleAuditors({
+        recordedName: draft.header?.auditorName,
+        recorded: draft.header?.auditors,
+        allowed,
+        prefill: h.auditorName,
+      })
+      if (settled.removed.length > 0) toast.message(removedAuditorsNotice(settled.removed))
 
       /*
        * The draft is the real state — except for its date. A draft saved
@@ -1453,6 +1498,8 @@ export default function FiveSAuditFormPage() {
       setHeader({
         ...draft.header,
         date: auditDateFor(draft.header?.date, h.date),
+        auditorName: settled.auditorName,
+        auditors: undefined,
       })
 
       setAnswers((prev) => {
@@ -2015,37 +2062,26 @@ export default function FiveSAuditFormPage() {
     return map.get(qid) ?? []
   })()
 
-  const buildTeamMemberOptions = (
-    teamId: string,
-    members: TeamMemberRowLite[],
-    teams: TeamRow[],
-    usersById: Map<string, string>,
-  ) => {
-    const ids = new Set<string>()
-    const team = teams.find((t) => t.id === teamId)
-    if (team?.leader_user_id) ids.add(String(team.leader_user_id))
-    for (const m of members) {
-      if (!m?.is_active) continue
-      if (String(m.team_id) !== String(teamId)) continue
-      ids.add(String(m.user_id))
-    }
-    return Array.from(ids)
-      .map((id) => ({ id, name: usersById.get(id) ?? '' }))
-      .filter((x) => x.name)
-  }
-
   /*
    * Opens one plan: the header comes from the plan's own team and location,
    * never from who is looking (R71). The address-bar click, the single plan
    * left and the "Denetim Seç" list all end here. The list used to keep the
    * plan's raw date — a plan dated ahead made an audit the API refuses — and
    * did not record the plan's own date for the "Plan:" line.
+   *
+   * "Denetimi Yapan" is offered from the team as it is NOW plus the signed-in
+   * person, and a draft's remembered names are kept only for those people
+   * (_utils/planAuditors).
    */
   const openPlan = async (plan: PlanRow, meta: { locationName: string; teamName: string }, auditorName: string) => {
     setAssignedPlan(plan)
 
-    const { members, teams, usersById } = assignmentDataRef.current
-    setTeamMemberOptions(buildTeamMemberOptions(plan.assigned_team_id, members, teams, usersById))
+    const { members, teams, usersById, signedIn } = assignmentDataRef.current
+    const auditorOptions = withSignedInAuditor(
+      buildTeamMemberOptions(plan.assigned_team_id, members, teams, usersById),
+      signedIn,
+    )
+    setTeamMemberOptions(auditorOptions)
 
     const nextHeader: AuditFormHeader = {
       teamName: meta.teamName,
@@ -2057,7 +2093,7 @@ export default function FiveSAuditFormPage() {
     setHeader(nextHeader)
 
     // ✅ draft restore (plan-based)
-    await tryRestoreDraft(plan.id, nextHeader)
+    await tryRestoreDraft(plan.id, nextHeader, auditorOptions)
   }
 
   const fetchAssignment = async () => {
@@ -2296,7 +2332,13 @@ export default function FiveSAuditFormPage() {
       }
       setLocationResponsibleMap(new Map(pendingLocRespMap))
 
-      assignmentDataRef.current = { members, teams, usersById, fieldManagerIdsByLoc }
+      assignmentDataRef.current = {
+        members,
+        teams,
+        usersById,
+        fieldManagerIdsByLoc,
+        signedIn: { id: uidVal, name: auditorFallback },
+      }
       setUserTeamNames(teamNamesOfUser(uidVal, teams, members))
 
       const memberSetByTeam = new Map<string, Set<string>>()
@@ -2436,12 +2478,19 @@ export default function FiveSAuditFormPage() {
         if (plan) {
           setAssignedPlan(plan)
           setPlanDate(String(plan.planned_date ?? '').slice(0, 10))
-          setTeamMemberOptions(buildTeamMemberOptions(plan.assigned_team_id, members, teams, usersById))
+          // A sent audit keeps the names recorded on it; each of them also gets a tick of its own.
+          setTeamMemberOptions(
+            withNamedAuditors(
+              buildTeamMemberOptions(plan.assigned_team_id, members, teams, usersById),
+              audit.auditor_name,
+              [...usersById].map(([id, name]) => ({ id, name })),
+            ),
+          )
         }
         setHeader({
           teamName: (plan && teams.find((t) => t.id === plan.assigned_team_id)?.name) || '—',
           department: String(audit.department_name ?? ''),
-          auditorName: String(audit.auditor_name ?? ''),
+          auditorName: recordedAuditorName(audit.auditor_name),
           date: normalizeDateYYYYMMDD(String(audit.audit_date ?? '')) || header.date,
           fieldManagerAttended: initialFieldManagerAttended,
         })
@@ -2657,7 +2706,10 @@ export default function FiveSAuditFormPage() {
     // Editing a carried-out audit is not a draft of a new one.
     if (editAudit) return
     const planId = assignedPlan?.id ?? null
-    saveDraftDebounced(planId, header, answers)
+    const { usersById, signedIn } = assignmentDataRef.current
+    const everyone = [...usersById].map(([id, name]) => ({ id, name }))
+    const auditors = draftAuditorsOf(header.auditorName, [...teamMemberOptions, signedIn, ...everyone])
+    saveDraftDebounced(planId, { ...header, auditors }, answers)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [header, answers, assignedPlan?.id, assignmentLoading])
 
