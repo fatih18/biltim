@@ -19,6 +19,7 @@ import { useMyScope } from "@/app/_hooks/user/useMyScope";
 import { toast } from "sonner";
 import { readServerReasons } from "@/app/_components/Global/PasswordRules";
 import { dedupeKey } from "./_utils/dedupeFindings";
+import { dueDateFailureMessage } from "./_utils/dueDateFailure";
 import { FINDINGS_EXCEL_PATH, findingsExcelFallbackName, findingsExcelParams } from "./_utils/findingsExcel";
 import { downloadFile } from "@/app/_utils/downloadFile";
 import { reportDownloadFailureMessage } from "@/app/_components/ReportsDashboard/_utils/downloadFailureMessage";
@@ -391,6 +392,8 @@ export default function FiveSFindingsListPage() {
       onErrorHandle: (err) => {
         console.error("UPDATE_FIVE_S_FINDING (due_date) error", err);
         setSavingDueForId(null);
+        // The date snaps back on reload; say why (e.g. 403: the plan was sent back, only its team and Merkez Ekip write it).
+        toast.error(dueDateFailureMessage(readServerReasons(err)));
         serverList.reload();
       },
     });
