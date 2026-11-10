@@ -36,6 +36,10 @@ export const REJECTED_RELINK_MESSAGE =
 export const REJECTED_RESEND_MESSAGE =
   'Düzeltme bekleyen plan, yalnız kendi denetimiyle ve yalnız planın ekibi ya da Merkez Ekip tarafından yeniden gönderilebilir.'
 
+/** Müdür is central, so the plan's status is guarded for them by name: it changes only by the team's resend. */
+export const REJECTED_STATUS_CHANGE_MESSAGE =
+  'Düzeltme bekleyen planın durumu yalnız denetimiyle birlikte yeniden gönderilerek değişir. İptal etmek, planlı duruma almak ya da onaylamak Merkez Ekip\'in işidir; düzeltilmemiş bir denetim onay kuyruğuna bu yolla dönemez.'
+
 export const REJECTED_DATE_MESSAGE = 'Düzeltme bekleyen denetimin tarihi yalnız Merkez Ekip tarafından değiştirilebilir.'
 
 /** The reason, the moment and the person are the Reddet route's own columns; a plain write could forge them. */
@@ -45,7 +49,7 @@ export const REJECTED_COLUMNS_WRITE_MESSAGE =
 const REJECTION_COLUMNS: readonly string[] = ['rejectionreason', 'rejectedat', 'rejectedby']
 
 /** A key reduced to its letters and digits, lower case: `rejectionReason`, `rejection_reason` and `Rejection-Reason` read alike. */
-const squash = (key: string): string => key.replace(/[^a-z0-9]/gi, '').toLowerCase()
+export const squash = (key: string): string => key.replace(/[^a-z0-9]/gi, '').toLowerCase()
 
 /** The keys of a plan write that name `rejection_reason`, `rejected_at` or `rejected_by`, in any spelling. */
 export function rejectionColumnsIn(body: Row): string[] {

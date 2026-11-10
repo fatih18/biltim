@@ -8,6 +8,7 @@ import {
   FINISHED_AUDIT_FINDING_RETIRE_MESSAGE,
   findingOfFinishedAudit,
 } from './findingDelete'
+import { ANSWER_MOVE_MESSAGE, AUDIT_STRUCTURE_WRITE_MESSAGE, auditIdsNamedIn, auditStructureKeysIn } from './rejectedAuditWrites'
 import {
   REJECTED,
   REJECTED_AUDIT_MESSAGE,
@@ -15,6 +16,7 @@ import {
   REJECTED_DATE_MESSAGE,
   REJECTED_RELINK_MESSAGE,
   REJECTED_RESEND_MESSAGE,
+  REJECTED_STATUS_CHANGE_MESSAGE,
   REJECTED_STATUS_WRITE_MESSAGE,
   isClosureOnlyWrite,
   mayCloseFindings,
@@ -1211,9 +1213,19 @@ export async function enforceBusinessRules(ctx: RuleContext): Promise<Response |
   const answerItem = request.method !== 'POST' ? ANSWER_ITEM.exec(path) : null
   const answerCreate = request.method === 'POST' && ANSWER_COLLECTION.test(path)
   if (auditItem || answerItem || answerCreate) {
+    /*
+     * An existing audit's identity columns are not a correction's to write.
+     * The Auditor role holds put/patch on the whole audits table so the plan's
+     * team can correct scores and names; below Merkez Ekip that must not reach
+     * is_active, plan_id, source or client_submission_id.
+     */
+    if (auditItem && auditStructureKeysIn(body).length > 0) {
+      const refusal = await requireCaller(isAdmin, AUDIT_STRUCTURE_WRITE_MESSAGE, 403)
+      if (refusal) return refusal
+    }
     const auditIds = new Set<string>()
     if (auditItem) auditIds.add(pathId(auditItem[1]))
-    if ((answerItem || answerCreate) && idOf(body.audit_id)) auditIds.add(idOf(body.audit_id))
+    if (answerItem || answerCreate) for (const named of auditIdsNamedIn(body)) auditIds.add(idOf(named))
     if (answerItem) {
       const rows = await read('select audit_id from main.five_s_audit_answers where id::text = $1', [
         pathId(answerItem[1]),
@@ -1250,6 +1262,23 @@ export async function enforceBusinessRules(ctx: RuleContext): Promise<Response |
       const rejected = await rejectedPlanTeams(read, ids)
       const refusal = await rejectedRefusal(rejected)
       if (refusal) return refusal
+      /*
+       * An answer is corrected where it is, not moved. Naming the team's own
+       * rejected audit in the body while the stored answer hangs under another,
+       * unlocked audit used to pass: one rejected hit skipped the refusal below.
+       * Below Merkez Ekip and Müdür every audit involved, the stored one and the
+       * named one, must be a rejected plan's audit (the team check above already
+       * covers each of those plans).
+       */
+      if (rejected.length > 0 && answerItem && ids.length > 1) {
+        const caller = await who()
+        if (!caller) return unidentified()
+        if (!isCentral(caller)) {
+          for (const id of ids) {
+            if ((await rejectedPlanTeams(read, [id])).length === 0) return refuse(ANSWER_MOVE_MESSAGE, 403)
+          }
+        }
+      }
       if (rejected.length === 0 && (auditItem || answerItem)) {
         const caller = await who()
         if (!caller) return unidentified()
@@ -1527,8 +1556,10 @@ export async function enforceBusinessRules(ctx: RuleContext): Promise<Response |
      *   - and the plan must be their team's: its leader or an active member.
      *
      * A rejected plan is sent again the same way, from `rejected` with the
-     * audit it already has, by Merkez Ekip or by its own team (Müdür too only
-     * as a member of that team). Its attendance stays correctable — the
+     * audit it already has, by Merkez Ekip or by its own team (its leader or an
+     * active member; Müdür is allowed only as that, with the same audit_id).
+     * Nobody else moves it: below Merkez Ekip its status and its audit link
+     * stay put, Müdür's included. Its attendance stays correctable — the
      * correction may fix the tick that scored the audit — but not its audit link.
      */
     if (touchesFlow) {
@@ -1538,6 +1569,21 @@ export async function enforceBusinessRules(ctx: RuleContext): Promise<Response |
       if (resending && !isAdmin(caller)) {
         const on = await team(caller.userId)
         if (!on.leader && !on.member) return refuse(REJECTED_RESEND_MESSAGE, 403)
+      }
+      /*
+       * Müdür is central, so the block below lets every status change through.
+       * On a rejected plan that took it out of correction: "İptal edildi", then
+       * "Onay Bekliyor" put an uncorrected audit back in the approval queue.
+       * Only the resend above (the plan's team, the same audit) changes the
+       * status, and the audit link does not move.
+       */
+      if (sentBack && isCentral(caller) && !isAdmin(caller)) {
+        const moves = incomingStatus !== undefined && incomingStatus !== storedStatus
+        const sameAudit = idOf(body.audit_id) !== '' && idOf(body.audit_id) === idOf(row.audit_id)
+        if (moves && !(resending && sameAudit)) return refuse(REJECTED_STATUS_CHANGE_MESSAGE, 403)
+        if (body.audit_id !== undefined && idOf(body.audit_id) !== idOf(row.audit_id)) {
+          return refuse(REJECTED_RELINK_MESSAGE, 403)
+        }
       }
       if (!isCentral(caller)) {
         if (incomingStatus !== undefined && incomingStatus !== storedStatus) {
