@@ -7,6 +7,7 @@ import { useMyScope } from '@/app/_hooks/user/useMyScope'
 import { type SortCondition, useServerList } from '@/app/_hooks/UseServerList'
 import { CENTRAL_ROLES, hasPrivilege } from '@/app/_utils/routeAccess'
 import { type LocationRow, offeredLocations } from '../_utils/locationOptions'
+import { nextPagingStep, pickerStatus } from '../_utils/locationPaging'
 
 /** nucleus gives at most 200 rows a page whatever `limit` says, so the list is read page by page. */
 const PAGE_SIZE = 200
@@ -40,21 +41,29 @@ export function useLocationOptions() {
     filters: ACTIVE_ONLY,
   })
 
+  // A refused page ends the reading (locationPaging.ts); `error` is null until a request fails.
+  const paging = {
+    hasMore: list.hasMore,
+    isLoading: list.isLoading,
+    isLoadingMore: list.isLoadingMore,
+    failed: list.error !== null,
+  }
+  const step = nextPagingStep(paging)
   const readNextPage = useEffectEvent(() => list.loadMore())
   useEffect(() => {
-    readNextPage()
-  }, [list.hasMore, list.isLoading, list.isLoadingMore])
+    if (step === 'read') readNextPage()
+  }, [step])
 
   // Before the first effect has run nothing is loading yet, and "empty" would flash.
   const [requested, setRequested] = useState(false)
   useEffect(() => setRequested(true), [])
 
   const waitingForScope = rolesLoading || (scoped && !scope && !scopeFailed)
-  const loading = !requested || list.isLoading || list.isLoadingMore || list.hasMore || waitingForScope
-  const failed = Boolean(list.error) || (scoped && scopeFailed)
+  const { loading, failed } = pickerStatus({ list: paging, requested, waitingForScope, scoped, scopeFailed })
 
   return {
-    names: offeredLocations(list.rows, scoped ? (scope?.fieldManagerLocationNames ?? []) : null),
+    // A half-read list is never offered: it would look like the whole plant.
+    names: failed ? [] : offeredLocations(list.rows, scoped ? (scope?.fieldManagerLocationNames ?? []) : null),
     loading,
     failed,
     scoped,
