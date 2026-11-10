@@ -9,6 +9,7 @@ import {
   findingOfFinishedAudit,
 } from './findingDelete'
 import { MAIL_COLUMNS_WRITE_MESSAGE, mailColumnsIn } from '../mail/mailColumns'
+import { auditPhotoRefusal, entersSentState } from './photoRequired'
 import { ANSWER_MOVE_MESSAGE, AUDIT_STRUCTURE_WRITE_MESSAGE, auditIdsNamedIn, auditStructureKeysIn } from './rejectedAuditWrites'
 import {
   REJECTED,
@@ -1627,6 +1628,16 @@ export async function enforceBusinessRules(ctx: RuleContext): Promise<Response |
         if (!on.leader && !on.member) {
           return refuse('Bu plan ekibinize atanmamış; planı yalnız atanan ekip gönderebilir.', 403)
         }
+      }
+
+      /*
+       * R72: an audit is sent with a photo on every finding of a question that
+       * demands one (photoRequired.ts). Judged last, so a caller who may not
+       * send this plan is told that and not what its findings lack.
+       */
+      if (entersSentState(storedStatus, incomingStatus?.toLowerCase())) {
+        const photoRefusal = await auditPhotoRefusal(read, idOf(body.audit_id) || idOf(row.audit_id))
+        if (photoRefusal) return refuse(photoRefusal, 422)
       }
     }
 

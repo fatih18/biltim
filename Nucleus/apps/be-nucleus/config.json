@@ -1184,6 +1184,12 @@
           "type": "boolean",
           "notNull": true,
           "default": true
+        },
+        {
+          "name": "require_photo",
+          "type": "boolean",
+          "notNull": true,
+          "default": false
         }
       ]
     },

@@ -1703,6 +1703,7 @@ export const fiveSQuestionsColumns = {
 	text: text('text').notNull(),
 	maxScore: numeric('max_score', { precision: 5, scale: 2 }).notNull(),
 	requireExplanation: boolean('require_explanation').notNull().default(true),
+	requirePhoto: boolean('require_photo').notNull().default(false),
 };
 
 export const fiveSQuestions = pgTable('five_s_questions', fiveSQuestionsColumns);
