@@ -1,4 +1,5 @@
-import { type Caller, type Read, isAdmin } from './caller'
+import type { Row } from '../db'
+import { type Caller, type Read, isAdmin, isCentral } from './caller'
 
 /**
  * A plan Merkez Ekip sent back for correction (customer notes, row 30).
@@ -9,6 +10,11 @@ import { type Caller, type Read, isAdmin } from './caller'
  * audit, answers and findings are the correction's working copy, and only the
  * two circles that can legitimately correct it may write them: Merkez Ekip
  * (`isAdmin`) and the plan's own team (its leader or an active member).
+ *
+ * One write is not a correction: closing a finding with its "after" photo is
+ * the Saha Sorumlusu's core job (`isClosureOnlyWrite`, `mayCloseFindings`), and
+ * a plan that stays rejected must not stop it. The reason, the moment and the
+ * person of the rejection belong to the Reddet route alone (`rejectionColumnsIn`).
  */
 
 
@@ -32,9 +38,55 @@ export const REJECTED_RESEND_MESSAGE =
 
 export const REJECTED_DATE_MESSAGE = 'Düzeltme bekleyen denetimin tarihi yalnız Merkez Ekip tarafından değiştirilebilir.'
 
+/** The reason, the moment and the person are the Reddet route's own columns; a plain write could forge them. */
+export const REJECTED_COLUMNS_WRITE_MESSAGE =
+  'Planın red gerekçesi, red zamanı ve reddeden kişi elle yazılamaz; bu bilgileri yalnız onay ekranındaki "Reddet" düğmesi kaydeder. Denetimi geri göndermek için o düğmeyi kullanın.'
+
+const REJECTION_COLUMNS: readonly string[] = ['rejectionreason', 'rejectedat', 'rejectedby']
+
+/** A key reduced to its letters and digits, lower case: `rejectionReason`, `rejection_reason` and `Rejection-Reason` read alike. */
+const squash = (key: string): string => key.replace(/[^a-z0-9]/gi, '').toLowerCase()
+
+/** The keys of a plan write that name `rejection_reason`, `rejected_at` or `rejected_by`, in any spelling. */
+export function rejectionColumnsIn(body: Row): string[] {
+  return Object.keys(body).filter((key) => REJECTION_COLUMNS.includes(squash(key)))
+}
+
+/** The only keys of a finding write that is nothing but its closing: the status and the "after" evidence. */
+const CLOSURE_KEYS: ReadonlySet<string> = new Set([
+  'status',
+  'photo_after_files',
+  'photo_after_file_id',
+  'photo_after_url',
+  'completed_at',
+  'closed_at',
+  'photoAfterFiles',
+  'photoAfterFileId',
+  'photoAfterUrl',
+  'completedAt',
+  'closedAt',
+])
+
+/** A finding PUT or PATCH that carries closing keys and nothing else. An empty body closes nothing. */
+export function isClosureOnlyWrite(body: Row): boolean {
+  const keys = Object.keys(body)
+  return keys.length > 0 && keys.every((key) => CLOSURE_KEYS.has(key))
+}
+
+/**
+ * The roles that close findings today: the Saha Sorumlusu, whose core job it is,
+ * and Merkez Ekip, Super Admin, Müdür and the godmin, who manage them. The
+ * closing rules (an "after" photo, a closed finding stays closed) still apply.
+ */
+export function mayCloseFindings(caller: Caller | null): boolean {
+  return !!caller && (isCentral(caller) || caller.roles.includes('field manager'))
+}
+
 /** Rows the database answered, kept only when they really are rejected plans. */
-const teamsOf = (rows: Record<string, unknown>[]): string[] =>
-  rows.filter((r) => String(r.status ?? '') === REJECTED).map((r) => String(r.assigned_team_id ?? ''))
+const teamsOf = (rows: Row[]): string[] =>
+  rows
+    .filter((r) => r.status === REJECTED)
+    .map((r) => (typeof r.assigned_team_id === 'string' ? r.assigned_team_id : ''))
 
 /**
  * The teams of the rejected plans these audits belong to, one entry per plan;

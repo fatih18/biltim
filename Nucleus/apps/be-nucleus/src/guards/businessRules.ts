@@ -11,13 +11,17 @@ import {
 import {
   REJECTED,
   REJECTED_AUDIT_MESSAGE,
+  REJECTED_COLUMNS_WRITE_MESSAGE,
   REJECTED_DATE_MESSAGE,
   REJECTED_RELINK_MESSAGE,
   REJECTED_RESEND_MESSAGE,
   REJECTED_STATUS_WRITE_MESSAGE,
+  isClosureOnlyWrite,
+  mayCloseFindings,
   mayWriteRejected,
   rejectedPlanTeams,
   rejectedPlanTeamsOfFinding,
+  rejectionColumnsIn,
 } from './rejectedPlan'
 
 /**
@@ -1008,7 +1012,7 @@ export async function enforceBusinessRules(ctx: RuleContext): Promise<Response |
       }
     }
 
-    const sides =(['after', 'before'] as const).filter((side) => photoKeys(side).some((key) => key in body))
+    const sides = (['after', 'before'] as const).filter((side) => photoKeys(side).some((key) => key in body))
     const incomingStatus = body.status === undefined ? undefined : str(body.status).toLowerCase()
     if (sides.length > 0 || incomingStatus !== undefined) {
       const rows = await read(
@@ -1264,12 +1268,21 @@ export async function enforceBusinessRules(ctx: RuleContext): Promise<Response |
    * and the plan's team as well: a new finding names its audit in the body, a
    * stored one hangs under the audit it already has (and under the one it is
    * moved to).
+   *
+   * Closing a finding is not correcting the audit: the Saha Sorumlusu's core job
+   * is to close findings with an "after" photo, and a plan that stays rejected
+   * must not stop it. A PUT or PATCH that carries closing keys and nothing else
+   * (`isClosureOnlyWrite`) is left to the closing rules above for the roles that
+   * close findings; everything else stays Merkez Ekip's and the plan's team's.
    */
   if (FINDING_COLLECTION.test(path) || findingItem) {
-    const teams = findingItem ? await rejectedPlanTeamsOfFinding(read, pathId(findingItem[1])) : []
-    const named = idOf(body.audit_id)
-    const refusal = await rejectedRefusal([...teams, ...(named ? await rejectedPlanTeams(read, [named]) : [])])
-    if (refusal) return refusal
+    const closing = findingItem !== null && isClosureOnlyWrite(body) && mayCloseFindings(await who())
+    if (!closing) {
+      const teams = findingItem ? await rejectedPlanTeamsOfFinding(read, pathId(findingItem[1])) : []
+      const named = idOf(body.audit_id)
+      const refusal = await rejectedRefusal([...teams, ...(named ? await rejectedPlanTeams(read, [named]) : [])])
+      if (refusal) return refusal
+    }
   }
 
   /*
@@ -1428,6 +1441,15 @@ export async function enforceBusinessRules(ctx: RuleContext): Promise<Response |
 
   // `rejected` is what the "Reddet" route writes with its reason and its notification; never a plain create.
   if (planCreate && str(body.status).toLowerCase() === REJECTED) return refuse(REJECTED_STATUS_WRITE_MESSAGE)
+
+  /*
+   * The reason, the moment and the person of a rejection are plain columns, and
+   * Müdür and Merkez Ekip hold the table-level put claim on the plan table, so
+   * the generic route could forge them without touching `status`. Only the
+   * Reddet route (its own pool) writes them: any body that names one, in any
+   * spelling, is refused for every caller.
+   */
+  if ((planCreate || planItem) && rejectionColumnsIn(body).length > 0) return refuse(REJECTED_COLUMNS_WRITE_MESSAGE)
 
   if (planItem) {
     const touchesFlow = (['status', 'audit_id', 'auditor_attended', 'field_manager_attended'] as const).some(
