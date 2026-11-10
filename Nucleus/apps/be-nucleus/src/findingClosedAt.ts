@@ -30,6 +30,12 @@ import type { QueryParam } from './guards/caller'
  * One statement per entry: the helper below runs them one after the other on
  * one connection, in a transaction, so there is never a moment without the
  * trigger and a failure half way leaves the previous one in place.
+ *
+ * `drop trigger` and `create trigger` need a strong lock on five_s_findings,
+ * and boot runs while the API is already serving: a long transaction on the
+ * table would make the install wait, and everything queued behind it. The
+ * transaction therefore starts with a 5 second lock timeout (below); on
+ * timeout it rolls back, the old trigger stays, and the next start tries again.
  */
 export const FINDING_CLOSED_AT_STATEMENTS: readonly string[] = [
   `create or replace function main.five_s_stamp_closed_at()
@@ -61,7 +67,10 @@ $$`,
 
 /**
  * Findings closed before the trigger existed: give them the date of the audit
- * log entry that closed them, and ONLY them. A closed finding with no such
+ * log entry that closed them, and ONLY them. A finding closed, reopened and
+ * closed again takes the date of the LAST closing entry (max): the trigger
+ * clears the date on a reopen and stamps again at the next close, so the
+ * back-fill and the trigger name the same day. A closed finding with no such
  * entry (imported or seeded) gets no invented date; the report already leaves
  * a finding without a date out of its average. Repeatable: it touches only
  * closed rows still without a date.
@@ -79,7 +88,7 @@ export const FINDING_CLOSED_AT_BACKFILL_SQL = `update main.five_s_findings f
    set completed_at = sub.closed_on
   from (
     select a.entity_id,
-           min(((a.created_at at time zone 'UTC')
+           max(((a.created_at at time zone 'UTC')
                  at time zone coalesce(current_setting('biltim.local_tz', true), 'Europe/Istanbul'))::date) as closed_on
       from main.audit_logs a
      where a.entity_id in (select w.id from main.five_s_findings w where w.status = 'closed' and w.completed_at is null)
@@ -91,9 +100,34 @@ export const FINDING_CLOSED_AT_BACKFILL_SQL = `update main.five_s_findings f
    and f.completed_at is null
 returning f.id`
 
+/** First statement of the install transaction: a lock that cannot be had in 5 seconds fails the install instead of queueing the API behind it. */
+export const FINDING_CLOSED_AT_LOCK_TIMEOUT_SQL = "set local lock_timeout = '5s'"
+
+/** Postgres' SQLSTATE for "lock_not_available", what `lock_timeout` raises. */
+const LOCK_NOT_AVAILABLE = '55P03'
+
 /** Installs the function and the trigger; hand it the `sql` of `transaction`. */
 export async function installFindingClosedAt(sql: Sql): Promise<void> {
+  await sql(FINDING_CLOSED_AT_LOCK_TIMEOUT_SQL)
   for (const statement of FINDING_CLOSED_AT_STATEMENTS) await sql(statement)
+}
+
+function isLockTimeout(error: Error): boolean {
+  if ('code' in error && error.code === LOCK_NOT_AVAILABLE) return true
+  return error.message.includes('lock timeout')
+}
+
+/**
+ * The one boot log line for an install that failed: what happened, what it
+ * means, what happens next. The transaction has been rolled back either way,
+ * so whatever trigger was there is still there.
+ */
+export function describeInstallFailure(error: Error): string {
+  const head = '[boot] bulgu kapanma tarihi tetikleyicisi kurulamadı'
+  if (isLockTimeout(error)) {
+    return `${head}: five_s_findings tablosu 5 saniyede kilitlenemedi, açık bir işlem tabloyu tutuyor. Değişiklik geri alındı, eski tetikleyici yerinde; sonraki açılışta yeniden denenecek.`
+  }
+  return `${head}: ${error.message}. Değişiklik geri alındı, eski tetikleyici (varsa) yerinde; sonraki açılışta yeniden denenecek.`
 }
 
 /** How many closed findings got a closing date from the audit log. */
