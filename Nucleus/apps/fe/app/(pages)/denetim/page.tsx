@@ -38,6 +38,15 @@ import {
   requiresNewFinding,
   TARGET_SCORE,
 } from './_utils/scoring'
+import { AttendanceBox, QuestionsFieldset } from './_components'
+import {
+  answersToStore,
+  areAnswersRequired,
+  attendanceForScoring,
+  attendanceToRecord,
+  isAuditPassive,
+} from './_utils/attendance'
+import { NOT_ATTENDED_CONFIRM, noAnswersNotice, unknownAttendanceWarning } from './_utils/attendanceText'
 
 /* ───────────────────────────── Types ───────────────────────────── */
 type Rating = 'good' | 'medium' | 'bad'
@@ -61,9 +70,11 @@ interface AuditFormHeader {
   auditorName: string
   date: string // YYYY-MM-DD
   /**
-   * "Bölge sorumlusu denetime katıldı" — ticked by the auditor. Not ticked,
-   * the audit scores 0 (Notlar 07.10, Kurallar). Optional so drafts saved
-   * before it existed still restore.
+   * "Bölge sorumlusu veya görevlendirdiği kişi denetime katıldı" — ticked by
+   * the auditor. Not ticked, the questions are passive and the audit is saved
+   * with score 0 (Notlar 07.10 Kurallar, Notlar 22.10 satır 39; the decisions
+   * are in _utils/attendance.ts). Optional so drafts saved before it existed
+   * still restore.
    */
   fieldManagerAttended?: boolean
 }
@@ -456,7 +467,7 @@ type OfflineAuditSubmission = {
    */
   skippedPhotoIds?: string[]
   /*
-   * "Bölge sorumlusu denetime katıldı" as it was when the form was queued,
+   * The attendance box as it was when the form was queued,
    * as a plain true/false — or null when the location has no field manager
    * and the rule does not apply. The replay stamps the plan with exactly this.
    * The header's own field is optional (drafts from before the tick), and an
@@ -860,16 +871,24 @@ export default function FiveSAuditFormPage() {
    * (null) rather than a "did not attend" that nobody could have avoided.
    */
   const locationHasFieldManager = locationResponsibleMap.has(normLoc(header.department))
+  /*
+   * Not ticked (and the location has a field manager): the questions are
+   * passive, nothing is required, and the audit is stored with score 0 and no
+   * answers. Every decision is in _utils/attendance.ts.
+   */
+  const attendance = { locationHasFieldManager, fieldManagerAttended: header.fieldManagerAttended }
+  const auditPassive = isAuditPassive(attendance)
+  const answersRequired = areAnswersRequired(attendance)
   /** What the plan is stamped with: the tick, or null where the rule does not apply. */
-  const fieldManagerAttendanceToRecord: boolean | null = locationHasFieldManager
-    ? header.fieldManagerAttended === true
-    : null
+  const fieldManagerAttendanceToRecord: boolean | null = attendanceToRecord(attendance)
+  /** The answers that are scored, queued, sent and turned into findings; none while passive. */
+  const recordedAnswers = answersToStore(attendance, answers)
 
   // The plain 5S sum plus the plant's own rules (scoring.ts → scoreAudit).
   const auditScore = useMemo(
     () =>
-      scoreAudit(steps, questions, answers, {
-        fieldManagerAttended: !locationHasFieldManager || header.fieldManagerAttended === true,
+      scoreAudit(steps, questions, recordedAnswers, {
+        fieldManagerAttended: attendanceForScoring(attendance),
       }),
     [answers, questions, steps, header.fieldManagerAttended, locationHasFieldManager]
   )
@@ -879,6 +898,8 @@ export default function FiveSAuditFormPage() {
   // Gerçek zamanlı eksik/tamamlanmamış soru seti
   const liveUnanswered = useMemo(() => {
     const s = new Set<string>()
+    // Passive: the audit is saved with score 0 as it stands, no answer is missing.
+    if (!answersRequired) return s
     for (const q of questions) {
       const ans = answers[q.id]
       if (!ans || !ans.rating) { s.add(q.id); continue }
@@ -893,7 +914,7 @@ export default function FiveSAuditFormPage() {
       }
     }
     return s
-  }, [questions, answers, header.department, openFindingsByQuestion, editAudit])
+  }, [questions, answers, header.department, openFindingsByQuestion, editAudit, answersRequired])
 
   // Kaydet butonuna basıldıktan sonra highlight'lar aktif olsun
   const [hasAttempted, setHasAttempted] = useState(false)
@@ -2196,11 +2217,7 @@ export default function FiveSAuditFormPage() {
           : storedTotal !== 0
         // Said only where the rule applies: a location with a field manager.
         if (!plan && storedTotal === 0 && pendingLocRespMap.has(normLoc(String(audit.department_name ?? '')))) {
-          toast.warning(
-            planUnreadable
-              ? 'Denetimin planı okunamadı; bölge sorumlusunun katılıp katılmadığı bilinmiyor. Kayıtlı 0 puan korunuyor: katıldıysa "Bölge sorumlusu denetime katıldı" kutusunu işaretleyin.'
-              : 'Denetimin planı bulunamadı; bölge sorumlusunun katılıp katılmadığı bilinmiyor. Kayıtlı 0 puan korunuyor: katıldıysa "Bölge sorumlusu denetime katıldı" kutusunu işaretleyin.'
-          )
+          toast.warning(unknownAttendanceWarning(planUnreadable))
         }
         setEditAudit({
           id: String(audit.id),
@@ -2707,7 +2724,8 @@ export default function FiveSAuditFormPage() {
       auditor_id: currentUserId || undefined,
     }
 
-    const nonGoodAnswers = Object.values(answers).filter((ans) => ans.rating && ans.rating !== 'good')
+    // A passive audit queues no answers and no findings (recordedAnswers is empty).
+    const nonGoodAnswers = Object.values(recordedAnswers).filter((ans) => ans.rating && ans.rating !== 'good')
     const detectedDate = header.date
 
     const findingsPayload: OfflineFindingPayload[] = []
@@ -2766,7 +2784,12 @@ export default function FiveSAuditFormPage() {
       findings: findingsPayload,
       // The same rows the online save writes, decided now, against the open
       // findings the form knows about now.
-      answers: answerRowsFor(questions, answers, (qid) => openFindingsByQuestion.has(qid), new Date().toISOString()),
+      answers: answerRowsFor(
+        questions,
+        recordedAnswers,
+        (qid) => openFindingsByQuestion.has(qid),
+        new Date().toISOString()
+      ),
       fieldManagerAttended: fieldManagerAttendanceToRecord,
       lastError: null,
       clientSubmissionId: isUuid(clientSubmissionId) ? clientSubmissionId : undefined,
@@ -2949,9 +2972,9 @@ export default function FiveSAuditFormPage() {
     const answeredAt = new Date().toISOString()
     const results = await Promise.allSettled(
       questions
-        .filter((q) => !!answers[q.id]?.rating)
+        .filter((q) => !!recordedAnswers[q.id]?.rating)
         .map((q) => {
-          const ans = answers[q.id]!
+          const ans = recordedAnswers[q.id]!
           const fields = {
             rating: ans.rating,
             explanation: ans.explanation?.trim() || null,
@@ -2977,7 +3000,7 @@ export default function FiveSAuditFormPage() {
     if (failed > 0) toast.error(`${failed} soru yanıtı güncellenemedi.`)
 
     const newFindings = questions
-      .map((q) => answers[q.id])
+      .map((q) => recordedAnswers[q.id])
       .filter((ans): ans is QuestionAnswer => !!ans && needsFindingDetails(ans.questionId, ans) && !!ans.findingType)
     await Promise.all(newFindings.map((ans) => createFindingForAnswer(ans, target.id, header.date)))
 
@@ -3020,7 +3043,9 @@ export default function FiveSAuditFormPage() {
       return false
     }
 
-    for (const q of questions) {
+    // Passive (attendance box not ticked): nothing is required, Kaydet finishes
+    // the audit with score 0 and no answers.
+    for (const q of answersRequired ? questions : []) {
       const ans = answers[q.id]
       if (!ans || !ans.rating) {
         missing.add(q.id)
@@ -3050,11 +3075,10 @@ export default function FiveSAuditFormPage() {
 
     // The rule scores the audit 0 without the tick; make sure that is meant.
     // Not asked where the location has no field manager: the rule does not apply.
-    if (locationHasFieldManager && header.fieldManagerAttended !== true) {
+    if (auditPassive) {
       const ok = await confirmDialog({
-        title: 'Bölge sorumlusu katılmadı olarak kaydedilecek',
-        message:
-          '"Bölge sorumlusu denetime katıldı" işaretli değil. Kurala göre denetim puanı 0 olarak kaydedilecek. Devam edilsin mi?',
+        title: NOT_ATTENDED_CONFIRM.title,
+        message: NOT_ATTENDED_CONFIRM.message,
         confirmLabel: 'Yine de kaydet',
         cancelLabel: 'Vazgeç',
         tone: 'danger',
@@ -3064,7 +3088,7 @@ export default function FiveSAuditFormPage() {
 
     // Madde 1: Açık bulgusu olan sorular "İyi" işaretlendiyse denetçiyi uyar
     const goodButOpen = questions.filter(
-      (q) => openFindingsByQuestion.has(q.id) && answers[q.id]?.rating === 'good'
+      (q) => openFindingsByQuestion.has(q.id) && recordedAnswers[q.id]?.rating === 'good'
     )
     if (goodButOpen.length > 0) {
       const ok = await confirmDialog({
@@ -3177,7 +3201,7 @@ export default function FiveSAuditFormPage() {
      * the ones the offline queue stores and replays (answerRowsFor).
      */
     const answeredAt = new Date().toISOString()
-    const answerJobs = answerRowsFor(questions, answers, (qid) => openFindingsByQuestion.has(qid), answeredAt).map(
+    const answerJobs = answerRowsFor(questions, recordedAnswers, (qid) => openFindingsByQuestion.has(qid), answeredAt).map(
       (row) =>
         startAsPromise((actions as any).ADD_FIVE_S_AUDIT_ANSWER?.start, {
           payload: { audit_id: auditId, ...row },
@@ -3193,7 +3217,7 @@ export default function FiveSAuditFormPage() {
       )
     }
 
-    const nonGoodAnswers = Object.values(answers).filter((ans) => ans.rating && ans.rating !== 'good')
+    const nonGoodAnswers = Object.values(recordedAnswers).filter((ans) => ans.rating && ans.rating !== 'good')
     if (nonGoodAnswers.length === 0) {
       setSubmitted(true)
       await clearDraft(assignedPlan?.id ?? null, header)
@@ -4096,9 +4120,10 @@ export default function FiveSAuditFormPage() {
                 <p className="mt-2 rounded-md border border-indigo-400/60 bg-indigo-100 dark:bg-indigo-950/30 px-3 py-2 text-[11px] text-indigo-800 dark:text-indigo-200">
                   Tamamlanmış bir denetimi düzenliyorsunuz. Kaydettiğinizde puanlar ve yanıtlar bu denetimin
                   üzerine yazılır; yeni bir denetim açılmaz.
-                  {!editAudit.hadAnswers
-                    ? ' Bu denetimin soru yanıtları kaydedilmemiş (eski kayıt); yanıtları yeniden girerek puanı düzeltebilirsiniz.'
-                    : ''}
+                  {noAnswersNotice({
+                    hadAnswers: editAudit.hadAnswers,
+                    initialAttended: editAudit.initialFieldManagerAttended,
+                  })}
                 </p>
               ) : null}
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
@@ -4314,37 +4339,17 @@ export default function FiveSAuditFormPage() {
               </div>
 
               {/*
-                Kurallar (Notlar 07.10): the auditor ticks whether the
-                location's field manager took part. Not ticked, the audit
-                scores 0 — the plant's rule, applied by scoreAudit.
+                Kurallar (Notlar 07.10, 22.10 satır 39): the auditor ticks
+                whether the location's field manager — or whoever they
+                appointed — took part. Not ticked, the questions are passive
+                and the audit is saved with score 0 (_utils/attendance.ts).
               */}
-              <div className="space-y-1 sm:col-span-2">
-                {locationHasFieldManager ? (
-                  <label className="flex cursor-pointer items-start gap-2 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={header.fieldManagerAttended === true}
-                      onChange={(e) => setHeader((prev) => ({ ...prev, fieldManagerAttended: e.target.checked }))}
-                      className="mt-0.5 accent-emerald-500"
-                    />
-                    <span>
-                      <span className="font-medium text-slate-800 dark:text-slate-200">Bölge sorumlusu denetime katıldı</span>
-                      {locationResponsibleMap.get(normLoc(header.department))?.userName ? (
-                        <span className="text-slate-600 dark:text-slate-400">
-                          {' '}({locationResponsibleMap.get(normLoc(header.department))?.userName})
-                        </span>
-                      ) : null}
-                      <span className="block text-[11px] text-slate-500 dark:text-slate-400">
-                        İşaretlenmezse denetim puanı 0 olarak kaydedilir.
-                      </span>
-                    </span>
-                  </label>
-                ) : (
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Bu lokasyona saha sorumlusu tanımlı değil; bölge sorumlusu katılım kuralı uygulanmaz.
-                  </p>
-                )}
-              </div>
+              <AttendanceBox
+                hasFieldManager={locationHasFieldManager}
+                checked={header.fieldManagerAttended === true}
+                managerName={locationResponsibleMap.get(normLoc(header.department))?.userName ?? ''}
+                onChange={(attended) => setHeader((prev) => ({ ...prev, fieldManagerAttended: attended }))}
+              />
 
               <div className="space-y-1">
                 <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Tarih</label>
@@ -4358,7 +4363,8 @@ export default function FiveSAuditFormPage() {
             </div>
           </section>
 
-          {/* Adımlar & Sorular */}
+          {/* Adımlar & Sorular — passive until the attendance box is ticked */}
+          <QuestionsFieldset passive={auditPassive}>
           {steps.map((step) => {
             const stepQuestions = questions.filter((q) => q.stepCode === step.code).sort((a, b) => a.order - b.order)
 
@@ -4628,6 +4634,7 @@ export default function FiveSAuditFormPage() {
               </section>
             )
           })}
+          </QuestionsFieldset>
 
           {/* Özet & Aksiyonlar */}
           <section className="space-y-4 rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 p-4">
@@ -4712,7 +4719,7 @@ export default function FiveSAuditFormPage() {
         </form>
 
         {/* Soru bazlı Detay Modal */}
-        {activeQuestion && activeAnswer && (
+        {activeQuestion && activeAnswer && !auditPassive && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
             <div className="w-full max-w-lg rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-2xl md:p-6">
               <div className="flex items-start justify-between gap-3">

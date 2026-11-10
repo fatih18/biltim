@@ -362,7 +362,9 @@ tarayıcı → Next server action (factory.nucleus.ts, AUTH_API_URL)
   %10 düşer; listeye eklenen her soru kendi %10'unu ekler. 2.3 kuralı 22.10
   notlarıyla (satır 38) kaldırıldı; müşteri soruları yeniliyor. 5.1 orta/kötü
   ise 5. adım 0 olur.
-  "Bölge sorumlusu katıldı" işaretlenmezse puan 0 olur.
+  "Bölge sorumlusu veya görevlendirdiği kişi denetime katıldı" işaretlenmezse
+  sorular pasif olur, denetim cevapsız ve 0 puanla kaydedilir
+  (`denetim/_utils/attendance.ts`).
 - Canlıda lokasyonlara müdürlük ve kroki konumu girilmedi; ilgili raporlar
   bu yüzden boş.
 - `finding-closed-at.sql` tetikleyicisi boot'ta kurulmuyor; canlıda olup

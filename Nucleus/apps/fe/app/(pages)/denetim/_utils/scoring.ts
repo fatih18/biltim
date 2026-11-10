@@ -131,7 +131,7 @@ export function scoreAudit(
 
   if (!options.fieldManagerAttended) {
     total = 0;
-    adjustments.push("Bölge sorumlusu denetime katılmadı: denetim puanı 0");
+    adjustments.push("Bölge sorumlusu veya görevlendirdiği kişi denetime katılmadı: denetim puanı 0");
   }
 
   return { stepScores, total, adjustments };

@@ -1158,8 +1158,8 @@ Her satır arayüzden izlenebilir bir adım dizisidir; "beklenen" sütunu neyin 
    - Roller: Formu açabilen herkes.
 
 47. **Saha sorumlusunun katılım damgası**  _[YÜKSEK · yazar]_
-   - Adımlar: Lokasyonun field_manager_user_ids ilk kaydındaki kişinin adını 'Denetimi Yapan' listesinde İŞARETLE ve formu kaydet. Sonra başka bir plan için o kişiyi işaretlemeden kaydet.
-   - Beklenen: İlk durumda five_s_audit_plans satırında field_manager_attended=true, ikincisinde false olur. Lokasyona hiç saha sorumlusu tanımlı değilse bu kolon hiç gönderilmez (null kalır).
+   - Adımlar: Saha sorumlusu tanımlı bir lokasyonun planını aç: 'Bölge sorumlusu veya görevlendirdiği kişi denetime katıldı' kutusu işaretsizken tüm sorular pasif ve soluk olmalı, üstte 'Sorular pasif: denetim 0 puanla kaydedilecek…' satırı görünmeli. Kutuyu işaretle, soruları doldur, formu kaydet. Sonra başka bir plan için kutuyu hiç işaretlemeden 'Formu Kaydet'e bas ve onay penceresine 'Yine de kaydet' de.
+   - Beklenen: İlk durumda five_s_audit_plans satırında field_manager_attended=true ve puanlar normal olur. İkincisinde soru doldurmak gerekmeden kayıt biter: five_s_audits satırı total_score=0.00 ve score_s1..s5=0.00, plan satırı field_manager_attended=false, five_s_audit_answers ve five_s_findings'e satır eklenmez. Kutu işaretsizken yazılanlar, kutu tekrar işaretlenince geri gelir. Aynısı çevrimdışı kuyrukta ve Merkez Ekibin düzeltme ekranında geçerlidir. Lokasyona hiç saha sorumlusu tanımlı değilse kutu görünmez, sorular açık kalır ve bu kolon hiç gönderilmez (null kalır).
    - Roller: Formu kaydedebilen herkes.
 
 48. **Soru yanıtı yazımı hatası uyarısı**  _[orta · yazar]_
