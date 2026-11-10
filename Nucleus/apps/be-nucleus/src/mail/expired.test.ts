@@ -75,6 +75,19 @@ describe('readExpired', () => {
     expect(calls[0]?.text).toContain('from main.five_s_audit_plans p')
   })
 
+  it('counts only plans from the moment mail first ran: nothing expires while no plan carries a marker', async () => {
+    const { deps, calls } = mailWorld({ plans: [], backlog: { expired_invitations: 0, expired_completions: 0 } })
+    await readExpired(deps.sql)
+    const text = calls[0]?.text ?? ''
+    expect(text).toContain('least(min(invitation_mailed_at), min(completion_mailed_at)) as since')
+    expect(text).toContain('cross join live')
+    for (const kind of MAIL_KINDS) {
+      const sql = expiredSql(kind)
+      expect(sql).toContain('live.since is not null')
+      expect(sql).toContain(' >= live.since')
+    }
+  })
+
   it('reads a missing or broken count as 0', async () => {
     const { deps } = mailWorld({ plans: [], backlog: { expired_invitations: null, expired_completions: 'abc' } })
     expect(await readExpired(deps.sql)).toEqual({ expiredInvitations: 0, expiredCompletions: 0 })
