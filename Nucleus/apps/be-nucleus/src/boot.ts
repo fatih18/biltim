@@ -1,6 +1,5 @@
-import { query, transaction } from './db'
-import { backfillFindingClosedAt, installFindingClosedAt } from './findingClosedAt'
-import { ensureUniqueFindingNumbers, renumberDuplicateFindings } from './findingNumbers'
+import { applyFindingBootFixes } from './bootFindingFixes'
+import { query } from './db'
 import { godminGrantLog, grantGodminRole } from './godminRole'
 
 /**
@@ -164,36 +163,7 @@ export async function applyBootFixes(): Promise<void> {
     }
   }
 
-  /*
-   * R61: the numbers that were already handed out twice. The block above
-   * guarantees nextval is past the stored maximum, so the renumbered rows get
-   * fresh numbers; then the unique index makes a repeat impossible. Neither
-   * stops the boot (findingNumbers.ts).
-   */
-  try {
-    await renumberDuplicateFindings()
-  } catch (error) {
-    console.error('[boot] tekrar eden bulgu numaraları düzeltilemedi', error)
-  }
-  await ensureUniqueFindingNumbers()
-
-  /*
-   * A closed finding gets its closing date from the database (findingClosedAt.ts),
-   * on every start, because deploy runs no SQL. Then the findings closed before
-   * the trigger existed are dated from the audit log.
-   */
-  try {
-    await transaction(installFindingClosedAt)
-    console.log('[boot] bulgu kapanma tarihi tetikleyicisi kuruldu (five_s_findings_closed_at)')
-  } catch (error) {
-    console.error('[boot] bulgu kapanma tarihi tetikleyicisi kurulamadı', error)
-  }
-  try {
-    const stamped = await backfillFindingClosedAt()
-    if (stamped > 0) console.log(`[boot] ${stamped} kapanmış bulguya kapanma tarihi denetim kaydından yazıldı`)
-  } catch (error) {
-    console.error('[boot] kapanmış bulguların kapanma tarihi doldurulamadı', error)
-  }
+  await applyFindingBootFixes() // R61 numbers, closing-date trigger and back-fill: bootFindingFixes.ts
 
   try {
     /*
