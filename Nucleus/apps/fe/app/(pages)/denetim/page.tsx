@@ -53,16 +53,21 @@ import { NOT_ATTENDED_CONFIRM, noAnswersNotice, unknownAttendanceWarning } from 
 import { OpenFindingNotice } from './_components/OpenFindingNotice'
 import { PhotoPreviewOverlay } from './_components/PhotoPreviewOverlay'
 import { StandaloneFindingEntry } from './_components/StandaloneFindingEntry'
+import { FindingDetailsLocked } from './_components/FindingDetailsLocked'
+import { SingleFindingTeamField } from './_components/SingleFindingTeamField'
 import {
   explanationMissing,
   findingNoOf,
   openFindingsFor,
   queuedSubmissionLabel,
+  questionsAddedHere,
+  sessionFindingsOfReplay,
   singleFindingHeading,
   singleFindingMode,
   singleFindingTitle,
   type SessionFinding,
 } from './_utils/singleFinding'
+import { singleFindingTeam, teamDescriptionLines, teamNamesOfUser, withoutRoleAsTeam } from './_utils/userTeams'
 import { FindingDeleteButton } from './_components/FindingDeleteButton'
 import { useAuditFindings } from './_hooks/useAuditFindings'
 import {
@@ -694,6 +699,8 @@ export default function FiveSAuditFormPage() {
    */
   const correctingRejected = !!editAudit && isPlanRejected(assignedPlan?.status)
   const [currentUserId, setCurrentUserId] = useState<string>('')
+  /** The person's real audit teams (_utils/userTeams); what a standalone single finding names as "Ekip" (R19). */
+  const [userTeamNames, setUserTeamNames] = useState<string[]>([])
 
   const [availablePlans, setAvailablePlans] = useState<PlanRow[]>([])
   const [planSelectionMode, setPlanSelectionMode] = useState(false)
@@ -787,6 +794,15 @@ export default function FiveSAuditFormPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [findings, queuedSingleFindings, sessionFindings, header.department]
   )
+  /*
+   * The questions that got a single finding during THIS audit (saved here or
+   * queued). Only these waive the Orta/Kötü explanation; an open finding from an
+   * earlier audit at the same location does not (singleFinding.ts → explanationMissing).
+   */
+  const findingsAddedHere = questionsAddedHere(header.department, {
+    queuedQuestionIds: queuedQuestionIdsAt(header.department),
+    session: sessionFindings,
+  })
 
   /*
    * A non-good answer normally has to carry a finding — type, action, due date.
@@ -960,7 +976,7 @@ export default function FiveSAuditFormPage() {
       const ans = answers[q.id]
       if (!ans || !ans.rating) { s.add(q.id); continue }
       if (isUnchangedStoredAnswer(q.id, ans.rating)) continue
-      if (explanationMissing(q, ans, openFindingsByQuestion.has(q.id))) s.add(q.id)
+      if (explanationMissing(q, ans, findingsAddedHere.has(q.id))) s.add(q.id)
       if (needsFindingDetails(q.id, ans)) {
         if (!ans.findingType) s.add(q.id)
         if (!ans.actionToTake?.trim()) s.add(q.id)
@@ -970,7 +986,7 @@ export default function FiveSAuditFormPage() {
       }
     }
     return s
-  }, [questions, answers, header.department, openFindingsByQuestion, editAudit, answersRequired])
+  }, [questions, answers, header.department, openFindingsByQuestion, queuedSingleFindings, sessionFindings, editAudit, answersRequired])
 
   // Kaydet butonuna basıldıktan sonra highlight'lar aktif olsun
   const [hasAttempted, setHasAttempted] = useState(false)
@@ -1630,6 +1646,8 @@ export default function FiveSAuditFormPage() {
           }
 
           const alreadySynced = new Set(s.syncedFindingIds ?? [])
+          // The number the server gave each finding this replay created (see sessionFindingsOfReplay).
+          const replayedNumbers = new Map<string, number | null>()
           for (const f of s.findings) {
             // A finding that got through on an earlier attempt is not sent
             // again; without this, one late failure duplicated every finding
@@ -1695,7 +1713,7 @@ export default function FiveSAuditFormPage() {
             const beforeArr = toPhotoArr(uploaded)
 
             try {
-              await startAsPromise(startFinding, {
+              const replayed = await startAsPromise(startFinding, {
                 payload: {
                   audit_id: auditId,
                   question_id: f.question_id ?? (f.questionId !== 'SINGLE' ? f.questionId : undefined),
@@ -1708,7 +1726,8 @@ export default function FiveSAuditFormPage() {
                   detected_date: f.detected_date,
                   location_name: f.location_name,
                   finding_type: f.finding_type,
-                  description: f.description,
+                  // A single finding queued before R19 may carry "Ekip: <role name>".
+                  description: withoutRoleAsTeam(f.description),
                   action_to_take: f.action_to_take,
                   due_date: f.due_date || undefined,
                   responsible_name: f.responsible_name,
@@ -1721,6 +1740,7 @@ export default function FiveSAuditFormPage() {
                   photo_before_url: primary?.fileUrl,
                 },
               })
+              replayedNumbers.set(f.client_finding_id, findingNoOf(replayed))
             } catch (err) {
               // Already on the server from an attempt whose reply was lost.
               if (!(isRefusal(err) && (await findingExists(f.client_finding_id)))) throw err
@@ -1765,6 +1785,16 @@ export default function FiveSAuditFormPage() {
             await db.submissionPhotos.where('submissionId').equals(s.id).delete()
             await db.submissions.delete(s.id)
           })
+          /*
+           * A replayed single finding leaves the queue list now (refreshQueuedCount
+           * below) but the findings read only lists it once fetchFindings returns.
+           * Until then it counts as this question's open finding from the session,
+           * or the form asks for a second one in between (R2/R17).
+           */
+          if (s.auditPayload.source === 'single_finding') {
+            const replayedFindings = sessionFindingsOfReplay(s.findings, replayedNumbers)
+            if (replayedFindings.length > 0) setSessionFindings((prev) => [...prev, ...replayedFindings])
+          }
           sentNow += 1
           await refreshQueuedCount()
         } catch (err: any) {
@@ -2198,6 +2228,7 @@ export default function FiveSAuditFormPage() {
       setLocationResponsibleMap(new Map(pendingLocRespMap))
 
       assignmentDataRef.current = { members, teams, usersById, fieldManagerIdsByLoc }
+      setUserTeamNames(teamNamesOfUser(uidVal, teams, members))
 
       const memberSetByTeam = new Map<string, Set<string>>()
       for (const m of members) {
@@ -3103,7 +3134,7 @@ export default function FiveSAuditFormPage() {
       // Same rule as liveUnanswered: an answer a correction did not touch is not re-checked.
       if (isUnchangedStoredAnswer(q.id, ans.rating)) continue
 
-      if (explanationMissing(q, ans, openFindingsByQuestion.has(q.id))) missing.add(q.id)
+      if (explanationMissing(q, ans, findingsAddedHere.has(q.id))) missing.add(q.id)
 
       if (needsFindingDetails(q.id, ans)) {
         if (!ans.findingType) missing.add(q.id)
@@ -3355,6 +3386,18 @@ export default function FiveSAuditFormPage() {
     await clearDraft(assignedPlan?.id ?? null, header)
   }
 
+  /*
+   * R19: the team a single finding names. Inside an audit it is the plan's own
+   * team; on its own it is the person's real audit teams (a team they lead or are
+   * an active member of). With none it is "": the modal shows no "Ekip" field and
+   * the description gets no "Ekip:" line. A role name is never a team.
+   */
+  const singleTeam = singleFindingTeam({
+    inAudit: singleFindingMode(assignedPlan?.id).inAudit,
+    planTeamName: header.teamName,
+    userTeams: userTeamNames,
+  })
+
   const handleSingleFindingSave = async () => {
     // See singleSaveLockRef: a double tap filed the same single finding twice.
     if (singleSaveLockRef.current) return
@@ -3396,7 +3439,6 @@ export default function FiveSAuditFormPage() {
     if (isNoPlanFlow) {
       if (!loc) { toast.error('Lokasyon alanı zorunludur.'); return }
       if (!findingDate) { toast.error('Tarih alanı zorunludur.'); return }
-      if (!header.teamName) setHeader((prev) => ({ ...prev, teamName: 'Content Manager Core Team' }))
     }
 
     if (!header.auditorName) { toast.error('Tekil bulgu kaydı için Denetimi Yapan zorunludur.'); return }
@@ -3490,7 +3532,7 @@ export default function FiveSAuditFormPage() {
             finding_type: singleFinding.findingType,
             description: [
               singleFindingHeading(findingTitle),
-              `Ekip: ${header.teamName || 'Content Manager Core Team'}`,
+              ...teamDescriptionLines(singleTeam),
               singleFinding.linkedQuestionId ? `Bağlı Soru: ${singleFinding.linkedQuestionId}` : null,
               `Bulgu Tipi: ${singleFinding.findingType}`,
               `Açıklama: ${singleFinding.explanation.trim()}`,
@@ -3596,7 +3638,7 @@ export default function FiveSAuditFormPage() {
 
     const descriptionLines: string[] = [
       singleFindingHeading(findingTitle),
-      `Ekip: ${header.teamName || 'Content Manager Core Team'}`,
+      ...teamDescriptionLines(singleTeam),
       ...(singleFinding.linkedQuestionId
         ? [
             `Bağlı Soru: ${singleFinding.linkedQuestionId}`,
@@ -3704,15 +3746,7 @@ export default function FiveSAuditFormPage() {
             />
           </div>
 
-          <div>
-            <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">Ekip</label>
-            <input
-              type="text"
-              value={header.teamName || 'Content Manager Core Team'}
-              readOnly
-              className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-2 py-1.5 text-xs text-slate-800 dark:text-slate-200 opacity-90"
-            />
-          </div>
+          <SingleFindingTeamField team={singleTeam} />
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
@@ -4091,7 +4125,7 @@ export default function FiveSAuditFormPage() {
 
               <div className="mt-4 space-y-3 text-xs text-slate-800 dark:text-slate-200">
                 <div className="rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/40 p-3 whitespace-pre-wrap">
-                  {activeFinding.description || '-'}
+                  {withoutRoleAsTeam(activeFinding.description) || '-'}
                 </div>
 
                 <div className="grid gap-2 sm:grid-cols-2 text-[11px] text-slate-700 dark:text-slate-300">
@@ -4150,29 +4184,7 @@ export default function FiveSAuditFormPage() {
           </div>
         )}
 
-        {previewUrl && (
-          <div
-            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 px-4"
-            onClick={() => setPreviewUrl(null)}
-          >
-            <div className="relative w-full max-w-4xl">
-              <button
-                type="button"
-                onClick={() => setPreviewUrl(null)}
-                className="absolute -top-10 right-0 rounded-md border border-slate-400 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/60 px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 hover:bg-white hover:dark:bg-slate-900"
-              >
-                ✕ Kapat
-              </button>
-
-              <img
-                src={previewUrl}
-                alt="preview"
-                className="max-h-[80vh] w-full rounded-xl border border-slate-300 dark:border-slate-700 object-contain bg-slate-100 dark:bg-slate-950"
-                onClick={(e) => e.stopPropagation()}
-              />
-            </div>
-          </div>
-        )}
+        <PhotoPreviewOverlay url={previewUrl} onClose={() => setPreviewUrl(null)} />
       </div>
     )
   }
@@ -4189,9 +4201,15 @@ export default function FiveSAuditFormPage() {
       {detailsRequired ? '(zorunlu)' : '(isteğe bağlı)'}
     </span>
   )
-  // The explanation follows explanationMissing: waived only by an open finding.
+  /*
+   * A question that already has an open finding never writes a new one, so the
+   * finding fields (type, photos, action, due date, place) are hidden for it
+   * instead of being labelled "isteğe bağlı" while whatever is typed is dropped.
+   */
+  const detailsLocked = !!activeQuestion && openFindingsByQuestion.has(activeQuestion.id)
+  // The explanation follows explanationMissing: waived only by a finding added in this audit.
   const explanationRequired =
-    !!activeQuestion && activeQuestion.requireExplanation && !openFindingsByQuestion.has(activeQuestion.id)
+    !!activeQuestion && activeQuestion.requireExplanation && !findingsAddedHere.has(activeQuestion.id)
   const explanationMark = (
     <span className={explanationRequired ? 'text-rose-600 dark:text-rose-400' : 'text-slate-500 dark:text-slate-400'}>
       {explanationRequired ? '(Orta/Kötü için zorunlu)' : '(isteğe bağlı)'}
@@ -4830,7 +4848,8 @@ export default function FiveSAuditFormPage() {
               </div>
 
               <div className="mt-4 space-y-4 text-xs">
-                <div>
+                <FindingDetailsLocked locked={detailsLocked} />
+                <div hidden={detailsLocked}>
                   <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">
                     Bulgu Tipi {detailsMark}
                   </label>
@@ -4875,7 +4894,7 @@ export default function FiveSAuditFormPage() {
                   />
                 </div>
 
-                <div>
+                <div hidden={detailsLocked}>
                   <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">Fotoğraflar</label>
 
                   <div className="flex items-center gap-2">
@@ -4929,7 +4948,7 @@ export default function FiveSAuditFormPage() {
                   )}
                 </div>
 
-                <div>
+                <div hidden={detailsLocked}>
                   <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">
                     Alınacak Faaliyet {detailsMark}
                   </label>
@@ -4955,7 +4974,7 @@ export default function FiveSAuditFormPage() {
                   </select>
                 </div>
 
-                <div>
+                <div hidden={detailsLocked}>
                   <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">
                     Termin Tarihi {detailsMark}
                   </label>
@@ -4967,7 +4986,7 @@ export default function FiveSAuditFormPage() {
 />
                 </div>
 
-                <div>
+                <div hidden={detailsLocked}>
                   <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">
                     Tespit Edildiği Yer {detailsMark}
                   </label>
@@ -5024,7 +5043,7 @@ export default function FiveSAuditFormPage() {
 
               <div className="mt-4 space-y-3 text-xs text-slate-800 dark:text-slate-200">
                 <div className="rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/40 p-3 whitespace-pre-wrap">
-                  {activeFinding.description || '-'}
+                  {withoutRoleAsTeam(activeFinding.description) || '-'}
                 </div>
 
                 <div className="grid gap-2 sm:grid-cols-2 text-[11px] text-slate-700 dark:text-slate-300">
@@ -5083,29 +5102,7 @@ export default function FiveSAuditFormPage() {
           </div>
         )}
 
-        {previewUrl && (
-          <div
-            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 px-4"
-            onClick={() => setPreviewUrl(null)}
-          >
-            <div className="relative w-full max-w-4xl">
-              <button
-                type="button"
-                onClick={() => setPreviewUrl(null)}
-                className="absolute -top-10 right-0 rounded-md border border-slate-400 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/60 px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 hover:bg-white hover:dark:bg-slate-900"
-              >
-                ✕ Kapat
-              </button>
-
-              <img
-                src={previewUrl}
-                alt="preview"
-                className="max-h-[80vh] w-full rounded-xl border border-slate-300 dark:border-slate-700 object-contain bg-slate-100 dark:bg-slate-950"
-                onClick={(e) => e.stopPropagation()}
-              />
-            </div>
-          </div>
-        )}
+        <PhotoPreviewOverlay url={previewUrl} onClose={() => setPreviewUrl(null)} />
 
         {singleFindingModal}
       </div>

@@ -1,12 +1,11 @@
 import { describe, expect, it } from "bun:test";
+import { SINGLE_FINDING_TITLE } from "@/app/_utils/singleFindingTitle";
 import { type Rating, requiresNewFinding } from "./scoring";
 import {
-  auditNameOfTitle,
   explanationMissing,
   findingNoOf,
   openFindingsFor,
   queuedSubmissionLabel,
-  SINGLE_FINDING_TITLE,
   singleFindingHeading,
   singleFindingMode,
   singleFindingTitle,
@@ -43,13 +42,6 @@ describe("singleFindingTitle — the audit's name inside an audit (R74)", () => 
   it("heads the description with the audit's name instead of TEKİL BULGU", () => {
     expect(singleFindingHeading("Bölge 3 · 10.11.2026")).toBe("Ana Denetim: Bölge 3 · 10.11.2026");
     expect(singleFindingHeading(SINGLE_FINDING_TITLE)).toBe("TEKİL BULGU");
-  });
-
-  it("tells a real audit name from the plain mark, the Turkish way", () => {
-    expect(auditNameOfTitle("Bölge 3 · 10.11.2026")).toBe("Bölge 3 · 10.11.2026");
-    expect(auditNameOfTitle("Tekil Bulgu")).toBe("");
-    expect(auditNameOfTitle("TEKİL BULGU")).toBe("");
-    expect(auditNameOfTitle(null)).toBe("");
   });
 });
 
@@ -139,7 +131,8 @@ describe("openFindingsFor — findings added in this audit count (R2/R17)", () =
       ...none,
       session: [{ questionId: "S1-1", location: "Bölge 3", findingNo: null }],
     });
-    expect(unread.get("S1-1")).toEqual(["bu denetimde eklendi"]);
+    // Neutral wording: a standalone finding seen later from an audit is not "in this audit".
+    expect(unread.get("S1-1")).toEqual(["yeni eklendi"]);
   });
 
   it("adds to what is already open and queued for the question", () => {
@@ -167,16 +160,16 @@ describe("openFindingsFor — findings added in this audit count (R2/R17)", () =
   });
 });
 
-describe("explanationMissing — Orta/Kötü on a question with an open finding blocks nothing (R2/R17)", () => {
+describe("explanationMissing — Orta/Kötü on a question just given a finding blocks nothing (R2/R17)", () => {
   const needsText = { requireExplanation: true };
   const noText = { requireExplanation: false };
 
-  it("still asks for the explanation where the question has no open finding", () => {
+  it("still asks for the explanation where no finding was added to the question in this audit", () => {
     expect(explanationMissing(needsText, { rating: "bad", explanation: "  " }, false)).toBe(true);
     expect(explanationMissing(needsText, { rating: "medium", explanation: "Zemin yağlı" }, false)).toBe(false);
   });
 
-  it("does not ask once the question already has an open finding", () => {
+  it("does not ask once a single finding was added to the question in this audit", () => {
     expect(explanationMissing(needsText, { rating: "bad", explanation: "" }, true)).toBe(false);
     expect(explanationMissing(needsText, { rating: "medium", explanation: "" }, true)).toBe(false);
   });

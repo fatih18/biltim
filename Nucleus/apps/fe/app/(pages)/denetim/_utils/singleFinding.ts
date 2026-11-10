@@ -1,9 +1,7 @@
+import { auditNameOfTitle, SINGLE_FINDING_TITLE } from "@/app/_utils/singleFindingTitle";
 import { foldTr } from "@/app/_utils/textSearch";
 import type { Question } from "../constants";
 import { isExplanationRequired, mapOpenFindingsByQuestion, type OpenFindingSource, type Rating } from "./scoring";
-
-/** The "Ana Denetim" a finding raised on its own carries (#3). */
-export const SINGLE_FINDING_TITLE = "Tekil Bulgu";
 
 /*
  * What a single finding is, decided by one fact: the person STARTED a planned
@@ -20,12 +18,6 @@ export type SingleFindingMode = { inAudit: boolean; questionRequired: boolean };
 export function singleFindingMode(startedPlanId: string | null | undefined): SingleFindingMode {
   const inAudit = !!startedPlanId;
   return { inAudit, questionRequired: inAudit };
-}
-
-/** A real audit name from a finding's `form_title`; "" for none or the plain "Tekil Bulgu". */
-export function auditNameOfTitle(formTitle: string | null | undefined): string {
-  const title = (formTitle ?? "").trim();
-  return title && foldTr(title) !== foldTr(SINGLE_FINDING_TITLE) ? title : "";
 }
 
 /*
@@ -74,7 +66,13 @@ export function findingNoOf(resp: CreatedRow | null | undefined, depth = 0): num
 /** A single finding this screen saved and the server confirmed, linked to a question. */
 export type SessionFinding = { questionId: string; location: string; findingNo: number | null };
 
-const UNNUMBERED = "bu denetimde eklendi";
+/*
+ * The label of a saved finding the server has not numbered yet. Neutral on
+ * purpose: the same wording shows for a standalone finding saved from the plan
+ * list and seen later when an audit starts at that location, which was not
+ * added "in this audit".
+ */
+const UNNUMBERED = "yeni eklendi";
 
 /*
  * Question id -> the open findings of one location, as the question rows, the
@@ -109,18 +107,69 @@ export function openFindingsFor(
 }
 
 /*
+ * The questions that got a single finding during THIS audit, at its location:
+ * saved from the modal a moment ago (session) or still waiting in the offline
+ * queue. A finding that was already open before the audit started is not one
+ * of them (see explanationMissing).
+ */
+export function questionsAddedHere(
+  location: string,
+  sources: { queuedQuestionIds: readonly string[]; session: readonly SessionFinding[] },
+): Set<string> {
+  const here = foldTr(location);
+  const added = new Set<string>(sources.queuedQuestionIds.filter(Boolean));
+  for (const saved of sources.session) {
+    if (saved.questionId && foldTr(saved.location) === here) added.add(saved.questionId);
+  }
+  return added;
+}
+
+/*
  * Whether an answer is still waiting for its explanation (Orta/Kötü).
  *
- * Not when the question already has an open finding: that finding is the
- * record, and choosing Orta or Kötü there must be enough to close the audit
- * (R2/R17). The finding details were already waived for it; the explanation
- * still blocked the save, which read as "asks for the finding again".
+ * Not when a single finding was added to the question during this audit: that
+ * finding is the record, and choosing Orta or Kötü there must be enough to
+ * close the audit (R2/R17). An open finding from an EARLIER audit at the same
+ * location waives nothing: the customer asked only that the finding just
+ * written stops the second-finding demand, so the explanation is still asked.
  */
 export function explanationMissing(
   question: Pick<Question, "requireExplanation">,
   answer: { rating: Rating | null; explanation: string },
-  hasOpenFinding: boolean,
+  findingAddedInThisAudit: boolean,
 ): boolean {
-  if (hasOpenFinding) return false;
+  if (findingAddedInThisAudit) return false;
   return isExplanationRequired(question, answer) && !answer.explanation.trim();
+}
+
+/** The finding fields of a queued single finding, as far as the screen needs them back. */
+export type ReplayedFinding = {
+  question_id?: string | null;
+  location_name?: string | null;
+  client_finding_id?: string | null;
+};
+
+/*
+ * The single findings a queued submission put on the server, as session
+ * findings. Replayed, they leave the queue list at once; without this they
+ * stopped counting as the question's open finding until the closing read of
+ * the findings came back — and the form asked for a second one in between.
+ * Only findings linked to a question count; `numbers` is the number the
+ * server gave each, by client_finding_id, when the replay saw it.
+ */
+export function sessionFindingsOfReplay(
+  findings: readonly ReplayedFinding[],
+  numbers: ReadonlyMap<string, number | null> = new Map(),
+): SessionFinding[] {
+  const saved: SessionFinding[] = [];
+  for (const f of findings) {
+    const questionId = String(f.question_id ?? "").trim();
+    if (!questionId) continue;
+    saved.push({
+      questionId,
+      location: String(f.location_name ?? ""),
+      findingNo: numbers.get(String(f.client_finding_id ?? "")) ?? null,
+    });
+  }
+  return saved;
 }

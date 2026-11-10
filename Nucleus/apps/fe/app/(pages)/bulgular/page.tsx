@@ -19,6 +19,7 @@ import { useMyScope } from "@/app/_hooks/user/useMyScope";
 import { toast } from "sonner";
 import { readServerReasons } from "@/app/_components/Global/PasswordRules";
 import { dedupeKey } from "./_utils/dedupeFindings";
+import { SINGLE_FINDING_TITLE } from "@/app/_utils/singleFindingTitle";
 
 type FindingStatus = "open" | "in_progress" | "closed";
 
@@ -304,12 +305,12 @@ export default function FiveSFindingsListPage() {
        */
       form_title:
         sourceFilter === "single"
-          ? "Tekil Bulgu"
+          ? SINGLE_FINDING_TITLE
           : sourceFilter === "audit"
             ? {
                 operator: "or",
                 value: [
-                  { field: "form_title", operator: "neq", value: "Tekil Bulgu" },
+                  { field: "form_title", operator: "neq", value: SINGLE_FINDING_TITLE },
                   { field: "form_title", operator: "isNull", value: true },
                 ],
               }
@@ -991,7 +992,7 @@ export default function FiveSFindingsListPage() {
                     >
                       <td className="px-4 py-2 text-[11px] text-slate-600 dark:text-slate-400">{f.finding_no ?? "-"}</td>
                       <td className="px-4 py-2 text-[11px]">
-                        {f.form_title === "Tekil Bulgu" ? (
+                        {f.form_title === SINGLE_FINDING_TITLE ? (
                           <span className="inline-flex rounded border border-amber-600/50 bg-amber-100 dark:bg-amber-950/30 px-1.5 py-0.5 text-[11px] font-medium text-amber-800 dark:text-amber-200">
                             Tekil Bulgu
                           </span>

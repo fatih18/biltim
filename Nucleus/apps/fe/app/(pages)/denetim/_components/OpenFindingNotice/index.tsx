@@ -17,7 +17,7 @@ function hintFor(rating: Rating | null | undefined): string {
     return "Kapanmamış bulgu varken İyi seçtiniz; denetimi kapatırken onayınız istenecek. Doğru puan Orta ya da Kötü ise değiştirmeniz yeterli.";
   }
   if (rating === "medium" || rating === "bad") {
-    return "Bu soru zaten açık bir bulguya bağlı: bulgu detayı istenmez ve ikinci bir bulgu açılmaz, denetimi kapatabilirsiniz.";
+    return "Bu soru zaten açık bir bulguya bağlı: bulgu detayı istenmez ve ikinci bir bulgu açılmaz; açıklama zorunluysa onu yazın.";
   }
   return "Bu soruya bağlı açık bir bulgu var. Orta ya da Kötü seçerseniz yeni bulgu detayı girmeniz gerekmez.";
 }

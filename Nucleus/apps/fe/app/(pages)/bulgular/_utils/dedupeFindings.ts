@@ -1,5 +1,5 @@
 import { foldTr } from "@/app/_utils/textSearch";
-import { auditNameOfTitle } from "../../denetim/_utils/singleFinding";
+import { auditNameOfTitle } from "@/app/_utils/singleFindingTitle";
 
 /** Only the finding fields the register reads to tell twins apart. */
 export type DedupableFinding = {
