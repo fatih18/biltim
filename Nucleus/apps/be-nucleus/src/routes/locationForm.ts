@@ -1,13 +1,15 @@
 import { Type as t } from '@sinclair/typebox'
 import { defineRoute } from 'nucleus-core-ts/server'
 import { type Row, query } from '../db'
-import { canonicalId, todayAtPlant, toDateKey } from '../guards/businessRules'
+import { todayAtPlant, toDateKey } from '../guards/businessRules'
 import { callerById } from '../guards/caller'
 import { auditAttendanceNote } from './auditAttendanceNote'
-import { type AuditReportTarget, auditReportRefusal, dayTr, isScopedFieldManager, loadAuditReportTarget } from './auditReport'
+import { type AuditReportTarget, dayTr, loadAuditReportTarget } from './auditReport'
 import { excelDay, xlsxResponse } from './excel'
 import { createPhotoEmbedder } from './findingPhotos'
-import { cleanName, nameOf, placeInYear, sameLocation } from './locationMatch'
+import { decideLocationForm } from './locationFormAccess'
+import { loadFormAudits } from './locationFormAudits'
+import { cleanName, nameOf, placeInYear } from './locationMatch'
 import { oneAtATime, photoNote, REPORT_PHOTO_LIMITS } from './photoReport'
 
 /**
@@ -85,21 +87,7 @@ async function buildForm(
    */
   const place = await placeInYear(askedName, { from, to })
   const locationName = place.name
-  const audits = await query(
-    `select a.id, a.plan_id, a.audit_date, a.auditor_name, a.total_score, a.target_score,
-            a.score_s1, a.score_s2, a.score_s3, a.score_s4, a.score_s5
-       from five_s_audits a
-      where a.is_active = true and a.source is distinct from 'single_finding'
-        and ($5::text is null
-             and (a.department_name = any($1::text[]) or a.location_id = any($2::uuid[]))
-             and a.audit_date >= $3 and a.audit_date < ($4::date + 1)
-             or a.id::text = $5)
-        and (not $6::boolean or exists (
-              select 1 from five_s_audit_plans p
-               where (p.audit_id = a.id or p.id = a.plan_id) and p.status = 'completed'))
-      order by a.audit_date asc`,
-    [place.auditNames, place.ids, from, to, auditId, completedOnly]
-  )
+  const audits = await loadFormAudits(place, { from, to }, auditId, completedOnly)
   const [findings, steps, questions, sorumlu] = await Promise.all([
     query(
       `select f.finding_no, f.detected_date, f.location_name, f.finding_type, f.description,
@@ -419,6 +407,16 @@ async function buildForm(
   )
 }
 
+/** The names of the locations the user is a field manager of. */
+async function managedLocationNames(userId: string): Promise<string[]> {
+  const rows = await query(
+    `select name from five_s_locations
+      where coalesce(field_manager_user_ids, '[]'::jsonb) ? $1::text`,
+    [userId]
+  )
+  return rows.map(nameOf)
+}
+
 export const locationFormXlsx = defineRoute({
   method: 'GET',
   path: '/location-form.xlsx',
@@ -433,54 +431,29 @@ export const locationFormXlsx = defineRoute({
     summary: "A location's year (or one audit) as the plant's 5S findings and question form",
   },
   handler: async ({ query: q, request }) => {
-    const auditId = canonicalId(q?.audit_id)
-    const audit = auditId ? await loadAuditReportTarget(auditId) : null
-    if (auditId && !audit) {
-      return new Response(JSON.stringify({ success: false, message: 'Denetim bulunamadı.' }), {
-        status: 404,
-        headers: { 'content-type': 'application/json' },
-      })
-    }
-    const locationName = audit?.locationName ?? String(q?.location_name ?? '').trim()
-    const year = audit
-      ? Number(audit.auditDay.slice(0, 4))
-      : /^\d{4}$/.test(String(q?.year ?? ''))
-        ? Number(q?.year)
-        : Number(todayAtPlant().slice(0, 4))
-    if (!locationName) {
-      return new Response(JSON.stringify({ success: false, message: 'Lokasyon seçilmedi.' }), {
-        status: 400,
-        headers: { 'content-type': 'application/json' },
-      })
-    }
-
-    // A field manager gets the form of their own locations only, as the register shows them (#7/#24).
-    const caller = await callerById(request.headers.get('x-user-id') ?? '')
-    if (caller && isScopedFieldManager(caller)) {
-      const mine = await query(
-        `select name from five_s_locations
-          where coalesce(field_manager_user_ids, '[]'::jsonb) ? $1::text`,
-        [caller.userId]
-      )
-      if (!mine.some((l) => sameLocation(nameOf(l), locationName))) {
-        return new Response(JSON.stringify({ success: false, message: 'Bu lokasyonun formunu görme yetkiniz yok.' }), {
-          status: 403,
-          headers: { 'content-type': 'application/json' },
-        })
+    const decision = await decideLocationForm(
+      {
+        auditId: q?.audit_id,
+        locationName: q?.location_name,
+        year: q?.year,
+        userId: request.headers.get('x-user-id') ?? '',
+      },
+      {
+        loadAudit: (id) => loadAuditReportTarget(id),
+        findCaller: (id) => callerById(id),
+        managedLocationNames,
+        currentYear: Number(todayAtPlant().slice(0, 4)),
       }
-    }
-
-    // One audit's report is for an approved audit when a field manager asks (row 75).
-    const refusal = audit ? auditReportRefusal(caller, audit) : null
-    if (refusal) {
-      return new Response(JSON.stringify({ success: false, message: refusal.message }), {
-        status: refusal.status,
+    )
+    if (decision.kind === 'refused') {
+      return new Response(JSON.stringify({ success: false, message: decision.message }), {
+        status: decision.status,
         headers: { 'content-type': 'application/json' },
       })
     }
 
     // The checks above answer at once; the build waits its turn.
-    return oneAtATime(() => buildForm(locationName, year, audit, !!caller && isScopedFieldManager(caller)))
+    return oneAtATime(() => buildForm(decision.locationName, decision.year, decision.audit, decision.completedOnly))
   },
 })
 

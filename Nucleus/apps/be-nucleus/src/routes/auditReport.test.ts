@@ -36,7 +36,8 @@ describe('auditReportRefusal', () => {
   it('refuses a field manager the report of an audit still waiting for approval, and says what to do', () => {
     const refusal = auditReportRefusal(who(['field manager']), waiting)
     expect(refusal?.status).toBe(403)
-    expect(refusal?.message).toContain('Merkez Ekip onayını bekliyor')
+    expect(refusal?.message).toContain('henüz tamamlanmadı')
+    expect(refusal?.message).not.toContain('onayını bekliyor')
     expect(refusal?.message).toContain('Tamamlanan sekmesinden')
   })
 

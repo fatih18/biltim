@@ -1,6 +1,6 @@
-import { type Row, query } from '../db'
+import { query } from '../db'
 import { toDateKey } from '../guards/businessRules'
-import { type Caller, isCentral } from '../guards/caller'
+import { type Caller, type Read, isCentral } from '../guards/caller'
 
 /**
  * The report of ONE audit, for the field manager of its location (customer
@@ -19,8 +19,6 @@ import { type Caller, isCentral } from '../guards/caller'
  * the one rule that is specific to a single audit's report — it is for an
  * audit Merkez Ekip has approved, not for one still waiting for approval.
  */
-
-type Read = (text: string, params: unknown[]) => Promise<Row[]>
 
 export type AuditReportTarget = {
   auditId: string
@@ -88,7 +86,7 @@ export function auditReportRefusal(caller: Caller | null, target: AuditReportTar
   return {
     status: 403,
     message:
-      'Bu denetimin raporu henüz açılamaz: denetim Merkez Ekip onayını bekliyor. Onaylandıktan sonra Tamamlanan sekmesinden raporu açabilirsiniz.',
+      'Bu denetimin raporu açılamaz: denetim henüz tamamlanmadı. Tamamlandıktan sonra Tamamlanan sekmesinden raporu açabilirsiniz.',
   }
 }
 
