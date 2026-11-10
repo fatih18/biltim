@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { query } from '../db'
 import { type Caller, carriesCredentials, isAdmin, isAuditorOnly, isCentral, resolveCaller } from './caller'
+import { FINDING_ITEM, FINISHED_AUDIT_FINDING_MESSAGE, findingOfFinishedAudit } from './findingDelete'
 
 /**
  * The 5S rules that must hold no matter who is writing.
@@ -821,6 +822,17 @@ export async function enforceBusinessRules(ctx: RuleContext): Promise<Response |
         if (refusal) return refusal
       }
       return undefined
+    }
+
+    /*
+     * A finding of a sent or approved audit is deleted by Merkez Ekip, Super
+     * Admin or the godmin; Müdür holds the delete claim for the register but
+     * not for a finished audit's record (see findingDelete.ts).
+     */
+    const findingDelete = FINDING_ITEM.exec(deletePath)
+    if (findingDelete) {
+      if (!(await findingOfFinishedAudit(pathId(findingDelete[1]), read))) return undefined
+      return requireCaller(isAdmin, FINISHED_AUDIT_FINDING_MESSAGE, 403)
     }
 
     if (!LOCATION_ITEM.test(deletePath) && !TEAM_ITEM.test(deletePath)) return undefined

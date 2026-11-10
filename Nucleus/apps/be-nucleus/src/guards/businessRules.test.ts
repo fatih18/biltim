@@ -392,7 +392,9 @@ describe('photos on a closed finding (#31)', () => {
 
 describe('scope', () => {
   it('ignores reads and creates', async () => {
-    for (const method of ['GET', 'POST', 'DELETE']) {
+    // A finding's DELETE is no longer ignored: it asks whether the finding's audit is finished (see
+    // 'deleting a finding of a sent or approved audit' below).
+    for (const method of ['GET', 'POST']) {
       const res = await enforceBusinessRules({
         request: req(method, '/fiveSFindings/abc'),
         body: { status: 'closed' },
@@ -2616,5 +2618,92 @@ describe('revising a period plan: quarter and date range (R68, R69)', () => {
       caller: GOD,
     })
     expect(res).toBeUndefined()
+
+describe('deleting a finding of a sent or approved audit', () => {
+  const FINDING = '/fiveSFindings/6f0c2a1e-3b4d-4c5e-8f60-718293a4b5c6'
+  const finishedAudit = script({ 'from main.five_s_findings f': [{ locked: 1 }] })
+  const openAudit = script({ 'from main.five_s_findings f': [] })
+
+  it('lets Merkez Ekip, Super Admin and the godmin delete it', async () => {
+    for (const caller of [CENTRAL, SUPER_ADMIN, GOD]) {
+      const res = await enforceBusinessRules({
+        request: req('DELETE', FINDING),
+        body: undefined,
+        read: finishedAudit,
+        caller,
+      })
+      expect(res).toBeUndefined()
+    }
+  })
+
+  it('refuses Müdür, saying who may', async () => {
+    const res = await enforceBusinessRules({
+      request: req('DELETE', FINDING),
+      body: undefined,
+      read: finishedAudit,
+      caller: MANAGER,
+    })
+    expect(res?.status).toBe(403)
+    expect((await res?.json()).message).toBe(
+      'Tamamlanmış ya da onay bekleyen bir denetimin bulgusunu yalnız Merkez Ekip silebilir.'
+    )
+  })
+
+  it('refuses a field manager and an auditor too', async () => {
+    for (const caller of [FIELD_MANAGER, AUDITOR]) {
+      const res = await enforceBusinessRules({
+        request: req('DELETE', FINDING),
+        body: undefined,
+        read: finishedAudit,
+        caller,
+      })
+      expect(res?.status).toBe(403)
+    }
+  })
+
+  it('answers 401 when the caller cannot be identified', async () => {
+    const res = await enforceBusinessRules({
+      request: req('DELETE', FINDING),
+      body: undefined,
+      read: finishedAudit,
+      caller: null,
+    })
+    expect(res?.status).toBe(401)
+  })
+
+  it('leaves a finding of an audit still under way to the claim alone', async () => {
+    for (const caller of [MANAGER, CENTRAL, AUDITOR]) {
+      expect(
+        await enforceBusinessRules({ request: req('DELETE', FINDING), body: undefined, read: openAudit, caller })
+      ).toBeUndefined()
+    }
+  })
+
+  it('reads the finding by its canonical id and the plan statuses it locks on', async () => {
+    const seen: Array<{ text: string; params: unknown[] }> = []
+    const read = async (text: string, params: unknown[]) => {
+      seen.push({ text, params })
+      return []
+    }
+    await enforceBusinessRules({
+      request: req('DELETE', `/fiveSFindings/${'6F0C2A1E-3B4D-4C5E-8F60-718293A4B5C6'}`),
+      body: undefined,
+      read,
+      caller: MANAGER,
+    })
+    expect(seen).toHaveLength(1)
+    expect(seen[0]?.params).toEqual(['6f0c2a1e-3b4d-4c5e-8f60-718293a4b5c6'])
+    expect(seen[0]?.text).toContain("in ('completed', 'pending_approval')")
+    expect(seen[0]?.text).toContain('p.audit_id::text = f.audit_id::text')
+    expect(seen[0]?.text).toContain('a.plan_id::text')
+  })
+
+  it('does not look at the collection, a sub-path or a read', async () => {
+    const boom = async () => {
+      throw new Error('must not query')
+    }
+    for (const r of [req('DELETE', '/fiveSFindings'), req('DELETE', `${FINDING}/photos`), req('GET', FINDING)]) {
+      expect(await enforceBusinessRules({ request: r, body: undefined, read: boom, caller: MANAGER })).toBeUndefined()
+    }
   })
 })

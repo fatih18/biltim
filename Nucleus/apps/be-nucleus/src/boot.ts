@@ -33,7 +33,9 @@ import { grantGodminRole } from './godminRole'
  *
  * Both delete findings (the "Sil" column on the findings register). That
  * claim came only from the hand-run roles-nucleus-claims.sql, so an install
- * where the script never ran answered 403; it is granted here too.
+ * where the script never ran answered 403; it is granted here too. Super
+ * Admin deletes them as well (the audit correction screen offers "Sil" per
+ * finding to Merkez Ekip and Super Admin), so it gets the claim here too.
  *
  * Auditor: the date of a planned audit, two columns. The team leader — an
  * auditor — may move it (within the 2-change cap), and the home page offers
@@ -58,6 +60,7 @@ const GRANTS: Array<[role: string, action: string]> = [
       'delete.five_s_findings',
     ].map((action) => [role, action] as [string, string])
   ),
+  ['Super Admin', 'delete.five_s_findings'],
   ...['put', 'patch'].flatMap((method) =>
     ['planned_date', 'date_change_count'].map(
       (column) => ['Auditor', `${method}.five_s_audit_plans.${column}`] as [string, string]
