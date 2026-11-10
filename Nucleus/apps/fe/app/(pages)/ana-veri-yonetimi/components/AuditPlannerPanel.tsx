@@ -73,7 +73,8 @@ export function AuditPlannerPanel(props: {
     const done = a.status === "completed" || a.status === "pending_approval";
     // A carried-out audit's date is a correction: admins only, nothing spent.
     if (done) return { canChange: canFinish, spends: false, label: "Tarihi Düzenle" };
-    const free = isGod;
+    // Merkez Ekip, Super Admin and the godmin move any date, any number of times.
+    const free = isGod || canFinish;
     return { canChange: free || used < 2, spends: !free, label: free ? "Tarihi Düzenle" : `Düzenle (${2 - used} hak)` };
   };
 

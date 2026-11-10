@@ -214,14 +214,23 @@ describe("scoreAudit — the plant's rules (Notlar 07.10)", () => {
     expect(r.total).toBeCloseTo(80);
   });
 
-  it("takes 10% off the total for 2.3, and another 10% for 5.5", () => {
+  it("takes no extra 10% off the total for 2.3 (rule withdrawn, Notlar 22.10 satır 38)", () => {
     const a = allGood();
     a["S2-Q3"] = { rating: "bad" };
-    // 2.3 itself costs its 4 points (scaled 4 -> 4): 96, then 10% off.
-    expect(scoreAudit(STEPS, QUESTIONS, a, { fieldManagerAttended: true }).total).toBeCloseTo(96 * 0.9);
+    // 2.3 only costs its own 4 points now: 96, nothing more.
+    const r = scoreAudit(STEPS, QUESTIONS, a, { fieldManagerAttended: true });
+    expect(r.total).toBeCloseTo(96);
+    expect(r.adjustments).toEqual([]);
+  });
+
+  it("takes 10% off the total for 5.5 only", () => {
+    const a = allGood();
     a["S5-Q5"] = { rating: "medium" };
-    // 96 - 2 = 94, then 20% off.
-    expect(scoreAudit(STEPS, QUESTIONS, a, { fieldManagerAttended: true }).total).toBeCloseTo(94 * 0.8);
+    // 5.5 costs its 2 points: 98, then 10% off.
+    expect(scoreAudit(STEPS, QUESTIONS, a, { fieldManagerAttended: true }).total).toBeCloseTo(98 * 0.9);
+    a["S2-Q3"] = { rating: "bad" };
+    // 98 - 4 = 94, still a single 10%: 2.3 adds no second penalty.
+    expect(scoreAudit(STEPS, QUESTIONS, a, { fieldManagerAttended: true }).total).toBeCloseTo(94 * 0.9);
   });
 
   it("scores the audit 0 when the field manager did not attend", () => {
@@ -231,13 +240,13 @@ describe("scoreAudit — the plant's rules (Notlar 07.10)", () => {
   });
 
   it("finds the questions by the form's numbering, not by id", () => {
-    // Same question set, ids shuffled: 2.3 is still step order 2, question order 3.
+    // Same question set, ids shuffled: 5.5 is still step order 5, question order 5.
     const renamed = QUESTIONS.map((x) => ({ ...x, id: `x-${x.text}` }));
     const a = Object.fromEntries(renamed.map((x) => [x.id, { rating: "good" as const }])) as Record<
       string,
       ScorableAnswer
     >;
-    a["x-2.3"] = { rating: "medium" };
+    a["x-5.5"] = { rating: "medium" };
     const r = scoreAudit(STEPS, renamed, a, { fieldManagerAttended: true });
     expect(r.total).toBeCloseTo(98 * 0.9);
   });

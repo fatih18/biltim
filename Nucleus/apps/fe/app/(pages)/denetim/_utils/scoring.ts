@@ -65,21 +65,20 @@ export function computeTotalScore(stepScores: Record<StepCode, number>): number 
  * the customer applies on paper and asked the program to apply too:
  *
  *   5.1 answered Orta or Kötü   -> step 5 (Sürdürme) scores 0
- *   2.3 answered Orta or Kötü   -> 10% off the total
  *   5.5 answered Orta or Kötü   -> 10% off the total
  *   the location's field manager did not take part -> the audit scores 0
  *
+ * 2.3 used to take 10% off the total as well. The customer withdrew it
+ * (Notlar 22.10, satır 38: the questions are being revised, so the rule goes).
+ *
  * A question is named the way the form numbers it — step order, then the
- * question's order inside the step ("2.3") — not by its database id, so the
+ * question's order inside the step ("5.5") — not by its database id, so the
  * rule follows the question the auditor sees. The 10% is of the total
- * obtained ("toplam alınan puandan %10 düşürülecektir", their own form, 2.3);
- * when both apply, each takes its 10%, 20% in all.
+ * obtained ("toplam alınan puandan %10 düşürülecektir", their own form);
+ * a further question added to the list takes its own 10% on top.
  */
 export const RULE_ZERO_STEP_IF_NOT_GOOD = [{ step: 5, question: 1 }] as const;
-export const RULE_TOTAL_PENALTY_IF_NOT_GOOD = [
-  { step: 2, question: 3 },
-  { step: 5, question: 5 },
-] as const;
+export const RULE_TOTAL_PENALTY_IF_NOT_GOOD = [{ step: 5, question: 5 }] as const;
 export const TOTAL_PENALTY = 0.1;
 
 export type AuditScore = {

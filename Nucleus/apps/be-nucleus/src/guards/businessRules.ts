@@ -1379,10 +1379,11 @@ export async function enforceBusinessRules(ctx: RuleContext): Promise<Response |
     // Clearing a date is not a move and spends nothing (Merkez Ekip only, above).
     if (incoming === '') return undefined
 
-    // #32: the godmin moves any date, any number of times. A correction to a
-    // finished audit is not a postponement and does not spend a change — so
-    // the counter it carries must stay where it is.
-    if (caller.isGod || done) {
+    // #32: the godmin moves any date, any number of times — and so do Merkez
+    // Ekip and Super Admin (Notlar 22.10, satır 34: "sınırsız olmalı"). A
+    // correction to a finished audit is not a postponement either. Neither
+    // spends a change, so the counter the request carries must stay where it is.
+    if (isAdmin(caller) || done) {
       if (hasCount && incomingCount !== used) {
         return refuse('Bu tarih düzeltmesi değiştirme hakkı harcamaz; tarih değiştirme sayısı değiştirilemez.')
       }

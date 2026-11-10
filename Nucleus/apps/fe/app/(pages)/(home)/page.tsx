@@ -932,15 +932,16 @@ export default function Page() {
    *  - done (sent or approved): Merkez Ekip / Super Admin only (not the
    *    plant manager), as a correction that does not spend a change (#16) —
    *    the leader could rewrite the date of an audit already carried out;
-   *  - the godmin: any plan, any number of times, nothing spent (#32).
+   *  - the godmin, Merkez Ekip and Super Admin: any plan, any number of
+   *    times, nothing spent (#32, Notlar 22.10 satır 34).
    */
   const dateEditRule = React.useCallback(
     (plan: AuditPlanRow): DateEditRule => {
       const used = plan.date_change_count ?? 0;
       const left = Math.max(0, MAX_DATE_CHANGES - used);
       const done = plan.status === "completed" || plan.status === "pending_approval";
-      if (isGod) return { allowed: true, spends: false, remaining: null };
-      if (done) return { allowed: isAdminUser, spends: false, remaining: null };
+      if (isGod || isAdminUser) return { allowed: true, spends: false, remaining: null };
+      if (done) return { allowed: false, spends: false, remaining: null };
       const team = teams.find((t) => t.id === plan.assigned_team_id);
       const isLeader =
         !!currentUserId && !!team?.leaderUserId && String(team.leaderUserId) === String(currentUserId);

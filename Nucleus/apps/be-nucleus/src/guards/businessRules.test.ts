@@ -129,13 +129,15 @@ describe('closing a finding', () => {
 })
 
 describe('moving an audit date', () => {
+  // Müdür is the central role that keeps the cap: Merkez Ekip, Super Admin and the
+  // godmin move any date any number of times (Notlar 22.10, satır 34).
   it('refuses once the cap is used up', async () => {
     // Live: five consecutive PUTs all answered 200 and the counter reached 5.
     const res = await enforceBusinessRules({
       request: req('PUT', '/fiveSAuditPlans/p1'),
       body: { planned_date: '2026-12-01' },
       read: reader([{ planned_date: '2026-10-05', date_change_count: MAX_DATE_CHANGES }]),
-      caller: CENTRAL,
+      caller: MANAGER,
     })
     expect(res?.status).toBe(400)
   })
@@ -146,9 +148,30 @@ describe('moving an audit date', () => {
       request: req('PUT', '/fiveSAuditPlans/p1'),
       body: { planned_date: '2026-12-01', date_change_count: 2 },
       read: reader([{ planned_date: '2026-10-05', date_change_count: 1 }]),
+      caller: MANAGER,
+    })
+    expect(res).toBeUndefined()
+  })
+
+  it('Merkez Ekip moves a date with no changes left, without spending one (satır 34)', async () => {
+    const res = await enforceBusinessRules({
+      request: req('PUT', '/fiveSAuditPlans/p1'),
+      body: { planned_date: '2026-12-01', date_change_count: MAX_DATE_CHANGES },
+      read: reader([{ planned_date: '2026-10-05', date_change_count: MAX_DATE_CHANGES, status: 'planned' }]),
       caller: CENTRAL,
     })
     expect(res).toBeUndefined()
+  })
+
+  it('Merkez Ekip cannot be charged a change for a date move', async () => {
+    const res = await enforceBusinessRules({
+      request: req('PUT', '/fiveSAuditPlans/p1'),
+      body: { planned_date: '2026-12-01', date_change_count: 1 },
+      read: reader([{ planned_date: '2026-10-05', date_change_count: 0, status: 'planned' }]),
+      caller: CENTRAL,
+    })
+    expect(res?.status).toBe(400)
+    expect((await res?.json()).message).toContain('harcamaz')
   })
 
   it('does not spend a change on writing the same date back', async () => {
@@ -916,7 +939,7 @@ describe('camelCase bodies — what the frontend’s nucleus client actually sen
       request: jsonReq('PUT', '/fiveSAuditPlans/p1', { plannedDate: '2026-12-01', dateChangeCount: 3 }),
       body: undefined,
       read: reader([{ planned_date: '2026-10-05', date_change_count: MAX_DATE_CHANGES, status: 'planned' }]),
-      caller: CENTRAL,
+      caller: MANAGER,
     })
     expect(res?.status).toBe(400)
     expect((await res?.json()).message).toContain('hak kalmadı')
@@ -929,7 +952,7 @@ describe('camelCase bodies — what the frontend’s nucleus client actually sen
       request: jsonReq('PUT', '/fiveSAuditPlans/p1', { planned_date: '2026-10-05', plannedDate: '2026-12-01' }),
       body: undefined,
       read,
-      caller: CENTRAL,
+      caller: MANAGER,
     })
     expect(sneaky?.status).toBe(400)
     // Here the later key is the stored date, which is what nucleus writes.
@@ -937,7 +960,7 @@ describe('camelCase bodies — what the frontend’s nucleus client actually sen
       request: jsonReq('PUT', '/fiveSAuditPlans/p1', { plannedDate: '2026-12-01', planned_date: '2026-10-05' }),
       body: undefined,
       read,
-      caller: CENTRAL,
+      caller: MANAGER,
     })
     expect(harmless).toBeUndefined()
   })
