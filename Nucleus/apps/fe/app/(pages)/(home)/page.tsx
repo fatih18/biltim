@@ -1,7 +1,7 @@
 "use client";
 
 import { atUtcMidnight } from "@/app/_utils/auditDate";
-import { findDateConflicts } from "@/app/_utils/dateConflicts";
+import { loadDayConflicts } from "@/app/_utils/dateConflicts/dayWorld";
 import React from "react";
 import { useRouter } from "next/navigation";
 import { useGenericApiActions } from "@/app/_hooks/UseNucleusApi";
@@ -10,6 +10,7 @@ import { useMyScope } from "@/app/_hooks/user/useMyScope";
 import { ADMIN_ROLES, CENTRAL_ROLES, hasPrivilege } from "@/app/_utils/routeAccess";
 import { confirmDialog } from "@/app/_components/Global/ConfirmDialog";
 import { useAuditReport } from "./_hooks/useAuditReport";
+import type { DayConflictLoader } from "./_hooks/useDayConflicts";
 import { canOpenAuditReport, isFieldManagerOnly } from "./_utils/auditReport";
 import { TAB_STATUS_FILTERS } from "./_utils/tabStatus";
 import { RejectPlanDialog } from "./_components/RejectPlanDialog";
@@ -1013,30 +1014,31 @@ export default function Page() {
   }, []);
 
   // Aynı tarihte çakışan denetim uyarıları: ekip, ekip lideri, denetçi, saha sorumlusu.
-  // Kontrol planlama ekranıyla ortaktır (app/_utils/dateConflicts).
-  const getDateConflicts = React.useCallback(
-    (planId: string, newDate: string): string[] => {
-      const plan = plans.find((p) => p.id === planId);
-      if (!plan) return [];
-      return findDateConflicts(
-        {
-          plans: plans.map((p) => ({
-            id: p.id,
-            plannedDate: p.planned_date,
-            locationId: p.location_id,
-            teamId: p.assigned_team_id,
-            status: p.status,
-          })),
-          teams,
-          locations,
-          members: teamMembers.map((m) => ({ teamId: m.team_id, userId: m.user_id, isActive: m.is_active })),
-          userNames: new Map(users.map((u) => [u.id, u.name])),
-        },
-        { planId, date: newDate, teamId: plan.assigned_team_id, locationId: plan.location_id }
-      );
-    },
-    [plans, teams, teamMembers, locations, users]
-  );
+  // Kontrol planlama ekranıyla ortaktır (app/_utils/dateConflicts). Ekrandaki plan, ekip
+  // ve kişiler yalnız bir sayfadır; seçilen günün tamamı sunucudan ayrıca okunur (R28).
+  const loadDateConflicts: DayConflictLoader = (planId, day, onDone, onError) => {
+    const plan = plans.find((p) => p.id === planId);
+    if (!plan) {
+      onDone([]);
+      return;
+    }
+    const A = actionsRef.current;
+    loadDayConflicts(
+      {
+        plans: safeStart(A, PLAN_KEYS.GET),
+        teams: safeStart(A, TEAM_KEYS.GET),
+        members: safeStart(A, TEAM_MEMBER_KEYS.GET),
+        locations: safeStart(A, LOC_KEYS.GET),
+        users: safeStart(A, GET_USERS_KEY),
+      },
+      { planId, day, teamId: plan.assigned_team_id ?? "", locationId: plan.location_id ?? "" },
+      onDone,
+      (error) => {
+        console.error("same-day conflict read error", error);
+        onError();
+      }
+    );
+  };
 
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-50 px-4 py-6 md:px-8">
@@ -1069,7 +1071,7 @@ export default function Page() {
 
           dateEditRule={dateEditRule}
           onUpdatePlanDate={updatePlanDate}
-          getDateConflicts={getDateConflicts}
+          loadDateConflicts={loadDateConflicts}
           onEditCompletedAudit={isAdminUser ? openAuditAnswersEdit : undefined}
           onEditScores={isAdminUser ? openAuditEdit : undefined}
           onOpenAuditReport={isFieldManagerUser ? auditReport.open : undefined}

@@ -8,7 +8,8 @@ import type { TeamInfo, AuditPlanRow, LocInfo, HomeTab, DateEditRule } from "../
 import { TeamLeaderWithMembersTooltip } from "./TeamLeaderWithMembersTooltip";
 import { AuditReportButton } from "./AuditReportButton";
 import { DateInput } from "@/app/_components/DateInput";
-import { DateConflictNotice } from "@/app/_components/DateConflictNotice";
+import { ChosenDayConflicts } from "./ChosenDayConflicts";
+import type { DayConflictLoader } from "../_hooks/useDayConflicts";
 import { auditStatusLabelTr } from "@/app/_utils/StatusLabels";
 import { isPlanRejected, RESEND_LABEL } from "@/app/_utils/planReview";
 import { RejectedPlanNote } from "../_components/RejectedPlanNote";
@@ -128,7 +129,7 @@ export function HomeAuditListPanel(props: {
     auditDateById?: Record<string, string>;
     dateEditRule: (plan: AuditPlanRow) => DateEditRule;
     onUpdatePlanDate: (planId: string, dateYYYYMMDD: string, newCount: number) => void;
-    getDateConflicts?: (planId: string, newDate: string) => string[];
+    loadDateConflicts?: DayConflictLoader;
 }) {
     const {
         auditDateById,
@@ -158,7 +159,7 @@ export function HomeAuditListPanel(props: {
         counts,
         dateEditRule,
         onUpdatePlanDate,
-        getDateConflicts,
+        loadDateConflicts,
     } = props;
 
 
@@ -303,10 +304,7 @@ export function HomeAuditListPanel(props: {
                                                         ⚠ Seçilen tarih ana plan aralığı dışında
                                                     </p>
                                                 )}
-                                                <DateConflictNotice
-                                                    compact
-                                                    warnings={editDate ? (getDateConflicts?.(p.id, editDate) ?? []) : []}
-                                                />
+                                                <ChosenDayConflicts load={loadDateConflicts} planId={p.id} day={editDate} />
                                                 <div className="flex gap-1">
                                                     <button
                                                         className="rounded-md border border-emerald-800/60 bg-emerald-100 dark:bg-emerald-950/30 px-3 py-1 text-xs text-emerald-700 dark:text-emerald-200 hover:bg-emerald-950/50 disabled:opacity-50"
