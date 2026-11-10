@@ -554,6 +554,26 @@
         {
           "name": "rejected_by",
           "type": "uuid"
+        },
+        {
+          "name": "invitation_mailed_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "completion_mailed_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "invitation_mail_attempts",
+          "type": "integer",
+          "notNull": true,
+          "default": 0
+        },
+        {
+          "name": "completion_mail_attempts",
+          "type": "integer",
+          "notNull": true,
+          "default": 0
         }
       ],
       "indexes": [

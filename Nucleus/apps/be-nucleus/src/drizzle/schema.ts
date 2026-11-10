@@ -1472,6 +1472,10 @@ export const fiveSAuditPlansColumns = {
 	rejectionReason: text('rejection_reason'),
 	rejectedAt: timestamp('rejected_at'),
 	rejectedBy: uuid('rejected_by'),
+	invitationMailedAt: timestamp('invitation_mailed_at'),
+	completionMailedAt: timestamp('completion_mailed_at'),
+	invitationMailAttempts: integer('invitation_mail_attempts').notNull().default(0),
+	completionMailAttempts: integer('completion_mail_attempts').notNull().default(0),
 };
 
 export const fiveSAuditPlansIndexes = (t: { plannedDate: PgColumn; createdAt: PgColumn; locationId: PgColumn; assignedTeamId: PgColumn; status: PgColumn; auditId: PgColumn; parentPlanId: PgColumn; quarter: PgColumn }) => [
