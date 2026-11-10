@@ -2457,8 +2457,6 @@ describe('an auditor adds findings, and does not edit them (R9)', () => {
 describe('revising a period plan: quarter and date range (R68, R69)', () => {
   const PERIOD = { quarter: '2026-Q4', date_range_start: '2026-10-01', date_range_end: '2026-12-31' }
 
-  type Row = Parameters<typeof reader>[0][number]
-
   /** The stored period, and the dates of the sub-plans filed under it. */
   const periodReader = (children: Row[] = [], stored: Row | null = PERIOD) =>
     script({
