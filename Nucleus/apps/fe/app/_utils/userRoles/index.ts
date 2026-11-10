@@ -1,15 +1,23 @@
-import { BY_ID, readAllPages, readByIds } from '@/app/_utils/readAllPages'
+import {
+  BY_ID,
+  isAbortError,
+  readAllPages,
+  readByIds,
+  type ListRow,
+  type PageStarter,
+} from '@/app/_utils/readAllPages'
 
-type Dict = Record<string, unknown>
+/** What a user row needs for roles to be attached to it. */
+type Identified = { id?: string | number | null }
 
-type Starter = (args: {
-  // biome-ignore lint/suspicious/noExplicitAny: the generated actions are per-endpoint
-  payload: any
-  // biome-ignore lint/suspicious/noExplicitAny: the translated body is per-screen
-  onAfterHandle?: (data: any) => void
-  // biome-ignore lint/suspicious/noExplicitAny: refusals come through untranslated
-  onErrorHandle?: (error: any) => void
-}) => void
+type RoleName = { name: string }
+
+type WithRoles<T> = T & { roles: RoleName[] }
+
+/** A whole list read: every row, or the error of the page that failed. */
+type Read = { ok: true; rows: ListRow[] } | { ok: false; error: object }
+
+type Failure = Extract<Read, { ok: false }>
 
 /**
  * Roles for a list of users.
@@ -27,76 +35,92 @@ type Starter = (args: {
  * Both tables are read page by page: a list read gives 200 rows at most
  * whatever `limit` says, so one read of `user_roles` left every user past the
  * 200th assignment with an empty list. When a read fails the users come back
- * with no roles and `onReadFailed` says so; half a table is never used.
+ * with no roles and `onReadFailed` says so; half a table is never used. A read
+ * the browser cancelled (navigating away) is not a failure and says nothing.
  */
-export async function attachRoles<T extends Dict>(
+export async function attachRoles<T extends Identified>(
   users: T[],
-  startRoles: Starter | null | undefined,
-  startUserRoles: Starter | null | undefined,
+  startRoles: PageStarter | null | undefined,
+  startUserRoles: PageStarter | null | undefined,
   onReadFailed?: () => void
-): Promise<Array<T & { roles: Array<{ name: string }> }>> {
-  const withNone = users.map((u) => ({ ...u, roles: [] as Array<{ name: string }> }))
+): Promise<WithRoles<T>[]> {
+  const withNone = users.map((u): WithRoles<T> => ({ ...u, roles: [] }))
   if (!startRoles || !startUserRoles || users.length === 0) return withNone
 
-  const byUser = await roleNamesByUser(startRoles, startUserRoles)
-  if (!byUser) {
-    onReadFailed?.()
+  const read = await roleNamesByUser(startRoles, startUserRoles)
+  if (!read.ok) {
+    if (!isAbortError(read.error)) onReadFailed?.()
     return withNone
   }
 
-  return users.map((u) => ({
+  return users.map((u): WithRoles<T> => ({
     ...u,
-    roles: (byUser.get(String(u.id ?? '')) ?? []).map((name) => ({ name })),
+    roles: (read.byUser.get(String(u.id ?? '')) ?? []).map((name) => ({ name })),
   }))
 }
 
-/** Every row of a list, page by page; `null` when any page failed. */
-function readEvery(start: Starter): Promise<Dict[] | null> {
+/** Every row of a list, page by page; the error when any page failed. */
+function readEvery(start: PageStarter): Promise<Read> {
   return new Promise((resolve) => {
     readAllPages({
       start,
       payload: { sort: BY_ID },
-      onDone: (rows) => resolve(rows),
-      onError: () => resolve(null),
+      onDone: (rows) => resolve({ ok: true, rows }),
+      onError: (error) => resolve({ ok: false, error }),
     })
   })
 }
 
-/** Every row whose `field` is one of `ids`, page by page; `null` when any read failed. */
-function readEveryByIds(start: Starter, field: string, ids: readonly string[]): Promise<Dict[] | null> {
+/** Every row whose `field` is one of `ids`, page by page; the error when any read failed. */
+function readEveryByIds(start: PageStarter, field: string, ids: readonly string[]): Promise<Read> {
   return new Promise((resolve) => {
-    readByIds({ start, field, ids, onDone: (rows) => resolve(rows), onError: () => resolve(null) })
+    readByIds({
+      start,
+      field,
+      ids,
+      onDone: (rows) => resolve({ ok: true, rows }),
+      onError: (error) => resolve({ ok: false, error }),
+    })
   })
 }
 
+/** Of two reads, one already failed: report the other's failure instead when this one was only cancelled. */
+function reported(failed: Failure, other: Read): Failure {
+  return isAbortError(failed.error) && !other.ok ? other : failed
+}
+
+export type RoleNamesRead = { ok: true; byUser: Map<string, string[]> } | Failure
+
 /**
  * Each user id with the names of their roles, from `/userRoles` and `/roles`,
- * every page of both. `null` when either read failed.
+ * every page of both. Not `ok` when either read failed, with the error, so the
+ * caller can tell a cancelled request from a broken one.
  */
-export async function roleNamesByUser(startRoles: Starter, startUserRoles: Starter): Promise<Map<string, string[]> | null> {
-  const [roleRows, userRoleRows] = await Promise.all([readEvery(startRoles), readEvery(startUserRoles)])
-  if (!roleRows || !userRoleRows) return null
+export async function roleNamesByUser(startRoles: PageStarter, startUserRoles: PageStarter): Promise<RoleNamesRead> {
+  const [roleRead, userRoleRead] = await Promise.all([readEvery(startRoles), readEvery(startUserRoles)])
+  if (!roleRead.ok) return reported(roleRead, userRoleRead)
+  if (!userRoleRead.ok) return userRoleRead
 
   const nameById = new Map<string, string>()
-  for (const r of roleRows) {
+  for (const r of roleRead.rows) {
     const id = String(r.id ?? '')
     const name = String(r.name ?? '')
     if (id && name) nameById.set(id, name)
   }
 
   const byUser = new Map<string, string[]>()
-  for (const ur of userRoleRows) {
+  for (const ur of userRoleRead.rows) {
     const uid = String(ur.userId ?? ur.user_id ?? '')
     const rid = String(ur.roleId ?? ur.role_id ?? '')
     const name = nameById.get(rid)
     if (!uid || !name) continue
     byUser.set(uid, [...(byUser.get(uid) ?? []), name])
   }
-  return byUser
+  return { ok: true, byUser }
 }
 
 /** The role ids whose name matches, case- and space-insensitively. */
-export function roleIdsNamed(roleRows: Dict[], wanted: string): string[] {
+export function roleIdsNamed(roleRows: ListRow[], wanted: string): string[] {
   const want = wanted.toLocaleLowerCase('tr').trim()
   const out: string[] = []
   for (const r of roleRows) {
@@ -110,7 +134,7 @@ export function roleIdsNamed(roleRows: Dict[], wanted: string): string[] {
 }
 
 /** The user ids assigned to any of these roles. */
-export function userIdsForRoles(userRoleRows: Dict[], roleIds: string[]): string[] {
+export function userIdsForRoles(userRoleRows: ListRow[], roleIds: string[]): string[] {
   const wanted = new Set(roleIds)
   const out = new Set<string>()
   for (const ur of userRoleRows) {
@@ -134,28 +158,32 @@ export function userIdsForRoles(userRoleRows: Dict[], roleIds: string[]): string
  * assignments by role id, the users by id. Each is read page by page, since a
  * list read gives 200 rows at most whatever `limit` says; a failed read
  * answers nobody rather than a part of them.
+ *
+ * The rows are untyped lists; `parse` turns each user row into the shape the
+ * screen holds, so the caller states its type instead of casting it.
  */
-export async function usersWithRole<T extends Dict>(
+export async function usersWithRole<T>(
   roleName: string,
   starts: {
-    roles?: Starter
-    userRoles?: Starter
-    users?: Starter
-  }
+    roles?: PageStarter
+    userRoles?: PageStarter
+    users?: PageStarter
+  },
+  parse: (row: ListRow) => T
 ): Promise<T[]> {
   const { roles, userRoles, users } = starts
   if (!roles || !userRoles || !users) return []
 
-  const roleRows = await readEvery(roles)
-  if (!roleRows) return []
-  const roleIds = roleIdsNamed(roleRows, roleName)
+  const roleRead = await readEvery(roles)
+  if (!roleRead.ok) return []
+  const roleIds = roleIdsNamed(roleRead.rows, roleName)
   if (roleIds.length === 0) return []
 
   const assignments = await readEveryByIds(userRoles, 'role_id', roleIds)
-  if (!assignments) return []
-  const userIds = userIdsForRoles(assignments, roleIds)
+  if (!assignments.ok) return []
+  const userIds = userIdsForRoles(assignments.rows, roleIds)
   if (userIds.length === 0) return []
 
-  const rows = await readEveryByIds(users, 'id', userIds)
-  return rows ? (rows as T[]) : []
+  const userRead = await readEveryByIds(users, 'id', userIds)
+  return userRead.ok ? userRead.rows.map(parse) : []
 }

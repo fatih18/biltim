@@ -131,9 +131,10 @@ export default function BoardMeetingDecisionsPage() {
 
         try {
             const [yoneticiler, atananlar] = await Promise.all([
-                usersWithRole<any>(
+                usersWithRole(
                     "Manager",
-                    { roles: A?.GET_ROLES?.start, userRoles: A?.GET_USER_ROLES?.start, users: A?.GET_USERS?.start }
+                    { roles: A?.GET_ROLES?.start, userRoles: A?.GET_USER_ROLES?.start, users: A?.GET_USERS?.start },
+                    (row) => row
                 ),
                 readUsersById(assignedIds),
             ]);
