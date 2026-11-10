@@ -1331,8 +1331,8 @@ export async function enforceBusinessRules(ctx: RuleContext): Promise<Response |
     if (present(body, 'finding_no')) {
       return refuse('Bulgu numarasını sistem verir; finding_no gönderilemez.')
     }
-    // The old number of a renumbered finding is an audit trail the boot writes (findingNumbers.ts).
-    if (present(body, 'previous_finding_no')) {
+    // The old number of a renumbered finding is an audit trail the boot writes (findingNumbers.ts): the key is refused whenever it is sent, null included.
+    if (Object.hasOwn(body, 'previous_finding_no')) {
       return refuse('Önceki bulgu numarasını sistem yazar; previous_finding_no gönderilemez.')
     }
     const missing = ['description', 'location_name', 'finding_type', 'detected_date'].filter(
@@ -1351,7 +1351,7 @@ export async function enforceBusinessRules(ctx: RuleContext): Promise<Response |
   if (findingItem && present(body, 'finding_no')) {
     return refuse('Bulgu numarası değiştirilemez.')
   }
-  if (findingItem && present(body, 'previous_finding_no')) {
+  if (findingItem && Object.hasOwn(body, 'previous_finding_no')) {
     return refuse('Önceki bulgu numarası değiştirilemez; sistem onu denetim izi olarak tutar.')
   }
 

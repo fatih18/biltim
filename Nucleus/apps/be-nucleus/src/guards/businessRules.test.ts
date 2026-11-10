@@ -1134,6 +1134,39 @@ describe('camelCase bodies — what the frontend’s nucleus client actually sen
     }
   })
 
+  it('R61: a null previous_finding_no is refused too, in either spelling, on create and on every later write', async () => {
+    const findingBody = { description: 'x', locationName: 'y', findingType: 'z', detectedDate: '2026-08-01' }
+    for (const key of ['previousFindingNo', 'previous_finding_no']) {
+      const created = await enforceBusinessRules({
+        request: jsonReq('POST', '/fiveSFindings', { ...findingBody, [key]: null }),
+        body: undefined,
+        read: reader([]),
+      })
+      expect(created?.status).toBe(400)
+      expect((await created?.json()).message).toContain('previous_finding_no')
+      for (const method of ['PUT', 'PATCH']) {
+        const res = await enforceBusinessRules({
+          request: jsonReq(method, '/fiveSFindings/f1', { description: 'x', [key]: null }),
+          body: undefined,
+          read: reader([{ status: 'open' }]),
+          caller: GOD,
+        })
+        expect(res?.status).toBe(400)
+        expect((await res?.json()).message).toContain('Önceki bulgu numarası')
+      }
+    }
+  })
+
+  it('R61: a write that does not name previous_finding_no is not stopped by that rule', async () => {
+    const res = await enforceBusinessRules({
+      request: jsonReq('PATCH', '/fiveSFindings/f1', { description: 'x' }),
+      body: undefined,
+      read: reader([{ status: 'open' }]),
+      caller: GOD,
+    })
+    expect(res).toBeUndefined()
+  })
+
   it('a required field left blank', async () => {
     const res = await enforceBusinessRules({
       request: jsonReq('POST', '/fiveSFindings', {
