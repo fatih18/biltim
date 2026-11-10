@@ -1,5 +1,5 @@
 import { BY_ID, readAllPages, readByIds, type ListRow, type PageStarter } from '@/app/_utils/readAllPages'
-import { findDateConflicts, toDayKey, type ConflictWorld } from './index'
+import { findDateConflicts, otherPlansOnDay, toDayKey, type ConflictWorld } from './index'
 import { text, toLocation, toMember, toPlan, toTeam, userName } from './dayRows'
 
 /**
@@ -19,6 +19,11 @@ import { text, toLocation, toMember, toPlan, toTeam, userName } from './dayRows'
  * A failed read is reported, never turned into "no clash". Only the names are
  * a nicety: without them the warning says "bilinmeyen kullanıcı" and is still
  * shown.
+ *
+ * The plans of the day are read first. When none of them is a plan other than
+ * the one being changed, the chain stops there with an empty world: every date
+ * change would otherwise start four more rounds of reads (teams, members,
+ * locations, names) for an answer that is known already.
  */
 
 /** The list actions the read needs; `null` where the action is missing. */
@@ -113,6 +118,12 @@ export function loadDayWorld(
     onError,
     onDone: (planRows) => {
       const dayPlans = planRows.map((row) => toPlan(row, day))
+      // Nobody else is on that day: nothing can clash, so the teams, members,
+      // locations and names are not read. The world is the plans alone.
+      if (otherPlansOnDay(dayPlans, request.planId, day).length === 0) {
+        onDone({ plans: dayPlans, teams: [], locations: [], members: [], userNames: new Map() })
+        return
+      }
       const ids = {
         teamIds: [request.teamId, ...dayPlans.map((plan) => plan.teamId ?? '')],
         locationIds: [request.locationId, ...dayPlans.map((plan) => plan.locationId ?? '')],

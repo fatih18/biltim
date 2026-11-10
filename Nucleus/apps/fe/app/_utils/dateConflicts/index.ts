@@ -81,6 +81,15 @@ export function toDayKey(value: string | null | undefined): string {
 const idText = (value: string | null | undefined): string => (value ? String(value) : '')
 
 /**
+ * The plans a candidate can clash with on `day`: every plan of that day except
+ * the one being changed and the cancelled ones. When this is empty nothing can
+ * clash, so a caller reading the day from the server may stop there.
+ */
+export function otherPlansOnDay(plans: readonly ConflictPlan[], planId: string | undefined, day: string): ConflictPlan[] {
+  return plans.filter((plan) => plan.id !== planId && plan.status !== 'cancelled' && toDayKey(plan.plannedDate) === day)
+}
+
+/**
  * What is wrong on that day, as sentences: who is already assigned, and where.
  *
  *  1. the same team is on another audit;
@@ -96,9 +105,7 @@ export function findDateConflicts(world: ConflictWorld, candidate: ConflictCandi
   const teamId = idText(candidate.teamId)
   if (!date || !teamId) return []
 
-  const same = world.plans.filter(
-    (plan) => plan.id !== candidate.planId && plan.status !== 'cancelled' && toDayKey(plan.plannedDate) === date
-  )
+  const same = otherPlansOnDay(world.plans, candidate.planId, date)
   if (same.length === 0) return []
 
   const teamById = new Map(world.teams.map((team) => [team.id, team]))

@@ -1,6 +1,15 @@
 'use client'
 
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
+import {
+  conflictKey,
+  conflictView,
+  isChecking,
+  takeAnswer,
+  type DayConflictAnswer,
+  type DayConflictOutcome,
+  type DayConflictStatus,
+} from './dayConflictState'
 
 /** Reads who is busy on `day` and answers with the warnings, or says the read failed. */
 export type DayConflictLoader = (
@@ -11,42 +20,39 @@ export type DayConflictLoader = (
 ) => void
 
 export type DayConflictState = {
-  /** `idle`: nothing to check yet. `loading`: the day is being read. */
-  status: 'idle' | 'loading' | 'ready' | 'failed'
+  status: DayConflictStatus
   warnings: string[]
   /** Reads the same day again after a failure. */
   retry: () => void
 }
 
-type Answer = { key: string; failed: boolean; warnings: string[] }
-
 /**
  * The same-day clash warnings for one plan on one chosen day (R28).
  *
  * The day is read from the server each time the plan or the day changes, so a
- * plan outside the page on screen is still seen. An answer that arrives after
- * the choice moved on is dropped. A failed read is its own state: it must not
- * look like "nothing clashes".
+ * plan outside the page on screen is still seen. The decisions (the key, a late
+ * answer, the status, a failed read that must not look like "nothing clashes")
+ * are in `dayConflictState`; this only wires them to React.
  */
 export function useDayConflicts(load: DayConflictLoader | undefined, planId: string, day: string): DayConflictState {
-  const [answer, setAnswer] = useState<Answer | null>(null)
+  const [answer, setAnswer] = useState<DayConflictAnswer | null>(null)
   const [attempt, setAttempt] = useState(0)
   const latest = useRef(0)
-  const key = `${planId}|${day}|${attempt}`
-  const active = Boolean(load) && day !== ''
+  const key = conflictKey(planId, day, attempt)
+  const active = isChecking(Boolean(load), day)
 
   const ask = useEffectEvent((requestKey: string) => {
     if (!load || day === '') return
     const request = ++latest.current
+    const keep = (outcome: DayConflictOutcome) => {
+      const kept = takeAnswer({ latest: latest.current, request, key: requestKey, outcome })
+      if (kept) setAnswer(kept)
+    }
     load(
       planId,
       day,
-      (warnings) => {
-        if (latest.current === request) setAnswer({ key: requestKey, failed: false, warnings })
-      },
-      () => {
-        if (latest.current === request) setAnswer({ key: requestKey, failed: true, warnings: [] })
-      }
+      (warnings) => keep({ failed: false, warnings }),
+      () => keep({ failed: true })
     )
   })
 
@@ -59,7 +65,5 @@ export function useDayConflicts(load: DayConflictLoader | undefined, planId: str
   }, [key])
 
   const retry = () => setAttempt((count) => count + 1)
-  if (!active) return { status: 'idle', warnings: [], retry }
-  if (answer?.key !== key) return { status: 'loading', warnings: [], retry }
-  return { status: answer.failed ? 'failed' : 'ready', warnings: answer.warnings, retry }
+  return { ...conflictView({ active, key, answer }), retry }
 }
