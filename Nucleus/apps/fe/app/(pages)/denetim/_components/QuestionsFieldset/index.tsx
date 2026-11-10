@@ -27,7 +27,7 @@ export function QuestionsFieldset({ passive, children }: QuestionsFieldsetProps)
       <fieldset
         disabled={passive}
         aria-label="Denetim soruları"
-        className={`m-0 min-w-0 space-y-6 border-0 p-0 ${passive ? "cursor-not-allowed opacity-50 grayscale" : ""}`}
+        className={`min-w-0 space-y-6 ${passive ? "cursor-not-allowed opacity-50 grayscale" : ""}`}
       >
         {children}
       </fieldset>
