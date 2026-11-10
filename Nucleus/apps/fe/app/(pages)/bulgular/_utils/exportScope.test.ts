@@ -8,6 +8,7 @@ import {
   EXPORT_SCOPES,
   exportStatuses,
   filterNotes,
+  pickAfterStatusChange,
   resolveScope,
   statusParam,
   type ExportScope,
@@ -28,11 +29,16 @@ function sent(scope: ExportScope, pageStatus: PageStatus, location = ""): URLSea
 }
 
 describe("the choice", () => {
-  it("offers Açık, Kapalı and Tümü, in that order", () => {
-    expect(EXPORT_SCOPES.map((item) => item.label)).toEqual(["Açık", "Kapalı", "Tümü"]);
+  it("offers Açık ve devam eden, Kapalı and Tümü, in that order", () => {
+    expect(EXPORT_SCOPES.map((item) => item.label)).toEqual(["Açık ve devam eden", "Kapalı", "Tümü"]);
   });
 
-  it("starts on Açık, our promise, whatever the list shows but closed findings", () => {
+  it("never calls the first choice just \"Açık\": elsewhere that means status open only", () => {
+    expect(EXPORT_SCOPES[0]?.label).not.toBe("Açık");
+    expect(EXPORT_SCOPES[0]?.label).toContain("devam eden");
+  });
+
+  it("starts on Açık ve devam eden, our promise, whatever the list shows but closed findings", () => {
     expect(defaultScope("")).toBe("open");
     expect(defaultScope("open")).toBe("open");
     expect(defaultScope("in_progress")).toBe("open");
@@ -44,20 +50,36 @@ describe("the choice", () => {
     expect(resolveScope(null, "closed")).toBe("closed");
   });
 
-  it("keeps what the person picked while the list's Durum is what it was", () => {
-    const pick: ScopePick = { scope: "all", madeUnder: "" };
+  it("keeps what the person picked", () => {
+    const pick: ScopePick = "all";
     expect(resolveScope(pick, "")).toBe("all");
   });
+});
 
-  it("goes back to following the list when its Durum changes after a pick", () => {
-    const pick: ScopePick = { scope: "all", madeUnder: "" };
-    expect(resolveScope(pick, "closed")).toBe("closed");
-    expect(resolveScope(pick, "open")).toBe("open");
+describe("the pick when the list's Durum changes", () => {
+  it("keeps the pick while the Durum stays what it was", () => {
+    expect(pickAfterStatusChange("all", "open", "open")).toBe("all");
+    expect(pickAfterStatusChange(null, "", "")).toBeNull();
+  });
+
+  it("clears the pick when the Durum changes, so the choice follows the list again", () => {
+    const cleared = pickAfterStatusChange("all", "", "closed");
+    expect(cleared).toBeNull();
+    expect(resolveScope(cleared, "closed")).toBe("closed");
+    expect(resolveScope(pickAfterStatusChange("all", "", "open"), "open")).toBe("open");
+  });
+
+  it("does not bring an old pick back when the list goes A -> B -> A", () => {
+    let pick: ScopePick = "all";
+    pick = pickAfterStatusChange(pick, "", "closed");
+    pick = pickAfterStatusChange(pick, "closed", "");
+    expect(pick).toBeNull();
+    expect(resolveScope(pick, "")).toBe("open");
   });
 });
 
 describe("the statuses of the file", () => {
-  it("holds open and in-progress findings for Açık, closed ones for Kapalı, all three for Tümü", () => {
+  it("holds open and in-progress findings for Açık ve devam eden, closed ones for Kapalı, all three for Tümü", () => {
     expect(exportStatuses("open", "")).toEqual(["open", "in_progress"]);
     expect(exportStatuses("closed", "")).toEqual(["closed"]);
     expect(exportStatuses("all", "")).toEqual(["open", "in_progress", "closed"]);
@@ -76,7 +98,7 @@ describe("the statuses of the file", () => {
 });
 
 describe("the parameters the download sends", () => {
-  it("sends Açık as the two statuses it holds, and by default", () => {
+  it("sends Açık ve devam eden as the two statuses it holds, and by default", () => {
     expect(sent("open", "").get("status")).toBe("open,in_progress");
     expect(sent(resolveScope(null, ""), "").get("status")).toBe("open,in_progress");
   });
@@ -127,30 +149,34 @@ describe("what is said about an empty choice", () => {
     expect(text).toContain("indirilecek bir şey olmaz");
     expect(text).toContain("Durum filtresini Tümü yapın");
   });
+
+  it("names the first choice in full", () => {
+    expect(emptyChoiceMessage("open", "closed")).toContain('"Açık ve devam eden" seçimiyle');
+  });
 });
 
 describe("downloadSummary", () => {
   const open = exportStatuses("open", "");
 
   it("names the count and what is counted once the server has counted", () => {
-    expect(downloadSummary(open, 12)).toBe("12 açık bulgu indirilecek.");
+    expect(downloadSummary(open, 12)).toBe("12 açık ve devam eden bulgu indirilecek.");
     expect(downloadSummary(exportStatuses("closed", ""), 3)).toBe("3 kapalı bulgu indirilecek.");
     expect(downloadSummary(exportStatuses("all", ""), 40)).toBe("40 bulgu indirilecek.");
     expect(downloadSummary(exportStatuses("all", "in_progress"), 5)).toBe("5 devam eden bulgu indirilecek.");
   });
 
   it("writes a thousand the way Turkish does", () => {
-    expect(downloadSummary(open, 1234)).toBe("1.234 açık bulgu indirilecek.");
+    expect(downloadSummary(open, 1234)).toBe("1.234 açık ve devam eden bulgu indirilecek.");
   });
 
   it("gives no number while the count is not known", () => {
-    expect(downloadSummary(open, null)).toBe("Açık bulgular indirilecek.");
+    expect(downloadSummary(open, null)).toBe("Açık ve devam eden bulgular indirilecek.");
     expect(downloadSummary(exportStatuses("all", ""), null)).toBe("Tüm bulgular indirilecek.");
     expect(downloadSummary(exportStatuses("closed", ""), null)).toBe("Kapalı bulgular indirilecek.");
   });
 
   it("says before the download that the file would be empty", () => {
-    expect(downloadSummary(open, 0)).toBe("Seçime uyan açık bulgu yok; indirilen dosya boş olur.");
+    expect(downloadSummary(open, 0)).toBe("Seçime uyan açık ve devam eden bulgu yok; indirilen dosya boş olur.");
   });
 
   it("says nothing when no status is left", () => {

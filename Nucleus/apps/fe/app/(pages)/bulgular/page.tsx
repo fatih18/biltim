@@ -26,9 +26,9 @@ import {
   emptyChoiceMessage,
   exportStatuses,
   filterNotes,
+  pickAfterStatusChange,
   resolveScope,
   statusParam,
-  type ExportScope,
   type ScopePick,
 } from "./_utils/exportScope";
 import { FindingsExportBar } from "./_components/FindingsExportBar";
@@ -213,7 +213,7 @@ export default function FiveSFindingsListPage() {
   // #3: findings raised during an audit, or on their own with the single-finding form.
   const [sourceFilter, setSourceFilter] = useState<"" | "audit" | "single">("");
   /*
-   * R48: what the Excel downloads. Açık / Kapalı / Tümü, starting on Açık (our
+   * R48: what the Excel downloads. Açık ve devam eden / Kapalı / Tümü, starting on the first (our
    * promise); the list's own filters narrow the file as well. The same
    * parameters count the rows and fetch the file, so the sentence beside the
    * button is the file's own row count.
@@ -229,6 +229,11 @@ export default function FiveSFindingsListPage() {
     dateTo,
   });
   const exportCount = useFindingsExportCount(exportParams, exportStatusList.length > 0);
+  // A new Durum clears the pick, so the choice follows the list again (R48).
+  const changeStatus = (next: FindingStatus | "") => {
+    setScopePick(pickAfterStatusChange(scopePick, statusFilter, next));
+    setStatusFilter(next);
+  };
   /*
    * #22 (Foto 2): the register's order is the user's to choose. It was fixed
    * to newest number first, which reads as "not sorted" to anyone looking for
@@ -633,7 +638,7 @@ export default function FiveSFindingsListPage() {
   const handleDownloadExcel = async () => {
     setDownloadingExcel(true);
     try {
-      // The register as filtered on screen and narrowed by the Açık / Kapalı / Tümü
+      // The register as filtered on screen and narrowed by the Açık ve devam eden / Kapalı / Tümü
       // choice (R48); a field manager's export is narrowed to their locations by
       // the server, as the list is.
       const result = await downloadFile(FINDINGS_EXCEL_PATH, exportParams, findingsExcelFallbackName(new Date()));
@@ -784,7 +789,7 @@ export default function FiveSFindingsListPage() {
           <div className="flex flex-col items-start gap-2 text-xs text-slate-600 dark:text-slate-400 md:items-end">
             <FindingsExportBar
               scope={exportScope}
-              onScopeChange={(scope: ExportScope) => setScopePick({ scope, madeUnder: statusFilter })}
+              onScopeChange={setScopePick}
               summary={downloadSummary(exportStatusList, exportCount)}
               problem={emptyChoiceMessage(exportScope, statusFilter)}
               filterNotes={filterNotes({ locationFilter, sourceFilter, dateFrom, dateTo })}
@@ -841,7 +846,7 @@ export default function FiveSFindingsListPage() {
                 <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300">Durum</label>
                 <select
                   value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value as FindingStatus | "")}
+                  onChange={(e) => changeStatus(e.target.value as FindingStatus | "")}
                   className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
                 >
                   <option value="">Tümü</option>

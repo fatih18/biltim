@@ -676,7 +676,7 @@ const findingsXlsx = defineRoute({
 
 /*
  * How many findings `findings.xlsx` would list for the same parameters (R48), so
- * the screen can say "12 açık bulgu indirilecek" before the download. Same
+ * the screen can say "12 açık ve devam eden bulgu indirilecek" before the download. Same
  * filter, same scope, same rows; `with_photos` is the one parameter it does not
  * take, because that narrowing happens after the read and the screen never sets it.
  */

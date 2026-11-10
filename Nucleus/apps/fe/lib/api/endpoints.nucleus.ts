@@ -139,7 +139,7 @@ const custom = {
   GET_REPORTS_DASHBOARD: { method: 'GET', path: '/reports/dashboard' },
   /*
    * Bulgular sayfasının Excel düğmesi (R48): aynı parametrelerle dosyada kaç
-   * bulgu olacağını sayar, böylece "12 açık bulgu indirilecek" indirmeden önce
+   * bulgu olacağını sayar, böylece "12 açık ve devam eden bulgu indirilecek" indirmeden önce
    * söylenir. Parametreler `/reports/findings.xlsx` ile aynıdır.
    */
   GET_REPORTS_FINDINGS_COUNT: { method: 'GET', path: '/reports/findings-count' },

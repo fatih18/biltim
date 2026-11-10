@@ -2,14 +2,15 @@
  * Which findings the Excel button of the Bulgular page downloads (R48).
  *
  * Our promise to the customer: "Açık bulgular Excel olarak indirilebilir". The
- * download therefore has its own explicit choice, Açık / Kapalı / Tümü, and it
- * starts on Açık. It never leaves the screen's other filters behind: the file
+ * download therefore has its own explicit choice, Açık ve devam eden / Kapalı /
+ * Tümü, and it starts on the first. It never leaves the screen's other filters behind: the file
  * holds what the list shows (location, source, date range, Durum) narrowed by
  * the choice, and the sentence beside the button says what that is.
  *
- * "Açık" is every finding that is not closed, so it holds the ones still
- * "Devam ediyor" too: the server's overdue counts and the location form read
- * "open" the same way.
+ * The first choice holds the findings that are open AND the ones still "Devam
+ * ediyor": an audit follow-up file needs both. Everywhere else in the product
+ * "Açık" means status open only, so this choice says "Açık ve devam eden" in
+ * its label and in the sentence beside the button, and never just "Açık".
  */
 
 export type FindingStatus = "open" | "in_progress" | "closed";
@@ -18,7 +19,7 @@ export type PageStatus = FindingStatus | "";
 export type ExportScope = "open" | "closed" | "all";
 
 export const EXPORT_SCOPES: readonly { value: ExportScope; label: string }[] = [
-  { value: "open", label: "Açık" },
+  { value: "open", label: "Açık ve devam eden" },
   { value: "closed", label: "Kapalı" },
   { value: "all", label: "Tümü" },
 ];
@@ -29,21 +30,28 @@ const SCOPE_STATUSES: Record<ExportScope, readonly FindingStatus[]> = {
   all: ["open", "in_progress", "closed"],
 };
 
-/** The choice the person made, and the Durum filter it was made under. */
-export type ScopePick = { scope: ExportScope; madeUnder: PageStatus } | null;
+/** The choice the person made, or null while they have made none. */
+export type ScopePick = ExportScope | null;
 
-/** The choice with nobody's pick: Açık, our promise; Kapalı only while the list is showing closed findings. */
+/** The choice with nobody's pick: Açık ve devam eden, our promise; Kapalı only while the list is showing closed findings. */
 export function defaultScope(pageStatus: PageStatus): ExportScope {
   return pageStatus === "closed" ? "closed" : "open";
 }
 
-/**
- * The choice in force. A pick holds while the list's Durum is what it was when
- * the person picked; when Durum changes the choice follows the list again, so a
- * list of closed findings is not downloaded as "Açık" and arrives empty.
- */
+/** The choice in force: the person's pick, or the default for the list's Durum while they have not picked. */
 export function resolveScope(pick: ScopePick, pageStatus: PageStatus): ExportScope {
-  return pick && pick.madeUnder === pageStatus ? pick.scope : defaultScope(pageStatus);
+  return pick ?? defaultScope(pageStatus);
+}
+
+/**
+ * The pick after the list's Durum went from `previous` to `next`. A change
+ * clears it, so the choice follows the list again and a list of closed findings
+ * is not downloaded as "Açık ve devam eden" and arrives empty. It is cleared for
+ * good, not parked: a pick made under Durum A does not come back when the list
+ * goes A -> B -> A.
+ */
+export function pickAfterStatusChange(pick: ScopePick, previous: PageStatus, next: PageStatus): ScopePick {
+  return previous === next ? pick : null;
 }
 
 /** The statuses the file holds: the choice narrowed by the list's Durum. Empty = nothing can match. */
@@ -76,7 +84,7 @@ export function emptyChoiceMessage(scope: ExportScope, pageStatus: PageStatus): 
 /** The finding the file holds, in words: with a number (known) and without one. */
 function wording(statuses: readonly FindingStatus[]): { counted: string; plain: string } {
   const key = statuses.join(",");
-  if (key === "open,in_progress") return { counted: "açık bulgu", plain: "Açık bulgular" };
+  if (key === "open,in_progress") return { counted: "açık ve devam eden bulgu", plain: "Açık ve devam eden bulgular" };
   if (key === "open") return { counted: "açık durumdaki bulgu", plain: "Açık durumdaki bulgular" };
   if (key === "in_progress") return { counted: "devam eden bulgu", plain: "Devam eden bulgular" };
   if (key === "closed") return { counted: "kapalı bulgu", plain: "Kapalı bulgular" };
@@ -86,9 +94,10 @@ function wording(statuses: readonly FindingStatus[]): { counted: string; plain: 
 const numbers = new Intl.NumberFormat("tr-TR");
 
 /**
- * What will be downloaded, as one sentence: "12 açık bulgu indirilecek" when the
- * server has counted them, "Açık bulgular indirilecek" when it has not (still
- * counting, or the count failed). An empty file is said before it is made.
+ * What will be downloaded, as one sentence: "12 açık ve devam eden bulgu
+ * indirilecek" when the server has counted them, "Açık ve devam eden bulgular
+ * indirilecek" when it has not (still counting, or the count failed). An empty
+ * file is said before it is made.
  */
 export function downloadSummary(statuses: readonly FindingStatus[], count: number | null): string {
   if (statuses.length === 0) return "";
