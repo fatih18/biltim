@@ -18,6 +18,7 @@ import { ADMIN_ROLES, CENTRAL_ROLES, hasPrivilege } from "@/app/_utils/routeAcce
 import { useMyScope } from "@/app/_hooks/user/useMyScope";
 import { toast } from "sonner";
 import { readServerReasons } from "@/app/_components/Global/PasswordRules";
+import { dedupeKey } from "./_utils/dedupeFindings";
 
 type FindingStatus = "open" | "in_progress" | "closed";
 
@@ -718,18 +719,9 @@ export default function FiveSFindingsListPage() {
   // Madde 1: Aynı soruya + lokasyona ait mükerrer, kapanmamış (açık ya da devam eden)
   // bulguları tek satırda göster. Denetim ekranı ikisini de açık sayıyor; yalnız
   // 'open' birleşince ikizlerden biri 'Devam ediyor' olduğu an iki satır geri geliyordu.
+  // R2/R17: aynı denetimin aynı soru için kapanmış ikizleri de tek satır (anahtar:
+  // bulgular/_utils/dedupeFindings.ts). Yalnız gösterim; hiçbir kayıt silinmez.
   const rows = useMemo(() => {
-    const questionIdOf = (f: FiveSFinding) => {
-      const fromField = (f.question_id ?? "").toString().trim();
-      if (fromField) return fromField;
-      const desc = f.description ?? "";
-      return (
-        desc.match(/Soru ID:\s*(\S+)/)?.[1] ??
-        desc.match(/Bağlı Soru:\s*(\S+)/)?.[1] ??
-        ""
-      );
-    };
-
     const seen = new Map<string, number>(); // dedupe key -> ilk satırın indexi
     const result: Array<{
       f: FiveSFinding;
@@ -739,12 +731,7 @@ export default function FiveSFindingsListPage() {
     }> = [];
 
     for (const f of findings) {
-      const qid = questionIdOf(f);
-      const notClosed = f.status !== "closed";
-      const key =
-        notClosed && qid
-          ? `${qid}__${(f.location_name ?? "").trim().toLocaleLowerCase("tr")}`
-          : "";
+      const key = dedupeKey(f);
 
       if (key && seen.has(key)) {
         const idx = seen.get(key)!;
@@ -1025,7 +1012,7 @@ export default function FiveSFindingsListPage() {
                         {duplicateCount > 0 && (
                           <span
                             className="ml-1 inline-flex items-center rounded-sm bg-amber-500/20 px-1.5 py-0.5 text-[11px] font-semibold text-amber-700 dark:text-amber-300"
-                            title="Aynı soru ve lokasyon için tekrar eden açık bulgular tekilleştirildi"
+                            title="Aynı soru ve lokasyon için tekrar eden bulgular tek satırda gösteriliyor; kayıtlar silinmedi"
                           >
                             +{duplicateCount} tekrar
                           </span>
