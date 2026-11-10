@@ -305,6 +305,8 @@ export function AuditPlannerPanel(props: {
                         })
                       }
                       onKeyDown={(e) => {
+                        // Enter on the Düzenle / Sil buttons inside this row is theirs, not the row's.
+                        if (e.target !== e.currentTarget) return;
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
                           setExpandedParentIds((prev) => {
