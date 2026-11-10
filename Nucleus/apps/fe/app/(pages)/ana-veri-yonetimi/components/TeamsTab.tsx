@@ -4,6 +4,9 @@ import React from "react";
 import { nowIso, uid } from "./utils";
 import type { User } from "./types";
 import { toast } from "sonner";
+import { isAbortError } from "@/app/_utils/readAllPages";
+import { readFailureMessage } from "../_utils/readFailure";
+import { readTeamsAndMembers } from "../_utils/readTeams";
 
 type AuditTeam = {
   id: string;
@@ -194,47 +197,31 @@ export function TeamsTab({
     const A = actionsRef.current as any;
 
     const startTeams = safeStart(A, TEAM_KEYS.GET);
-    if (!startTeams) return;
+    const startMembers = safeStart(A, TEAM_MEMBER_KEYS.GET);
+    if (!startTeams || !startMembers) return;
 
     setTeamsLoading(true);
 
-    startTeams({
-      payload: { limit: 1000, orderBy: "created_at", orderDirection: "desc" },
-      onAfterHandle: (res: any) => {
-        const rows = res?.data ?? res ?? [];
-        const t = Array.isArray(rows) ? rows.map(toTeam) : [];
-        setTeams(t);
-
-        const startMembers = safeStart(A, TEAM_MEMBER_KEYS.GET);
-        if (!startMembers) {
-          setMembersByTeam({});
-          setTeamsLoading(false);
-          return;
+    // Every page of both lists: a list read gives 200 rows at most, whatever `limit` says.
+    readTeamsAndMembers({
+      startTeams,
+      startMembers,
+      onDone: ({ teams: teamRows, members: memberRows }) => {
+        const grouped: Record<string, AuditTeamMember[]> = {};
+        for (const mm of memberRows.map(toMember)) {
+          if (!mm.teamId) continue;
+          (grouped[mm.teamId] ??= []).push(mm);
         }
-
-        startMembers({
-          payload: { limit: 5000, orderBy: "created_at", orderDirection: "desc" },
-          onAfterHandle: (res2: any) => {
-            const rows2 = res2?.data ?? res2 ?? [];
-            const m = Array.isArray(rows2) ? rows2.map(toMember) : [];
-
-            const grouped: Record<string, AuditTeamMember[]> = {};
-            for (const mm of m) {
-              if (!mm.teamId) continue;
-              (grouped[mm.teamId] ??= []).push(mm);
-            }
-            setMembersByTeam(grouped);
-            setTeamsLoading(false);
-          },
-          onErrorHandle: (err2: any) => {
-            console.error(`${TEAM_MEMBER_KEYS.GET} error`, err2);
-            setTeamsLoading(false);
-          },
-        });
-      },
-      onErrorHandle: (err: any) => {
-        console.error(`${TEAM_KEYS.GET} error`, err);
+        // Both lists were read in full; only then does the tab change.
+        setTeams(teamRows.map(toTeam));
+        setMembersByTeam(grouped);
         setTeamsLoading(false);
+      },
+      onError: (subject, error) => {
+        setTeamsLoading(false);
+        if (isAbortError(error)) return;
+        console.error(`${subject === "teams" ? TEAM_KEYS.GET : TEAM_MEMBER_KEYS.GET} error`, error);
+        toast.error(readFailureMessage(subject));
       },
     });
   }, [actionsRef]);

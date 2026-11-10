@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { readFailureMessage, type ReadSubject } from "./readFailure";
 
-const SUBJECTS: ReadSubject[] = ["users", "roles", "teams", "actions", "findingTypes", "locations"];
+const SUBJECTS: ReadSubject[] = ["users", "roles", "teams", "members", "actions", "findingTypes", "locations"];
 
 describe("readFailureMessage", () => {
   it("says what could not be read, what it means and what to do, for every list the screen reads", () => {
@@ -14,6 +14,13 @@ describe("readFailureMessage", () => {
 
   it("tells the lists apart", () => {
     expect(new Set(SUBJECTS.map(readFailureMessage)).size).toBe(SUBJECTS.length);
+  });
+
+  it("names what a failed members read does to the teams tab and tells the person not to save", () => {
+    const message = readFailureMessage("members");
+    expect(message).toStartWith("Ekip üyeleri okunamadı.");
+    expect(message).toContain("üyeleri görmeden ekibi kaydetmeyin");
+    expect(readFailureMessage("teams")).toContain("Ekipler sekmesi");
   });
 
   it("names the planning consequence of a failed locations read", () => {

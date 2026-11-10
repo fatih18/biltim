@@ -5,12 +5,16 @@
  * tell "nothing here" from "could not be read".
  */
 
-export type ReadSubject = "users" | "roles" | "teams" | "actions" | "findingTypes" | "locations";
+export type ReadSubject = "users" | "roles" | "teams" | "members" | "actions" | "findingTypes" | "locations";
 
 const SUBJECTS: Record<ReadSubject, { what: string; effect: string }> = {
   users: { what: "Kullanıcılar", effect: "Ekip üyesi ve lokasyon sorumlusu seçimleri boş görünür." },
   roles: { what: "Kullanıcı rolleri", effect: "Ekip üyesi seçiminde denetçi süzmesi çalışmaz." },
-  teams: { what: "Denetim ekipleri", effect: "Planlamada ekip seçimi boş görünür." },
+  teams: { what: "Denetim ekipleri", effect: "Planlamada ekip seçimi ve Ekipler sekmesi boş görünür." },
+  members: {
+    what: "Ekip üyeleri",
+    effect: "Ekipler ve üyeleri ekranda boş ya da eski haliyle görünür; üyeleri görmeden ekibi kaydetmeyin.",
+  },
   actions: { what: "Aksiyonlar", effect: "Aksiyon listesi boş görünür." },
   findingTypes: { what: "Bulgu türleri", effect: "Bulgu türü listesi boş görünür." },
   locations: {
