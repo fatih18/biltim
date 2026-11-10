@@ -116,10 +116,18 @@ describe('findingsFilter', () => {
     expect(f.sql).toContain('? $3::text')
     expect(f.sql).toContain('f.detected_date >= $4')
     expect(f.sql).toContain('f.detected_date <= $5')
-    expect(f.sql).toContain("a.source IS DISTINCT FROM 'single_finding'")
+    // R74: a single finding raised inside an audit is that audit's finding, so "audit" keeps it.
+    expect(f.sql).toContain("NOT (a.source IS NOT DISTINCT FROM 'single_finding'")
+    expect(f.sql).toContain("'Tekil Bulgu'")
     // Every $n in the SQL has a value, and no value is left without one.
     const used = new Set([...f.sql.matchAll(/\$(\d+)/g)].map((m) => Number(m[1])))
     expect([...used].sort()).toEqual(f.params.map((_, n) => n + 1))
+  })
+
+  it('lists only standalone single findings for source single_finding (R74)', () => {
+    const f = findingsFilter({ ...none, source: 'single_finding' })
+    expect(f.sql).toContain("AND (a.source IS NOT DISTINCT FROM 'single_finding'")
+    expect(f.sql).not.toContain('AND NOT')
   })
 
   it('ignores a status it does not know', () => {

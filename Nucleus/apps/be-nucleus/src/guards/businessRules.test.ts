@@ -2618,6 +2618,8 @@ describe('revising a period plan: quarter and date range (R68, R69)', () => {
       caller: GOD,
     })
     expect(res).toBeUndefined()
+  })
+})
 
 describe('deleting a finding of a sent or approved audit', () => {
   const FINDING = '/fiveSFindings/6f0c2a1e-3b4d-4c5e-8f60-718293a4b5c6'

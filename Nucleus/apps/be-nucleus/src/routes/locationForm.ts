@@ -59,26 +59,6 @@ async function responsibleNames(ids: string[]): Promise<string> {
 }
 
 /*
- * One location form at a time, in the process.
- *
- * exceljs holds the whole workbook — every embedded photo — in memory until
- * writeBuffer, which then writes a second copy as the zip. At the photo cap
- * (buildForm) that is 150 MB of pictures held twice, and two people pressing
- * the button together would hold it four times. Later requests wait in order
- * rather than being refused: the export is rare, and a wait beats an error.
- */
-let formQueue: Promise<unknown> = Promise.resolve()
-
-export function oneAtATime<T>(task: () => Promise<T>): Promise<T> {
-  const run = formQueue.then(task)
-  formQueue = run.then(
-    () => undefined,
-    () => undefined
-  )
-  return run
-}
-
-/*
  * `audit` narrows the workbook to one audit (the report of one audit, row 75):
  * its own question sheet and the findings raised in it — whatever place or day
  * they name — instead of the location's year. `$5` is that audit's id, or NULL
