@@ -3,7 +3,7 @@
 import React from "react";
 import { ClipboardList } from "lucide-react";
 import { EmptyState } from "@/app/_components/Global/EmptyState";
-import { SkeletonTable } from "@/app/_components/Global/Skeleton";
+import { PlanListSkeleton } from "../_components/PlanListSkeleton";
 import type { TeamInfo, AuditPlanRow, LocInfo, HomeTab, DateEditRule } from "../page";
 import { TeamLeaderWithMembersTooltip } from "./TeamLeaderWithMembersTooltip";
 import { AuditReportButton } from "./AuditReportButton";
@@ -93,12 +93,14 @@ export function HomeAuditListPanel(props: {
     onStartAudit?: (planId: string) => void;
     /** Whether this person may start this plan's audit (#27). */
     canStartPlan?: (plan: AuditPlanRow) => boolean;
-    /** Merkez Ekip only: approve a sent audit (#28). */
+    /** Admins (Merkez Ekip, Super Admin, godmin): approve a sent audit (#28). */
     onApprovePlan?: (plan: AuditPlanRow) => void;
+    /** Whether this person is offered Onayla on this plan: an admin, on a sent audit; not Müdür. */
     canApprove?: (plan: AuditPlanRow) => boolean;
     approvingId?: string | null;
-    /** Merkez Ekip only: send a sent audit back to its team with a reason (R30). */
+    /** Admins (Merkez Ekip, Super Admin, godmin): send a sent audit back to its team with a reason (R30). */
     onRejectPlan?: (plan: AuditPlanRow) => void;
+    /** Whether this person is offered Reddet on this plan: an admin, on a sent audit; not Müdür. */
     canReject?: (plan: AuditPlanRow) => boolean;
     /** The plan's team and admins: correct a rejected audit and send it again (R30). */
     onCorrectRejected?: (plan: AuditPlanRow) => void;
@@ -260,7 +262,7 @@ export function HomeAuditListPanel(props: {
                     </div>
 
                     {loading ? (
-                        <SkeletonTable rows={4} columns={6} className="border-0" />
+                        <PlanListSkeleton rows={4} />
                     ) : list.length === 0 ? (
                         <EmptyState
                             icon={ClipboardList}
