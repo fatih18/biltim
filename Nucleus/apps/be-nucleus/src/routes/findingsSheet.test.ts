@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'bun:test'
+import type { Row } from '../db'
 import { buildWorkbook } from './excel'
 import { FINDING_NUMBERS_SELECT, FINDINGS_SHEET_COLUMNS, PHOTO_SHEET_COLUMNS } from './findingsSheet'
 import { anchors, bytes, finding, loaderOf, readSheet, uid } from './photoTestKit'
 
 /** The findings workbook's columns, with "Eski No" (R61) after "Bulgu No". */
 
-const build = (rows: Record<string, unknown>[]) =>
+const build = (rows: Row[]) =>
   buildWorkbook([{ name: 'Bulgular', columns: FINDINGS_SHEET_COLUMNS, rows }], {
     photos: loaderOf({ [uid(1)]: bytes(100), [uid(2)]: bytes(100) }).loader,
   })
@@ -47,7 +48,7 @@ describe('the columns', () => {
     expect(new Set(keys).size).toBe(keys.length)
   })
 
-  it('end in the two photo columns the other reports share', () => {
+  it('use the two photo columns the other reports share', () => {
     expect(FINDINGS_SHEET_COLUMNS.filter((column) => column.kind === 'photo')).toEqual(PHOTO_SHEET_COLUMNS)
   })
 })
