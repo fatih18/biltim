@@ -16,7 +16,7 @@ export function locationKey(value: string): string {
   return foldTr(
     value
       .normalize('NFC')
-      .replace(/[​-‍⁠﻿̇]/g, '')
+      .replace(/[\u200B-\u200D\u2060\uFEFF\u0307]/g, '')
       .replace(/\s+/g, ' ')
   ).replace(/ı/g, 'i')
 }
