@@ -56,9 +56,15 @@ describe('sending a plan with a photo-demanding question (R72)', () => {
     await put(stamp, named.read)
     expect(named.asked.some((text) => text.includes('from main.five_s_findings f'))).toBe(true)
 
-    const own = plan('rejected', bare, { audit_id: AUDIT })
+    const own = plan('planned', bare, { audit_id: AUDIT, auditor_attended: true })
     const res = await put({ status: PENDING_APPROVAL }, own.read, CENTRAL)
     expect(res?.status).toBe(422)
+  })
+
+  it('does not re-judge the stored findings when a returned audit is resent', async () => {
+    const resend = plan('rejected', bare, { audit_id: AUDIT, auditor_attended: true })
+    expect(await put({ status: PENDING_APPROVAL }, resend.read, CENTRAL)).toBeUndefined()
+    expect(resend.asked.some((text) => text.includes('from main.five_s_findings f'))).toBe(false)
   })
 
   it('does not look at the findings when the plan is not entering a sent state', async () => {

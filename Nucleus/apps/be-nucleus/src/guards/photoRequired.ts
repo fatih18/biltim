@@ -7,7 +7,7 @@ import type { Read } from './caller'
  * `five_s_questions.require_photo` is off for every question until an
  * administrator switches it on. The audit form refuses to save such an answer
  * without a photo, and this is the second door: the moment an audit is SENT
- * (its plan goes `planned` or `rejected` -> `pending_approval`) every finding
+ * (its plan goes `planned` -> `pending_approval` or `completed`) every finding
  * the audit wrote for a photo-demanding question must carry a "before" photo.
  *
  * What it reads is only what the audit left in the database: its findings
@@ -25,14 +25,15 @@ import type { Read } from './caller'
 const SENT_STATUSES: readonly string[] = ['pending_approval', 'completed']
 
 /**
- * Whether a plan write moves the plan into a sent state it was not in.
- * `rejected` -> `completed` (Merkez Ekip approving a returned audit as it is)
- * is not a first send and is not checked.
+ * Whether a plan write moves the plan into a sent state for the first time.
+ * A `rejected` plan was sent once already, so its resend or approval is not
+ * checked: its stored findings may predate the flag, the correction screen
+ * cannot add a "before" photo to them, and the form checks the new findings
+ * of a correction itself (a failed photo already holds the resend).
  */
 export function entersSentState(storedStatus: string, incomingStatus: string | undefined): boolean {
   if (incomingStatus === undefined || !SENT_STATUSES.includes(incomingStatus)) return false
-  if (SENT_STATUSES.includes(storedStatus)) return false
-  return !(storedStatus === 'rejected' && incomingStatus === 'completed')
+  return !SENT_STATUSES.includes(storedStatus) && storedStatus !== 'rejected'
 }
 
 /**

@@ -15,11 +15,11 @@ describe('entersSentState', () => {
   it('is true when a plan not yet sent becomes sent', () => {
     expect(entersSentState('planned', 'pending_approval')).toBe(true)
     expect(entersSentState('', 'pending_approval')).toBe(true)
-    expect(entersSentState('rejected', 'pending_approval')).toBe(true)
     expect(entersSentState('planned', 'completed')).toBe(true)
   })
 
-  it('is false for a plan already sent or approved, and for approving a returned audit as it is', () => {
+  it('is false for a plan already sent or approved, and for resending or approving a returned audit', () => {
+    expect(entersSentState('rejected', 'pending_approval')).toBe(false)
     expect(entersSentState('pending_approval', 'pending_approval')).toBe(false)
     expect(entersSentState('pending_approval', 'completed')).toBe(false)
     expect(entersSentState('completed', 'completed')).toBe(false)
