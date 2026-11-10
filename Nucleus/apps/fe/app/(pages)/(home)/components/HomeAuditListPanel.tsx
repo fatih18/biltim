@@ -5,15 +5,20 @@ import { ClipboardList } from "lucide-react";
 import { EmptyState } from "@/app/_components/Global/EmptyState";
 import { PlanListSkeleton } from "../_components/PlanListSkeleton";
 import type { TeamInfo, AuditPlanRow, LocInfo, HomeTab, DateEditRule } from "../page";
-import { TeamLeaderWithMembersTooltip } from "./TeamLeaderWithMembersTooltip";
 import { AuditReportButton } from "./AuditReportButton";
 import { DateInput } from "@/app/_components/DateInput";
 import { ChosenDayConflicts } from "./ChosenDayConflicts";
 import type { DayConflictLoader } from "../_hooks/useDayConflicts";
-import { auditStatusLabelTr } from "@/app/_utils/StatusLabels";
 import { isPlanRejected } from "@/app/_utils/planReview";
 import { RejectedPlanRow } from "../_components/RejectedPlanRow";
 import { MobileCellLabel } from "../_components/MobileCellLabel";
+import { StatusPill } from "../_components/StatusPill";
+import { PlanRowCells } from "../_components/PlanRowCells";
+import { PlanDateCell } from "../_components/PlanDateCell";
+import { DoneDayRow } from "../_components/DoneDayRow";
+import { DoneDayListNote } from "../_components/DoneDayListNote";
+import { countAudits, countRepeats, placeByDay } from "../_utils/doneDayPlacement";
+import { TAB_SORT_DIRECTION } from "../_utils/tabStatus";
 
 type AuditTeamLite = { id: string; name?: string | null; isActive: boolean };
 
@@ -23,21 +28,6 @@ function Badge({ children }: { children: React.ReactNode }) {
             {children}
         </span>
     );
-}
-
-function StatusPill({ status }: { status: string }) {
-    const base = "inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-medium";
-    if (status === "planned")
-        return <span className={`${base} border-amber-800/60 bg-amber-100 dark:bg-amber-950/30 text-amber-700 dark:text-amber-200`}>{auditStatusLabelTr(status)}</span>;
-    if (status === "pending_approval")
-        return <span className={`${base} border-violet-800/60 bg-violet-100 dark:bg-violet-950/30 text-violet-700 dark:text-violet-200`}>{auditStatusLabelTr(status)}</span>;
-    if (status === "completed")
-        return <span className={`${base} border-emerald-800/60 bg-emerald-950/25 text-emerald-700 dark:text-emerald-200`}>{auditStatusLabelTr(status)}</span>;
-    if (status === "rejected")
-        return <span className={`${base} border-amber-500/70 bg-amber-100 dark:border-amber-700/70 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200`}>{auditStatusLabelTr(status)}</span>;
-    if (status === "cancelled")
-        return <span className={`${base} border-rose-900/60 bg-rose-950/25 text-rose-700 dark:text-rose-200`}>{auditStatusLabelTr(status)}</span>;
-    return <span className={`${base} border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/50 text-slate-800 dark:text-slate-200`}>{auditStatusLabelTr(status)}</span>;
 }
 
 function SegTabs({
@@ -173,8 +163,9 @@ export function HomeAuditListPanel(props: {
     const [editingId, setEditingId] = React.useState<string | null>(null);
     const [editDate, setEditDate] = React.useState<string>("");
 
-    // Already the right rows, in the right order, from the server.
-    const list = plans;
+    // The rows, in the order the server sent them; an audit done on another day than
+    // planned is listed a second time under the day it was done (R43).
+    const entries = placeByDay(plans, auditDateById ?? {}, TAB_SORT_DIRECTION[tab]);
 
     const startEdit = (p: AuditPlanRow) => {
         setEditingId(p.id);
@@ -263,20 +254,27 @@ export function HomeAuditListPanel(props: {
 
                     {loading ? (
                         <PlanListSkeleton rows={4} />
-                    ) : list.length === 0 ? (
+                    ) : entries.length === 0 ? (
                         <EmptyState
                             icon={ClipboardList}
                             title="Henüz denetim yok"
                             description="Planlanan ve tamamlanan denetimler burada listelenir. Yeni bir denetim planlandığında bu listede görünür."
                         />
                     ) : (
-                        list.map((p) => {
-                            const locInfo = locInfoById.get(p.location_id);
-                            const loc = locInfo?.name ?? "-";
-                            const managerName = locInfo?.managerName ?? null;
-                            const fieldManagerNames = locInfo?.fieldManagerNames ?? [];
+                        entries.map((entry) => {
+                            if (entry.kind === "done") {
+                                return (
+                                    <DoneDayRow
+                                        key={entry.key}
+                                        entry={entry}
+                                        locInfoById={locInfoById}
+                                        parentPlanRangeById={parentPlanRangeById}
+                                        teamInfoById={teamInfoById}
+                                    />
+                                );
+                            }
+                            const p = entry.plan;
                             const rule = dateEditRule(p);
-                            const editable = rule.allowed;
                             const isEditing = editingId === p.id;
                             const parentRange = p.parent_plan_id
                                 ? parentPlanRangeById.get(p.parent_plan_id)
@@ -285,7 +283,7 @@ export function HomeAuditListPanel(props: {
                                 (editDate < parentRange.start || editDate > parentRange.end));
 
                             return (
-                                <div key={p.id} className="grid grid-cols-2 items-start gap-x-3 gap-y-2 border-t border-slate-300 dark:border-slate-800/80 px-3 py-2 sm:grid-cols-3 md:grid-cols-12 md:gap-2">
+                                <div key={entry.key} className="grid grid-cols-2 items-start gap-x-3 gap-y-2 border-t border-slate-300 dark:border-slate-800/80 px-3 py-2 sm:grid-cols-3 md:grid-cols-12 md:gap-2">
                                     {/* Tarih; while the date is being edited it takes the whole line of a card */}
                                     <div className={isEditing ? "col-span-2 sm:col-span-3 md:col-span-2" : "col-span-1 md:col-span-2"}>
                                         <MobileCellLabel>Tarih</MobileCellLabel>
@@ -329,82 +327,22 @@ export function HomeAuditListPanel(props: {
                                                 </div>
                                             </div>
                                         ) : (
-                                            <div className="flex flex-col gap-0.5">
-                                                <span className="text-sm text-slate-800 dark:text-slate-200">{normalizeDateYYYYMMDD(p.planned_date) || "-"}</span>
-                                                {/*
-                                                  * Tarih sütunu planın tarihidir. Denetim başka bir gün
-                                                  * yapıldıysa (canlıda 08.10 planlı bir denetim 02.10'da
-                                                  * yapılmış) o gün ayrıca görünsün; yoksa liste iki farklı
-                                                  * denetimi aynı tarihte gösteriyordu.
-                                                  */}
-                                                {(() => {
-                                                    const done = normalizeDateYYYYMMDD((p.audit_id && auditDateById?.[p.audit_id]) || "");
-                                                    return done && done !== normalizeDateYYYYMMDD(p.planned_date) ? (
-                                                        <span className="text-[11px] text-slate-600 dark:text-slate-400">Yapıldı: {done}</span>
-                                                    ) : null;
-                                                })()}
-                                                {editable ? (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => startEdit(p)}
-                                                        className="text-left text-[11px] text-sky-700 dark:text-sky-400 hover:underline"
-                                                    >
-                                                        {rule.remaining === null
-                                                            ? "Tarihi Düzenle"
-                                                            : `Düzenle (${rule.remaining} hak)`}
-                                                    </button>
-                                                ) : rule.locked ? (
-                                                    <span className="text-[11px] text-slate-500 dark:text-slate-400">Tarih kilitli</span>
-                                                ) : null}
-                                            </div>
+                                            <PlanDateCell
+                                                plannedDate={normalizeDateYYYYMMDD(p.planned_date)}
+                                                doneDay={entry.doneDay}
+                                                rule={rule}
+                                                onEdit={() => startEdit(p)}
+                                            />
                                         )}
                                     </div>
 
-                                    {/* Dönem */}
-                                    <div className="col-span-1 md:col-span-2">
-                                        <MobileCellLabel>Dönem</MobileCellLabel>
-                                        {parentRange ? (
-                                            <div className="flex flex-col gap-0.5">
-                                                <span className="inline-block rounded border border-indigo-700/50 bg-indigo-100 dark:bg-indigo-950/40 px-1.5 py-0.5 text-[11px] font-semibold text-indigo-600 dark:text-indigo-300">
-                                                    {parentRange.quarter ?? "—"}
-                                                </span>
-                                                {parentRange.title && (
-                                                    <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{parentRange.title}</span>
-                                                )}
-                                            </div>
-                                        ) : (
-                                            <span className="text-[11px] text-slate-600 dark:text-slate-400">—</span>
-                                        )}
-                                    </div>
-
-                                    <div className="col-span-1 break-words text-sm text-slate-900 md:col-span-2 dark:text-slate-100">
-                                        <MobileCellLabel>Lokasyon</MobileCellLabel>
-                                        {loc}
-                                    </div>
-
-                                    <div className="col-span-1 flex flex-col gap-0.5 md:col-span-2">
-                                        <MobileCellLabel>Müdür / Saha Sor.</MobileCellLabel>
-                                        {managerName && (
-                                            <div className="flex items-center gap-1 text-[11px]">
-                                                <span className="font-medium text-slate-500 dark:text-slate-400">Müdür:</span>
-                                                <span className="text-slate-700 dark:text-slate-300">{managerName}</span>
-                                            </div>
-                                        )}
-                                        {fieldManagerNames.length > 0 && (
-                                            <div className="flex items-center gap-1 text-[11px]">
-                                                <span className="font-medium text-slate-500 dark:text-slate-400">Saha:</span>
-                                                <span className="text-slate-700 dark:text-slate-300">{fieldManagerNames.join(", ")}</span>
-                                            </div>
-                                        )}
-                                        {!managerName && fieldManagerNames.length === 0 && (
-                                            <span className="text-xs text-slate-600 dark:text-slate-400">—</span>
-                                        )}
-                                    </div>
-
-                                    <div className="col-span-1 md:col-span-2">
-                                        <MobileCellLabel>Ekip / Lider</MobileCellLabel>
-                                        <TeamLeaderWithMembersTooltip teamId={p.assigned_team_id} teamInfoById={teamInfoById} />
-                                    </div>
+                                    {/* Dönem, Lokasyon, Müdür / Saha Sor., Ekip / Lider */}
+                                    <PlanRowCells
+                                        parentRange={parentRange}
+                                        locInfo={locInfoById.get(p.location_id)}
+                                        teamId={p.assigned_team_id}
+                                        teamInfoById={teamInfoById}
+                                    />
 
                                     <div className="col-span-1 flex flex-col items-start gap-1 text-left md:col-span-2 md:items-center md:text-center">
                                         <MobileCellLabel>Durum</MobileCellLabel>
@@ -493,6 +431,8 @@ export function HomeAuditListPanel(props: {
                         })
                     )}
                 </div>
+
+                {!loading && <DoneDayListNote audits={countAudits(entries)} repeats={countRepeats(entries)} />}
 
                 {/* küçük not */}
                 <div className="mt-3 text-[11px] text-slate-500 dark:text-slate-400">

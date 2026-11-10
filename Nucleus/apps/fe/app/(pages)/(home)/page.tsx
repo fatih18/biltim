@@ -12,7 +12,7 @@ import { confirmDialog } from "@/app/_components/Global/ConfirmDialog";
 import { useAuditReport } from "./_hooks/useAuditReport";
 import type { DayConflictLoader } from "./_hooks/useDayConflicts";
 import { canOpenAuditReport, isFieldManagerOnly } from "./_utils/auditReport";
-import { TAB_STATUS_FILTERS } from "./_utils/tabStatus";
+import { TAB_SORT_DIRECTION, TAB_STATUS_FILTERS } from "./_utils/tabStatus";
 import { RejectPlanDialog } from "./_components/RejectPlanDialog";
 import { isCarriedOutPlan, rowActionsFor } from "@/app/_utils/planReview";
 
@@ -356,7 +356,7 @@ export default function Page() {
       payload: {
         page: 1,
         limit: 50,
-        sort: [{ field: "planned_date", direction: currentTab === "upcoming" ? "asc" : "desc" }],
+        sort: [{ field: "planned_date", direction: TAB_SORT_DIRECTION[currentTab] }],
         filters,
       },
       onAfterHandle: (res: any) => {

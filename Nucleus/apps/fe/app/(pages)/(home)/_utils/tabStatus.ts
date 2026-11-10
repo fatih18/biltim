@@ -15,3 +15,15 @@ export const TAB_STATUS_FILTERS: Record<HomeTabKey, TabStatusFilter> = {
   approval: { field: 'status', operator: 'in', value: ['pending_approval'] },
   completed: { field: 'status', operator: 'in', value: ['completed'] },
 }
+
+/**
+ * The order each tab's query asks the server for, by planned date: the plans
+ * still to come read oldest first, the sent and approved ones newest first.
+ * The screen places an audit done on another day by the same direction
+ * (doneDayPlacement), so the two cannot disagree.
+ */
+export const TAB_SORT_DIRECTION: Record<HomeTabKey, 'asc' | 'desc'> = {
+  upcoming: 'asc',
+  approval: 'desc',
+  completed: 'desc',
+}

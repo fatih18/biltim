@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { type HomeTabKey, TAB_STATUS_FILTERS } from './tabStatus'
+import { type HomeTabKey, TAB_SORT_DIRECTION, TAB_STATUS_FILTERS } from './tabStatus'
 
 const TABS: HomeTabKey[] = ['upcoming', 'approval', 'completed']
 
@@ -26,5 +26,11 @@ describe('home tab filters', () => {
     expect(tabsHolding('pending_approval')).toEqual(['approval'])
     expect(tabsHolding('completed')).toEqual(['completed'])
     expect(tabsHolding('planned')).toEqual(['upcoming'])
+  })
+})
+
+describe('home tab order', () => {
+  it('reads the plans still to come oldest first and the sent and approved ones newest first', () => {
+    expect(TAB_SORT_DIRECTION).toEqual({ upcoming: 'asc', approval: 'desc', completed: 'desc' })
   })
 })
