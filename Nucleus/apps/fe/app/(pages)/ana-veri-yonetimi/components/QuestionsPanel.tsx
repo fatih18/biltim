@@ -11,6 +11,8 @@ import {
   questions as SEED_QUESTIONS,
   steps as SEED_STEPS,
 } from "../../denetim/constants";
+import { RequirePhotoToggle } from "../_components/RequirePhotoToggle";
+import { photoRuleLabel, readRequirePhoto } from "../_utils/questionPhotoRule";
 
 /* ─── Types ─── */
 type StepRow = {
@@ -30,6 +32,7 @@ type QuestionRow = {
   text: string;
   maxScore: string;
   requireExplanation: boolean;
+  requirePhoto: boolean;
   isActive: boolean;
 };
 
@@ -91,6 +94,7 @@ export function QuestionsPanel() {
   const [editText, setEditText] = React.useState("");
   const [editMaxScore, setEditMaxScore] = React.useState("");
   const [editRequireExplanation, setEditRequireExplanation] = React.useState(true);
+  const [editRequirePhoto, setEditRequirePhoto] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
 
   /* Add question */
@@ -98,6 +102,7 @@ export function QuestionsPanel() {
   const [addText, setAddText] = React.useState("");
   const [addMaxScore, setAddMaxScore] = React.useState("2.5");
   const [addRequireExplanation, setAddRequireExplanation] = React.useState(true);
+  const [addRequirePhoto, setAddRequirePhoto] = React.useState(false);
   const [addOrder, setAddOrder] = React.useState(1);
   const [adding, setAdding] = React.useState(false);
 
@@ -143,6 +148,7 @@ export function QuestionsPanel() {
           text: String(q.text ?? ""),
           maxScore: String(q.max_score ?? ""),
           requireExplanation: Boolean(q.require_explanation ?? true),
+          requirePhoto: readRequirePhoto(q),
           isActive: Boolean(q.is_active ?? true),
         }))
       );
@@ -214,6 +220,7 @@ export function QuestionsPanel() {
     setEditText(q.text);
     setEditMaxScore(q.maxScore);
     setEditRequireExplanation(q.requireExplanation);
+    setEditRequirePhoto(q.requirePhoto);
   }
 
   async function saveEdit(id: string) {
@@ -227,11 +234,18 @@ export function QuestionsPanel() {
         text: editText.trim(),
         max_score: editMaxScore,
         require_explanation: editRequireExplanation,
+        require_photo: editRequirePhoto,
       });
       setQuestions((prev) =>
         prev.map((q) =>
           q.id === id
-            ? { ...q, text: editText.trim(), maxScore: editMaxScore, requireExplanation: editRequireExplanation }
+            ? {
+                ...q,
+                text: editText.trim(),
+                maxScore: editMaxScore,
+                requireExplanation: editRequireExplanation,
+                requirePhoto: editRequirePhoto,
+              }
             : q
         )
       );
@@ -272,6 +286,7 @@ export function QuestionsPanel() {
     setAddText("");
     setAddMaxScore("2.5");
     setAddRequireExplanation(true);
+    setAddRequirePhoto(false);
     setAddOrder(stepQs.length + 1);
   }
 
@@ -290,6 +305,7 @@ export function QuestionsPanel() {
         text: addText.trim(),
         max_score: addMaxScore,
         require_explanation: addRequireExplanation,
+        require_photo: addRequirePhoto,
       });
       const createdId = res?.data?.id ?? res?.id ?? res?.data?.[0]?.id ?? String(Date.now());
       setQuestions((prev) => [
@@ -303,6 +319,7 @@ export function QuestionsPanel() {
           text: addText.trim(),
           maxScore: addMaxScore,
           requireExplanation: addRequireExplanation,
+          requirePhoto: addRequirePhoto,
           isActive: true,
         },
       ]);
@@ -459,6 +476,7 @@ export function QuestionsPanel() {
                             />
                             Açıklama Zorunlu
                           </label>
+                          <RequirePhotoToggle checked={addRequirePhoto} onChange={setAddRequirePhoto} />
                           <div className="ml-auto flex gap-2">
                             <button
                               type="button"
@@ -520,6 +538,7 @@ export function QuestionsPanel() {
                                 />
                                 Açıklama Zorunlu
                               </label>
+                              <RequirePhotoToggle checked={editRequirePhoto} onChange={setEditRequirePhoto} />
                               <div className="ml-auto flex gap-2">
                                 <button
                                   type="button"
@@ -548,7 +567,7 @@ export function QuestionsPanel() {
                               <div className="mt-0.5 text-xs leading-relaxed text-slate-800 dark:text-slate-200">
                                 {q.text}
                               </div>
-                              <div className="mt-1.5 flex items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400">
+                              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500 dark:text-slate-400">
                                 <span>
                                   Maks. Puan:{" "}
                                   <span className="text-sky-700 dark:text-sky-300">{q.maxScore}</span>
@@ -556,6 +575,7 @@ export function QuestionsPanel() {
                                 <span>
                                   {q.requireExplanation ? "Açıklama zorunlu" : "Açıklama opsiyonel"}
                                 </span>
+                                <span>{photoRuleLabel(q.requirePhoto)}</span>
                                 {!q.isActive && <span className="text-rose-400">Pasif</span>}
                               </div>
                             </div>

@@ -57,6 +57,16 @@ import { initialAttendanceOf } from './_utils/attendance'
 import { buildAuditRecord, questionPoint, showsDetailsColumn } from './_utils/auditRecord'
 import { NOT_ATTENDED_CONFIRM, noAnswersNotice, unknownAttendanceWarning } from './_utils/attendanceText'
 import { OpenFindingNotice } from './_components/OpenFindingNotice'
+import { PhotoGapList } from './_components/PhotoGapList'
+import { PhotoLabelMark } from './_components/PhotoLabelMark'
+import { PhotoRowHint } from './_components/PhotoRowHint'
+import {
+  photoGapLabel,
+  photoGapToast,
+  photoMissing,
+  questionsMissingPhoto,
+  singleFindingPhotoRefusal,
+} from './_utils/photoRequired'
 import { PhotoPreviewOverlay } from './_components/PhotoPreviewOverlay'
 import { StandaloneFindingEntry } from './_components/StandaloneFindingEntry'
 import { FindingDetailsLocked } from './_components/FindingDetailsLocked'
@@ -985,6 +995,19 @@ export default function FiveSAuditFormPage() {
   /** The answers that are scored, queued, sent and turned into findings; none while passive. */
   const { passive: auditPassive, answersRequired, answers: recordedAnswers, score: auditScore } = auditRecord
 
+  /*
+   * R72: the questions whose answer raises a new finding on a question that
+   * demands a photo, and has none on the device (_utils/photoRequired.ts).
+   * Nothing while passive (toValidate is empty) and nothing for an answer a
+   * correction leaves as saved.
+   */
+  const photoGap = questionsMissingPhoto({
+    questions: auditRecord.toValidate,
+    answers: auditRecord.answers,
+    raisesFinding: (q, ans) => !isUnchangedStoredAnswer(q.id, ans.rating) && needsFindingDetails(q.id, ans),
+  })
+  const photoGapIds = new Set(photoGap.map((q) => q.id))
+
   // The plain 5S sum plus the plant's own rules (scoring.ts → scoreAudit).
   const stepScores = auditScore.stepScores
   const totalScore = auditScore.total
@@ -999,6 +1022,7 @@ export default function FiveSAuditFormPage() {
       if (!ans || !ans.rating) { s.add(q.id); continue }
       if (isUnchangedStoredAnswer(q.id, ans.rating)) continue
       if (explanationMissing(q, ans, findingsAddedHere.has(q.id))) s.add(q.id)
+      if (photoMissing(q, ans, needsFindingDetails(q.id, ans))) s.add(q.id)
       if (needsFindingDetails(q.id, ans)) {
         if (!ans.findingType) s.add(q.id)
         if (!ans.actionToTake?.trim()) s.add(q.id)
@@ -2552,6 +2576,7 @@ export default function FiveSAuditFormPage() {
           text: String(q.text ?? ''),
           maxScore: parseFloat(String(q.max_score ?? '0')),
           requireExplanation: Boolean(q.require_explanation ?? true),
+          requirePhoto: q.require_photo === true,
         }))
         setQuestions(mapped)
         // answers state'ini yeni soru listesiyle senkronize et (eksik olanları ekle)
@@ -2939,8 +2964,13 @@ export default function FiveSAuditFormPage() {
        * stamp was refused.
        */
       console.error('Plan tamamlandı olarak işaretlenemedi', err)
+      // A refusal carries its reason (R72: a finding without its required photo): say it, as the offline replay does.
+      const reasons = isRefusal(err) ? serverReasonsOf(err) : []
       toast.error(
-        'Denetim kaydedildi ancak plan onaya gönderilemedi. Lütfen yöneticinize bildirin.'
+        reasons.length > 0
+          ? `Denetim kaydedildi ancak plan onaya gönderilemedi: ${reasons.join(' ')}`
+          : 'Denetim kaydedildi ancak plan onaya gönderilemedi. Lütfen yöneticinize bildirin.',
+        reasons.length > 0 ? { duration: 20000 } : undefined
       )
     }
   }
@@ -3177,6 +3207,7 @@ export default function FiveSAuditFormPage() {
       if (isUnchangedStoredAnswer(q.id, ans.rating)) continue
 
       if (explanationMissing(q, ans, findingsAddedHere.has(q.id))) missing.add(q.id)
+      if (photoMissing(q, ans, needsFindingDetails(q.id, ans))) missing.add(q.id)
 
       if (needsFindingDetails(q.id, ans)) {
         if (!ans.findingType) missing.add(q.id)
@@ -3189,6 +3220,7 @@ export default function FiveSAuditFormPage() {
 
     if (missing.size > 0) {
       setMissingQuestions(new Set(missing))
+      if (photoGap.length > 0) toast.error(photoGapToast(photoGap, steps), { duration: 15000 })
       return false
     }
 
@@ -3489,6 +3521,12 @@ export default function FiveSAuditFormPage() {
     if (!singleFinding.explanation.trim()) { toast.error('Açıklama zorunludur.'); return }
     if (!singleFinding.actionToTake.trim()) { toast.error('Alınacak faaliyet alanı zorunludur.'); return }
     if (!singleFinding.dueDate) { toast.error('Termin tarihi zorunludur.'); return }
+    // R72: a finding linked to a question that demands a photo carries one (photoRequired.ts).
+    const photoRefusal = singleFindingPhotoRefusal(
+      questions.find((q) => q.id === singleFinding.linkedQuestionId),
+      singleFinding.photos
+    )
+    if (photoRefusal) { toast.error(photoRefusal); return }
 
     if (!loc) { toast.error('Lokasyon alanı zorunludur.'); return }
     if (!findingDate) { toast.error('Tarih alanı zorunludur.'); return }
@@ -3907,7 +3945,13 @@ export default function FiveSAuditFormPage() {
           </div>
 
           <div>
-            <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">Fotoğraflar</label>
+            <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">
+              Fotoğraflar{' '}
+              <PhotoLabelMark
+                required={questions.find((q) => q.id === singleFinding.linkedQuestionId)?.requirePhoto === true}
+                hasPhoto={(singleFinding.photos?.length ?? 0) > 0}
+              />
+            </label>
 
             <div className="flex items-center gap-2">
               <label className="inline-flex flex-1 cursor-pointer items-center justify-center rounded-md border border-slate-400 dark:border-slate-600 bg-white dark:bg-slate-950/70 px-3 py-1.5 text-[11px] hover:bg-slate-200 hover:dark:bg-slate-800">
@@ -4255,6 +4299,12 @@ export default function FiveSAuditFormPage() {
         })
       : null
   const detailsLocked = detailsLock !== null
+  // R72: the photo is asked where this answer writes a new finding on a question that demands one.
+  const photoRequiredHere =
+    !!activeQuestion &&
+    !!activeAnswer &&
+    activeQuestion.requirePhoto === true &&
+    needsFindingDetails(activeQuestion.id, activeAnswer)
   // The explanation follows explanationMissing: waived only by a finding added in this audit.
   const explanationRequired =
     !!activeQuestion && activeQuestion.requireExplanation && !findingsAddedHere.has(activeQuestion.id)
@@ -4603,6 +4653,7 @@ export default function FiveSAuditFormPage() {
                                   labels={openFindingsByQuestion.get(q.id) ?? []}
                                   rating={recordedAnswers[q.id]?.rating}
                                 />
+                                <PhotoRowHint missing={hasAttempted && photoGapIds.has(q.id)} />
                               </td>
 
                               {hasAnyDetails && (
@@ -4704,6 +4755,7 @@ export default function FiveSAuditFormPage() {
                                 labels={openFindingsByQuestion.get(q.id) ?? []}
                                 rating={recordedAnswers[q.id]?.rating}
                               />
+                              <PhotoRowHint missing={hasAttempted && photoGapIds.has(q.id)} />
                             </div>
                             <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-600 dark:text-slate-400">
                               <span className="inline-flex items-center gap-1 rounded-full bg-slate-200 dark:bg-slate-800/80 px-2 py-0.5">
@@ -4840,6 +4892,7 @@ export default function FiveSAuditFormPage() {
                 <p>* Offline iken kayıt kuyruğa alınır.</p>
               </div>
               <div className="flex flex-col items-end gap-1.5">
+                {hasAttempted && <PhotoGapList labels={photoGap.map((q) => photoGapLabel(q, steps))} />}
                 {hasAttempted && liveUnanswered.size > 0 && (
                   <p className="text-[11px] text-rose-400">
                     <span className="font-semibold">{liveUnanswered.size}</span> soru yanıt bekliyor — form kaydedilemez.
@@ -4950,7 +5003,9 @@ export default function FiveSAuditFormPage() {
                 </div>
 
                 <div hidden={detailsLocked}>
-                  <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">Fotoğraflar</label>
+                  <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">
+                    Fotoğraflar <PhotoLabelMark required={photoRequiredHere} hasPhoto={(activeAnswer.photos?.length ?? 0) > 0} />
+                  </label>
 
                   <div className="flex items-center gap-2">
                     <label className="inline-flex flex-1 cursor-pointer items-center justify-center rounded-md border border-slate-400 dark:border-slate-600 bg-white dark:bg-slate-950/70 px-3 py-1.5 text-[11px] hover:bg-slate-200 hover:dark:bg-slate-800">

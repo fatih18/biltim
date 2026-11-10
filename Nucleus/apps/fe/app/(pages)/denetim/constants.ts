@@ -91,6 +91,8 @@ export interface Question {
     text: string;
     maxScore: number;
     requireExplanation: boolean;
+    /** R72: a finding this question raises must carry a photo. Off unless an administrator sets it. */
+    requirePhoto?: boolean;
 }
 export const steps: Step[] = [
     { code: "S1", title: "1 - Sınıflandırma (Ayıklama)", maxScore: 20, order: 1 },
