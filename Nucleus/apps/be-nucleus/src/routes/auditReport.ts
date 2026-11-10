@@ -28,6 +28,8 @@ export type AuditReportTarget = {
   auditDay: string
   /** Every plan the audit belongs to is `completed` (approved). */
   completed: boolean
+  /** A plan the audit belongs to is `rejected`: Merkez Ekip sent it back to its team for correction (R30). */
+  rejected: boolean
 }
 
 /**
@@ -47,12 +49,13 @@ export function isScopedFieldManager(caller: Caller | null): boolean {
  * on it. Plans are joined on either side of the link — the plan's `audit_id`
  * or the audit's own `plan_id`, as the other audit rules read it — and it is
  * `completed` only when every plan found is: an audit with no plan at all is
- * not approved.
+ * not approved. `rejected` when any plan found was sent back for correction.
  */
 export async function loadAuditReportTarget(auditId: string, read: Read = query): Promise<AuditReportTarget | null> {
   const rows = await read(
     `select a.id::text as id, a.department_name, a.audit_date,
-            coalesce(bool_and(p.status = 'completed'), false) as completed
+            coalesce(bool_and(p.status = 'completed'), false) as completed,
+            coalesce(bool_or(p.status = 'rejected'), false) as rejected
        from main.five_s_audits a
        left join main.five_s_audit_plans p
          on p.audit_id::text = a.id::text or p.id::text = a.plan_id::text
@@ -70,6 +73,7 @@ export async function loadAuditReportTarget(auditId: string, read: Read = query)
     locationName: String(row.department_name).trim(),
     auditDay: toDateKey(row.audit_date),
     completed: row.completed === true,
+    rejected: row.rejected === true,
   }
 }
 
@@ -79,10 +83,18 @@ export type ReportRefusal = { status: 403; message: string }
  * The rule that belongs to a single audit's report, on top of the location
  * scoping: a field manager is shown it once the audit is approved. Everyone
  * else is unchanged — the roles that already open any audit of a location keep
- * doing so.
+ * doing so. An audit Merkez Ekip sent back is told so: it is with its team for
+ * correction and is not final until it is sent again and approved.
  */
 export function auditReportRefusal(caller: Caller | null, target: AuditReportTarget): ReportRefusal | null {
   if (!isScopedFieldManager(caller) || target.completed) return null
+  if (target.rejected) {
+    return {
+      status: 403,
+      message:
+        'Bu denetimin raporu açılamaz: denetim düzeltilmek üzere ekibine geri gönderildi ve henüz kesinleşmedi. Ekip düzeltip yeniden gönderdikten ve Merkez Ekip onayladıktan sonra Tamamlanan sekmesinden raporu açabilirsiniz.',
+    }
+  }
   return {
     status: 403,
     message:

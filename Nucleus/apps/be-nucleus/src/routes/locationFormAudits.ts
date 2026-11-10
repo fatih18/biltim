@@ -8,9 +8,12 @@ import type { PlaceInYear } from './locationMatch'
  * Either the location's year (`auditId` null: audits typed with one of the
  * place's names or planned on one of its rows, dated inside the year) or the
  * one audit asked for. `completedOnly` is a scoped field manager asking: only
- * audits whose plan is approved (`completed`) count, in both shapes, so the
- * yearly form cannot be used to read a question sheet that the one-audit
- * report refuses. `$6` is that flag and the `exists` clause is what it switches.
+ * audits whose plans are approved count, in both shapes, so the yearly form
+ * cannot be used to read a question sheet that the one-audit report refuses.
+ * "Approved" is the one-audit report's rule (`loadAuditReportTarget`): at least
+ * one plan is linked, by its `audit_id` or by the audit's `plan_id`, and no
+ * linked plan is anything but `completed`. `$6` is that flag and the two
+ * `exists` clauses are what it switches.
  */
 export function loadFormAudits(
   place: Pick<PlaceInYear, 'auditNames' | 'ids'>,
@@ -28,9 +31,11 @@ export function loadFormAudits(
              and (a.department_name = any($1::text[]) or a.location_id = any($2::uuid[]))
              and a.audit_date >= $3 and a.audit_date < ($4::date + 1)
              or a.id::text = $5)
-        and (not $6::boolean or exists (
-              select 1 from five_s_audit_plans p
-               where (p.audit_id = a.id or p.id = a.plan_id) and p.status = 'completed'))
+        and (not $6::boolean or (
+              exists (select 1 from five_s_audit_plans p
+                       where (p.audit_id = a.id or p.id = a.plan_id))
+              and not exists (select 1 from five_s_audit_plans p
+                               where (p.audit_id = a.id or p.id = a.plan_id) and p.status <> 'completed')))
       order by a.audit_date asc`,
     [place.auditNames, place.ids, range.from, range.to, auditId, completedOnly]
   )

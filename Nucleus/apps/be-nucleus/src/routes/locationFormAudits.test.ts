@@ -37,12 +37,26 @@ describe('loadFormAudits', () => {
     expect(seen[0]?.params[5]).toBe(false)
   })
 
-  it('switches the approval requirement on that flag: a completed plan, linked either way', async () => {
+  it('switches the approval requirement on that flag, and it is the one-audit report\'s: a linked plan, none unfinished', async () => {
+    const { seen, read } = recorder()
+    await loadFormAudits(PLACE, RANGE, null, true, read)
+    const text = seen[0]?.text.replace(/\s+/g, ' ') ?? ''
+    const linked = '(p.audit_id = a.id or p.id = a.plan_id)'
+    // At least one plan is linked, either way...
+    expect(text).toContain(`not $6::boolean or ( exists (select 1 from five_s_audit_plans p where ${linked})`)
+    // ...and none of the linked plans is anything but completed (loadAuditReportTarget's bool_and).
+    expect(text).toContain(
+      `and not exists (select 1 from five_s_audit_plans p where ${linked} and p.status <> 'completed')`
+    )
+    expect(text).not.toContain("and p.status = 'completed'")
+    expect(text).toContain("a.source is distinct from 'single_finding'")
+  })
+
+  it('asks the same of the plans as the one-audit report: both read them by either link', async () => {
     const { seen, read } = recorder()
     await loadFormAudits(PLACE, RANGE, null, true, read)
     const text = seen[0]?.text ?? ''
-    expect(text).toContain('not $6::boolean or exists (')
-    expect(text).toContain('(p.audit_id = a.id or p.id = a.plan_id) and p.status = \'completed\'')
-    expect(text).toContain("a.source is distinct from 'single_finding'")
+    // Two plans, one completed and one not: the report's bool_and is false, and so is `not exists (... <> 'completed')`.
+    expect(text.match(/p\.audit_id = a\.id or p\.id = a\.plan_id/g)).toHaveLength(2)
   })
 })

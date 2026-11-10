@@ -16,6 +16,7 @@ const approved: AuditReportTarget = {
   locationName: 'Çelik Haddehane',
   auditDay: '2026-11-03',
   completed: true,
+  rejected: false,
 }
 const waiting: AuditReportTarget = { ...approved, completed: false }
 
