@@ -31,7 +31,8 @@ describe('who may reject', () => {
 
 describe('the reason', () => {
   it('is 5 to 500 characters once trimmed, and a 400 in Turkish otherwise', async () => {
-    const bad: unknown[] = [undefined, null, 42, '', '    ', 'abcd', '  abcd  ', 'x'.repeat(REASON_MAX + 1)]
+    // The route's body schema lets only a string or nothing through, so a number or null never reaches rejectPlan.
+    const bad: Array<string | undefined> = [undefined, '', '    ', 'abcd', '  abcd  ', 'x'.repeat(REASON_MAX + 1)]
     for (const reason of bad) {
       const { outcome, events, wrote } = await reject('u-ce', { plan: pending() }, reason)
       expect(outcome.status).toBe(400)

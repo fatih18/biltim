@@ -1,4 +1,5 @@
 import { Pool } from 'pg'
+import type { QueryParam } from './guards/caller'
 
 /**
  * Custom (non-CRUD) routes run raw aggregate SQL that the generated entity
@@ -21,23 +22,32 @@ const pool = new Pool({
 export type Row = Record<string, unknown>
 
 export async function query(text: string, params: unknown[] = []): Promise<Row[]> {
-  const res = await pool.query(text, params)
-  return res.rows as Row[]
+  const res = await pool.query<Row>(text, params)
+  return res.rows
 }
 
-export type Sql = (text: string, params?: unknown[]) => Promise<Row[]>
+export type Sql = (text: string, params?: QueryParam[]) => Promise<Row[]>
+
+/** What a transaction needs of a connection: run SQL, give it back (dropped when handed an error). */
+export type TransactionClient = {
+  query: (text: string, params?: QueryParam[]) => Promise<{ rows: Row[] }>
+  release: (error?: Error) => void
+}
+
+/** What a transaction needs of a pool; the real `Pool` fits, so a test can hand in a fake. */
+export type TransactionPool = { connect: () => Promise<TransactionClient> }
 
 /**
  * One transaction on one connection: everything `work` runs through the `sql`
  * it is handed commits together or not at all. A throw rolls back and is
  * rethrown. A connection whose rollback failed is dropped, not returned.
  */
-export async function transaction<T>(work: (sql: Sql) => Promise<T>): Promise<T> {
-  const client = await pool.connect()
+export async function runTransaction<T>(source: TransactionPool, work: (sql: Sql) => Promise<T>): Promise<T> {
+  const client = await source.connect()
   let broken: Error | undefined
   try {
     await client.query('begin')
-    const result = await work(async (text, params = []) => (await client.query(text, params)).rows as Row[])
+    const result = await work(async (text, params = []) => (await client.query(text, params)).rows)
     await client.query('commit')
     return result
   } catch (error) {
@@ -49,6 +59,8 @@ export async function transaction<T>(work: (sql: Sql) => Promise<T>): Promise<T>
     client.release(broken)
   }
 }
+
+export const transaction = <T>(work: (sql: Sql) => Promise<T>): Promise<T> => runTransaction(pool, work)
 
 export async function closePool(): Promise<void> {
   await pool.end().catch(() => undefined)

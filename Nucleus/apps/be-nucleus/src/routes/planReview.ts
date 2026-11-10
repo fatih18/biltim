@@ -1,6 +1,6 @@
 import { Type as t } from '@sinclair/typebox'
 import { defineRoute } from 'nucleus-core-ts/server'
-import { type Sql, query, transaction } from '../db'
+import { type Row, type Sql, query, transaction } from '../db'
 import { PENDING_APPROVAL, canonicalId, toDateKey } from '../guards/businessRules'
 import { callerById, isAdmin } from '../guards/caller'
 import { REJECTED } from '../guards/rejectedPlan'
@@ -39,7 +39,16 @@ export type RejectDeps = {
   transaction: <T>(work: (sql: Sql) => Promise<T>) => Promise<T>
 }
 
-export type RejectOutcome = { status: number; body: Record<string, unknown> }
+/** What the route answers: a refusal with its message, or the rejected plan's id and new status. */
+export type RejectBody = {
+  success: boolean
+  isSuccess?: boolean
+  message?: string
+  errors?: Array<{ message: string }>
+  data?: { id: string; status: string }
+}
+
+export type RejectOutcome = { status: number; body: RejectBody }
 
 const defaultDeps: RejectDeps = { read: query, transaction }
 
@@ -48,7 +57,11 @@ const failure = (status: number, message: string): RejectOutcome => ({
   body: { success: false, isSuccess: false, message, errors: [{ message }] },
 })
 
-const text = (value: unknown): string => String(value ?? '').trim()
+/** A text column of a row, trimmed; a missing or null column reads as empty. */
+const field = (row: Row | undefined, key: string): string => {
+  const value = row?.[key]
+  return typeof value === 'string' ? value.trim() : ''
+}
 
 /** Cut to a column's width, saying so with an ellipsis (the same as nucleus does for its own notifications). */
 const clip = (value: string, max: number): string => (value.length > max ? `${value.slice(0, max - 1)}…` : value)
@@ -68,7 +81,7 @@ export function rejectionNotice(location: string, day: string, reason: string): 
 }
 
 export async function rejectPlan(
-  input: { planId: string; userId: string | null; reason: unknown },
+  input: { planId: string; userId: string | null; reason: string | undefined },
   deps: RejectDeps = defaultDeps
 ): Promise<RejectOutcome> {
   const caller = input.userId ? await callerById(input.userId, deps.read) : null
@@ -80,7 +93,7 @@ export async function rejectPlan(
     )
   }
 
-  const reason = typeof input.reason === 'string' ? input.reason.trim() : ''
+  const reason = (input.reason ?? '').trim()
   const length = [...reason].length
   if (length < REASON_MIN || length > REASON_MAX) {
     return failure(
@@ -105,7 +118,7 @@ export async function rejectPlan(
     const plan = plans[0]
     if (!plan) return failure(404, 'Denetim planı bulunamadı. Sayfayı yenileyip yeniden deneyin.')
 
-    const status = text(plan.status)
+    const status = field(plan, 'status')
     if (status !== PENDING_APPROVAL) {
       return failure(
         409,
@@ -121,11 +134,11 @@ export async function rejectPlan(
         returning id::text as id`,
       [planId, reason, caller.userId]
     )
-    const id = text(updated[0]?.id)
+    const id = field(updated[0], 'id')
     if (!id) return failure(409, 'Plan başka biri tarafından değiştirildi. Sayfayı yenileyip güncel durumu görün.')
 
     // The leader and the active members; each person once, whatever the roles say.
-    const teamId = text(plan.assigned_team_id)
+    const teamId = field(plan, 'assigned_team_id')
     const members = teamId
       ? await sql(
           `select m.user_id::text as user_id from main.five_s_audit_team_members m
@@ -134,10 +147,14 @@ export async function rejectPlan(
         )
       : []
     const recipients = [
-      ...new Set([plan.leader_user_id, ...members.map((m) => m.user_id)].map((v) => canonicalId(v)).filter(Boolean)),
+      ...new Set(
+        [field(plan, 'leader_user_id'), ...members.map((m) => field(m, 'user_id'))]
+          .map((v) => canonicalId(v))
+          .filter(Boolean)
+      ),
     ]
     if (recipients.length > 0) {
-      const notice = rejectionNotice(text(plan.location_name), toDateKey(plan.planned_date), reason)
+      const notice = rejectionNotice(field(plan, 'location_name'), toDateKey(plan.planned_date), reason)
       /*
        * No entity_name / entity_id: the bell opens `/<entity_name>s/<entity_id>`
        * for a notification that carries both, and no such page exists for a
@@ -153,23 +170,30 @@ export async function rejectPlan(
   })
 }
 
-export const rejectPlanRoute = defineRoute({
-  method: 'POST',
-  path: '/plans/:plan_id/reject',
-  params: t.Object({ plan_id: t.String() }),
-  // Optional all the way down, so a missing reason is answered in Turkish by rejectPlan, not by the validator.
-  body: t.Optional(t.Object({ reason: t.Optional(t.String()) })),
-  detail: {
-    tags: ['Biltim'],
-    summary: 'Send an audit waiting for approval back to its team for correction (Merkez Ekip)',
-  },
-  handler: async (ctx) => {
-    const result = await rejectPlan({
-      planId: ctx.params.plan_id,
-      userId: ctx.request.headers.get('x-user-id'),
-      reason: ctx.body?.reason,
-    })
-    ctx.set.status = result.status
-    return result.body
-  },
-})
+/** The route over any database: the server takes the default, a test hands in a fake. */
+export const createRejectPlanRoute = (deps: RejectDeps = defaultDeps) =>
+  defineRoute({
+    method: 'POST',
+    path: '/plans/:plan_id/reject',
+    params: t.Object({ plan_id: t.String() }),
+    // Optional all the way down, so a missing reason is answered in Turkish by rejectPlan, not by the validator.
+    body: t.Optional(t.Object({ reason: t.Optional(t.String()) })),
+    detail: {
+      tags: ['Biltim'],
+      summary: 'Send an audit waiting for approval back to its team for correction (Merkez Ekip)',
+    },
+    handler: async (ctx) => {
+      const result = await rejectPlan(
+        {
+          planId: ctx.params.plan_id,
+          userId: ctx.request.headers.get('x-user-id'),
+          reason: ctx.body?.reason,
+        },
+        deps
+      )
+      ctx.set.status = result.status
+      return result.body
+    },
+  })
+
+export const rejectPlanRoute = createRejectPlanRoute()

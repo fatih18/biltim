@@ -1,4 +1,5 @@
 import type { Row, Sql } from '../db'
+import type { QueryParam } from '../guards/caller'
 import { type RejectDeps, rejectPlan } from './planReview'
 
 /** A fake database and a one-call `reject` for the Reddet route's tests (planReview*.test.ts). */
@@ -39,7 +40,7 @@ export const pending = (over: Row = {}): Row => ({
 
 /** A database that answers the route's questions, and remembers what it was asked and how the transaction ended. */
 export function fakeDb(world: World) {
-  const calls: Array<{ text: string; params: unknown[] }> = []
+  const calls: Array<{ text: string; params: QueryParam[] }> = []
   const events: string[] = []
   const sql: Sql = async (text, params = []) => {
     calls.push({ text, params })
@@ -78,7 +79,7 @@ export function fakeDb(world: World) {
 }
 
 /** `rest` is `[reason, planId]`; naming a reason as `undefined` is a missing one, not the default. */
-export const reject = (userId: string | null, world: World, ...rest: [reason?: unknown, planId?: string]) => {
+export const reject = (userId: string | null, world: World, ...rest: [reason?: string, planId?: string]) => {
   const db = fakeDb(world)
   const reason = rest.length > 0 ? rest[0] : REASON
   return rejectPlan({ planId: rest[1] ?? PLAN, userId, reason }, db.deps).then((outcome) => ({ outcome, ...db }))

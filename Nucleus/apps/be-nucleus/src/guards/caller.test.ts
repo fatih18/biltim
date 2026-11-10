@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test'
 import { createHmac } from 'node:crypto'
 import {
   type Caller,
+  type QueryParam,
   carriesCredentials,
   cookieValue,
   isAdmin,
@@ -90,7 +91,7 @@ describe('cookieValue', () => {
 /** Answers callerById's two queries. */
 const userReader =
   (users: Record<string, { god?: boolean; roles: string[] }>) =>
-  async (text: string, params: unknown[]) => {
+  async (text: string, params: QueryParam[]) => {
     const u = users[String(params[0])]
     if (!u) return []
     if (text.includes('from main.users')) return [{ is_god: u.god === true }]

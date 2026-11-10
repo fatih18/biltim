@@ -870,8 +870,8 @@ describe('master data an open plan still uses', () => {
   })
 
   it('asks only about the row being deleted, by the right column', async () => {
-    const seen: Array<{ text: string; params: unknown[] }> = []
-    const read = async (text: string, params: unknown[]) => {
+    const seen: Array<{ text: string; params: QueryParam[] }> = []
+    const read = async (text: string, params: QueryParam[]) => {
       seen.push({ text, params })
       return [{ n: 0 }]
     }
@@ -1283,8 +1283,8 @@ describe('starting an audit (#27), every door', () => {
   })
 
   it('refuses an audit with no plan that names the location by name or by id', async () => {
-    const seen: unknown[][] = []
-    const read = async (text: string, params: unknown[]) => {
+    const seen: QueryParam[][] = []
+    const read = async (text: string, params: QueryParam[]) => {
       seen.push(params)
       return text.includes('from main.five_s_locations') ? [{ field_manager_user_ids: ['u-fm'] }] : []
     }
@@ -1711,7 +1711,7 @@ const FILE_B = '66666666-7777-4888-9999-aaaaaaaaaaaa'
 /** Answers a query only when its first parameter is the id given — as Postgres would by `id::text`. */
 const byId =
   (id: string, rows: Record<string, unknown>[], others: Record<string, Record<string, unknown>[]> = {}) =>
-  async (text: string, params: unknown[]) => {
+  async (text: string, params: QueryParam[]) => {
     for (const [needle, answer] of Object.entries(others)) if (text.includes(needle)) return answer
     return params[0] === id ? rows : []
   }
@@ -1782,7 +1782,7 @@ describe('ids in any spelling Postgres reads (#0)', () => {
   })
 
   it('asks the delete question with the canonical id', async () => {
-    const seen: unknown[][] = []
+    const seen: QueryParam[][] = []
     await enforceBusinessRules({
       request: req('DELETE', `/fiveSAuditTeams/${TEAM.toUpperCase()}`),
       body: undefined,
@@ -2217,7 +2217,7 @@ describe('one plan, one audit (#1)', () => {
 
 describe('the godmin’s account (security #2)', () => {
   const GODMIN_ID = 'c0ffee00-1111-4222-8333-444455556666'
-  const read = async (text: string, params: unknown[]) => {
+  const read = async (text: string, params: QueryParam[]) => {
     if (!text.includes('from main.users u')) return []
     const ids = (params[0] as string[]) ?? []
     return ids.includes(GODMIN_ID) ? [{ id: GODMIN_ID }] : []
