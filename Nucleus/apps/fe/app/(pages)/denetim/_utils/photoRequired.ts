@@ -23,7 +23,7 @@ import type { Question, Step } from "../constants";
 import { type Rating, notGood } from "./scoring";
 
 /** The answer fields the photo rule reads; the form's own answer type carries more. */
-export type PhotoRuleAnswer = { rating: Rating | null; photos?: readonly unknown[] };
+export type PhotoRuleAnswer = { rating: Rating | null; photos?: readonly File[] };
 
 /**
  * Whether one answer still needs a photo: its question demands one, the answer
@@ -90,7 +90,7 @@ export function photoGapToast(questions: readonly Question[], steps: readonly St
  */
 export function singleFindingPhotoRefusal(
   question: Pick<Question, "id" | "requirePhoto"> | undefined,
-  photos: readonly unknown[] | undefined,
+  photos: readonly File[] | undefined,
 ): string | null {
   if (!question || question.requirePhoto !== true) return null;
   if ((photos?.length ?? 0) > 0) return null;

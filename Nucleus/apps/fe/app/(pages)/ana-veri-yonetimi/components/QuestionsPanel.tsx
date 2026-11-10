@@ -12,7 +12,8 @@ import {
   steps as SEED_STEPS,
 } from "../../denetim/constants";
 import { RequirePhotoToggle } from "../_components/RequirePhotoToggle";
-import { photoRuleLabel, readRequirePhoto } from "../_utils/questionPhotoRule";
+import { photoRuleLabel } from "../_utils/questionPhotoRule";
+import { readRequirePhoto } from "@/app/_utils/questionPhoto";
 
 /* ─── Types ─── */
 type StepRow = {
@@ -148,7 +149,7 @@ export function QuestionsPanel() {
           text: String(q.text ?? ""),
           maxScore: String(q.max_score ?? ""),
           requireExplanation: Boolean(q.require_explanation ?? true),
-          requirePhoto: readRequirePhoto(q),
+          requirePhoto: readRequirePhoto(q.require_photo),
           isActive: Boolean(q.is_active ?? true),
         }))
       );

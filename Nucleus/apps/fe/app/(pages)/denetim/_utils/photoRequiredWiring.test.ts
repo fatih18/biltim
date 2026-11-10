@@ -45,8 +45,9 @@ describe("the photo rule is asked wherever the form blocks a save", () => {
 });
 
 describe("the page reads the question's setting without defaulting it on", () => {
-  it("maps require_photo to true only for an explicit true", () => {
-    expect(pageCode).toContain("requirePhoto: q.require_photo === true");
+  it("maps require_photo through the reader the master-data screen uses", () => {
+    expect(pageCode).toContain("requirePhoto: readRequirePhoto(q.require_photo)");
+    expect(pageCode).not.toContain("require_photo === true");
   });
 
   it("shows the inline hint on both the table row and the phone row, the list and the label marks", () => {

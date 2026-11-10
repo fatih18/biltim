@@ -1,4 +1,4 @@
-import { REQUIRE_PHOTO_HELP } from "../../_utils/questionPhotoRule";
+import { REQUIRE_PHOTO_HELP, REQUIRE_PHOTO_TOOLTIP } from "../../_utils/questionPhotoRule";
 
 type RequirePhotoToggleProps = {
   checked: boolean;
@@ -7,11 +7,12 @@ type RequirePhotoToggleProps = {
 
 /*
  * The "Fotoğraf Zorunlu" switch of a question's add and edit forms, next to
- * "Açıklama Zorunlu", with a line saying exactly when it bites.
+ * "Açıklama Zorunlu", with one line saying when it bites. The edge cases sit
+ * in the tooltip (title) of the whole switch, so the phone form stays short.
  */
 export function RequirePhotoToggle({ checked, onChange }: RequirePhotoToggleProps) {
   return (
-    <div className="flex basis-full flex-col gap-0.5 sm:basis-auto sm:max-w-sm">
+    <div title={REQUIRE_PHOTO_TOOLTIP} className="flex basis-full flex-col gap-0.5 sm:basis-auto sm:max-w-sm">
       <label className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
         <input
           type="checkbox"

@@ -10,6 +10,7 @@ import { useStore } from '@store/globalStore'
 import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
 import { useGetUserRole } from '@/app/_hooks/user/useGetUserRole'
 import { currentUserIdOf } from '@/app/_utils/currentUser'
+import { readRequirePhoto } from '@/app/_utils/questionPhoto'
 import { looksOffline } from '@/app/_utils/offlineIdentity'
 import { choosePlan, type PickScope, pickIntro } from './_utils/planChoice'
 import { mayRaiseSingleFinding, mayStartOwnLocation, seesEveryPlan } from './_utils/planAccess'
@@ -67,6 +68,15 @@ import {
   questionsMissingPhoto,
   singleFindingPhotoRefusal,
 } from './_utils/photoRequired'
+import { replayStampAction } from './_utils/photoRefusal'
+import {
+  heldPlanGap,
+  PLAN_STAMPED,
+  type PlanStampOutcome,
+  planStampFailure,
+  planStampToast,
+  questionsLeftWithoutPhoto,
+} from './_utils/planStampOutcome'
 import { PhotoPreviewOverlay } from './_components/PhotoPreviewOverlay'
 import { StandaloneFindingEntry } from './_components/StandaloneFindingEntry'
 import { FindingDetailsLocked } from './_components/FindingDetailsLocked'
@@ -894,7 +904,8 @@ export default function FiveSAuditFormPage() {
    */
   const submitLockRef = useRef(false)
   const [submitState, setSubmitState] = useState<'idle' | 'saving' | 'done'>('idle')
-  // A correction that was saved but not sent, or not written in full (resendPlan.ts → correctionEnd).
+  // A correction that was saved but not sent, or not written in full (resendPlan.ts → correctionEnd);
+  // also a new audit whose plan the server refused to send (planStampOutcome.ts → heldPlanGap).
   const [savedGap, setSavedGap] = useState<SavedGap | null>(null)
   // The single-finding modal's save; unlocked after every attempt, since a
   // second single finding is a legitimate thing to record.
@@ -1816,6 +1827,15 @@ export default function FiveSAuditFormPage() {
             } catch (err) {
               if (!isRefusal(err)) throw err
               /*
+               * R72: refused for a finding without its required photo (a photo
+               * the server refused for good was skipped above). The queued copy
+               * may be the only place the auditor's answers and photos still
+               * are, so it is not cleaned up: it is set aside with the reason
+               * like any other refusal (the catch below), and the auditor sees
+               * it in the list of refused records. Decided in photoRefusal.ts.
+               */
+              if (replayStampAction(serverReasonsOf(err)) === 'set_aside') throw err
+              /*
                * The plan was deleted (or otherwise refuses the stamp) while
                * this sat in the queue. The audit and its findings are on the
                * server by now; keeping the submission would only retry the
@@ -2576,7 +2596,7 @@ export default function FiveSAuditFormPage() {
           text: String(q.text ?? ''),
           maxScore: parseFloat(String(q.max_score ?? '0')),
           requireExplanation: Boolean(q.require_explanation ?? true),
-          requirePhoto: q.require_photo === true,
+          requirePhoto: readRequirePhoto(q.require_photo),
         }))
         setQuestions(mapped)
         // answers state'ini yeni soru listesiyle senkronize et (eksik olanları ekle)
@@ -2945,7 +2965,11 @@ export default function FiveSAuditFormPage() {
     })
   }
 
-  const markPlanCompleted = async (planId: string, auditId: string) => {
+  /**
+   * Stamps the plan as sent and says what came of it (planStampOutcome.ts):
+   * the caller keeps the page open on a refusal instead of reporting success.
+   */
+  const markPlanCompleted = async (planId: string, auditId: string): Promise<PlanStampOutcome> => {
     // Gönderilen planı yerel listeden çıkar; tekrar görünüp seçilememeli
     setAvailablePlans((prev) => prev.filter((p) => p.id !== planId))
     try {
@@ -2954,6 +2978,7 @@ export default function FiveSAuditFormPage() {
       // The auditor's own tick, which also decides the score — no record
       // (null, the field left untouched) where the location has no field manager.
       await stampPlanSent(planId, auditId, auditRecord.attendanceStamp)
+      return PLAN_STAMPED
     } catch (err) {
       /*
        * This is not "kritik değil". If the plan is not stamped, it stays
@@ -2965,13 +2990,11 @@ export default function FiveSAuditFormPage() {
        */
       console.error('Plan tamamlandı olarak işaretlenemedi', err)
       // A refusal carries its reason (R72: a finding without its required photo): say it, as the offline replay does.
-      const reasons = isRefusal(err) ? serverReasonsOf(err) : []
-      toast.error(
-        reasons.length > 0
-          ? `Denetim kaydedildi ancak plan onaya gönderilemedi: ${reasons.join(' ')}`
-          : 'Denetim kaydedildi ancak plan onaya gönderilemedi. Lütfen yöneticinize bildirin.',
-        reasons.length > 0 ? { duration: 20000 } : undefined
-      )
+      const refused = isRefusal(err)
+      const outcome = planStampFailure({ refused, reasons: refused ? serverReasonsOf(err) : [] })
+      const failure = planStampToast(outcome)
+      toast.error(failure.text, failure.long ? { duration: 20000 } : undefined)
+      return outcome
     }
   }
 
@@ -3365,7 +3388,12 @@ export default function FiveSAuditFormPage() {
       await clearDraft(assignedPlan?.id ?? null, header)
 
       if (assignedPlan?.id && auditId) {
-        await markPlanCompleted(assignedPlan.id, auditId)
+        // A refused stamp keeps the page open with its reason: no success toast, no redirect.
+        const held = heldPlanGap(await markPlanCompleted(assignedPlan.id, auditId), [], steps)
+        if (held) {
+          setSavedGap(held)
+          return
+        }
       }
 
       // Madde 9: otomatik yeni denetime geçiş yok — ana sayfaya dön
@@ -3382,12 +3410,23 @@ export default function FiveSAuditFormPage() {
 
     const jobs = auditRecord.findings.map((ans) => createFindingForAnswer(ans, auditId, detectedDate))
 
-    await Promise.all(jobs)
+    const writes = await Promise.all(jobs)
     setSubmitted(true)
     await clearDraft(assignedPlan?.id ?? null, header)
 
     if (assignedPlan?.id && auditId) {
-      await markPlanCompleted(assignedPlan.id, auditId)
+      /*
+       * R72: when the server refuses the stamp for a finding without its
+       * required photo, the message names the questions whose photos did not
+       * upload (planStampOutcome.ts), and the page stays instead of reporting
+       * a clean save.
+       */
+      const withoutPhoto = questionsLeftWithoutPhoto({ answers: auditRecord.findings, writes, questions })
+      const held = heldPlanGap(await markPlanCompleted(assignedPlan.id, auditId), withoutPhoto, steps)
+      if (held) {
+        setSavedGap(held)
+        return
+      }
     }
 
     console.log('Audit + findings (+ photos) başarıyla kaydedildi.')
@@ -4875,7 +4914,7 @@ export default function FiveSAuditFormPage() {
               </table>
             </div>
 
-            {submitted && (
+            {submitted && !savedGap && (
               <p className="text-xs text-emerald-700 dark:text-emerald-300">
                 {isOnline ? 'Form başarıyla gönderildi.' : 'Form offline kuyruğa alındı (internet gelince gönderilecek).'}
               </p>
