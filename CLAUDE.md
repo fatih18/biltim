@@ -50,14 +50,14 @@ cd Nucleus && bun install && bun run dev        # be-nucleus (1001) + fe (3000)
 
 # arka uç
 cd Nucleus/apps/be-nucleus
-bun test src                 # ~214 test, DB gerekmez
+bun test src                 # ~480 test, DB gerekmez
 bunx tsc --noEmit -p .
 bun run gen                  # config.json değişince: src/drizzle/* yeniden üretilir, COMMIT'le
 
 # ön yüz
 cd Nucleus/apps/fe
 bunx tsc --noEmit -p . --incremental false      # TypeScript 7 (tsgo), saniyeler sürer
-bun test app lib                                 # ~224 test
+bun test app lib                                 # ~750 test
 NEXT_DIST_DIR=.next-verify bun run build         # canlı .next'e dokunmadan derleme denemesi
 # sonra: rm -rf .next-verify && git checkout -- tsconfig.json
 ```
@@ -226,6 +226,49 @@ sınırsız değiştirir ve hak harcamaz (22.10 notları satır 34, `16ba539`).
 Tamamlanmış ya da onay bekleyen denetimin tarihini yalnız yöneticiler
 (`ADMIN_ROLES`) değiştirir.
 
+**Reddet** (22.10 notları satır 30; müşteri başka bir tarif yazmadı, "düzeltmeye
+geri gönder" olarak tasarlandı): bir yönetici (`isAdmin`) `pending_approval`
+bir planı gerekçeyle (5–500 karakter) `POST /biltim/plans/:plan_id/reject` ile
+`rejected` ("Düzeltme Bekliyor") yapar. Denetim ve cevapları silinmez; planın
+ekibi (lider ya da aktif üye) ya da bir yönetici düzeltme akışında (`editAudit`)
+düzeltip aynı `audit_id` ile yeniden gönderir (`rejected` → `pending_approval`).
+`rejected` hâlâ açık plandır (lokasyon/ekip silmeyi engeller), tarihini yalnız
+yönetici değiştirir. Jenerik CRUD ile `status: 'rejected'` yazılamaz;
+`rejection_reason`, `rejected_at`, `rejected_by` yalnız Reddet rotasına aittir.
+Her ekip üyesine `audit_rejected` türünde bildirim gider. Bir yönetici
+reddedilmiş planı ekip yeniden göndermeden doğrudan da onaylayabilir (bilinçli).
+Kodda: `guards/rejectedPlan.ts`, `routes/planReview.ts`, ön yüzde
+`app/_utils/planReview`.
+
+- Reddet'in düzeltme akışı denetim ve cevap satırlarını yazar, bu yüzden
+  `Auditor` rolüne `put/patch.five_s_audits` ve `…five_s_audit_answers` TABLO
+  düzeyinde verildi (`src/boot.ts`). Tablo yetkisi nucleus'un kolon süzmesini
+  kapatır (aşağıdaki kolon yetkisi tuzağı); sınır yalnız `businessRules.ts`'teki
+  kuraldır: reddedilmiş planın ekibi ve yöneticiler dışında 403. Bu kuralı gevşetme.
+  Yönetici olmayanlar için denetim yazımında yalnız puanlar, `auditor_name` ve
+  `audit_date` açıktır; `is_active`, `plan_id`, `source`, `client_submission_id`,
+  `department_name`, `location_id`, `auditor_id`, `period_id` yazılamaz
+  (`guards/rejectedAuditWrites.ts`, bir YASAK listesidir: `five_s_audits`'e kimlik
+  ya da bağ kolonu eklersen listeye de ekle). Müdür planlama yetkisi gereği
+  reddedilmiş planın takımını/lokasyonunu hâlâ değiştirebilir; yapamayacağı şey
+  planı ekibin düzeltmesi olmadan durumdan çıkarmaktır.
+- Tekil bulgu formundaki "Ekip" alanı kişinin gerçek denetim ekibini gösterir
+  (lider ya da aktif üye); ekibi yoksa alan görünmez. Eski kayıtlardaki
+  "Ekip: <rol adı>" satırı ekranda (`userTeams.ts`) ve Excel'de
+  (`routes/teamLine.ts`) ayıklanır, veritabanına dokunulmaz. Denetimde girilen tekil
+  bulgu taşıyıcı satırın `form_title`'ında denetimin adını taşır (R74); bu değişiklik
+  öncesi kayıtlar "Tekil Bulgu" kalır.
+- Raporlar: lokasyon adı eşleşmesi `routes/locationMatch.ts` (`locationKey`: Türkçe
+  katlama, boşluk, görünmez karakter); saha sorumlusu yalnız kendi lokasyonlarının
+  ve yalnız TAMAMLANMIŞ denetimlerin raporunu görür (`auditReport.ts`,
+  `locationFormAccess.ts`, `locationFormAudits.ts`). Bulgu Excel'lerinde öncesi ve
+  sonrası fotoğrafı gömülür; rapor başına en çok 150 fotoğraf / 40 MB
+  (`photoReport.ts` `REPORT_PHOTO_LIMITS`), aşılan sayfa notunda sayılır. Fotoğraflar
+  küçültülmeden saklanır; `/reports` vekilinin zaman aşımı 3 dakika
+  (`next.config.ts`). Gerçek fotoğraflarla boyut ve süre ÖLÇÜLMEDİ.
+- Müdür onay bekleyen ya da tamamlanmış denetimin bulgusunu silemez, pasife alamaz
+  ve başka denetime taşıyamaz (`guards/findingDelete.ts`); yönetici yapabilir.
+
 ## İstek nasıl akıyor (en çok buradan hata çıkar)
 
 ```
@@ -384,6 +427,23 @@ tarayıcı → Next server action (factory.nucleus.ts, AUTH_API_URL)
   bu yüzden boş.
 - `finding-closed-at.sql` tetikleyicisi boot'ta kurulmuyor; canlıda olup
   olmadığı bilinmiyor.
+- 22.10 notlarında yapılmayanlar (müşteriyle konuşulacak ya da veri bekliyor):
+  satır 43 ve 48 (müşteri "konuşulmalı" dedi), rollerin yeniden tasarımı (22, 23, 27,
+  34'ün yorumları), satır 61 (Bölge 3 bulgularını #12/#13 yapmak: müşteri onayı yok),
+  SMTP (satır 63 ve 70), satır 72 (faz 2), Sayfa1 "özge ekipte görünmemeli" (veri mi
+  kod mu bilinmiyor).
+- 22.10 işlerinin DOĞRULANMAYAN yanları: iPad'de çevrimdışı tekrar; gerçek fotoğraflı
+  Excel'in boyutu ve süresi; godmin rolünün boot'ta SQL ile verilmesi (nucleus'un JWT
+  yolu belirteç yenilenene kadar rolü görmeyebilir, kanıtlanmadı); satır 2/17, 27,
+  28, 71, 73, 75 canlı akışları yalnız birim testle ve yerel veritabanında kısmen.
+  Yerelde Chrome'la doğrulananlar: satır 16, 30 (Reddet döngüsü), 34, 39, ana sayfa
+  listesi 320–1280 px ve koyu tema; gerçek Postgres'te: rapor uçları (üç rolle) ve
+  Reddet korumaları (Müdür ve ekip dışı denemeleri, rejection_* ve kimlik kolonları).
+- Ana sayfadaki Raporlar özeti grafik kartları 320 px'te sayfayı yatay taşırıyor
+  (`ReportsDashboard`, recharts sarmalayıcısı); iPad'de görünmez.
+- Dosyalar hâlâ 200 satırın üstünde (`denetim/page.tsx` ~5000, `businessRules.ts`
+  ~1700, `HomeAuditListPanel.tsx` ~500); 22.10 işlerinin yeni mantığı küçük ayrı
+  dosyalara yazıldı, eski monolitler bölünmedi.
 - Bilinen açıklar:
   - Saha sorumlusu API üzerinden kendi lokasyonu dışındaki bir bulguyu da
     kapatabilir; sınır yalnız ekranda.
