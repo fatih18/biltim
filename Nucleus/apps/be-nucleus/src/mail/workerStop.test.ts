@@ -43,7 +43,7 @@ describe('stopping', () => {
     let poolClosed = false
     const { w, worker } = runningWorker(
       [plan(PLAN_A)],
-      { send: async () => hold.closed.then(() => ({ success: false, error: 'smtp down' })) },
+      { send: async () => hold.closed.then(() => ({ success: false, error: 'mail service down' })) },
       undefined,
       () => poolClosed
     )

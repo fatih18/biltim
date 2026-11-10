@@ -2,83 +2,104 @@ import { readFileSync } from 'node:fs'
 import type { CreateNucleusServerOptions } from 'nucleus-core-ts/server'
 
 /**
- * config.json as nucleus gets it, with the one setting the file cannot hold: whether the SMTP
- * mail provider is switched on (customer notes R63 and R70, the plan mails).
+ * config.json as nucleus gets it, with the one setting the file cannot hold: whether the Azure
+ * Communication Services mail provider is switched on (customer notes R63 and R70, the plan mails).
  *
- * `email.smtp` in config.json names the environment variables the credentials come from
- * (`SMTP_HOST` ...), the same way `authentication.accessToken.secret` names `ACCESS_TOKEN_SECRET`.
- * What nucleus 0.10.115 will NOT read from the environment is the on/off flag: it picks the
- * provider from `email.smtp.enabled === true`, a literal boolean in the options object.
+ * `email.azure` in config.json names the environment variables the credentials come from
+ * (`AZURE_EMAIL_CONNECTION_STRING` ...), the same way `authentication.accessToken.secret` names
+ * `ACCESS_TOKEN_SECRET`. What nucleus 0.10.115 will NOT read from the environment is the on/off
+ * flag: it picks the provider from `email.azure.enabled === true`, a literal boolean in the options
+ * object, and from the literal `email.provider`.
  *
- * Leaving that flag `true` in the file is not an option. With the flag on and the credentials
- * empty, nucleus still builds the SMTP service and calls it every time anything asks "can mail
- * go out?" (every worker pass, every status read, every login): `SmtpEmailService.applyConfig`
- * runs `initialize` again each time while it is not initialised, so an install with no mail
- * settings would log `[SmtpEmailService] No host configured` over and over. So the flag stays
- * `false` in the file and is set here, once at boot, from what the environment actually holds:
- * complete credentials switch the provider on, anything less leaves it off and silent.
+ * Leaving either set in the file is not an option. `activeEmailProvider` answers 'azure' whenever
+ * `email.provider` is 'azure', enabled or not, and `getEmailService` then builds `AzureEmailService`
+ * with `enabled: true` and calls `reconfigure` on every "can mail go out?" question (every worker
+ * pass, every status read). While the service is not initialised `reconfigure` runs `initialize`
+ * again, so an install with no mail settings would log `[AzureEmailService] No connection string
+ * provided` over and over. So the file says `enabled: false` and names the provider for the reader,
+ * and this module decides both at boot, once, from what the environment actually holds: complete
+ * credentials switch the provider on, anything less removes the provider and leaves mail off and
+ * silent (no provider: `activeEmailProvider` is null, `getEmailService` returns null and nothing is built).
  *
- * Mail needs two things on the server: these SMTP_* values AND the `nodemailer` package, which
- * nucleus loads lazily and which is not in package.json (see `mail/mailer.ts`). A change to
- * either takes a restart of the backend: the switch is decided here, once, not per request.
+ * Mail needs two things on the server: these AZURE_EMAIL_* values AND the `@azure/communication-email`
+ * package, which nucleus loads lazily. The package is an optional dependency of nucleus-core-ts and
+ * is already in bun.lock, so a normal `bun install` brings it (see `mail/mailer.ts`). A change to
+ * the values takes a restart of the backend: the switch is decided here, once, not per request.
  */
 
 /** What createNucleusServer takes as `config.options` once it is an object. */
 export type ServerOptions = Exclude<CreateNucleusServerOptions['config']['options'], string>
 
+type EmailOptions = NonNullable<ServerOptions['email']>
+
 export type Env = Record<string, string | undefined>
 
-/** Without these three the framework cannot sign in to a mail server (`SmtpEmailService.initialize`). */
-export const SMTP_REQUIRED: readonly string[] = ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASSWORD']
+/** Without these two the framework cannot build the client (`AzureEmailService.initialize`). */
+export const AZURE_REQUIRED: readonly string[] = ['AZURE_EMAIL_CONNECTION_STRING', 'AZURE_EMAIL_SENDER_ADDRESS']
 
-/** Read when present; each has a default of the framework's own (port 587 with STARTTLS, the user as sender). */
-export const SMTP_OPTIONAL: readonly string[] = ['SMTP_PORT', 'SMTP_SECURE', 'SMTP_SENDER_ADDRESS', 'SMTP_FROM_NAME']
+/** Read when present. */
+export const AZURE_OPTIONAL: readonly string[] = ['AZURE_EMAIL_FROM_NAME']
 
-/** What recipients see as the sender's name when `SMTP_FROM_NAME` is empty; nucleus itself would say "Nucleus". */
+/** What the framework is told the sender's name is when `AZURE_EMAIL_FROM_NAME` is empty; nucleus itself would say "Nucleus". */
 export const DEFAULT_FROM_NAME = 'Biltim 5S'
 
 const filled = (env: Env, name: string): boolean => (env[name] ?? '').trim() !== ''
 
-export type SmtpState = {
-  /** Host, mailbox and password are all there: the provider can be switched on. */
+export type AzureState = {
+  /** Connection string and sender address are both there: the provider can be switched on. */
   ready: boolean
-  /** Some SMTP_* value is set. */
+  /** Some AZURE_EMAIL_* value is set. */
   touched: boolean
   /** The required names that are empty. */
   missing: string[]
 }
 
-export function smtpState(env: Env): SmtpState {
-  const missing = SMTP_REQUIRED.filter((name) => !filled(env, name))
+export function azureState(env: Env): AzureState {
+  const missing = AZURE_REQUIRED.filter((name) => !filled(env, name))
   return {
     ready: missing.length === 0,
-    touched: [...SMTP_REQUIRED, ...SMTP_OPTIONAL].some((name) => filled(env, name)),
+    touched: [...AZURE_REQUIRED, ...AZURE_OPTIONAL].some((name) => filled(env, name)),
     missing,
   }
 }
 
 /**
- * The one boot line for a half-filled setup, so "I entered the host and nothing happens" has an answer in the log.
- * An install with every SMTP_* empty gets no line: that is today's normal state and says so elsewhere.
+ * The one boot line for a half-filled setup, so "I entered the connection string and nothing happens" has an answer in the log.
+ * An install with every AZURE_EMAIL_* empty gets no line: that is today's normal state and says so elsewhere.
  */
-export function smtpNotice(env: Env): string | null {
-  const state = smtpState(env)
+export function azureNotice(env: Env): string | null {
+  const state = azureState(env)
   if (state.ready || !state.touched) return null
-  return `[mail] SMTP_* eksik: ${state.missing.join(', ')} boş. E-posta sağlayıcısı kapalı kalır; üçü de dolu olmadan plan postaları gönderilmez`
+  return `[mail] AZURE_EMAIL_* eksik: ${state.missing.join(', ')} boş. E-posta sağlayıcısı kapalı kalır; ikisi de dolu olmadan plan postaları gönderilmez`
 }
 
-/** The options with `email.smtp.enabled` and the sender's name decided from `env`; options without an SMTP block are returned as they are. */
-export function withSmtpSwitch(options: ServerOptions, env: Env): ServerOptions {
-  const smtp = options.email?.smtp
-  if (!smtp) return options
+function withoutProvider(email: EmailOptions): EmailOptions {
+  const copy = { ...email }
+  delete copy.provider
+  return copy
+}
+
+/**
+ * The options with the Azure switch decided from `env`; options without an `email.azure` block are returned as they are.
+ * Complete credentials: `provider: 'azure'`, `email.azure.enabled: true` and the sender's name. Anything less: no
+ * provider, `enabled: false` (whatever the file says), so nucleus builds nothing and prints nothing.
+ */
+export function withAzureSwitch(options: ServerOptions, env: Env): ServerOptions {
+  const email = options.email
+  const azure = email?.azure
+  if (!email || !azure) return options
+  if (!azureState(env).ready) {
+    return { ...options, email: { ...withoutProvider(email), azure: { ...azure, enabled: false } } }
+  }
   return {
     ...options,
     email: {
-      ...options.email,
-      smtp: {
-        ...smtp,
-        enabled: smtpState(env).ready,
-        ...(filled(env, 'SMTP_FROM_NAME') ? {} : { from_name: DEFAULT_FROM_NAME }),
+      ...email,
+      provider: 'azure',
+      azure: {
+        ...azure,
+        enabled: true,
+        ...(filled(env, 'AZURE_EMAIL_FROM_NAME') ? {} : { from_name: DEFAULT_FROM_NAME }),
       },
     },
   }
@@ -95,27 +116,27 @@ function isJsonObject(value: Json | undefined): value is JsonObject {
 
 /**
  * Whether a parsed object can be read as nucleus options: the part this file touches, the `email`
- * block and its `smtp` block, must be objects where they exist. The rest of the file is nucleus's
+ * block and its `azure` block, must be objects where they exist. The rest of the file is nucleus's
  * own to validate at boot; checking it here would only copy its rules.
  */
 export function isServerOptions(value: object): value is ServerOptions {
   const email: Json | undefined = Reflect.get(value, 'email')
   if (email === undefined) return true
   if (!isJsonObject(email)) return false
-  const smtp = email.smtp
-  return smtp === undefined || isJsonObject(smtp)
+  const azure = email.azure
+  return azure === undefined || isJsonObject(azure)
 }
 
 /** The file as it stands, read the way nucleus reads a path and checked with `isServerOptions`; throws when it is not options. */
 export function readServerOptions(path: string): ServerOptions {
   const parsed: Json = JSON.parse(readFileSync(path, 'utf-8'))
   if (!isJsonObject(parsed) || !isServerOptions(parsed)) {
-    throw new Error(`${path} is not a nucleus options object: a JSON object whose "email" and "email.smtp" are objects`)
+    throw new Error(`${path} is not a nucleus options object: a JSON object whose "email" and "email.azure" are objects`)
   }
   return parsed
 }
 
-/** Reads config.json from the working directory the way nucleus does for a path, then applies `withSmtpSwitch`. */
+/** Reads config.json from the working directory the way nucleus does for a path, then applies `withAzureSwitch`. */
 export function loadServerOptions(path: string, env: Env = process.env): ServerOptions {
-  return withSmtpSwitch(readServerOptions(path), env)
+  return withAzureSwitch(readServerOptions(path), env)
 }

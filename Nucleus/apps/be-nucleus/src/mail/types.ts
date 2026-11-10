@@ -21,12 +21,13 @@ export const MAIL_KINDS: readonly MailKind[] = ['invitation', 'completion']
  * The part of nucleus's runtime the worker uses (`nucleus-core-ts` 0.10.115,
  * `NucleusRuntime`). Declared here because the framework's own declaration
  * imports its email types by a path outside the package, which a host cannot
- * resolve; the shape is the same and `NucleusRuntime` is assignable to it.
+ * resolve; the shape is the same, with `emailProvider` narrowed to the providers
+ * Biltim's config.json can declare (Azure; the framework's own union is wider).
  */
 export type MailRuntime = {
   sendEmail(payload: EmailPayload): Promise<EmailSendResult>
   isEmailAvailable(): boolean
-  emailProvider(): 'azure' | 'gmail' | 'smtp' | null
+  emailProvider(): 'azure' | 'gmail' | null
   emailSenderAddress(): string
 }
 

@@ -14,8 +14,8 @@ import type { MailRuntime } from './types'
  * The smallest supported way is the one the framework offers: a host route
  * keeps the object it was handed. The runtime is made of live accessors, so one
  * copy stays valid for the life of the process. They answer live, but a change
- * to the SMTP_* values (or installing the nodemailer package) still needs a
- * restart of the backend: whether the SMTP provider is switched on is decided
+ * to the AZURE_EMAIL_* values (or installing the @azure/communication-email package) still needs a
+ * restart of the backend: whether the Azure provider is switched on is decided
  * once at boot, in `serverOptions.ts`. `/biltim/me/scope` does it, and
  * the home page of every signed-in person calls that; so does the mail status
  * route. Until the first such request after a start the worker has nothing to

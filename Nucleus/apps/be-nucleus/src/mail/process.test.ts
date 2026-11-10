@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test'
 import { FM1, FM2, LEADER, MEMBER, PLAN_A, PLAN_B, TEAM_USERS, mailWorld, oneDuePlan, plan, user } from './mailKit'
 import { envelope, processPlan, runMailTick } from './process'
 
-const SMTP_DOWN = { success: false, error: '421 4.7.0 smtp.firma.example: bağlantı zaman aşımı' }
+const MAIL_DOWN = { success: false, error: '421 4.7.0 communication.azure.example: bağlantı zaman aşımı' }
 
 describe('claim, then send', () => {
   it('sets the marker before the mail is handed to the provider, and keeps it once the mail is out', async () => {
@@ -89,7 +89,7 @@ describe('a tick', () => {
     let n = 0
     const w = mailWorld(
       { plans: [plan(PLAN_A), plan(PLAN_B)], members: [MEMBER], users: TEAM_USERS },
-      { send: async () => (n++ === 0 ? SMTP_DOWN : { success: true }) }
+      { send: async () => (n++ === 0 ? MAIL_DOWN : { success: true }) }
     )
     expect(await runMailTick(w.deps)).toMatchObject({ failed: 1, sent: 1 })
   })

@@ -16,7 +16,7 @@ describe('getting the mail service out of a request', () => {
   })
 
   it('ignores anything else a context could carry', () => {
-    for (const other of [undefined, null, 'smtp', 42, {}, { sendEmail: () => undefined }]) {
+    for (const other of [undefined, null, 'azure', 42, {}, { sendEmail: () => undefined }]) {
       expect(isMailRuntime(other)).toBe(false)
     }
   })

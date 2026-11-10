@@ -129,15 +129,12 @@
     "enabled": true
   },
   "email": {
-    "smtp": {
+    "provider": "azure",
+    "azure": {
       "enabled": false,
-      "host": "SMTP_HOST",
-      "port": "SMTP_PORT",
-      "secure": "SMTP_SECURE",
-      "user": "SMTP_USER",
-      "password": "SMTP_PASSWORD",
-      "sender_address": "SMTP_SENDER_ADDRESS",
-      "from_name": "SMTP_FROM_NAME"
+      "connection_string": "AZURE_EMAIL_CONNECTION_STRING",
+      "sender_address": "AZURE_EMAIL_SENDER_ADDRESS",
+      "from_name": "AZURE_EMAIL_FROM_NAME"
     }
   },
   "entities": [

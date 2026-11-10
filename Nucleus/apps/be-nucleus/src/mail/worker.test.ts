@@ -37,7 +37,7 @@ describe('a pass of the worker', () => {
     expect(await ticker.tick()).toMatchObject({ available: true, sent: 1 })
     await ticker.tick()
     const ready = w.lines.filter((l) => l.includes('e-posta hazır'))
-    expect(ready).toEqual(['[mail] e-posta hazır: sağlayıcı smtp, gönderen denetim@firma.example; plan postaları 60 sn aralıkla taranır'])
+    expect(ready).toEqual(['[mail] e-posta hazır: sağlayıcı azure, gönderen denetim@firma.example; plan postaları 60 sn aralıkla taranır'])
   })
 
   it('says "mail yapılandırılmamış" once when there is no provider, and touches nothing', async () => {

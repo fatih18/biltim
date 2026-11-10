@@ -140,7 +140,7 @@ export function fakeSql(world: World, events: string[]) {
 
 export type RuntimeOptions = {
   available?: boolean
-  provider?: 'azure' | 'gmail' | 'smtp' | null
+  provider?: 'azure' | 'gmail' | null
   sender?: string
   send?: (payload: EmailPayload) => Promise<EmailSendResult>
 }
@@ -150,7 +150,7 @@ export function fakeRuntime(options: RuntimeOptions, events: string[]) {
   let available = options.available ?? true
   const runtime: MailRuntime = {
     isEmailAvailable: () => available,
-    emailProvider: () => (options.provider === undefined ? 'smtp' : options.provider),
+    emailProvider: () => (options.provider === undefined ? 'azure' : options.provider),
     emailSenderAddress: () => options.sender ?? 'denetim@firma.example',
     sendEmail: async (payload) => {
       events.push('send')

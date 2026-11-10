@@ -3,11 +3,11 @@ import { MEMBER, PLAN_A, TEAM_USERS, mailWorld, oneDuePlan, plan } from './mailK
 import { processPlan, retryDelayMs, runMailTick } from './process'
 import { MAIL_MAX_ATTEMPTS, MAIL_RETRY_MINUTES, MAIL_WINDOW_HOURS } from './types'
 
-const SMTP_DOWN = { success: false, error: '421 4.7.0 smtp.firma.example: bağlantı zaman aşımı' }
+const MAIL_DOWN = { success: false, error: '421 4.7.0 communication.azure.example: bağlantı zaman aşımı' }
 
 describe('a failed send', () => {
   it('releases the claim, counts the attempt and logs the plan, the people and the provider’s words', async () => {
-    const w = mailWorld(oneDuePlan(), { send: async () => SMTP_DOWN })
+    const w = mailWorld(oneDuePlan(), { send: async () => MAIL_DOWN })
     expect(await processPlan('invitation', PLAN_A, w.deps)).toBe('failed')
     expect(w.events).toEqual([`claim:${PLAN_A}`, 'send', `release:${PLAN_A}`])
     expect(w.world.plans[0]).toMatchObject({ claimed: false, attempts: 1 })
@@ -15,7 +15,7 @@ describe('a failed send', () => {
     expect(line).toContain(`plan ${PLAN_A}`)
     expect(line).toContain('4 alıcı')
     expect(line).toContain('deneme 1/5')
-    expect(line).toContain(SMTP_DOWN.error)
+    expect(line).toContain(MAIL_DOWN.error)
     expect(line).not.toContain('@firma.example,')
   })
 
@@ -38,7 +38,7 @@ describe('a failed send', () => {
   })
 
   it('waits before trying again: 10 minutes after the first failure, then longer', async () => {
-    const w = mailWorld(oneDuePlan(), { send: async () => SMTP_DOWN })
+    const w = mailWorld(oneDuePlan(), { send: async () => MAIL_DOWN })
     await runMailTick(w.deps)
     w.clock.at += 9 * 60_000
     expect(await runMailTick(w.deps)).toMatchObject({ waiting: 1, failed: 0 })
@@ -63,7 +63,7 @@ describe('a failed send', () => {
   })
 
   it('gives up after five attempts and says so, and a later tick leaves the plan alone', async () => {
-    const w = mailWorld(oneDuePlan(), { send: async () => SMTP_DOWN })
+    const w = mailWorld(oneDuePlan(), { send: async () => MAIL_DOWN })
     for (let i = 0; i < MAIL_MAX_ATTEMPTS + 2; i++) {
       await runMailTick(w.deps)
       w.clock.at += 25 * 3_600_000
@@ -75,7 +75,7 @@ describe('a failed send', () => {
 
   it('sends on the retry once the provider is back, and then stays quiet', async () => {
     let up = false
-    const w = mailWorld(oneDuePlan(), { send: async () => (up ? { success: true } : SMTP_DOWN) })
+    const w = mailWorld(oneDuePlan(), { send: async () => (up ? { success: true } : MAIL_DOWN) })
     await runMailTick(w.deps)
     up = true
     w.clock.at += 11 * 60_000
