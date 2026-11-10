@@ -2308,3 +2308,205 @@ describe('an auditor adds findings, and does not edit them (R9)', () => {
     expect(res).toBeUndefined()
   })
 })
+
+describe('revising a period plan: quarter and date range (R68, R69)', () => {
+  const PERIOD = { quarter: '2026-Q4', date_range_start: '2026-10-01', date_range_end: '2026-12-31' }
+
+  type Row = Parameters<typeof reader>[0][number]
+
+  /** The stored period, and the dates of the sub-plans filed under it. */
+  const periodReader = (children: Row[] = [], stored: Row | null = PERIOD) =>
+    script({
+      'select quarter, date_range_start': stored ? [stored] : [],
+      'where parent_plan_id': children,
+    })
+
+  const edit = (payload: Row, caller: Caller | null, children: Row[] = [], method = 'PUT') =>
+    enforceBusinessRules({
+      request: jsonReq(method, '/fiveSAuditPlans/pp1', payload),
+      body: undefined,
+      read: periodReader(children),
+      caller,
+    })
+
+  it('lets Merkez Ekip, Super Admin and the godmin rename the quarter and move both dates', async () => {
+    for (const caller of [CENTRAL, SUPER_ADMIN, GOD]) {
+      for (const method of ['PUT', 'PATCH']) {
+        const res = await edit(
+          { quarter: '2026-Q4-B', dateRangeStart: '2026-09-15', dateRangeEnd: '2027-01-15' },
+          caller,
+          [{ planned_date: '2026-10-20' }],
+          method
+        )
+        expect(res).toBeUndefined()
+      }
+    }
+  })
+
+  it('refuses Müdür, a field manager and an auditor, who all reach the route', async () => {
+    // Müdür holds the whole plans table claim, so nucleus would write it.
+    for (const caller of [MANAGER, FIELD_MANAGER, AUDITOR]) {
+      for (const payload of [{ quarter: '2027-Q1' }, { date_range_end: '2027-02-01' }, { dateRangeStart: '2026-09-01' }]) {
+        const res = await edit(payload, caller)
+        expect(res?.status).toBe(403)
+        expect((await res?.json()).message).toContain('Merkez Ekip')
+      }
+    }
+  })
+
+  it('answers 401 when it cannot tell who is revising the period', async () => {
+    const res = await edit({ quarter: '2027-Q1' }, null)
+    expect(res?.status).toBe(401)
+  })
+
+  it('lets a write that changes nothing through, whoever sends it', async () => {
+    const res = await edit({ quarter: '2026-Q4', date_range_start: '2026-10-01', date_range_end: '2026-12-31' }, MANAGER)
+    expect(res).toBeUndefined()
+  })
+
+  it('reads a date column stored as a local-midnight Date as the same day', async () => {
+    const res = await enforceBusinessRules({
+      request: jsonReq('PUT', '/fiveSAuditPlans/pp1', { date_range_start: '2026-10-01', date_range_end: '2026-12-31' }),
+      body: undefined,
+      read: periodReader([], { ...PERIOD, date_range_start: new Date(2026, 9, 1), date_range_end: new Date(2026, 11, 31) }),
+      caller: MANAGER,
+    })
+    expect(res).toBeUndefined()
+  })
+
+  it('leaves a plan write that touches none of the three columns alone, without reading anything', async () => {
+    const res = await enforceBusinessRules({
+      request: jsonReq('PUT', '/fiveSAuditPlans/pp1', { title: 'Yeni başlık' }),
+      body: undefined,
+      read: async () => {
+        throw new Error('nothing should be read')
+      },
+      caller: MANAGER,
+    })
+    expect(res).toBeUndefined()
+  })
+
+  it('lets the request through when the plan does not exist, for the route to answer 404', async () => {
+    const res = await enforceBusinessRules({
+      request: jsonReq('PUT', '/fiveSAuditPlans/yok', { quarter: '2027-Q1' }),
+      body: undefined,
+      read: periodReader([], null),
+      caller: CENTRAL,
+    })
+    expect(res).toBeUndefined()
+  })
+
+  it('refuses a start after the end, naming both days', async () => {
+    const res = await edit({ date_range_start: '2027-01-10', date_range_end: '2026-12-31' }, CENTRAL)
+    expect(res?.status).toBe(400)
+    const { message } = await res?.json()
+    expect(message).toContain('2027-01-10')
+    expect(message).toContain('2026-12-31')
+  })
+
+  it('allows a one-day period', async () => {
+    const res = await edit({ date_range_start: '2026-11-05', date_range_end: '2026-11-05' }, CENTRAL)
+    expect(res).toBeUndefined()
+  })
+
+  it('refuses a blank or oversized quarter name', async () => {
+    for (const quarter of ['', '   ', null, '2026-Q4-ÇOK-UZUN-AD']) {
+      const res = await edit({ quarter }, CENTRAL)
+      expect(res?.status).toBe(400)
+    }
+  })
+
+  it('refuses cleared, malformed and impossible dates', async () => {
+    for (const payload of [
+      { date_range_start: null },
+      { date_range_end: '' },
+      { date_range_start: '2026-13-40' },
+      { date_range_end: '2026-12-31T23:30:00-12:00' },
+      { date_range_end: { d: '2026-12-31' } },
+    ]) {
+      const res = await edit(payload, CENTRAL)
+      expect(res?.status).toBe(400)
+    }
+  })
+
+  it('refuses shrinking the range past sub-plans, with how many and which days', async () => {
+    const res = await edit({ dateRangeEnd: '2026-12-15' }, CENTRAL, [
+      { planned_date: '2026-12-28' },
+      { planned_date: '2026-11-03' },
+      { planned_date: '2026-12-20' },
+      { planned_date: '2026-12-20' },
+    ])
+    expect(res?.status).toBe(400)
+    const { message } = await res?.json()
+    expect(message).toContain('3 denetim planı')
+    expect(message).toContain('2026-12-20, 2026-12-28')
+    expect(message).not.toContain('2026-11-03')
+  })
+
+  it('refuses a shrink from the start side too, reading the days as days', async () => {
+    const res = await edit({ date_range_start: '2026-11-10' }, CENTRAL, [
+      { planned_date: new Date(2026, 9, 25) },
+      { planned_date: new Date(2026, 10, 10) },
+    ])
+    expect(res?.status).toBe(400)
+    const { message } = await res?.json()
+    expect(message).toContain('1 denetim planı')
+    expect(message).toContain('2026-10-25')
+  })
+
+  it('allows the new boundaries to land exactly on a sub-plan', async () => {
+    const res = await edit({ date_range_start: '2026-10-20', date_range_end: '2026-12-20' }, CENTRAL, [
+      { planned_date: new Date(2026, 9, 20) },
+      { planned_date: new Date(2026, 11, 20) },
+    ])
+    expect(res).toBeUndefined()
+  })
+
+  it('allows widening the range whatever is filed under it', async () => {
+    const res = await edit({ date_range_start: '2026-09-01', date_range_end: '2027-03-31' }, CENTRAL, [
+      { planned_date: '2026-10-20' },
+      { planned_date: '2026-12-31' },
+    ])
+    expect(res).toBeUndefined()
+  })
+
+  it('does not count a cancelled sub-plan: the query leaves it out', async () => {
+    const queries: string[] = []
+    const res = await enforceBusinessRules({
+      request: jsonReq('PUT', '/fiveSAuditPlans/pp1', { date_range_end: '2026-12-15' }),
+      body: undefined,
+      read: async (text) => {
+        queries.push(text)
+        return text.includes('select quarter') ? [PERIOD] : []
+      },
+      caller: CENTRAL,
+    })
+    expect(res).toBeUndefined()
+    const children = queries.find((q) => q.includes('where parent_plan_id'))
+    expect(children).toContain("<> 'cancelled'")
+  })
+
+  it('renames the quarter alone without looking at the sub-plans', async () => {
+    // A period already holding an out-of-range plan (made before the rule) can still be renamed.
+    const res = await edit({ quarter: '2026-Q4-düzeltme' }, CENTRAL, [{ planned_date: '2027-03-15' }])
+    expect(res).toBeUndefined()
+  })
+
+  it('spells out the first eight days and counts the rest', async () => {
+    const children = Array.from({ length: 11 }, (_, i) => ({ planned_date: `2026-12-${String(15 + i).padStart(2, '0')}` }))
+    const res = await edit({ date_range_end: '2026-12-10' }, CENTRAL, children)
+    const { message } = await res?.json()
+    expect(message).toContain('11 denetim planı')
+    expect(message).toContain('ve 3 tarih daha')
+  })
+
+  it('does not touch the date rules of a sub-plan: moving it inside its period still passes', async () => {
+    const res = await enforceBusinessRules({
+      request: jsonReq('PUT', '/fiveSAuditPlans/p1', { planned_date: '2026-11-15', parent_plan_id: 'pp1' }),
+      body: undefined,
+      read: reader([{ date_range_start: '2026-10-01', date_range_end: '2026-12-31', quarter: '2026-Q4' }]),
+      caller: GOD,
+    })
+    expect(res).toBeUndefined()
+  })
+})

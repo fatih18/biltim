@@ -647,6 +647,96 @@ const isPlannedStatus = (status: string): boolean => status === 'planned' || sta
 /** An attendance flag as a comparable value: 'true', 'false' or '' (no record). */
 const flag = (v: unknown): string => (v === true || v === 'true' ? 'true' : v === false || v === 'false' ? 'false' : '')
 
+type RequireCaller = (
+  allowed: (caller: Caller) => boolean,
+  message: string,
+  status?: number
+) => Promise<Response | undefined>
+
+/** The columns that define a period plan: its name and its date range. */
+const PERIOD_COLUMNS: readonly string[] = ['quarter', 'date_range_start', 'date_range_end']
+
+/** `five_s_audit_plans.quarter` is varchar(16) in config.json; a longer name would be a 500. */
+const QUARTER_MAX_LENGTH = 16
+
+/** Dates for a refusal message: sorted, each once, the first few spelled out. */
+function listDates(dates: string[], max = 8): string {
+  const days = [...new Set(dates)].sort()
+  if (days.length <= max) return days.join(', ')
+  return `${days.slice(0, max).join(', ')} ve ${days.length - max} tarih daha`
+}
+
+/**
+ * Revising a period plan: its quarter name and its start and end dates
+ * (Notlar 22.10, satır 68 ve 69).
+ *
+ * Merkez Ekip, Super Admin and the godmin may. Müdür holds the whole
+ * `five_s_audit_plans` table claim, so nucleus lets his PUT through and the
+ * rule has to be here. A write that leaves all three as they are changes
+ * nothing and is let past for everyone.
+ *
+ * The range is what every sub-plan is checked against ("A plan belongs to its
+ * period" below), so it may not run backwards, and it may not shrink past a
+ * sub-plan that is still on the calendar: that plan would sit outside the
+ * period it is filed under, and nothing would ever have refused it.
+ */
+async function guardPeriodEdit(
+  read: Read,
+  requireCaller: RequireCaller,
+  planId: string,
+  body: Awaited<ReturnType<typeof readBody>>
+): Promise<Response | undefined> {
+  const rows = await read(
+    'select quarter, date_range_start, date_range_end from main.five_s_audit_plans where id::text = $1',
+    [planId]
+  )
+  // No such plan: the route answers 404 in its own words.
+  const stored = rows[0]
+  if (!stored) return undefined
+
+  const storedStart = toDateKey(stored.date_range_start)
+  const storedEnd = toDateKey(stored.date_range_end)
+  const quarter = body.quarter === undefined ? str(stored.quarter) : str(body.quarter)
+  const start = body.date_range_start === undefined ? storedStart : str(body.date_range_start)
+  const end = body.date_range_end === undefined ? storedEnd : str(body.date_range_end)
+  const rangeMoves = start !== storedStart || end !== storedEnd
+  if (!rangeMoves && quarter === str(stored.quarter)) return undefined
+
+  const refusal = await requireCaller(
+    isAdmin,
+    'Dönem planının çeyreği ve tarih aralığı yalnız Merkez Ekip tarafından değiştirilebilir. Bu değişikliği Merkez Ekip\'ten isteyin.',
+    403
+  )
+  if (refusal) return refusal
+
+  if (quarter === '') return refuse('Dönem adı (çeyrek) boş olamaz. Örnek: 2026-Q4.')
+  if (quarter.length > QUARTER_MAX_LENGTH) {
+    return refuse(`Dönem adı en fazla ${QUARTER_MAX_LENGTH} karakter olabilir. Örnek: 2026-Q4.`)
+  }
+  if (!isPlainDate(start) || !isPlainDate(end)) {
+    return refuse('Dönemin başlangıç ve bitiş tarihi boş bırakılamaz ve YYYY-AA-GG biçiminde olmalıdır.')
+  }
+  if (start > end) {
+    return refuse(`Dönemin başlangıç tarihi (${start}) bitiş tarihinden (${end}) sonra olamaz. Tarihleri düzeltip yeniden deneyin.`)
+  }
+  if (!rangeMoves) return undefined
+
+  const children = await read(
+    `select planned_date from main.five_s_audit_plans
+      where parent_plan_id::text = $1 and coalesce(status, '') <> 'cancelled' and planned_date is not null`,
+    [planId]
+  )
+  const outside = children
+    .map((row) => toDateKey(row.planned_date))
+    .filter((day) => day !== '' && (day < start || day > end))
+  if (outside.length > 0) {
+    return refuse(
+      `Dönem aralığı ${start} – ${end} olarak daraltılamaz: ${outside.length} denetim planı bu aralığın dışında kalıyor (${listDates(outside)}). Önce bu planların tarihini yeni aralığa alın ya da planları iptal edin, sonra dönemi güncelleyin.`
+    )
+  }
+  return undefined
+}
+
 export async function enforceBusinessRules(ctx: RuleContext): Promise<Response | undefined> {
   const { request } = ctx
   const read = ctx.read ?? query
@@ -1154,6 +1244,11 @@ export async function enforceBusinessRules(ctx: RuleContext): Promise<Response |
         'Plan kaydedilemedi: bir dönem planı için çeyrek ve tarih aralığı, bir denetim planı için tarih, lokasyon ve ekip gereklidir.'
       )
     }
+  }
+
+  if (planItem && PERIOD_COLUMNS.some((key) => body[key] !== undefined)) {
+    const refusal = await guardPeriodEdit(read, requireCaller, pathId(planItem[1]), body)
+    if (refusal) return refusal
   }
 
   /*
