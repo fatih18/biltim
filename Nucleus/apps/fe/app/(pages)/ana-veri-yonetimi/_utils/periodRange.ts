@@ -37,6 +37,10 @@ function listDates(days: readonly string[]): string {
  * under it. Checked here so the person is told before the button is pressed;
  * the server still has the last word.
  *
+ * The plans are looked at only when the start or the end moves, as the server
+ * does. A sub-plan that already sits outside the range (the API once accepted
+ * such rows) must not block a rename that leaves the range alone.
+ *
  * @param childDates the planned dates of the period's audit plans that are not
  *   cancelled.
  */
@@ -47,8 +51,8 @@ export function checkPeriodDraft(
 ): PeriodCheck {
   const quarter = draft.quarter.trim();
   const complete = quarter !== "" && draft.start !== "" && draft.end !== "";
-  const changed =
-    quarter !== original.quarter.trim() || draft.start !== original.start || draft.end !== original.end;
+  const rangeMoves = draft.start !== original.start || draft.end !== original.end;
+  const changed = quarter !== original.quarter.trim() || rangeMoves;
 
   const reasons: string[] = [];
   if (quarter.length > QUARTER_MAX_LENGTH) {
@@ -56,7 +60,7 @@ export function checkPeriodDraft(
   }
   if (draft.start && draft.end && draft.end < draft.start) {
     reasons.push("Bitiş tarihi başlangıç tarihinden önce olamaz.");
-  } else if (draft.start && draft.end) {
+  } else if (draft.start && draft.end && rangeMoves) {
     const outside = childDates
       .map((date) => toDayKey(date))
       .filter((day) => day !== "" && (day < draft.start || day > draft.end));

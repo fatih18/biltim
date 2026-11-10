@@ -78,4 +78,23 @@ describe("checkPeriodDraft", () => {
     const check = checkPeriodDraft({ ...stored, start: "2027-02-01" }, stored, ["2026-11-05"]);
     expect(check.reasons).toEqual(["Bitiş tarihi başlangıç tarihinden önce olamaz."]);
   });
+
+  it("lets a rename through while an old plan sits outside a range that did not move", () => {
+    const check = checkPeriodDraft({ ...stored, quarter: "2026-Q4-B" }, stored, ["2027-02-01", "2026-11-05"]);
+    expect(check.reasons).toEqual([]);
+    expect(check.canSave).toBe(true);
+  });
+
+  it("checks the plans again as soon as the start or the end moves, and counts those outside the new range only", () => {
+    const outsideBoth = ["2027-02-01", "2026-09-01", "2026-11-05"];
+    const endMoved = checkPeriodDraft({ ...stored, end: "2027-01-15" }, stored, outsideBoth);
+    expect(endMoved.canSave).toBe(false);
+    expect(endMoved.reasons[0]).toContain("2 denetim planı");
+    expect(endMoved.reasons[0]).toContain("2026-09-01, 2027-02-01");
+    expect(endMoved.reasons[0]).not.toContain("2026-11-05");
+
+    const startMoved = checkPeriodDraft({ ...stored, start: "2026-09-15" }, stored, outsideBoth);
+    expect(startMoved.canSave).toBe(false);
+    expect(startMoved.reasons[0]).toContain("2 denetim planı");
+  });
 });
