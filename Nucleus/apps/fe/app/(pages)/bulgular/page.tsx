@@ -19,6 +19,9 @@ import { useMyScope } from "@/app/_hooks/user/useMyScope";
 import { toast } from "sonner";
 import { readServerReasons } from "@/app/_components/Global/PasswordRules";
 import { dedupeKey } from "./_utils/dedupeFindings";
+import { FINDINGS_EXCEL_PATH, findingsExcelFallbackName, findingsExcelParams } from "./_utils/findingsExcel";
+import { downloadFile } from "@/app/_utils/downloadFile";
+import { reportDownloadFailureMessage } from "@/app/_components/ReportsDashboard/_utils/downloadFailureMessage";
 import { SINGLE_FINDING_TITLE } from "@/app/_utils/singleFindingTitle";
 
 type FindingStatus = "open" | "in_progress" | "closed";
@@ -595,34 +598,16 @@ export default function FiveSFindingsListPage() {
 
   // Madde 15: Açık bulgu Excel raporu indir
   const handleDownloadExcel = async () => {
+    setDownloadingExcel(true);
     try {
-      setDownloadingExcel(true);
       // The register as filtered on screen; a field manager's export is
       // narrowed to their locations by the server, as the list is.
-      const params = new URLSearchParams();
-      if (locationFilter) params.set("location_name", locationFilter);
-      if (statusFilter) params.set("status", statusFilter);
-      if (sourceFilter) params.set("source", sourceFilter === "single" ? "single_finding" : "audit");
-      if (dateFrom) params.set("date_from", dateFrom);
-      if (dateTo) params.set("date_to", dateTo);
-      const qs = params.toString();
-      const res = await fetch(`/reports/findings.xlsx${qs ? `?${qs}` : ""}`, { cache: "no-store" });
-      if (!res.ok) throw new Error(`Excel indirme hatası (${res.status})`);
-      const blob = await res.blob();
-      const cd = res.headers.get("Content-Disposition") ?? "";
-      const nameMatch = cd.match(/filename="?([^";]+)"?/);
-      const filename = nameMatch?.[1] ?? `5s-bulgu-raporu-${new Date().toISOString().slice(0, 10)}.xlsx`;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error("Excel download error", err);
-      setErrorMsg("Excel raporu indirilemedi.");
+      const result = await downloadFile(
+        FINDINGS_EXCEL_PATH,
+        findingsExcelParams({ locationFilter, statusFilter, sourceFilter, dateFrom, dateTo }),
+        findingsExcelFallbackName(new Date())
+      );
+      if (!result.ok) setErrorMsg(reportDownloadFailureMessage(result.status, result.message));
     } finally {
       setDownloadingExcel(false);
     }
