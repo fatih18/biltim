@@ -11,7 +11,7 @@
  * being carried out, or of a single finding's carrier row, is not held to it.
  */
 
-type Read = (text: string, params: unknown[]) => Promise<Record<string, unknown>[]>
+import type { Read } from './caller'
 
 /** `DELETE /fiveSFindings/<id>`: the one finding, not the collection or a sub-path. */
 export const FINDING_ITEM = /^\/fiveSFindings\/([^/?]+)\/?$/
@@ -19,6 +19,19 @@ export const FINDING_ITEM = /^\/fiveSFindings\/([^/?]+)\/?$/
 /** What the refused caller is told. */
 export const FINISHED_AUDIT_FINDING_MESSAGE =
   'Tamamlanmış ya da onay bekleyen bir denetimin bulgusunu yalnız Merkez Ekip silebilir.'
+
+/**
+ * The columns that take a finding out of its audit without a DELETE: switching
+ * it off (`is_active`) or moving it under another audit (`audit_id`). Müdür
+ * holds the table-level put/patch claims, so a PUT or PATCH carrying either
+ * retired a finding of a finished audit just as a DELETE would. The guard folds
+ * the body to snake_case first, so `isActive` and `auditId` arrive as these.
+ */
+export const FINDING_RELOCATING_KEYS: readonly string[] = ['is_active', 'audit_id']
+
+/** What the refused caller is told when the write is a PUT or PATCH. */
+export const FINISHED_AUDIT_FINDING_RETIRE_MESSAGE =
+  'Tamamlanmış ya da onay bekleyen bir denetimin bulgusu pasife alınamaz ya da başka denetime taşınamaz; bunu yalnız Merkez Ekip yapabilir.'
 
 /**
  * True when the finding hangs under an audit whose plan is `completed` or

@@ -1,7 +1,13 @@
 import { readFileSync } from 'node:fs'
 import { query } from '../db'
-import { type Caller, carriesCredentials, isAdmin, isAuditorOnly, isCentral, resolveCaller } from './caller'
-import { FINDING_ITEM, FINISHED_AUDIT_FINDING_MESSAGE, findingOfFinishedAudit } from './findingDelete'
+import { type Caller, type Read, carriesCredentials, isAdmin, isAuditorOnly, isCentral, resolveCaller } from './caller'
+import {
+  FINDING_ITEM,
+  FINDING_RELOCATING_KEYS,
+  FINISHED_AUDIT_FINDING_MESSAGE,
+  FINISHED_AUDIT_FINDING_RETIRE_MESSAGE,
+  findingOfFinishedAudit,
+} from './findingDelete'
 import {
   REJECTED,
   REJECTED_AUDIT_MESSAGE,
@@ -90,7 +96,7 @@ export type RuleContext = {
   request: Request
   body: unknown
   /** Injected so the rules can be tested without a database. */
-  read?: (text: string, params: unknown[]) => Promise<Record<string, unknown>[]>
+  read?: Read
   /**
    * Who is calling, injected by tests. Left undefined, it is read from the
    * request's session and access token (see `caller.ts`) — and only when a
@@ -98,8 +104,6 @@ export type RuleContext = {
    */
   caller?: Caller | null
 }
-
-type Read = NonNullable<RuleContext['read']>
 
 function refuse(message: string, status = 400): Response {
   return new Response(
@@ -989,7 +993,22 @@ export async function enforceBusinessRules(ctx: RuleContext): Promise<Response |
       return refuse('Denetçi bulguları değiştiremez; yalnız yeni bulgu ekleyebilir.', 403)
     }
 
-    const sides = (['after', 'before'] as const).filter((side) => photoKeys(side).some((key) => key in body))
+    /*
+     * The second door of the finding delete rule (findingDelete.ts).
+     *
+     * Müdür holds the table-level put/patch claims on five_s_findings, so
+     * `{"isActive": false}` retired a finding of a sent or approved audit, and
+     * a changed `audit_id` moved it under another audit, without ever being a
+     * DELETE. The body is already folded to snake_case, so both spellings land
+     * on these two keys. No screen sends either key with a finding update.
+     */
+    if (!isAdmin(findingCaller) && FINDING_RELOCATING_KEYS.some((key) => key in body)) {
+      if (await findingOfFinishedAudit(pathId(findingItem[1]), read)) {
+        return refuse(FINISHED_AUDIT_FINDING_RETIRE_MESSAGE, 403)
+      }
+    }
+
+    const sides =(['after', 'before'] as const).filter((side) => photoKeys(side).some((key) => key in body))
     const incomingStatus = body.status === undefined ? undefined : str(body.status).toLowerCase()
     if (sides.length > 0 || incomingStatus !== undefined) {
       const rows = await read(

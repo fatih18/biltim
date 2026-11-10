@@ -12,7 +12,7 @@ import {
   toSnakeKeys,
   todayAtPlant,
 } from './businessRules'
-import type { Caller } from './caller'
+import type { Caller, QueryParam } from './caller'
 
 const GOD: Caller = { userId: 'u-god', isGod: true, roles: ['godmin'] }
 const CENTRAL: Caller = { userId: 'u-ce', isGod: false, roles: ['content manager core team'] }
@@ -1406,6 +1406,38 @@ describe('who may start the audit of their own location (R71) and open a plan-le
     }
   })
 
+  it('still refuses the plan-less carrier row to Müdür and an auditor who manage the named location', async () => {
+    // Negative control for the godmin exemption above: it is `isAdmin` (Merkez Ekip, Super Admin, godmin)
+    // and nothing wider. A role that merely sees every audit, or audits elsewhere, does not get it.
+    const named = { departmentName: 'Test Depo', source: 'single_finding', totalScore: '0.00' }
+    const identified = { locationId: 'l-test-depo', source: 'single_finding', totalScore: '0.00' }
+    for (const body of [named, identified]) {
+      for (const caller of held) {
+        const res = await enforceBusinessRules({
+          request: jsonReq('POST', '/fiveSAudits', body),
+          body: undefined,
+          read: ownLocation(caller),
+          caller,
+        })
+        expect(res?.status).toBe(400)
+        expect((await res?.json()).message).toContain('Saha sorumlusu olduğunuz lokasyonun denetimini')
+      }
+    }
+  })
+
+  it('lets the same roles file the carrier row of a place they do not manage', async () => {
+    const carrier = { departmentName: 'Test Depo', source: 'single_finding', totalScore: '0.00' }
+    for (const caller of held) {
+      const res = await enforceBusinessRules({
+        request: jsonReq('POST', '/fiveSAudits', carrier),
+        body: undefined,
+        read: script({ 'from main.five_s_locations': [{ field_manager_user_ids: ['u-someone-else'] }] }),
+        caller,
+      })
+      expect(res).toBeUndefined()
+    }
+  })
+
   it('does not ask the godmin to be a team member or the location’s field manager for the finding itself', async () => {
     const finding = {
       auditId: 'a1',
@@ -2684,8 +2716,8 @@ describe('deleting a finding of a sent or approved audit', () => {
   })
 
   it('reads the finding by its canonical id and the plan statuses it locks on', async () => {
-    const seen: Array<{ text: string; params: unknown[] }> = []
-    const read = async (text: string, params: unknown[]) => {
+    const seen: Array<{ text: string; params: QueryParam[] }> = []
+    const read = async (text: string, params: QueryParam[]) => {
       seen.push({ text, params })
       return []
     }
@@ -3016,5 +3048,113 @@ describe('a plan sent back for correction, "Reddet" (R30)', () => {
         expect(text).not.toContain('rejected')
       }
     })
+  })
+})
+
+describe('retiring or moving a finding of a sent or approved audit without a DELETE', () => {
+  const FINDING = '/fiveSFindings/6f0c2a1e-3b4d-4c5e-8f60-718293a4b5c6'
+  const finishedAudit = script({ 'from main.five_s_findings f': [{ locked: 1 }] })
+  const openAudit = script({ 'from main.five_s_findings f': [] })
+  const MESSAGE =
+    'Tamamlanmış ya da onay bekleyen bir denetimin bulgusu pasife alınamaz ya da başka denetime taşınamaz; bunu yalnız Merkez Ekip yapabilir.'
+  const OTHER_AUDIT = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+
+  const writes: Array<[string, Record<string, string | boolean>]> = [
+    ['PATCH', { isActive: false }],
+    ['PUT', { is_active: false }],
+    ['PUT', { isActive: true }],
+    ['PATCH', { audit_id: OTHER_AUDIT }],
+    ['PUT', { auditId: OTHER_AUDIT.toUpperCase() }],
+    ['PATCH', { isActive: false, auditId: OTHER_AUDIT }],
+  ]
+
+  it('refuses Müdür every PUT and PATCH that switches the finding off or moves it, saying who may', async () => {
+    for (const [method, payload] of writes) {
+      const res = await enforceBusinessRules({
+        request: jsonReq(method, FINDING, payload),
+        body: undefined,
+        read: finishedAudit,
+        caller: MANAGER,
+      })
+      expect(res?.status).toBe(403)
+      expect((await res?.json()).message).toBe(MESSAGE)
+    }
+  })
+
+  it('refuses a field manager the same way', async () => {
+    const res = await enforceBusinessRules({
+      request: jsonReq('PATCH', FINDING, { isActive: false }),
+      body: undefined,
+      read: finishedAudit,
+      caller: FIELD_MANAGER,
+    })
+    expect(res?.status).toBe(403)
+  })
+
+  it('lets Merkez Ekip, Super Admin and the godmin do it', async () => {
+    for (const caller of [CENTRAL, SUPER_ADMIN, GOD]) {
+      for (const [method, payload] of writes) {
+        const res = await enforceBusinessRules({
+          request: jsonReq(method, FINDING, payload),
+          body: undefined,
+          read: finishedAudit,
+          caller,
+        })
+        expect(res).toBeUndefined()
+      }
+    }
+  })
+
+  it('leaves a finding of an audit still under way alone', async () => {
+    for (const [method, payload] of writes) {
+      const res = await enforceBusinessRules({
+        request: jsonReq(method, FINDING, payload),
+        body: undefined,
+        read: openAudit,
+        caller: MANAGER,
+      })
+      expect(res).toBeUndefined()
+    }
+  })
+
+  it('reads nothing for a write that carries neither column: the screens\' own updates', async () => {
+    const seen: string[] = []
+    const read = async (text: string) => {
+      seen.push(text)
+      return [{ locked: 1 }]
+    }
+    for (const payload of [{ dueDate: '2026-12-01' }, { description: 'düzeltildi' }]) {
+      const res = await enforceBusinessRules({
+        request: jsonReq('PUT', FINDING, payload),
+        body: undefined,
+        read,
+        caller: MANAGER,
+      })
+      expect(res).toBeUndefined()
+    }
+    expect(seen).toEqual([])
+  })
+
+  it('reads the finding by its canonical id and answers 401 when the caller is unknown', async () => {
+    const seen: QueryParam[][] = []
+    const read = async (_text: string, params: QueryParam[]) => {
+      seen.push(params)
+      return [{ locked: 1 }]
+    }
+    await enforceBusinessRules({
+      request: jsonReq('PATCH', '/fiveSFindings/6F0C2A1E-3B4D-4C5E-8F60-718293A4B5C6', { isActive: false }),
+      body: undefined,
+      read,
+      caller: MANAGER,
+    })
+    expect(seen).toEqual([['6f0c2a1e-3b4d-4c5e-8f60-718293a4b5c6']])
+
+    const anonymous = await enforceBusinessRules({
+      request: jsonReq('PATCH', FINDING, { isActive: false }),
+      body: undefined,
+      read: finishedAudit,
+      caller: null,
+    })
+    expect(anonymous?.status).toBe(401)
   })
 })

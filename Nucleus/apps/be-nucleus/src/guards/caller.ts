@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { readFileSync } from 'node:fs'
-import { query } from '../db'
+import { type Row, query } from '../db'
 
 /**
  * Who is making this request, for the rules that depend on it.
@@ -175,7 +175,11 @@ export function verifiedSubject(
   return sub || null
 }
 
-type Read = (text: string, params: unknown[]) => Promise<Record<string, unknown>[]>
+/** A value bound to a `$n` placeholder: an id, a name, a flag, or a list for `any($n)`. */
+export type QueryParam = string | number | boolean | null | string[]
+
+/** The database read the guards take, so a test can answer without a database. */
+export type Read = (text: string, params: QueryParam[]) => Promise<Row[]>
 
 /**
  * The user a live session belongs to, judged the way nucleus judges it on
