@@ -111,7 +111,7 @@ export type RuleContext = {
   caller?: Caller | null
 }
 
-function refuse(message: string, status = 400): Response {
+export function refuse(message: string, status = 400): Response {
   return new Response(
     JSON.stringify({ success: false, isSuccess: false, message, errors: [{ message }] }),
     { status, headers: { 'content-type': 'application/json' } }
@@ -170,7 +170,7 @@ export function canonicalId(value: unknown): string {
 }
 
 /** A path segment as nucleus receives it (decoded), in canonical form. */
-function pathId(segment: string | undefined): string {
+export function pathId(segment: string | undefined): string {
   let decoded = segment ?? ''
   try {
     decoded = decodeURIComponent(decoded)
@@ -315,7 +315,7 @@ function carriesBody(request: Request): boolean {
  * `PUT /fiveSFindings/<id> body= undefined`. The guard therefore reads it
  * itself, from a CLONE, so the stream nucleus is about to read is untouched.
  */
-async function readBody(ctx: RuleContext): Promise<Record<string, unknown>> {
+export async function readBody(ctx: RuleContext): Promise<Record<string, unknown>> {
   if (ctx.body !== undefined && ctx.body !== null) return canonicalIds(toSnakeKeys(asRecord(ctx.body)))
   if (bodyKind(ctx.request.headers.get('content-type')) !== 'json') return {}
   try {

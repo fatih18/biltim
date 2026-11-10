@@ -1,7 +1,7 @@
 import { type CreateNucleusServerOptions, createNucleusServer } from 'nucleus-core-ts/server'
 import { applyBootFixes } from './boot'
 import { closePool } from './db'
-import { enforceBusinessRules } from './guards/businessRules'
+import { enforceRequestRules } from './guards/requestGuard'
 import { BiltimRoutes } from './routes/biltim'
 import { ReportsRoutes } from './routes/reports'
 
@@ -46,7 +46,7 @@ async function main() {
      * two. Nucleus chains this ahead of its own guard, so it reaches the
      * generated CRUD routes a host route could not.
      */
-    onRequest: ({ request, body }) => enforceBusinessRules({ request, body }),
+    onRequest: ({ request, body, query }) => enforceRequestRules({ request, body, query }),
     // Our own pg pool is separate from the framework's; without this it leaked
     // on every restart. `onStop` runs after nucleus's own teardown steps.
     onStop: [closePool],
