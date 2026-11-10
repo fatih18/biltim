@@ -561,7 +561,8 @@
         },
         {
           "name": "completion_mailed_at",
-          "type": "timestamp"
+          "type": "timestamp",
+          "comment": "Completion mail HANDLED, not necessarily mailed: set when the mail goes out, and by the mail worker for completed plans older than the 48-hour window (so an edit of an old plan never mails)."
         },
         {
           "name": "invitation_mail_attempts",

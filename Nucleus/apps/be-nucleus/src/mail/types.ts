@@ -47,8 +47,12 @@ export const MAIL_SEND_TIMEOUT_MS = 60_000
 /** Plans handled per kind and tick, so a mass planning is spread over minutes, not sent in one burst. */
 export const MAIL_BATCH = 10
 
-/** Wait after the 1st, 2nd, 3rd and 4th failed attempt (the 5th is the last): the five attempts span about 15 hours. */
-export const MAIL_RETRY_MINUTES: readonly number[] = [5, 30, 180, 720]
+/**
+ * Wait after the 1st, 2nd, 3rd and 4th failed attempt (the 5th is the last): 10 minutes, 1 hour, 6 hours,
+ * 24 hours. The five attempts land about 31 hours after the first, so they cover most of the 48-hour window
+ * and an outage of a working day still heals itself.
+ */
+export const MAIL_RETRY_MINUTES: readonly number[] = [10, 60, 360, 1440]
 
 export type MailLog = {
   info: (line: string) => void
@@ -66,6 +70,8 @@ export type PlanMailDeps = {
   log: MailLog
   /** Overrides `MAIL_SEND_TIMEOUT_MS`; for tests. */
   sendTimeoutMs?: number
+  /** True once the worker is being stopped: a pass finishes the plan it is on and takes no further one. */
+  stopped?: () => boolean
 }
 
 /** The subject and the two bodies of one mail. */

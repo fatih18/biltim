@@ -4,8 +4,8 @@ import { forgetMailRuntime, latchMailRuntime } from './runtime'
 import type { MailRuntime } from './types'
 import { createMailTicker, startMailWorker, stopMailWorker } from './worker'
 
-afterEach(() => {
-  stopMailWorker()
+afterEach(async () => {
+  await stopMailWorker()
   forgetMailRuntime()
 })
 

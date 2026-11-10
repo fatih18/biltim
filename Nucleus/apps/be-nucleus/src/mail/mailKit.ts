@@ -1,6 +1,7 @@
 import type { EmailPayload, EmailSendResult } from 'nucleus-core-ts'
 import type { Row, Sql } from '../db'
 import type { QueryParam } from '../guards/caller'
+import { SWEEP_OLD_COMPLETIONS_SQL } from './queries'
 import type { MailKind, MailLog, MailRuntime, PlanMailDeps } from './types'
 
 /** A fake database, a fake mail service and a log for the plan mail tests (mail/*.test.ts). */
@@ -40,8 +41,11 @@ export const planRow = (over: Row = {}): Row => ({
   ...over,
 })
 
-/** `kind` is the mail this plan is due for: a plan that is planned is due an invitation, one that is completed a completion. */
-export type FakePlan = { id: string; claimed: boolean; attempts: number; row: Row; kind: MailKind }
+/**
+ * `kind` is the mail this plan is due for: a plan that is planned is due an invitation, one that is completed a completion.
+ * `old`: the plan's clock (created_at, or updated_at for a completion) is outside the window, so it is never a candidate.
+ */
+export type FakePlan = { id: string; claimed: boolean; attempts: number; row: Row; kind: MailKind; old: boolean }
 
 export type World = {
   plans: FakePlan[]
@@ -53,12 +57,13 @@ export type World = {
   backlog?: Row
 }
 
-export const plan = (id = PLAN_A, row: Row = {}, kind: MailKind = 'invitation'): FakePlan => ({
+export const plan = (id = PLAN_A, row: Row = {}, kind: MailKind = 'invitation', old = false): FakePlan => ({
   id,
   claimed: false,
   attempts: 0,
   row: planRow({ id, ...row }),
   kind,
+  old,
 })
 
 const kindOf = (text: string): MailKind => (text.includes("p.status = 'completed'") ? 'completion' : 'invitation')
@@ -90,18 +95,26 @@ export function fakeSql(world: World, events: string[]) {
     if (text.includes('from main.user_roles ur')) {
       return (world.callers?.[String(params[0])]?.roles ?? []).map((name) => ({ name }))
     }
+    if (text === SWEEP_OLD_COMPLETIONS_SQL) {
+      const handled = world.plans.filter((p) => p.kind === 'completion' && p.old && !p.claimed)
+      for (const p of handled) {
+        p.claimed = true
+        events.push(`sweep:${p.id}`)
+      }
+      return [{ n: handled.length }]
+    }
     if (text.includes('count(*) filter')) return [world.backlog ?? {}]
     if (text.includes('select p.id::text as id from main.five_s_audit_plans p')) {
       const limit = Number(params[2])
       const max = Number(params[1])
       const kind = kindOf(text)
       return world.plans
-        .filter((p) => p.kind === kind && !p.claimed && p.attempts < max)
+        .filter((p) => p.kind === kind && !p.claimed && !p.old && p.attempts < max)
         .slice(0, limit)
         .map((p) => ({ id: p.id }))
     }
     if (/update main\.five_s_audit_plans p set \w+_mailed_at/.test(text)) {
-      if (!found || found.kind !== kindOf(text) || found.claimed || found.attempts >= Number(params[1])) return []
+      if (!found || found.kind !== kindOf(text) || found.claimed || found.old || found.attempts >= Number(params[1])) return []
       found.claimed = true
       events.push(`claim:${found.id}`)
       return [{ id: found.id }]

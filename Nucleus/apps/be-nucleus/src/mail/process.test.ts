@@ -52,7 +52,7 @@ describe('claim, then send', () => {
 describe('no mail configured', () => {
   it('does nothing: no database read, no write, no mail', async () => {
     const w = mailWorld(oneDuePlan(), { available: false })
-    expect(await runMailTick(w.deps)).toEqual({ available: false, sent: 0, nobody: 0, lost: 0, failed: 0, waiting: 0 })
+    expect(await runMailTick(w.deps)).toEqual({ available: false, sent: 0, nobody: 0, lost: 0, failed: 0, waiting: 0, swept: 0 })
     expect(w.calls).toEqual([])
     expect(w.events).toEqual([])
     expect(w.sent).toEqual([])

@@ -25,6 +25,7 @@ export type NucleusSlot = Parameters<AnyRoute['handler']>[0]['nucleus']
 
 const METHODS: readonly string[] = ['sendEmail', 'isEmailAvailable', 'emailProvider', 'emailSenderAddress']
 
+// The framework declares ctx.nucleus as unknown, so NucleusSlot narrows to the mail service only through this guard.
 export function isMailRuntime(slot: NucleusSlot): slot is MailRuntime {
   if (typeof slot !== 'object' || slot === null) return false
   return METHODS.every((name) => name in slot && typeof Reflect.get(slot, name) === 'function')

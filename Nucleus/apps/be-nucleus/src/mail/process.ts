@@ -1,6 +1,6 @@
 import type { EmailPayload } from 'nucleus-core-ts'
 import { preparePlanMail } from './planMail'
-import { claimPlan, findCandidates, releasePlan } from './queries'
+import { claimPlan, findCandidates, releasePlan, sweepOldCompletions } from './queries'
 import {
   KIND_TR,
   MAIL_BATCH,
@@ -101,6 +101,8 @@ export async function processPlan(kind: MailKind, planId: string, deps: PlanMail
     }
 
     const message = envelope(runtime.emailSenderAddress(), mail.recipients, mail.content)
+    // A provider that answers late may still deliver the mail after this timeout, and the retry then sends it again:
+    // a double mail is an accepted risk, against one hung connection stopping every later mail.
     const result = await withTimeout(runtime.sendEmail(message), deps.sendTimeoutMs ?? MAIL_SEND_TIMEOUT_MS)
     if (!result.success) return giveBack(kind, planId, people, result.error || 'sağlayıcı hata nedenini bildirmedi', deps)
 
@@ -122,6 +124,8 @@ export type TickReport = {
   failed: number
   /** Plans left alone because their retry time has not come. */
   waiting: number
+  /** Completed plans that had left the window and were marked handled, not mailed (`sweepOldCompletions`). */
+  swept: number
 }
 
 /** Entries older than the window belong to plans the window has left; their wait is over anyway. */
@@ -133,21 +137,29 @@ function pruneRetries(retryAt: Map<string, number>, now: number): void {
 /**
  * One pass: while a provider is configured, the plans each mail is still owed
  * for, oldest first, at most `MAIL_BATCH` per kind. Without a provider it
- * answers at once and touches neither the database nor the network.
+ * answers at once and touches neither the database nor the network. Before
+ * anything is sent, completed plans that already left the window are marked
+ * handled, so a later edit of an old plan cannot mail about an old audit; if
+ * that fails the pass sends nothing.
  */
 export async function runMailTick(deps: PlanMailDeps): Promise<TickReport> {
-  const report: TickReport = { available: false, sent: 0, nobody: 0, lost: 0, failed: 0, waiting: 0 }
+  const report: TickReport = { available: false, sent: 0, nobody: 0, lost: 0, failed: 0, waiting: 0, swept: 0 }
   if (!deps.runtime.isEmailAvailable()) return report
   report.available = true
   pruneRetries(deps.retryAt, deps.now())
+  report.swept = await sweepOldCompletions(deps.sql)
+  if (report.swept > 0) {
+    deps.log.info(`[mail] son ${MAIL_WINDOW_HOURS} saatin dışında tamamlanmış ${report.swept} plan işlendi sayıldı (posta atılmadı)`)
+  }
 
   for (const kind of MAIL_KINDS) {
+    if (deps.stopped?.()) break
     // Plans still waiting out a failure take a slot in the list but not in the batch.
     const resting = [...deps.retryAt.keys()].filter((key) => key.startsWith(`${kind}:`)).length
     const planIds = await findCandidates(deps.sql, kind, MAIL_BATCH + resting)
     let handled = 0
     for (const planId of planIds) {
-      if (handled >= MAIL_BATCH) break
+      if (handled >= MAIL_BATCH || deps.stopped?.()) break
       if ((deps.retryAt.get(retryKey(kind, planId)) ?? 0) > deps.now()) {
         report.waiting += 1
         continue

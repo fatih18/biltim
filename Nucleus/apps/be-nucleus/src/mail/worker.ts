@@ -19,14 +19,23 @@ export type WorkerOptions = {
   appUrl?: () => string | null
   now?: () => number
   log?: MailLog
+  /** Overrides `MAIL_STOP_WAIT_MS`; for tests. */
+  stopWaitMs?: number
 }
 
 export type MailTicker = {
-  /** One pass now. Null when there is no mail service yet or the previous pass is still running. */
+  /** One pass now. Null when there is no mail service yet, the previous pass is still running or the ticker was halted. */
   tick: () => Promise<TickReport | null>
+  /** From now on no pass starts, and a running one stops after the plan it is on. */
+  halt: () => void
+  /** Settles when no pass is running (at once if none is). Never rejects. */
+  settled: () => Promise<void>
 }
 
-export type MailWorker = MailTicker & { stop: () => void }
+export type MailWorker = MailTicker & { stop: () => Promise<void> }
+
+/** How long stopping waits for a pass that is mid-send before the database pool may be closed under it. */
+export const MAIL_STOP_WAIT_MS = 10_000
 
 const consoleLog: MailLog = { info: (line) => console.log(line), error: (line) => console.error(line) }
 
@@ -49,31 +58,43 @@ export function createMailTicker(options: WorkerOptions = {}): MailTicker {
   const retryAt = new Map<string, number>()
 
   let running = false
+  let halted = false
   let announced = ''
+  let inFlight: Promise<TickReport | null> | null = null
 
-  const tick = async (): Promise<TickReport | null> => {
-    const runtime = getRuntime()
-    if (!runtime || running) return null
-    running = true
+  const pass = async (runtime: MailRuntime): Promise<TickReport | null> => {
     try {
       const line = describeProvider(runtime)
       if (line !== announced) {
         announced = line
         log.info(line)
       }
-      return await runMailTick({ sql, runtime, appUrl: appUrl(), now, retryAt, log })
+      return await runMailTick({ sql, runtime, appUrl: appUrl(), now, retryAt, log, stopped: () => halted })
     } catch (error) {
       log.error(`[mail] tarama başarısız: ${error instanceof Error ? error.message : String(error)}`)
       return null
     } finally {
       running = false
+      inFlight = null
     }
   }
 
-  return { tick }
+  const tick = (): Promise<TickReport | null> => {
+    const runtime = getRuntime()
+    if (!runtime || running || halted) return Promise.resolve(null)
+    running = true
+    inFlight = pass(runtime)
+    return inFlight
+  }
+
+  const settled = async (): Promise<void> => {
+    await inFlight
+  }
+
+  return { tick, halt: () => void (halted = true), settled }
 }
 
-let current: { worker: MailWorker; timer: ReturnType<typeof setInterval> } | null = null
+let current: { worker: MailWorker; timer: ReturnType<typeof setInterval>; ticker: MailTicker; stopWaitMs: number } | null = null
 
 /** Starts the one worker of the process (a second call keeps the first). */
 export function startMailWorker(options: WorkerOptions = {}): MailWorker {
@@ -87,15 +108,29 @@ export function startMailWorker(options: WorkerOptions = {}): MailWorker {
   const soon = () => void setTimeout(() => void ticker.tick(), 0)
   onMailRuntimeLatched(soon)
   if ((options.getRuntime ?? latchedMailRuntime)()) soon()
-  const worker: MailWorker = { tick: ticker.tick, stop: stopMailWorker }
-  current = { worker, timer }
+  const worker: MailWorker = { ...ticker, stop: stopMailWorker }
+  current = { worker, timer, ticker, stopWaitMs: options.stopWaitMs ?? MAIL_STOP_WAIT_MS }
   log.info(`[mail] e-posta çalışanı başladı (${Math.round(intervalMs / 1000)} sn aralık); sağlayıcı durumu ilk sayfa isteğinden sonra loglanır`)
   return worker
 }
 
-export function stopMailWorker(): void {
+/**
+ * Stops the timer and waits for a pass that is mid-send (at most `stopWaitMs`)
+ * so the database pool is not closed under it: a plan whose release then failed
+ * would keep its marker and never be mailed. The pass is told to stop after the
+ * plan it is on, so the wait is one send, not the whole batch.
+ */
+export async function stopMailWorker(): Promise<void> {
   if (!current) return
-  clearInterval(current.timer)
+  const { timer, ticker, stopWaitMs } = current
+  clearInterval(timer)
   onMailRuntimeLatched(null)
   current = null
+  ticker.halt()
+  let giveUp: ReturnType<typeof setTimeout> | undefined
+  const capped = new Promise<void>((resolve) => {
+    giveUp = setTimeout(resolve, stopWaitMs)
+  })
+  await Promise.race([ticker.settled(), capped])
+  clearTimeout(giveUp)
 }
