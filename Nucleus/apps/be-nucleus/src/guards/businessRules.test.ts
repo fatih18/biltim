@@ -2154,6 +2154,105 @@ describe('nothing is read for a request nucleus will refuse first (security #7)'
   })
 })
 
+describe('an audit saved without the field manager’s attendance has no answers (Notlar 22.10, satır 39)', () => {
+  // As the frontend sends it while the questions are passive: every score 0.00, and no answer row after it.
+  const passiveAudit = {
+    planId: PLAN,
+    departmentName: 'Haddehane',
+    auditorName: 'Ali Veli',
+    auditDate: '2026-10-01',
+    totalScore: '0.00',
+    targetScore: '75.00',
+    scoreS1: '0.00',
+    scoreS2: '0.00',
+    scoreS3: '0.00',
+    scoreS4: '0.00',
+    scoreS5: '0.00',
+    locationId: FILE_A,
+    auditorId: USER,
+    clientSubmissionId: FILE_B,
+  }
+  const stamp = { status: PENDING_APPROVAL, auditId: AUDIT, auditorAttended: true, fieldManagerAttended: false }
+  const plannedPlan = script({
+    'from main.five_s_audit_teams t': [{ leader_user_id: 'u-lead', is_member: true }],
+    'from main.five_s_audit_plans where id': [{ assigned_team_id: TEAM, date_change_count: 0, status: 'planned' }],
+  })
+
+  it('takes the audit row: a total of 0 and five steps at 0 are valid scores', async () => {
+    const res = await enforceBusinessRules({
+      request: jsonReq('POST', '/fiveSAudits', passiveAudit),
+      body: undefined,
+      read: byId(PLAN, [{ field_manager_user_ids: [], status: 'planned', audit_id: null }]),
+      caller: AUDITOR,
+    })
+    expect(res).toBeUndefined()
+  })
+
+  it('takes the plan stamp that follows it with no answer ever posted: attendance false, audit linked', async () => {
+    const res = await enforceBusinessRules({
+      request: jsonReq('PUT', '/fiveSAuditPlans/p1', stamp),
+      body: undefined,
+      read: plannedPlan,
+      caller: AUDITOR,
+    })
+    expect(res).toBeUndefined()
+  })
+
+  it('takes the same stamp again when the offline queue replays it', async () => {
+    const sent = script({
+      'from main.five_s_audit_teams t': [{ leader_user_id: 'u-lead', is_member: true }],
+      'from main.five_s_audit_plans where id': [
+        {
+          assigned_team_id: TEAM,
+          date_change_count: 0,
+          status: PENDING_APPROVAL,
+          audit_id: AUDIT,
+          auditor_attended: true,
+          field_manager_attended: false,
+        },
+      ],
+    })
+    const res = await enforceBusinessRules({
+      request: jsonReq('PUT', '/fiveSAuditPlans/p1', stamp),
+      body: undefined,
+      read: sent,
+      caller: AUDITOR,
+    })
+    expect(res).toBeUndefined()
+  })
+
+  it('lets Merkez Ekip correct it later: re-save the zero, or tick the box and answer', async () => {
+    const locked = script({ "in ('completed', 'pending_approval')": [{ status: PENDING_APPROVAL }] })
+    const resave = await enforceBusinessRules({
+      request: jsonReq('PATCH', `/fiveSAudits/${AUDIT}`, { totalScore: '0.00', scoreS1: '0.00', scoreS5: '0.00' }),
+      body: undefined,
+      read: locked,
+      caller: CENTRAL,
+    })
+    expect(resave).toBeUndefined()
+
+    const answer = await enforceBusinessRules({
+      request: jsonReq('POST', '/fiveSAuditAnswers', { auditId: AUDIT, questionId: 'q1', rating: 'good' }),
+      body: undefined,
+      read: locked,
+      caller: CENTRAL,
+    })
+    expect(answer).toBeUndefined()
+
+    const tick = await enforceBusinessRules({
+      request: jsonReq('PUT', '/fiveSAuditPlans/p1', { fieldManagerAttended: true }),
+      body: undefined,
+      read: script({
+        'from main.five_s_audit_plans where id': [
+          { status: PENDING_APPROVAL, audit_id: AUDIT, auditor_attended: true, field_manager_attended: false },
+        ],
+      }),
+      caller: CENTRAL,
+    })
+    expect(tick).toBeUndefined()
+  })
+})
+
 describe('an auditor adds findings, and does not edit them (R9)', () => {
   it('refuses an auditor-only account’s update of any finding', async () => {
     for (const method of ['PUT', 'PATCH']) {

@@ -3,6 +3,7 @@ import { defineRoute } from 'nucleus-core-ts/server'
 import { type Row, query } from '../db'
 import { todayAtPlant, toDateKey } from '../guards/businessRules'
 import { callerById, isCentral } from '../guards/caller'
+import { auditAttendanceNote } from './auditAttendanceNote'
 import { excelDay, xlsxResponse } from './excel'
 import { fitBox, locatePhotos, type Photo, photoIds, readPhoto } from './photos'
 
@@ -89,7 +90,7 @@ async function buildForm(locationName: string, year: number): Promise<Response> 
       [locationName, from, to]
     ),
     query(
-      `select a.id, a.audit_date, a.auditor_name, a.total_score, a.target_score,
+      `select a.id, a.plan_id, a.audit_date, a.auditor_name, a.total_score, a.target_score,
               a.score_s1, a.score_s2, a.score_s3, a.score_s4, a.score_s5
          from five_s_audits a
         where a.is_active = true and a.source is distinct from 'single_finding'
@@ -119,6 +120,23 @@ async function buildForm(locationName: string, year: number): Promise<Response> 
       const m = answersByAudit.get(key) ?? new Map<string, Row>()
       m.set(String(r.question_id), r)
       answersByAudit.set(key, m)
+    }
+  }
+
+  /*
+   * Whether each audit's plan records the field manager (or whoever they
+   * appointed) as present. An audit saved without attendance carries no answers
+   * on purpose, and its sheet must say so rather than "eski kayıt".
+   */
+  const attendedByPlan = new Map<string, boolean | null>()
+  const planIds = [...new Set(audits.map((a) => String(a.plan_id ?? '')).filter(Boolean))]
+  if (planIds.length > 0) {
+    const rows = await query(
+      `select id, field_manager_attended from five_s_audit_plans where id = any($1::uuid[])`,
+      [planIds]
+    )
+    for (const r of rows) {
+      attendedByPlan.set(String(r.id), typeof r.field_manager_attended === 'boolean' ? r.field_manager_attended : null)
     }
   }
 
@@ -382,9 +400,13 @@ async function buildForm(locationName: string, year: number): Promise<Response> 
       row += 2
     }
 
-    if (answers.size === 0) {
-      ws.getCell(`A${row}`).value =
-        'Bu denetimin soru yanıtları kaydedilmemiş (eski kayıt); yalnız adım puanları gösteriliyor.'
+    const attendanceNote = auditAttendanceNote({
+      attended: attendedByPlan.get(String(a.plan_id ?? '')) ?? null,
+      total: Number(a.total_score ?? 0),
+      hasAnswers: answers.size > 0,
+    })
+    if (attendanceNote) {
+      ws.getCell(`A${row}`).value = attendanceNote
       ws.getCell(`A${row}`).font = { italic: true, color: { argb: 'FFB45309' } }
       row += 2
     }
