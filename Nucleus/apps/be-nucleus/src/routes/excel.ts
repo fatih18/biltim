@@ -1,3 +1,4 @@
+import type { Row } from '../db'
 import { toDateKey } from '../guards/businessRules'
 import { createPhotoEmbedder } from './findingPhotos'
 import {
@@ -42,7 +43,7 @@ export type WorkbookOptions = {
 }
 
 /** Height a row needs for its own text: one 15 pt line per `width` characters, wrapped. */
-function textHeightPt(columns: Column[], values: Record<string, unknown>): number {
+function textHeightPt(columns: Column[], values: Row): number {
   let lines = 1
   for (const c of columns) {
     const v = values[c.key]
@@ -117,7 +118,7 @@ async function writeWorkbook(sheets: Sheet[], options: WorkbookOptions): Promise
     head.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDDEBF7' } }
     head.alignment = { vertical: 'middle', wrapText: true }
 
-    const written: Record<string, unknown>[] = []
+    const written: Row[] = []
     for (const row of spec.rows) {
       const out: Record<string, unknown> = {}
       for (const c of spec.columns) {

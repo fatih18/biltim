@@ -1,6 +1,7 @@
 import { type Row, query } from './db'
+import type { QueryParam } from './guards/caller'
 
-type Run = (text: string, params?: unknown[]) => Promise<Row[]>
+type Run = (text: string, params?: QueryParam[]) => Promise<Row[]>
 
 /**
  * Every account flagged `users.is_god` also holds the `godmin` role (R27).

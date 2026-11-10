@@ -1,5 +1,5 @@
 import { query } from '../db'
-import { callerById, isCentral } from '../guards/caller'
+import { callerById, isCentral, type QueryParam } from '../guards/caller'
 import { managedSpellings, type Read } from './locationMatch'
 
 /**
@@ -46,7 +46,7 @@ export function inManagedLocations(column: string, paramIndex: number): string {
 }
 
 /** A query's scope clause and params together, like `dateRange`; no spellings = no narrowing. */
-export function scoped(spellings: string[] | null, params: unknown[]) {
+export function scoped(spellings: string[] | null, params: QueryParam[]) {
   if (!spellings) return { on: (_column: string) => '', params }
   const index = params.length + 1
   return { on: (column: string) => inManagedLocations(column, index), params: [...params, spellings] }

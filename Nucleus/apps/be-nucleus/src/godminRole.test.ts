@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 import { GODMIN_ROLE_GRANT_SQL, godminGrantLog, grantGodminRole } from './godminRole'
+import type { QueryParam } from './guards/caller'
 
 describe('the godmin role for every is_god account (R27)', () => {
   it('reports which accounts were given the role', async () => {
@@ -18,7 +19,7 @@ describe('the godmin role for every is_god account (R27)', () => {
   })
 
   it('runs one statement and no parameters, so a second boot repeats it harmlessly', async () => {
-    const seen: Array<{ text: string; params: unknown[] | undefined }> = []
+    const seen: Array<{ text: string; params: QueryParam[] | undefined }> = []
     await grantGodminRole(async (text, params) => {
       seen.push({ text, params })
       return []

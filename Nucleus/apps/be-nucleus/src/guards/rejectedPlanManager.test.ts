@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test'
+import type { Row } from '../db'
 import { PENDING_APPROVAL, enforceBusinessRules } from './businessRules'
 import type { Caller } from './caller'
 
@@ -23,7 +24,7 @@ type OnTeam = { leader?: string; member?: boolean }
 
 /** Answers each query by the first needle its text contains. */
 const script =
-  (answers: Record<string, Record<string, unknown>[]>) => async (text: string) => {
+  (answers: Record<string, Row[]>) => async (text: string) => {
     for (const [needle, rows] of Object.entries(answers)) if (text.includes(needle)) return rows
     return []
   }
@@ -36,7 +37,7 @@ const plan = (status: string, onTeam: OnTeam = { member: true }) =>
     ],
   })
 
-const put = (payload: Record<string, unknown>, read: ReturnType<typeof plan>, caller: Caller | null) =>
+const put = (payload: Row, read: ReturnType<typeof plan>, caller: Caller | null) =>
   enforceBusinessRules({
     request: new Request('http://localhost:4001/fiveSAuditPlans/p1', {
       method: 'PUT',

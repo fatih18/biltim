@@ -12,6 +12,7 @@ import {
   toSnakeKeys,
   todayAtPlant,
 } from './businessRules'
+import type { Row } from '../db'
 import type { Caller, QueryParam } from './caller'
 
 const GOD: Caller = { userId: 'u-god', isGod: true, roles: ['godmin'] }
@@ -2748,14 +2749,14 @@ describe('deleting a finding of a sent or approved audit', () => {
 })
 
 describe('a plan sent back for correction, "Reddet" (R30)', () => {
-  const planRow = (row: Record<string, unknown>, onTeam: { leader?: string; member?: boolean } = { member: true }) =>
+  const planRow = (row: Row, onTeam: { leader?: string; member?: boolean } = { member: true }) =>
     script({
       'from main.five_s_audit_teams t': [{ leader_user_id: onTeam.leader ?? 'u-lead', is_member: onTeam.member === true }],
       'from main.five_s_audit_plans where id': [
         { assigned_team_id: TEAM, date_change_count: 0, planned_date: '2026-10-05', audit_id: AUDIT, ...row },
       ],
     })
-  const put = (payload: unknown, read: ReturnType<typeof planRow>, caller: Caller | null = AUDITOR) =>
+  const put = (payload: Row, read: ReturnType<typeof planRow>, caller: Caller | null = AUDITOR) =>
     enforceBusinessRules({ request: jsonReq('PUT', '/fiveSAuditPlans/p1', payload), body: undefined, read, caller })
   const rejected = planRow({ status: 'rejected' })
   const resend = { status: PENDING_APPROVAL, auditId: AUDIT, auditorAttended: true, fieldManagerAttended: false }

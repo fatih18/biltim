@@ -2,7 +2,7 @@ import { Type as t } from '@sinclair/typebox'
 import { type AnyRoute, defineRoute, type RouteGroup } from 'nucleus-core-ts/server'
 import { type Row, query } from '../db'
 import { todayAtPlant } from '../guards/businessRules'
-import { type Caller, callerById } from '../guards/caller'
+import { type Caller, callerById, type QueryParam } from '../guards/caller'
 import { buildWorkbook, type Column, statusTr, xlsxResponse } from './excel'
 import { locationFormXlsx } from './locationForm'
 import { findingSpellings } from './locationMatch'
@@ -552,9 +552,9 @@ export type FindingFilters = {
 }
 
 /** The register's WHERE fragments and their parameters, built together so a placeholder always has its value. */
-export function findingsFilter(f: FindingFilters): { sql: string; params: unknown[] } {
+export function findingsFilter(f: FindingFilters): { sql: string; params: QueryParam[] } {
   const clauses: string[] = []
-  const params: unknown[] = []
+  const params: QueryParam[] = []
   let i = 1
   if (f.spellings) {
     // Matched on the spellings the findings use for this place (locationMatch.ts), not

@@ -79,7 +79,7 @@ const GRANTS: Array<[role: string, action: string]> = [
     )
   ),
   ...['put', 'patch'].flatMap((method) =>
-    ['five_s_audits', 'five_s_audit_answers'].map((table) => ['Auditor', `${method}.${table}`] as [string, string])
+    ['five_s_audits', 'five_s_audit_answers'].map((table): [string, string] => ['Auditor', `${method}.${table}`])
   ),
 ]
 
