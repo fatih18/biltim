@@ -527,6 +527,14 @@ const findingsQuery = t.Object({
   with_photos: t.Optional(t.String()),
 })
 
+/*
+ * A single finding raised on its own: its carrier audit row says so and its
+ * form_title is still the plain "Tekil Bulgu". One raised inside an audit sits
+ * under a carrier row too, but carries that audit's name in form_title (R74),
+ * so the register and this export list it with the audit's findings.
+ */
+const STANDALONE_SINGLE = `(a.source IS NOT DISTINCT FROM 'single_finding' AND coalesce(nullif(trim(f.form_title), ''), 'Tekil Bulgu') = 'Tekil Bulgu')`
+
 /** The photo columns `hasPhoto` reads. */
 const PHOTO_COLUMNS = ['before', 'after']
   .flatMap((side) => [`f.photo_${side}_files`, `f.photo_${side}_file_id`, `f.photo_${side}_url`])
@@ -576,8 +584,8 @@ async function findingsWorkbook(
     clauses.push(` AND f.status = $${i++}`)
     params.push(status)
   }
-  if (source === 'single_finding') clauses.push(" AND a.source = 'single_finding'")
-  if (source === 'audit') clauses.push(" AND a.source IS DISTINCT FROM 'single_finding'")
+  if (source === 'single_finding') clauses.push(` AND ${STANDALONE_SINGLE}`)
+  if (source === 'audit') clauses.push(` AND NOT ${STANDALONE_SINGLE}`)
   // #7/#24: the export shows a field manager what their register shows.
   // Matched in SQL, not against names lowercased in JS (see inManagedLocations).
   const scopeUserId = await fieldManagerScope(request)
@@ -593,10 +601,12 @@ async function findingsWorkbook(
     `SELECT f.finding_no, f.detected_date, f.location_name, f.finding_type,
             coalesce(f.step_code, '') AS step_code, f.description, f.action_to_take,
             f.due_date, f.completed_at, f.responsible_name, f.auditor_name, f.status,
-            CASE WHEN a.source = 'single_finding' THEN 'Tekil Bulgu'
+            CASE WHEN ${STANDALONE_SINGLE} THEN 'Tekil Bulgu'
                  WHEN a.id IS NOT NULL THEN 'Denetim' ELSE '' END AS source_label,
             CASE WHEN a.id IS NOT NULL AND a.source IS DISTINCT FROM 'single_finding'
                  THEN concat_ws(' – ', a.department_name, to_char(a.audit_date, 'DD.MM.YYYY'))
+                 WHEN a.source IS NOT DISTINCT FROM 'single_finding' AND NOT ${STANDALONE_SINGLE}
+                 THEN replace(f.form_title, ' · ', ' – ')
                  ELSE '' END AS audit_label${withPhotos ? `, ${PHOTO_COLUMNS}` : ''}
      FROM five_s_findings f
      LEFT JOIN five_s_audits a ON a.id = f.audit_id
