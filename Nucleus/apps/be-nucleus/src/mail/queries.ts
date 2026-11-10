@@ -12,9 +12,9 @@ import { MAIL_MAX_ATTEMPTS, MAIL_WINDOW_HOURS, type MailKind } from './types'
  * local clock.
  */
 
-const NOW_UTC = `(now() at time zone 'utc')`
+export const NOW_UTC = `(now() at time zone 'utc')`
 
-type KindSpec = {
+export type KindSpec = {
   /** The plan status the mail is about. */
   status: string
   /** Set when a worker takes the plan (and stays set once the mail is out). */
@@ -25,7 +25,7 @@ type KindSpec = {
 }
 
 /** Column names come from here and from nowhere else; nothing a client sent reaches an identifier. */
-const SPEC: Record<MailKind, KindSpec> = {
+export const SPEC: Record<MailKind, KindSpec> = {
   invitation: {
     status: 'planned',
     marker: 'invitation_mailed_at',

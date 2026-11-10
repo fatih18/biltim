@@ -36,6 +36,9 @@ export type MailRuntime = {
  */
 export const MAIL_WINDOW_HOURS = 48
 
+/** How far back the status counts plans whose mail window ran out without a mail (`expired.ts`). Older ones are history, not backlog. */
+export const MAIL_EXPIRED_LOOKBACK_DAYS = 30
+
 /** Real send failures per plan and kind; a plan that used them up is reported, not retried. */
 export const MAIL_MAX_ATTEMPTS = 5
 

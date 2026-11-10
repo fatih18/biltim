@@ -1,14 +1,15 @@
 import { defineRoute } from 'nucleus-core-ts/server'
 import { type Sql, query } from '../db'
 import { callerById, isAdmin } from '../guards/caller'
+import { readExpired } from './expired'
 import { readBacklog } from './queries'
 import { latchMailRuntime, latchedMailRuntime } from './runtime'
-import { MAIL_MAX_ATTEMPTS, MAIL_WINDOW_HOURS, type MailRuntime } from './types'
+import { MAIL_EXPIRED_LOOKBACK_DAYS, MAIL_MAX_ATTEMPTS, MAIL_WINDOW_HOURS, type MailRuntime } from './types'
 
 /**
  * `GET /biltim/mail/status`: whether the install can send mail at all, through
- * which provider, from which address, and how many plan mails are still owed or
- * gave up. Read only, for Merkez Ekip, Super Admin and the godmin (`isAdmin`;
+ * which provider, from which address, and how many plan mails are still owed,
+ * gave up or ran out of their window. Read only, for Merkez Ekip, Super Admin and the godmin (`isAdmin`;
  * Super Admin outranks Merkez Ekip on the users screen, so it is not left out).
  *
  * It also hands the mail service to the worker (`runtime.ts`), like every
@@ -25,10 +26,16 @@ export type MailStatusData = {
   pendingCompletions: number
   failedInvitations: number
   failedCompletions: number
+  expiredInvitations: number
+  expiredCompletions: number
+  /** How many days back `expired` looks. */
+  expiredDays: number
   /** Plans still owed a mail inside the window, both kinds together. */
   pending: number
   /** Plans that used their attempts up inside the window, both kinds together. */
   failed: number
+  /** Plans of the last `expiredDays` days that left the window with no mail sent, both kinds together. */
+  expired: number
 }
 
 export type MailStatusBody = {
@@ -63,7 +70,7 @@ export async function mailStatus(
     )
   }
 
-  const backlog = await readBacklog(deps.read)
+  const [backlog, expired] = await Promise.all([readBacklog(deps.read), readExpired(deps.read)])
   const available = input.runtime?.isEmailAvailable() === true
   const data: MailStatusData = {
     available,
@@ -72,8 +79,11 @@ export async function mailStatus(
     windowHours: MAIL_WINDOW_HOURS,
     maxAttempts: MAIL_MAX_ATTEMPTS,
     ...backlog,
+    ...expired,
+    expiredDays: MAIL_EXPIRED_LOOKBACK_DAYS,
     pending: backlog.pendingInvitations + backlog.pendingCompletions,
     failed: backlog.failedInvitations + backlog.failedCompletions,
+    expired: expired.expiredInvitations + expired.expiredCompletions,
   }
   return { status: 200, body: { success: true, data } }
 }

@@ -15,7 +15,15 @@ const CALLERS = {
   'u-fm': { roles: ['Field Manager'] },
 }
 
-const BACKLOG = { pending_invitations: '2', pending_completions: '1', failed_invitations: '1', failed_completions: '0' }
+// The fake database answers every counting statement with this one row: each query reads the columns it asks for.
+const BACKLOG = {
+  pending_invitations: '2',
+  pending_completions: '1',
+  failed_invitations: '1',
+  failed_completions: '0',
+  expired_invitations: '4',
+  expired_completions: '1',
+}
 
 function status(userId: string | null, runtimeOptions: RuntimeOptions | null = { provider: 'smtp' }) {
   const w = mailWorld({ plans: [], callers: CALLERS, backlog: BACKLOG })
@@ -65,14 +73,32 @@ describe('what it reports', () => {
       pendingCompletions: 1,
       failedInvitations: 1,
       failedCompletions: 0,
+      expiredInvitations: 4,
+      expiredCompletions: 1,
+      expiredDays: 30,
       pending: 3,
       failed: 1,
+      expired: 5,
     })
+  })
+
+  it('counts the plans that left the window in a statement of its own, so pending and failed keep their meaning', async () => {
+    const { calls } = await status('u-ce')
+    const counting = calls.filter((c) => c.text.includes('count(*) filter'))
+    expect(counting).toHaveLength(2)
+    expect(counting.some((c) => c.text.includes('expired_invitations') && c.params.join() === '48,30')).toBe(true)
+    expect(counting.some((c) => c.text.includes('pending_invitations') && c.params.join() === '48,5')).toBe(true)
+  })
+
+  it('reports no expired plans when the database has none', async () => {
+    const w = mailWorld({ plans: [], callers: CALLERS, backlog: { pending_invitations: '0' } })
+    const outcome = await mailStatus({ userId: 'u-ce', runtime: fakeRuntime({}, w.events).runtime }, { read: w.deps.sql })
+    expect(outcome.body.data).toMatchObject({ expired: 0, expiredInvitations: 0, expiredCompletions: 0, expiredDays: 30 })
   })
 
   it('reports no provider and no address when mail is not configured, still with the counts', async () => {
     const { outcome } = await status('u-ce', { available: false, provider: null, sender: '' })
-    expect(outcome.body.data).toMatchObject({ available: false, provider: null, senderAddress: '', pending: 3 })
+    expect(outcome.body.data).toMatchObject({ available: false, provider: null, senderAddress: '', pending: 3, expired: 5 })
   })
 
   it('reports the same when the worker has not been handed the mail service at all', async () => {
