@@ -1,6 +1,6 @@
 # Biltim — uçtan uca test matrisi
 
-Koddan çıkarıldı: 8 ekran, 400 senaryo.
+Koddan çıkarıldı: 8 ekran, 401 senaryo.
 Her satır arayüzden izlenebilir bir adım dizisidir; "beklenen" sütunu neyin kanıt sayılacağını söyler.
 
 ## Raporlar (/raporlar) — "5S Raporları"  (36 senaryo)
@@ -233,19 +233,19 @@ Her satır arayüzden izlenebilir bir adım dizisidir; "beklenen" sütunu neyin 
    - Beklenen: Lokasyon ve Durum "Tümü"ye, iki tarih alanı boşa döner ve liste filtresiz olarak 1. sayfadan yeniden okunur; "N bulgu" sayacı filtresiz toplama çıkar.
    - Roller: Sayfayı açabilen herkes
 
-10. **Açık Bulgu Raporu (Excel) indirme**  _[düşük · okur]_
-   - Adımlar: Sağ üstteki yeşil "Açık Bulgu Raporu (Excel)" düğmesine bas.
-   - Beklenen: Düğme yazısı "Hazırlanıyor..." olur ve dönen spinner çıkar, düğme tıklanamaz olur; sonra tarayıcı `5s-acik-bulgu-raporu-<YYYY-MM-DD>.xlsx` adlı bir dosya indirir (lokasyon seçiliyse ad `5s-acik-bulgu-raporu-<lokasyon>-<tarih>.xlsx`). İstek GET /reports/open-findings.xlsx. Dosyada "Açık Bulgular" adlı tek sayfa ve şu başlıklar var: Bulgu No, Tespit Tarihi, Lokasyon, Bulgu Tipi, 5S Adımı, Açıklama, Yapılacak Aksiyon, Termin, Sorumlu, Denetçi, Durum. Yalnızca status='open' ve is_active=true satırlar, finding_no ARTAN sırada.
-   - Roller: Sayfayı açabilen herkes. Backend'de /reports için ayrı bir claim/rol kapısı YOK — yalnızca oturum aranıyor (be-nucleus/src/index.ts:36).
+10. **Bulgu Raporu (Excel): Açık ve devam eden / Kapalı / Tümü seçimiyle indirme**  _[düşük · okur]_
+   - Adımlar: Sağ üstte "İndirilecek bulgular" grubuna bak (üç seçenek: "Açık ve devam eden", "Kapalı", "Tümü"). Hiçbir şeye dokunmadan düğmenin altındaki cümleyi oku, sonra yeşil "Bulgu Raporu (Excel)" düğmesine bas. Aynısını "Kapalı" ve "Tümü" seçerek tekrarla.
+   - Beklenen: Açılışta "Açık ve devam eden" seçilidir (müşteriye verilen söz: açık bulgular Excel olarak indirilebilir). Düğmenin altında sunucunun sayımıyla "<N> açık ve devam eden bulgu indirilecek." yazar (N Türkçe biçimlidir, örnek 1.234); sayım gelene kadar ya da sayım başarısız olursa sayısız "Açık ve devam eden bulgular indirilecek." yazar; sayım sıfırsa "Seçime uyan açık ve devam eden bulgu yok; indirilen dosya boş olur." yazar. "Kapalı" seçilince cümle "<N> kapalı bulgu indirilecek.", "Tümü"de "<N> bulgu indirilecek." olur. Sayım her seçimde ve her filtre değişiminde GET /reports/findings-count ile yeniden istenir; eski parametrelere ait geç gelen cevap gösterilmez. Düğmeye basınca yazısı "Hazırlanıyor..." olur, spinner çıkar, düğme tıklanamaz olur; sonra tarayıcı `5s-bulgu-raporu-<YYYY-MM-DD>.xlsx` adlı dosyayı indirir (lokasyon seçiliyse `5s-bulgu-raporu-<lokasyon>-<tarih>.xlsx`). İstek GET /reports/findings.xlsx. Dosyada "Bulgular" adlı tek sayfa ve şu başlıklar var: Bulgu No, Kaynak, Ana Denetim, Tespit Tarihi, Lokasyon, Bulgu Tipi, 5S Adımı, Açıklama, (fotoğraf sütunları), Yapılacak Aksiyon, Termin, Kapanış Tarihi, Sorumlu, Denetçi, Durum; finding_no ARTAN sırada, satır sayısı cümledeki sayıyla aynıdır. "Açık ve devam eden" dosyası status open ve in_progress satırlarını, "Kapalı" yalnız closed satırlarını, "Tümü" hepsini taşır. "Açık" kelimesi ürünün başka yerlerinde yalnız status='open' demektir; bu seçim devam eden bulguları da içerdiği için etiketi ve cümlesi bunu açıkça yazar. GET /reports/open-findings.xlsx ucu hâlâ vardır (eski yer imi bağlantıları için): ekran artık onu çağırmaz, elle açan yalnız status='open' satırlarını taşıyan "Açık Bulgular" sayfalı bir dosya (`5s-acik-bulgu-raporu-...xlsx`) alır.
+   - Roller: Sayfayı açabilen herkes. Backend'de /reports için ayrı bir claim/rol kapısı YOK — yalnızca oturum aranıyor (be-nucleus/src/index.ts:36). Saha sorumlusunun dosyası ve sayımı kendi lokasyonlarıyla sınırlıdır.
 
-11. **Excel raporunun filtreleri devralması**  _[düşük · okur]_
-   - Adımlar: Önce "Lokasyon" listesinden bir lokasyon ve iki tarih alanını doldur, sonra "Açık Bulgu Raporu (Excel)" düğmesine bas.
-   - Beklenen: İstek /reports/open-findings.xlsx?location_name=<lokasyon>&date_from=<tarih>&date_to=<tarih> olur. İnen dosyadaki Lokasyon sütununda YALNIZ o lokasyon vardır — backend burada lower(trim(location_name)) TAM EŞİTLİK arar, oysa ekrandaki liste aynı değeri serbest metin araması olarak kullanır: aynı ayarla ekrandaki satır sayısı ile Excel'deki satır sayısı kasten farklı olabilir. Durum filtresi Excel'e HİÇ geçmez, dosya her zaman sadece açık bulguları taşır.
+11. **Excel dosyasının listedeki filtreleri devralması ve Durum filtresiyle birlikte çalışması**  _[orta · okur]_
+   - Adımlar: Önce "Lokasyon" listesinden bir lokasyon ve iki tarih alanını doldur; düğmenin altındaki "Listedeki filtreler de uygulanır: ..." satırına bak ve "Bulgu Raporu (Excel)" düğmesine bas. Sonra listenin "Durum" filtresini "Devam ediyor" yap, indirme seçimini "Tümü"ne al ve tekrar indir. Sonra Durum filtresini "Açık" yapıp indirme seçimini "Kapalı"ya al. Son olarak "Temizle"ye bas.
+   - Beklenen: İstek /reports/findings.xlsx?location_name=<lokasyon>&status=open,in_progress&date_from=<tarih>&date_to=<tarih> olur: durum virgüllü LİSTE olarak gider ("Açık ve devam eden" → open,in_progress; "Kapalı" → closed; "Tümü" → status parametresi HİÇ gönderilmez, dosya tüm kayıttır). Sayım isteği (findings-count) aynı parametreleri taşır. Düğmenin altında "Listedeki filtreler de uygulanır: Lokasyon: <lokasyon> · Tespit tarihi: <başlangıç> – <bitiş>" yazar. İnen dosyadaki Lokasyon sütununda YALNIZ o lokasyon vardır — backend burada kayıtlı yazımlarla (locationKey: Türkçe katlama, boşluk) TAM eşleşme arar, oysa ekrandaki liste aynı değeri serbest metin araması olarak kullanır: aynı ayarla ekrandaki satır sayısı ile Excel'deki satır sayısı kasten farklı olabilir. Dosya listeden geniş olmaz: Durum "Devam ediyor" iken seçim "Tümü" olsa bile istek status=in_progress gider (seçim Durum ile daraltılır). Durum "Açık" iken seçim "Kapalı" ise ikisi birbirini dışlar: sayım istenmez, düğme tıklanamaz olur ve amber bir cümle çıkar: "Listede Durum filtresi "Açık" seçili; "Kapalı" seçimiyle birlikte hiç bulgu kalmaz ve indirilecek bir şey olmaz. Durum filtresini Tümü yapın ya da başka bir seçim yapın." Kişi dokunmadıkça seçim listenin Durum'una uyar (Durum "Kapandı" iken seçim kendiliğinden "Kapalı" olur, dosya boş inmez). Kişi seçim yaptıktan sonra Durum filtresi değişirse seçim silinir ve seçim yeniden listeyi izler; Durum eski değerine dönse bile eski seçim geri gelmez. "Temizle" seçimi de "Açık ve devam eden"e döndürür.
    - Roller: Sayfayı açabilen herkes
 
-12. **Excel indirmesinin başarısız olması**  _[düşük · okur]_
-   - Adımlar: Ağı kes (ya da backend'i durdur) ve "Açık Bulgu Raporu (Excel)" düğmesine bas.
-   - Beklenen: Liste üstünde kırmızı çerçeveli kutuda "Excel raporu indirilemedi." yazısı belirir; düğme "Hazırlanıyor..." halinden "Açık Bulgu Raporu (Excel)"ye geri döner (finally). Dosya inmez.
+12. **Excel indirmesinin ve sayımın başarısız olması**  _[düşük · okur]_
+   - Adımlar: Ağı kes (ya da backend'i durdur) ve "Bulgu Raporu (Excel)" düğmesine bas. Ayrı olarak yalnız GET /reports/findings-count isteğini başarısız bırakıp filtreleri değiştir.
+   - Beklenen: İndirme başarısızsa liste üstünde kırmızı çerçeveli kutuda "Excel raporu indirilemedi." yazısı belirir; düğme "Hazırlanıyor..." halinden "Bulgu Raporu (Excel)"ye geri döner (finally). Dosya inmez. Yalnız sayım başarısızsa ekranda hata çıkmaz: düğmenin altındaki cümle sayısız yazılır ("Açık ve devam eden bulgular indirilecek.") ve indirme çalışmaya devam eder.
    - Roller: Sayfayı açabilen herkes
 
 13. **Liste okunamayınca çıkan hata kutusu**  _[düşük · okur]_
@@ -587,7 +587,7 @@ Her satır arayüzden izlenebilir bir adım dizisidir; "beklenen" sütunu neyin 
    - Roller: super admin, godmin, Merkez Ekip
 
 
-## Ana sayfa (/) — 5S Denetimler listesi + (yetkiliyse) 5S Rapor Özeti  (71 senaryo)
+## Ana sayfa (/) — 5S Denetimler listesi + (yetkiliyse) 5S Rapor Özeti  (72 senaryo)
 
 1. **Açılışta beş listenin yüklenmesi**  _[düşük · okur]_
    - Adımlar: Giriş yaptıktan sonra ana sayfayı (/) aç. "Denetimler" başlıklı panelin altında satırların gelmesini bekle.
@@ -944,6 +944,11 @@ Her satır arayüzden izlenebilir bir adım dizisidir; "beklenen" sütunu neyin 
    - Beklenen: Tarih hücresi bir an yeni değeri gösterir; sunucu PUT /fiveSFindings/<id> isteğini 403 ile reddeder, sayfa "Termin değiştirilemedi: Bu denetim düzeltme için geri gönderildi; düzeltmeyi yalnız planın ekibi ve Merkez Ekip yapabilir. Düzeltmeyi planın ekibinden isteyin. Liste eski termine döndü." toast'ını gösterir ve liste yeniden okunup eski terminle döner. Sunucu bir sebep vermediyse toast "Termin değiştirilemedi, liste eski termine döndü. Bağlantınızı kontrol edip tekrar deneyin." der. Merkez Ekip ve planın ekibinden biri (termini düzenleme yetkisiyle) aynı değişikliği yapabilir.
    - Roller: Termin hücresini düzenleyebilen roller; reddi sunucudaki rejectedRefusal kuralı verir (be-nucleus/src/guards/businessRules.ts).
 
+
+72. **Planlanandan farklı günde yapılan denetim, yapıldığı günde de listelenir**  _[orta · okur]_
+   - Adımlar: Bir planı A gününe planla, denetimi A'dan farklı bir B gününde yap ve gönder (ya da tamamlanmış denetimin tarihini Merkez Ekip olarak B yap). Ana sayfada ilgili sekmede ("Onay Bekleyen" ya da "Tamamlanan") listeyi oku. Sonra aynısını planı çok önce planlanmış, yani sekmenin okunan ilk 50 planının dışında kalan bir denetim için yap. Son olarak aynı gün planlanıp yapılan bir denetime bak.
+   - Beklenen: A gününün altında plan satırı durur: Tarih sütununda A ve altında "Yapıldı: B" yazar, satırdaki işlemler (Onayla, Reddet, tarih düzenleme, rapor) yalnız bu satırdadır. B gününün altında aynı denetimin ikinci satırı çıkar: sol kenarı mavi çizgili, açık mavi zeminli; Tarih sütununda "Yapıldı: B" ve altında "Plan: A", durum rozeti ve altında "Aynı denetim" yazar; satırda işlem düğmesi YOKTUR. Satır, sekmenin sıralama yönüne (Plan / Yaklaşan'da eskiden yeniye, Onay Bekleyen ve Tamamlanan'da yeniden eskiye) göre B gününün plan satırlarından sonra gelir. Listenin altında "Listede N denetim var. M tanesi planlandığından farklı bir günde yapıldığı için yapıldığı günde de görünür. ..." notu çıkar; sekme sayaçları ve toplamlar denetimi bir kez sayar, tekrar satırı sayıyı artırmaz. Planı okunan sayfanın dışında kalan denetimin tekrar satırı da B gününde çıkar (Plan: A), bu satırın planı listede başka bir yerde YOKTUR ve not "<K> denetimin planı bu sayfanın dışında kaldığı için yalnız yapıldığı günde görünür." der; bu okuma sekmenin kendi koşullarıyla yapılır (sekmenin durumu ve kişinin kapsamı), yani başka sekmenin planı ya da kişinin görmediği bir plan tekrar satırı olmaz. Bu okuma başarısız olursa liste yine açılır ve altında "Planı bu sayfanın dışında kalan denetimler okunamadı; bunlar yapıldıkları günde listelenmemiş olabilir. Sayfayı yenileyin." uyarısı çıkar. Aynı gün planlanıp yapılan denetimde tekrar satırı yoktur. Gün karşılaştırması saat dilimine bağlı değildir: planlı gün ile yapıldığı gün 'YYYY-AA-GG' ilk 10 karakterle kıyaslanır, 23:30 UTC'deki bir tarih tarayıcının diliminde ertesi güne kaymaz.
+   - Roller: Ana sayfayı açan herkes. Denetçi ve saha sorumlusu yalnız kendi kapsamındaki planların tekrar satırını görür; "Tamamlanan" sekmesinde yalnız onaylanmış planların tekrar satırı çıkar.
 
 ## Denetim formu — 5S Denetim Formu (Sahalar), /denetim  (61 senaryo)
 
