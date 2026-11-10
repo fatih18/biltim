@@ -24,6 +24,9 @@ const nextConfig: NextConfig = {
 	experimental: {
 		...baseConfig.experimental,
 		useTypeScriptCli: true,
+		// /reports/* is proxied to the API and an Excel export with embedded
+		// photos can take minutes; the default (30 s) cut the request off.
+		proxyTimeout: 180_000,
 	},
 	/**
 	 * The browser reaches the backend through these, never through

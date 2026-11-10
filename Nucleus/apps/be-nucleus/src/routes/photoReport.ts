@@ -15,7 +15,14 @@ export type PhotoLoader = {
 export type PhotoLimits = { maxFiles: number; maxBytes: number; perSide: number }
 export type PhotoTally = { placed: number; hidden: number; missing: number; unsupported: number; capped: number }
 
-export const REPORT_PHOTO_LIMITS: PhotoLimits = { maxFiles: 400, maxBytes: 150 * 1024 * 1024, perSide: 3 }
+/*
+ * Uploaded photos are stored as sent (no downscaling), so an iPad photo is
+ * several MB and exceljs holds every embedded picture in memory twice (the
+ * workbook, then the zip). 40 MB keeps one export well under the proxy's
+ * time limit and the process's memory; what does not fit is counted in the
+ * sheet note, and the register narrows by place, status and date.
+ */
+export const REPORT_PHOTO_LIMITS: PhotoLimits = { maxFiles: 150, maxBytes: 40 * 1024 * 1024, perSide: 3 }
 export const PHOTO_COLUMN_WIDTH = 26
 
 /** The photo columns of a finding row (alias `f`) that `hasPhoto` and the Excel photo cells read. */
