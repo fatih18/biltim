@@ -31,7 +31,9 @@ import {
   statusParam,
   type ScopePick,
 } from "./_utils/exportScope";
+import { toPageStatus } from "./_utils/pageStatus";
 import { FindingsExportBar } from "./_components/FindingsExportBar";
+import { PreviousFindingNo } from "./_components/PreviousFindingNo";
 import { useFindingsExportCount } from "./_hooks/useFindingsExportCount";
 import { downloadFile } from "@/app/_utils/downloadFile";
 import { reportDownloadFailureMessage } from "@/app/_components/ReportsDashboard/_utils/downloadFailureMessage";
@@ -48,6 +50,8 @@ type FiveSFinding = {
   id: string;
   audit_id: string;
   finding_no: number;
+  /** R61: the number this finding had before boot renumbered it; null when it never was. */
+  previous_finding_no?: number | null;
   question_id?: string | null;
   step_code?: string | null;
   detected_date: string; // ISO / YYYY-MM-DD
@@ -846,7 +850,7 @@ export default function FiveSFindingsListPage() {
                 <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300">Durum</label>
                 <select
                   value={statusFilter}
-                  onChange={(e) => changeStatus(e.target.value as FindingStatus | "")}
+                  onChange={(e) => changeStatus(toPageStatus(e.target.value))}
                   className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
                 >
                   <option value="">Tümü</option>
@@ -1006,7 +1010,10 @@ export default function FiveSFindingsListPage() {
                       key={f.id}
                       className="border-t border-slate-300 dark:border-slate-800/80 hover:bg-slate-50 hover:dark:bg-slate-900/80 align-top"
                     >
-                      <td className="px-4 py-2 text-[11px] text-slate-600 dark:text-slate-400">{f.finding_no ?? "-"}</td>
+                      <td className="px-4 py-2 text-[11px] text-slate-600 dark:text-slate-400">
+                        {f.finding_no ?? "-"}
+                        <PreviousFindingNo previous={f.previous_finding_no} />
+                      </td>
                       <td className="px-4 py-2 text-[11px]">
                         {f.form_title === SINGLE_FINDING_TITLE ? (
                           <span className="inline-flex rounded border border-amber-600/50 bg-amber-100 dark:bg-amber-950/30 px-1.5 py-0.5 text-[11px] font-medium text-amber-800 dark:text-amber-200">
