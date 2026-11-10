@@ -128,3 +128,30 @@ describe("withoutRoleAsTeam — old single findings read without the role name",
     expect(withoutRoleAsTeam("")).toBe("");
   });
 });
+
+describe("withoutRoleAsTeam — the same roles and the same folding as the server (B7)", () => {
+  const strip = (named: string) => withoutRoleAsTeam(`A\nEkip: ${named}\nB`);
+
+  it("drops the Turkish aliases of the roles, the way the Excel register does", () => {
+    for (const alias of ["Merkez Ekip", "Müdür", "Denetçi", "Saha Sorumlusu"]) {
+      expect(strip(alias)).toBe("A\nB");
+    }
+  });
+
+  it("folds Turkish capitals: İ and I, and the dotless ı, are the same letters as i", () => {
+    for (const written of ["MERKEZ EKİP", "merkez ekip", "MÜDÜR", "SAHA SORUMLUSU", "DENETÇİ", "Saha  Sorumlusu", "SUPER ADMIN", "GODMİN"]) {
+      expect(strip(written)).toBe("A\nB");
+    }
+  });
+
+  it("keeps the line when it names a team that merely contains a role's word", () => {
+    for (const team of ["Müdürlük Ekibi", "Merkez Ekip Destek", "Saha Ekibi", "Denetçi Takımı"]) {
+      expect(strip(team)).toBe(`A\nEkip: ${team}\nB`);
+    }
+  });
+
+  it("drops every role line of a description and leaves a Windows line break alone", () => {
+    expect(withoutRoleAsTeam("TEKİL BULGU\nEkip: Müdür\nEkip: Kuzey Ekibi\nEkip: Auditor")).toBe("TEKİL BULGU\nEkip: Kuzey Ekibi");
+    expect(withoutRoleAsTeam("TEKİL BULGU\r\nEkip: Merkez Ekip\r\nAçıklama: x")).toBe("TEKİL BULGU\r\nAçıklama: x");
+  });
+});

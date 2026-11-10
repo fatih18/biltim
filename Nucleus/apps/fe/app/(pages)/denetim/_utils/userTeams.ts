@@ -1,3 +1,4 @@
+import { locationKey } from "@/app/_components/ReportsDashboard/_utils/locationOptions";
 import { foldTr } from "@/app/_utils/textSearch";
 
 /*
@@ -79,23 +80,40 @@ export function teamDescriptionLines(team: string): string[] {
   return team ? [`Ekip: ${team}`] : [];
 }
 
-/** The database names of the roles; none of them is ever a team. */
-const ROLE_NAMES = new Set([
+/*
+ * The names and the Turkish aliases of the roles, as `roles.name` and
+ * `roles.alias` hold them, plus `basic`, the role `/auth/register` gives
+ * everyone. None of them is ever a team. The list of the server's
+ * `withoutRoleAsTeam` (be-nucleus src/routes/teamLine.ts), copied as it is:
+ * keep the two level.
+ */
+const ROLE_NAMES: readonly string[] = [
+  "Content Manager Core Team",
+  "Merkez Ekip",
+  "Manager",
+  "Müdür",
+  "Auditor",
+  "Denetçi",
+  "Field Manager",
+  "Saha Sorumlusu",
+  "Super Admin",
   "godmin",
-  "super admin",
-  "content manager core team",
-  "manager",
-  "field manager",
-  "auditor",
   "basic",
-]);
+];
+
+/*
+ * Compared the way the server compares them (`locationKey`): Turkish lower
+ * case, dotted and dotless i alike, so "MERKEZ EKİP" and "Merkez Ekip" are the
+ * same role. The text is the free line an old form wrote into a description,
+ * not an identifier read from the database.
+ */
+const ROLE_KEYS: ReadonlySet<string> = new Set(ROLE_NAMES.map((name) => locationKey(name)));
 
 /*
  * A finding's description for the screen, without an "Ekip: <role name>" line.
  * Single findings saved before R19 carry one ("Ekip: Content Manager Core
  * Team"); the line is left out where they are read so the role name is not
- * shown as a team, and any other line is untouched. Identifiers: compared
- * plainly, no Turkish folding.
+ * shown as a team, and any other line is untouched.
  */
 export function withoutRoleAsTeam(description: string | null | undefined): string {
   const text = description ?? "";
@@ -104,7 +122,7 @@ export function withoutRoleAsTeam(description: string | null | undefined): strin
     .split("\n")
     .filter((line) => {
       const match = line.trim().match(/^Ekip:\s*(.*)$/);
-      return !(match && ROLE_NAMES.has((match[1] ?? "").trim().toLowerCase()));
+      return !(match && ROLE_KEYS.has(locationKey(match[1] ?? "")));
     })
     .join("\n");
 }
