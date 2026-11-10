@@ -8,7 +8,8 @@ import { countFindings, FINDINGS_FROM_WHERE } from './findingsCount'
 import { parseStatuses } from './findingStatuses'
 import { locationFormXlsx } from './locationForm'
 import { findingSpellings } from './locationMatch'
-import { DASHBOARD_PHOTO_HINT, PHOTO_COLUMN_WIDTH, PHOTO_COLUMNS, PHOTO_HINT } from './photoReport'
+import { FINDING_NUMBERS_SELECT, FINDINGS_SHEET_COLUMNS, PHOTO_SHEET_COLUMNS } from './findingsSheet'
+import { DASHBOARD_PHOTO_HINT, PHOTO_COLUMNS, PHOTO_HINT } from './photoReport'
 import { FINDING_PLACE, overdueActionsSql } from './reportQueries'
 import { type FieldScope, fieldManagerScope, inManagedLocations, scoped } from './reportScope'
 import { describedWithoutRoleAsTeam } from './teamLine'
@@ -56,12 +57,6 @@ export async function refuseNonReportReaders(
     headers: { 'content-type': 'application/json' },
   })
 }
-
-/** Every report that lists findings shows their before and after photos (R46). */
-const PHOTO_SHEET_COLUMNS: Column[] = [
-  { header: 'Öncesi Fotoğraf', key: 'photo_before', kind: 'photo', side: 'before', width: PHOTO_COLUMN_WIDTH },
-  { header: 'Sonrası Fotoğraf', key: 'photo_after', kind: 'photo', side: 'after', width: PHOTO_COLUMN_WIDTH },
-]
 
 /** Only YYYY-MM-DD reaches SQL; anything else becomes "no filter". */
 function parseDate(value: unknown): string | null {
@@ -613,7 +608,7 @@ async function findingsWorkbook(q: FindingsRequest, forceOpen: boolean, request:
   const { locationName, sql: where, params } = await requestedFilter(q, forceOpen, request)
 
   const all: Row[] = await query(
-    `SELECT f.finding_no, f.detected_date, ${FINDING_PLACE} AS location_name, f.finding_type,
+    `SELECT ${FINDING_NUMBERS_SELECT}, f.detected_date, ${FINDING_PLACE} AS location_name, f.finding_type,
             coalesce(f.step_code, '') AS step_code, f.description, f.action_to_take,
             f.due_date, f.completed_at, f.responsible_name, f.auditor_name, f.status,
             CASE WHEN ${STANDALONE_SINGLE} THEN 'Tekil Bulgu'
@@ -633,23 +628,7 @@ async function findingsWorkbook(q: FindingsRequest, forceOpen: boolean, request:
   const buffer = await buildWorkbook([
     {
       name: withPhotos ? 'Önce-Sonra Fotoğraflı Bulgular' : forceOpen ? 'Açık Bulgular' : 'Bulgular',
-      columns: [
-        { header: 'Bulgu No', key: 'finding_no', kind: 'number', width: 10 },
-        { header: 'Kaynak', key: 'source_label', width: 14 },
-        { header: 'Ana Denetim', key: 'audit_label', width: 30 },
-        { header: 'Tespit Tarihi', key: 'detected_date', kind: 'date' },
-        { header: 'Lokasyon', key: 'location_name', width: 24 },
-        { header: 'Bulgu Tipi', key: 'finding_type', width: 20 },
-        { header: '5S Adımı', key: 'step_code', width: 10 },
-        { header: 'Açıklama', key: 'description', width: 48 },
-        ...PHOTO_SHEET_COLUMNS,
-        { header: 'Yapılacak Aksiyon', key: 'action_to_take', width: 32 },
-        { header: 'Termin', key: 'due_date', kind: 'date' },
-        { header: 'Kapanış Tarihi', key: 'completed_at', kind: 'date' },
-        { header: 'Sorumlu', key: 'responsible_name', width: 22 },
-        { header: 'Denetçi', key: 'auditor_name', width: 22 },
-        { header: 'Durum', key: 'status', map: statusTr },
-      ],
+      columns: FINDINGS_SHEET_COLUMNS,
       rows,
     },
   ], { photoHint: PHOTO_HINT })

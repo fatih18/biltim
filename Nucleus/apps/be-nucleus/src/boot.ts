@@ -1,5 +1,6 @@
 import { applyFindingBootFixes } from './bootFindingFixes'
 import { query } from './db'
+import { FINDING_READ_GRANTS } from './findingReadGrants'
 import { godminGrantLog, grantGodminRole } from './godminRole'
 
 /**
@@ -58,9 +59,14 @@ import { godminGrantLog, grantGodminRole } from './godminRole'
  * nucleus filters columns on a read only for a role that has column claims
  * alone. Writing them needs none either: only the "Reddet" route writes them.
  *
+ * Every role that reads findings holds the table claim `get.five_s_findings`,
+ * which covers `previous_finding_no` (R61: the number a renumbered finding had
+ * before; findingReadGrants.ts). It is a read only; the old number has no write claim.
+ *
  * Only claims that exist are granted, and only once.
  */
-const GRANTS: Array<[role: string, action: string]> = [
+export const GRANTS: Array<[role: string, action: string]> = [
+  ...FINDING_READ_GRANTS,
   ...['Manager', 'Content Manager Core Team'].flatMap((role) =>
     [
       'put.five_s_audits',
