@@ -4,6 +4,8 @@ import type { MailStatusView } from "./mailStatusView";
 
 const VIEW: MailStatusView = {
   available: true,
+  providerConfigured: true,
+  mailerInstalled: true,
   provider: "smtp",
   senderAddress: "denetim@firma.example",
   windowHours: 48,
@@ -17,6 +19,7 @@ const VIEW: MailStatusView = {
 const off = (over: Partial<MailStatusView> = {}): MailStatusView => ({
   ...VIEW,
   available: false,
+  providerConfigured: false,
   provider: null,
   senderAddress: "",
   pending: 0,
@@ -56,6 +59,51 @@ describe("when no provider is configured", () => {
     expect(detail.indexOf("Ne yapmalı")).toBe(0);
     expect(detail.indexOf("bekliyor")).toBeGreaterThan(detail.indexOf("Ne yapmalı"));
     expect(detail.indexOf("süresi dolduğu")).toBeGreaterThan(detail.indexOf("bekliyor"));
+  });
+});
+
+describe("when the SMTP values are in but the nodemailer package is not installed", () => {
+  const missing = (over: Partial<MailStatusView> = {}) => off({ providerConfigured: true, mailerInstalled: false, ...over });
+  const SENTENCE = "SMTP bilgileri girildi ama nodemailer paketi sunucuda kurulu değil.";
+  const HOW =
+    "Sunucunun npm erişimi açıkken be-nucleus klasöründe bun add nodemailer çalıştırıp servisi yeniden başlatın.";
+
+  it("says what is wrong, that no mail goes out, and what to do, in amber", () => {
+    const text = buildMailStatusText(missing());
+    expect(text.tone).toBe("off");
+    expect(text.headline).toBe(`${SENTENCE} Paket kurulana kadar plan ve denetim postaları gönderilmez.`);
+    expect(text.detail).toContain(HOW);
+    expect(text.detail).toContain("sistem yöneticisi");
+  });
+
+  it("does not say the SMTP values are missing: they are in", () => {
+    const text = buildMailStatusText(missing());
+    expect(text.headline).not.toContain("SMTP tanımlı değil");
+    expect(text.detail).not.toContain("SMTP_* değerlerini girin");
+  });
+
+  it("starts with the way out, then the waiting plans, then the missed ones", () => {
+    const detail = buildMailStatusText(missing({ pending: 2, expired: 1 })).detail ?? "";
+    expect(detail.indexOf(HOW)).toBe(0);
+    expect(detail.indexOf("Şu an 2 planın postası bekliyor")).toBeGreaterThan(detail.indexOf(HOW));
+    expect(detail.indexOf("Son 30 günde 1 planın postası")).toBeGreaterThan(detail.indexOf("bekliyor"));
+  });
+
+  it("keeps the counts out when nothing waits and nothing expired", () => {
+    const detail = buildMailStatusText(missing()).detail ?? "";
+    expect(detail).not.toContain("bekliyor");
+    expect(detail).not.toContain("süresi dolduğu");
+  });
+
+  it("is the plain off line while the package is installed, and while no SMTP value is filled in", () => {
+    for (const view of [off({ providerConfigured: true, mailerInstalled: true }), off({ providerConfigured: false, mailerInstalled: false })]) {
+      expect(buildMailStatusText(view).headline).toContain("SMTP tanımlı değil");
+    }
+  });
+
+  it("never replaces the line of a provider that is running", () => {
+    const text = buildMailStatusText({ ...VIEW, mailerInstalled: false });
+    expect(text.headline).toContain("E-posta bildirimleri açık");
   });
 });
 

@@ -20,6 +20,13 @@ export type MailProvider = "smtp" | "azure" | "gmail";
 export type MailStatusView = {
   /** A provider is configured and can send. */
   available: boolean;
+  /**
+   * A provider is switched on (the SMTP values are filled in) whether or not it could start. With `available` false
+   * and `mailerInstalled` false the server is waiting for the nodemailer package. False when the server does not say.
+   */
+  providerConfigured: boolean;
+  /** The nodemailer package is installed on the server. True when the server does not say (an older backend). */
+  mailerInstalled: boolean;
   provider: MailProvider | null;
   /** Empty when the provider did not say. */
   senderAddress: string;
@@ -41,6 +48,11 @@ function isObject(value: Json | null | undefined): value is JsonObject {
 /** A whole number of zero or more, or null when the field is not one. */
 function countOf(value: Json | undefined): number | null {
   return typeof value === "number" && Number.isFinite(value) && value >= 0 ? Math.floor(value) : null;
+}
+
+/** A flag the server may not send yet: anything but a real boolean reads as `fallback`, so an older backend still shows the old line. */
+function flagOf(value: Json | undefined, fallback: boolean): boolean {
+  return typeof value === "boolean" ? value : fallback;
 }
 
 function providerOf(value: Json | undefined): MailProvider | null {
@@ -79,6 +91,8 @@ export function readMailStatus(body: Json | null | undefined): MailStatusView | 
   const sender = status.senderAddress;
   return {
     available,
+    providerConfigured: flagOf(status.providerConfigured, false),
+    mailerInstalled: flagOf(status.mailerInstalled, true),
     provider: providerOf(status.provider),
     senderAddress: typeof sender === "string" ? sender.trim() : "",
     windowHours,

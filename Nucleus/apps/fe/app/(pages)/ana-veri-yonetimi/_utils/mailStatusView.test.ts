@@ -3,6 +3,8 @@ import { type Json, readMailStatus } from "./mailStatusView";
 
 const STATUS: { [key: string]: Json } = {
   available: true,
+  providerConfigured: true,
+  mailerInstalled: true,
   provider: "smtp",
   senderAddress: "denetim@firma.example",
   windowHours: 48,
@@ -23,6 +25,8 @@ describe("readMailStatus", () => {
   it("reads the status the action layer delivers", () => {
     expect(readMailStatus(STATUS)).toEqual({
       available: true,
+      providerConfigured: true,
+      mailerInstalled: true,
       provider: "smtp",
       senderAddress: "denetim@firma.example",
       windowHours: 48,
@@ -47,6 +51,23 @@ describe("readMailStatus", () => {
   it("reads a configured-off install: no provider, no address", () => {
     const view = readMailStatus({ ...STATUS, available: false, provider: null, senderAddress: "" });
     expect(view).toMatchObject({ available: false, provider: null, senderAddress: "" });
+  });
+
+  it("reads a switched-on provider that waits for the nodemailer package", () => {
+    const view = readMailStatus({ ...STATUS, available: false, provider: null, senderAddress: "", mailerInstalled: false });
+    expect(view).toMatchObject({ available: false, providerConfigured: true, mailerInstalled: false });
+  });
+
+  it("reads an older backend, which sends neither flag, as no provider switched on and the package in place", () => {
+    const { providerConfigured: _a, mailerInstalled: _b, ...older } = STATUS;
+    expect(readMailStatus(older)).toMatchObject({ providerConfigured: false, mailerInstalled: true });
+  });
+
+  it("reads a flag that is not a boolean as if it were not sent, and never calls the answer unreadable for it", () => {
+    for (const flag of ["true", 1, null, [true]]) {
+      const view = readMailStatus({ ...STATUS, providerConfigured: flag, mailerInstalled: flag });
+      expect(view).toMatchObject({ providerConfigured: false, mailerInstalled: true });
+    }
   });
 
   it("reads a provider it does not know as none, and a missing address as empty", () => {

@@ -9,7 +9,7 @@ import type { MailProvider, MailStatusView } from "./mailStatusView";
  * administrator for that step.
  */
 
-/** `on`: mail goes out. `off`: no provider. `attention`: mail goes out but some mails did not or will not. */
+/** `on`: mail goes out. `off`: no mail goes out (no provider, or its package is missing). `attention`: mail goes out but some mails did not or will not. */
 export type MailStatusTone = "on" | "off" | "attention";
 
 export type MailStatusText = {
@@ -32,10 +32,9 @@ export const MAIL_STATUS_UNREADABLE: MailStatusText = {
     "Bildirimlerin açık mı kapalı mı olduğu bu ekranda görünmüyor; plan ve denetim postalarının gönderimi bundan etkilenmez. Tekrar deneyin, sürerse sistem yöneticisine bildirin.",
 };
 
-function offText(view: MailStatusView): MailStatusText {
-  const parts = [
-    "Ne yapmalı: sunucu ortam değişkenlerine SMTP_* değerlerini girin (SMTP_HOST, SMTP_USER ve SMTP_PASSWORD zorunlu) ve arka ucu yeniden başlatın; bu adımı sistem yöneticisi yapar.",
-  ];
+/** What waits and what was missed while mail is off: the same two sentences whatever the reason it is off. */
+function offBacklogParts(view: MailStatusView): string[] {
+  const parts: string[] = [];
   if (view.pending > 0) {
     parts.push(
       `Şu an ${view.pending} planın postası bekliyor; ${view.windowHours} saat dolmadan e-posta açılırsa gönderilir, dolarsa süresi geçer.`
@@ -46,10 +45,36 @@ function offText(view: MailStatusView): MailStatusText {
       `Son ${view.expiredDays} günde ${view.expired} planın postası süresi dolduğu için hiç gönderilmedi ve artık gönderilmeyecek.`
     );
   }
+  return parts;
+}
+
+function offText(view: MailStatusView): MailStatusText {
+  const parts = [
+    "Ne yapmalı: sunucu ortam değişkenlerine SMTP_* değerlerini girin (SMTP_HOST, SMTP_USER ve SMTP_PASSWORD zorunlu) ve arka ucu yeniden başlatın; bu adımı sistem yöneticisi yapar.",
+    ...offBacklogParts(view),
+  ];
   return {
     tone: "off",
     headline:
       "E-posta bildirimleri kapalı: SMTP tanımlı değil. Tanımlanana kadar plan ve denetim postaları gönderilmez.",
+    detail: parts.join(" "),
+  };
+}
+
+/**
+ * The SMTP values are in but the nodemailer package is not on the server (it is not in package.json: customer
+ * servers usually have no npm access, and a changed package file stops update.sh). Nothing is sent until
+ * someone installs it, so the line says what is wrong, what it means and who does what.
+ */
+function mailerMissingText(view: MailStatusView): MailStatusText {
+  const parts = [
+    "Sunucunun npm erişimi açıkken be-nucleus klasöründe bun add nodemailer çalıştırıp servisi yeniden başlatın. Bu adımı sistem yöneticisi yapar.",
+    ...offBacklogParts(view),
+  ];
+  return {
+    tone: "off",
+    headline:
+      "SMTP bilgileri girildi ama nodemailer paketi sunucuda kurulu değil. Paket kurulana kadar plan ve denetim postaları gönderilmez.",
     detail: parts.join(" "),
   };
 }
@@ -76,5 +101,6 @@ function onText(view: MailStatusView): MailStatusText {
 }
 
 export function buildMailStatusText(view: MailStatusView): MailStatusText {
-  return view.available ? onText(view) : offText(view);
+  if (view.available) return onText(view);
+  return view.providerConfigured && !view.mailerInstalled ? mailerMissingText(view) : offText(view);
 }
