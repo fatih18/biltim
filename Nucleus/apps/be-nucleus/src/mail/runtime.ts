@@ -12,9 +12,11 @@ import type { MailRuntime } from './types'
  * A worker that runs outside a request therefore has no way to ask for it.
  *
  * The smallest supported way is the one the framework offers: a host route
- * keeps the object it was handed. The runtime is made of live accessors (a
- * credential rotation in the admin panel applies to the next call), so one
- * copy stays valid for the life of the process. `/biltim/me/scope` does it, and
+ * keeps the object it was handed. The runtime is made of live accessors, so one
+ * copy stays valid for the life of the process. They answer live, but a change
+ * to the SMTP_* values (or installing the nodemailer package) still needs a
+ * restart of the backend: whether the SMTP provider is switched on is decided
+ * once at boot, in `serverOptions.ts`. `/biltim/me/scope` does it, and
  * the home page of every signed-in person calls that; so does the mail status
  * route. Until the first such request after a start the worker has nothing to
  * send with and does nothing, which is exactly what "mail not configured" does.
