@@ -9,6 +9,7 @@ import { findingSpellings } from './locationMatch'
 import { DASHBOARD_PHOTO_HINT, PHOTO_COLUMN_WIDTH, PHOTO_COLUMNS, PHOTO_HINT } from './photoReport'
 import { FINDING_PLACE, overdueActionsSql } from './reportQueries'
 import { type FieldScope, fieldManagerScope, inManagedLocations, scoped } from './reportScope'
+import { describedWithoutRoleAsTeam } from './teamLine'
 
 /* ───────────────────────── who may read reports ───────────────────────── */
 
@@ -478,7 +479,12 @@ const dashboardXlsx = defineRoute({
     )
     // This report narrows by date range only (see DASHBOARD_PHOTO_HINT).
     const buffer = await buildWorkbook(
-      keys.map((k) => ({ name: SECTIONS[k].title, columns: SECTIONS[k].columns, rows: data[k] })),
+      keys.map((k) => ({
+        name: SECTIONS[k].title,
+        columns: SECTIONS[k].columns,
+        // Only this sheet prints a finding's description; single findings from before R19 carry a role as their team.
+        rows: k === 'overdueActions' ? data[k].map(describedWithoutRoleAsTeam) : data[k],
+      })),
       { photoHint: DASHBOARD_PHOTO_HINT }
     )
     const window = from || to ? `-${from ?? 'basi'}_${to ?? 'sonu'}` : ''
@@ -609,7 +615,8 @@ async function findingsWorkbook(
      ORDER BY f.finding_no ASC NULLS LAST`,
     params
   )
-  const rows = withPhotos ? all.filter(hasBeforeAndAfterPhotos) : all
+  // Single findings from before R19 carry "Ekip: <role name>" in the description; the register leaves it out.
+  const rows = (withPhotos ? all.filter(hasBeforeAndAfterPhotos) : all).map(describedWithoutRoleAsTeam)
 
   const buffer = await buildWorkbook([
     {
