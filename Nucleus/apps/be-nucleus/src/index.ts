@@ -5,6 +5,7 @@ import { enforceRequestRules } from './guards/requestGuard'
 import { startMailWorker, stopMailWorker } from './mail/worker'
 import { BiltimRoutes } from './routes/biltim'
 import { ReportsRoutes } from './routes/reports'
+import { loadServerOptions, smtpNotice } from './serverOptions'
 
 /**
  * Biltim 5S backend.
@@ -25,7 +26,8 @@ import { ReportsRoutes } from './routes/reports'
  * list, so it stays behind that chain.
  */
 const config: CreateNucleusServerOptions['config'] = {
-  options: './config.json',
+  // config.json, with the SMTP on/off flag set from the environment (see serverOptions.ts).
+  options: loadServerOptions('./config.json'),
   schema: './src/drizzle/schema.ts',
   relations: './src/drizzle/relations.ts',
   swagger: { path: '/docs' },
@@ -33,6 +35,8 @@ const config: CreateNucleusServerOptions['config'] = {
 
 async function main() {
   const port = Number(process.env.PORT) || 1002
+  const smtpWarning = smtpNotice(process.env)
+  if (smtpWarning) console.warn(smtpWarning)
 
   await createNucleusServer({
     config,

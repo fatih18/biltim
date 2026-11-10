@@ -128,6 +128,18 @@
   "verification": {
     "enabled": true
   },
+  "email": {
+    "smtp": {
+      "enabled": false,
+      "host": "SMTP_HOST",
+      "port": "SMTP_PORT",
+      "secure": "SMTP_SECURE",
+      "user": "SMTP_USER",
+      "password": "SMTP_PASSWORD",
+      "sender_address": "SMTP_SENDER_ADDRESS",
+      "from_name": "SMTP_FROM_NAME"
+    }
+  },
   "entities": [
     {
       "table_name": "board_meeting_decisions",

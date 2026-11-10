@@ -70,6 +70,7 @@
         "drizzle-orm": "0.44.7",
         "exceljs": "^4.4.0",
         "ioredis": "latest",
+        "nodemailer": "^9.0.3",
         "nucleus-core-ts": "0.10.115",
         "pg": "latest",
       },
@@ -1214,7 +1215,9 @@
 
     "node-releases": ["node-releases@2.0.51", "", {}, "sha512-wRNIrw4DmVLKQlbgOMdkMx27Wrpzes2hh5Jtbi2bjPd+4wJstWIqP5A+lscnqbm0xxmT5Bpg8Lec5ItEBwx6BQ=="],
 
-    "normalize-path": ["normalize-path@3.0.0", "", {}, "sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA=="],
+    "nodemailer": ["nodemailer@9.0.3", "", {}, "sha512-n+YP+NKwR5zRWa60k3GiQ6Q3B4KXCoAw40dAKeCtYn020iNN74aWK2liXIC3ZEATeGql7we3tE3t8QwhY0eskw=="],
+
+    "normalize-path": ["normalize-path@3.0.0", "", {},"sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA=="],
 
     "ntlm": ["ntlm@0.1.3", "", {}, "sha512-pPlHxhAegZP4QAaOYd51vRd6VXTGfF7VLKJwuwN0iEB1aIi3SnqXYuS/bH/6wWBOq+Ehdil49mHm1Nseon085w=="],
 
