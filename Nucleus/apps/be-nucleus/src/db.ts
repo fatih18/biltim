@@ -25,6 +25,31 @@ export async function query(text: string, params: unknown[] = []): Promise<Row[]
   return res.rows as Row[]
 }
 
+export type Sql = (text: string, params?: unknown[]) => Promise<Row[]>
+
+/**
+ * One transaction on one connection: everything `work` runs through the `sql`
+ * it is handed commits together or not at all. A throw rolls back and is
+ * rethrown. A connection whose rollback failed is dropped, not returned.
+ */
+export async function transaction<T>(work: (sql: Sql) => Promise<T>): Promise<T> {
+  const client = await pool.connect()
+  let broken: Error | undefined
+  try {
+    await client.query('begin')
+    const result = await work(async (text, params = []) => (await client.query(text, params)).rows as Row[])
+    await client.query('commit')
+    return result
+  } catch (error) {
+    await client.query('rollback').catch((rollbackError: Error) => {
+      broken = rollbackError
+    })
+    throw error
+  } finally {
+    client.release(broken)
+  }
+}
+
 export async function closePool(): Promise<void> {
   await pool.end().catch(() => undefined)
 }

@@ -3,6 +3,7 @@ import { type AnyRoute, defineRoute, type RouteGroup } from 'nucleus-core-ts/ser
 import config from '../../config.json'
 import { query } from '../db'
 import { type Caller, callerById, isAdmin } from '../guards/caller'
+import { rejectPlanRoute } from './planReview'
 
 /**
  * Biltim's own endpoints that are not reports.
@@ -750,5 +751,6 @@ const routes: AnyRoute[] = [
   lockUser,
   unlockUser,
   setPassword,
+  rejectPlanRoute,
 ]
 export const BiltimRoutes: RouteGroup = { prefix: '/biltim', routes }

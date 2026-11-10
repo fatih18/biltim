@@ -67,6 +67,7 @@ const STATUS_TR: Record<string, string> = {
   closed: 'Kapalı',
   planned: 'Planlandı',
   pending_approval: 'Onay Bekliyor',
+  rejected: 'Düzeltme Bekliyor',
   completed: 'Tamamlandı',
   cancelled: 'İptal',
 }

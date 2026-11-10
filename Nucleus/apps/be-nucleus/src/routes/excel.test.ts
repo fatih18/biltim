@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { buildWorkbook } from './excel'
+import { buildWorkbook, statusTr } from './excel'
 import { anchors, bytes, COLUMNS, finding, loaderOf, nearPx, readSheet, type Stored, uid } from './photoTestKit'
 
 describe('buildWorkbook photo columns', () => {
@@ -106,5 +106,14 @@ describe('buildWorkbook photo columns', () => {
     expect(reads).toEqual([])
     expect(anchors(sheet).length).toBe(0)
     expect(sheet.getRow(3).getCell(1).value).toBeNull()
+  })
+})
+
+describe('statusTr', () => {
+  it('reads a rejected plan as waiting for its correction, and leaves the other plan statuses as they were', () => {
+    expect(statusTr('rejected')).toBe('Düzeltme Bekliyor')
+    expect(statusTr('pending_approval')).toBe('Onay Bekliyor')
+    expect(statusTr('completed')).toBe('Tamamlandı')
+    expect(statusTr('something_new')).toBe('something_new')
   })
 })
