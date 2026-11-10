@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'bun:test'
 import {
-  auditFindingsPayload,
   canDeleteAuditFindings,
   findingDeleteConfirmation,
   findingDeleteFailure,
   findingNumberLabel,
-  findingRowsOf,
   findingsPanelText,
+  isDeletableFinding,
   mergeFindingRows,
   withoutFinding,
 } from './findingDelete'
@@ -129,34 +128,22 @@ describe('findingsPanelText', () => {
   })
 })
 
-describe('findingRowsOf', () => {
-  const rows = [{ id: 'a' }, { id: 'b' }]
+describe('isDeletableFinding', () => {
+  /** The audit's own list: its findings and the single findings raised inside it. */
+  const listed = [{ id: 'own-1' }, { id: 'in-audit-single-1' }]
 
-  it('reads the list from every shape the API layer hands back', () => {
-    expect(findingRowsOf(rows)).toEqual(rows)
-    expect(findingRowsOf({ data: rows })).toEqual(rows)
-    expect(findingRowsOf({ data: { data: rows } })).toEqual(rows)
+  it('offers a Sil for an in-audit single finding by the same rule as the audit’s own findings', () => {
+    expect(isDeletableFinding(true, listed, 'own-1')).toBe(true)
+    expect(isDeletableFinding(true, listed, 'in-audit-single-1')).toBe(true)
   })
 
-  it('answers an empty list for nothing or for a body without one', () => {
-    expect(findingRowsOf(null)).toEqual([])
-    expect(findingRowsOf(undefined)).toEqual([])
-    expect(findingRowsOf({})).toEqual([])
-    expect(findingRowsOf({ data: null })).toEqual([])
-    expect(findingRowsOf({ data: {} })).toEqual([])
+  it('does not offer it for a finding that is not on the audit’s list, such as another audit’s at the place', () => {
+    expect(isDeletableFinding(true, listed, 'open-at-location')).toBe(false)
+    expect(isDeletableFinding(true, [], 'own-1')).toBe(false)
   })
-})
 
-describe('auditFindingsPayload', () => {
-  it('asks for the audit’s active findings of any status, newest number first', () => {
-    const payload = auditFindingsPayload('audit-1')
-    expect(payload.filters).toEqual([
-      { field: 'audit_id', operator: 'eq', value: 'audit-1' },
-      { field: 'is_active', operator: 'eq', value: true },
-    ])
-    expect(payload.filters.some((f) => f.field === 'status')).toBe(false)
-    expect(payload.orderBy).toBe('finding_no')
-    expect(payload.orderDirection).toBe('desc')
-    expect(payload.limit).toBe(200)
+  it('offers it to nobody who may not delete', () => {
+    expect(isDeletableFinding(false, listed, 'own-1')).toBe(false)
+    expect(isDeletableFinding(false, listed, 'in-audit-single-1')).toBe(false)
   })
 })

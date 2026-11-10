@@ -21,6 +21,18 @@ export function singleFindingMode(startedPlanId: string | null | undefined): Sin
 }
 
 /*
+ * The plan the carrier audit row of a single finding names (A2). The carrier's
+ * `plan_id` is the only link between a finding raised inside an audit and that
+ * audit: without it the finding hangs under a row of its own, and the audit's
+ * correction cannot list or delete it (readAuditFindings.ts). The offline
+ * replay already sends it; the online save must send the same value: the plan
+ * of the audit that was started, none for a standalone single finding.
+ */
+export function carrierPlanId(startedPlanId: string | null | undefined): string | undefined {
+  return singleFindingMode(startedPlanId).inAudit ? (startedPlanId ?? undefined) : undefined;
+}
+
+/*
  * The finding's "Ana Denetim" (#3, R74): the audit's own name when it was raised
  * inside an audit — the very value the audit's other findings carry — and
  * "Tekil Bulgu" only when it stands alone.

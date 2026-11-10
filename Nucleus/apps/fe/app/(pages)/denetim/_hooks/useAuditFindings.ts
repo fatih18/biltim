@@ -1,18 +1,18 @@
 'use client'
 
-import { useEffect, useEffectEvent, useState } from 'react'
+import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { confirmDialog } from '@/app/_components/Global/ConfirmDialog'
 import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi'
 import {
-  auditFindingsPayload,
   findingDeleteConfirmation,
   findingDeleteFailure,
   findingNumberLabel,
-  findingRowsOf,
+  isDeletableFinding,
   withoutFinding,
 } from '../_utils/findingDelete'
 import type { FiveSFindingLite } from '../_utils/findingTypes'
+import { readAuditFindings } from '../_utils/readAuditFindings'
 
 /**
  * The findings of the audit open for correction, and the delete per finding
@@ -20,12 +20,16 @@ import type { FiveSFindingLite } from '../_utils/findingTypes'
  *
  * Read by `audit_id`, any status: the question screen's own list holds the
  * location's OPEN findings only, so a closed finding of this audit was not on
- * it and could not be reached. `onDeleted` is how the page drops the row from
- * its open-findings list, which the question rows' warnings and counts are
- * derived from.
+ * it and could not be reached. The single findings raised inside the audit hang
+ * under carrier audit rows of the same plan and are read with it
+ * (readAuditFindings.ts). `onDeleted` is how the page drops the row from its
+ * open-findings list, which the question rows' warnings and counts are derived
+ * from.
  */
 export function useAuditFindings(props: {
   auditId: string | null
+  /** The plan of the audit being corrected; null when it never had one. */
+  planId: string | null
   canDelete: boolean
   onDeleted: (findingId: string) => void
 }) {
@@ -33,18 +37,27 @@ export function useAuditFindings(props: {
   const [items, setItems] = useState<FiveSFindingLite[]>([])
   const [loading, setLoading] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  // The read that was started last: the answer of an older one (another audit, a re-read) is dropped.
+  const latestRead = useRef(0)
 
   // An effect event: the generated action object is new on every render and
   // must never be an effect dependency (it loops the request).
-  const load = useEffectEvent((auditId: string) => {
+  const load = useEffectEvent((auditId: string, planId: string | null) => {
+    latestRead.current += 1
+    const mine = latestRead.current
     setLoading(true)
-    actions.GET_FIVE_S_FINDINGS?.start({
-      payload: auditFindingsPayload(auditId),
-      onAfterHandle: (res) => {
-        setItems(findingRowsOf(res))
+    readAuditFindings({
+      startAudits: (request) => actions.GET_FIVE_S_AUDITS?.start(request),
+      startFindings: (request) => actions.GET_FIVE_S_FINDINGS?.start(request),
+      auditId,
+      planId,
+      onDone: (findings) => {
+        if (mine !== latestRead.current) return
+        setItems(findings)
         setLoading(false)
       },
-      onErrorHandle: () => {
+      onError: () => {
+        if (mine !== latestRead.current) return
         setItems([])
         setLoading(false)
         toast.error('Bu denetimin bulguları okunamadı. Sayfayı yenileyip tekrar deneyin.')
@@ -53,9 +66,14 @@ export function useAuditFindings(props: {
   })
 
   useEffect(() => {
-    if (props.auditId) load(props.auditId)
-    else setItems([])
-  }, [props.auditId])
+    if (props.auditId) {
+      load(props.auditId, props.planId)
+      return
+    }
+    latestRead.current += 1
+    setItems([])
+    setLoading(false)
+  }, [props.auditId, props.planId])
 
   const drop = (findingId: string) => {
     setItems((prev) => withoutFinding(prev, findingId))
@@ -88,8 +106,8 @@ export function useAuditFindings(props: {
     loading,
     deletingId,
     canDelete: props.canDelete,
-    /** Only this audit's own findings are deleted from here, not other audits' at the same place. */
-    isDeletable: (findingId: string) => props.canDelete && items.some((row) => row.id === findingId),
+    /** The audit's own findings and its in-audit single findings are deleted from here, not other audits' at the same place. */
+    isDeletable: (findingId: string) => isDeletableFinding(props.canDelete, items, findingId),
     remove,
   }
 }

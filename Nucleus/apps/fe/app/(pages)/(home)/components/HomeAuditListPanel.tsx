@@ -496,7 +496,7 @@ export function HomeAuditListPanel(props: {
 
                 {/* küçük not */}
                 <div className="mt-3 text-[11px] text-slate-500 dark:text-slate-400">
-                    Not: Tarih, planlanmış denetimde ekip lideri ve Merkez Ekip tarafından en fazla 2 kez değiştirilebilir; tamamlanmış denetimin tarihini yalnız Merkez Ekip düzeltir.
+                    Not: Tarih, planlanmış denetimde ekip lideri ve Müdür tarafından en fazla 2 kez değiştirilebilir; Merkez Ekip, Super Admin ve godmin sınırsız değiştirebilir. Tamamlanmış denetimin tarihini yalnız Merkez Ekip, Super Admin ve godmin düzeltir.
                 </div>
             </div>
         </section>

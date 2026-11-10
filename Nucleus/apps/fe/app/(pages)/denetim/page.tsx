@@ -62,6 +62,7 @@ import { StandaloneFindingEntry } from './_components/StandaloneFindingEntry'
 import { FindingDetailsLocked } from './_components/FindingDetailsLocked'
 import { SingleFindingTeamField } from './_components/SingleFindingTeamField'
 import {
+  carrierPlanId,
   explanationMissing,
   findingNoOf,
   openFindingsFor,
@@ -651,6 +652,8 @@ export default function FiveSAuditFormPage() {
    */
   const [editAudit, setEditAudit] = useState<{
     id: string
+    /** The audit's plan, null when it never had one: the single findings raised inside it hang under it. */
+    planId: string | null
     answerIdByQuestion: Map<string, string>
     /*
      * The rating each question was saved with. A correction asks for — and
@@ -763,6 +766,7 @@ export default function FiveSAuditFormPage() {
    */
   const auditFindings = useAuditFindings({
     auditId: editAudit?.id ?? null,
+    planId: editAudit?.planId ?? null,
     canDelete: canDeleteAuditFindings({
       correcting: !!editAudit,
       roleNames: roles.map((r) => r.name),
@@ -2377,6 +2381,7 @@ export default function FiveSAuditFormPage() {
         }
         setEditAudit({
           id: String(audit.id),
+          planId: editPlanId || null,
           answerIdByQuestion,
           originalRatingByQuestion,
           initialFieldManagerAttended,
@@ -3617,6 +3622,8 @@ export default function FiveSAuditFormPage() {
            * both can leave it out.
            */
           source: 'single_finding',
+          // The audit it was raised in (none when standalone); the replay of the offline queue sends the same.
+          plan_id: carrierPlanId(assignedPlan?.id),
 
           total_score: '0.00',
           target_score: TARGET_SCORE.toFixed(2),
@@ -4082,7 +4089,7 @@ export default function FiveSAuditFormPage() {
             <div>
               <div className="text-base font-semibold text-slate-900 dark:text-slate-100">Ekibinize planlanan bir denetim yok</div>
               <div className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-                Planlama ekranından ekibinize bir denetim planlandığında bu form otomatik açılacaktır.
+                Ekibinize bir denetim planlandığında denetim kendiliğinden açılmaz. Denetim, ana sayfada Denetimi Başlat düğmesine bastığınızda ya da bu sayfadaki Denetim Seç listesinden planı seçtiğinizde başlar. Plan geldiyse Tekrar Kontrol Et düğmesine basın.
               </div>
               <PlanNotice message={planNotice} />
 

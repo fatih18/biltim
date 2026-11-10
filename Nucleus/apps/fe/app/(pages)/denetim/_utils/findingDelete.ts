@@ -25,6 +25,16 @@ export function canDeleteAuditFindings(input: {
   return input.correcting && hasPrivilege(input.roleNames, ADMIN_ROLES, input.isGod)
 }
 
+/**
+ * Whether the finding gets a "Sil": the person may delete while correcting, and
+ * the finding is on the audit's own list. That list holds the audit's findings
+ * and its in-audit single findings (readAuditFindings.ts), so those are
+ * deletable by the same rule; the location's other open findings are not.
+ */
+export function isDeletableFinding(canDelete: boolean, listed: readonly { id: string }[], findingId: string): boolean {
+  return canDelete && listed.some((row) => row.id === findingId)
+}
+
 /** Every row of `list` except the finding `id`. */
 export function withoutFinding<T extends { id: string }>(list: readonly T[], id: string): T[] {
   return list.filter((row) => row.id !== id)
@@ -102,34 +112,4 @@ export function findingsPanelText(correcting: boolean) {
         empty: 'Bu denetimde ve lokasyonda listelenecek bulgu yok.',
       }
     : { title: 'Bu Lokasyondaki Açık Bulgular', empty: 'Bu lokasyonda açık bulgu yok.' }
-}
-
-/** What a list read hands back: a bare list, or a body with the list in `data` (itself maybe wrapped once more). */
-export type FindingListResponse =
-  | FiveSFindingLite[]
-  | { data?: FiveSFindingLite[] | { data?: FiveSFindingLite[] } | null }
-  | null
-  | undefined
-
-/** The rows of a findings list read, whichever way the API layer wrapped them. */
-export function findingRowsOf(res: FindingListResponse): FiveSFindingLite[] {
-  if (!res) return []
-  if (Array.isArray(res)) return res
-  const inner = res.data
-  if (Array.isArray(inner)) return inner
-  return Array.isArray(inner?.data) ? inner.data : []
-}
-
-/** The filters that read one audit's active findings, whatever their status. */
-export function auditFindingsPayload(auditId: string) {
-  return {
-    page: 1,
-    limit: 200,
-    orderBy: 'finding_no',
-    orderDirection: 'desc',
-    filters: [
-      { field: 'audit_id', operator: 'eq', value: auditId },
-      { field: 'is_active', operator: 'eq', value: true },
-    ],
-  }
 }
