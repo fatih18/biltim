@@ -9,6 +9,7 @@ import { excelDay, xlsxResponse } from './excel'
 import { createPhotoEmbedder } from './findingPhotos'
 import { decideLocationForm } from './locationFormAccess'
 import { loadFormAudits } from './locationFormAudits'
+import { loadFormFindings } from './locationFormFindings'
 import { cleanName, nameOf, placeInYear } from './locationMatch'
 import { oneAtATime, photoNote, REPORT_PHOTO_LIMITS } from './photoReport'
 
@@ -89,20 +90,7 @@ async function buildForm(
   const locationName = place.name
   const audits = await loadFormAudits(place, { from, to }, auditId, completedOnly)
   const [findings, steps, questions, sorumlu] = await Promise.all([
-    query(
-      `select f.finding_no, f.detected_date, f.location_name, f.finding_type, f.description,
-              f.action_to_take, f.due_date, f.completed_at, f.status,
-              f.photo_before_files, f.photo_before_file_id, f.photo_before_url,
-              f.photo_after_files, f.photo_after_file_id, f.photo_after_url
-         from five_s_findings f
-        where f.is_active = true
-          and ($5::text is null
-               and (f.location_name = any($1::text[]) or f.audit_id = any($4::uuid[]))
-               and f.detected_date between $2 and $3
-               or f.audit_id::text = $5)
-        order by f.detected_date asc, f.finding_no asc nulls last`,
-      [place.findingNames, from, to, audits.map((a) => String(a.id)), auditId]
-    ),
+    loadFormFindings(place, { from, to }, audits.map((a) => String(a.id)), auditId),
     query(`select code, title, max_score, "order" from five_s_steps where is_active order by "order"`),
     query(
       `select q.external_id, q."order", q.text, q.max_score, s.code as step_code
