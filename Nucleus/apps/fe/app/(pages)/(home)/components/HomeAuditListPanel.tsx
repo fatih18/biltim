@@ -17,7 +17,7 @@ import { PlanRowCells } from "../_components/PlanRowCells";
 import { PlanDateCell } from "../_components/PlanDateCell";
 import { DoneDayRow } from "../_components/DoneDayRow";
 import { DoneDayListNote } from "../_components/DoneDayListNote";
-import { countAudits, countRepeats, placeByDay } from "../_utils/doneDayPlacement";
+import { countAudits, countOutsideRepeats, countRepeats, placeByDay } from "../_utils/doneDayPlacement";
 import { TAB_SORT_DIRECTION } from "../_utils/tabStatus";
 
 type AuditTeamLite = { id: string; name?: string | null; isActive: boolean };
@@ -121,12 +121,18 @@ export function HomeAuditListPanel(props: {
     counts: Record<HomeTab, number | null>;
     /** Denetimin yapıldığı gün, denetim kimliğine göre (onay bekleyen ve tamamlanan sekmeleri). */
     auditDateById?: Record<string, string>;
+    /** Plans outside this page, read only to be repeated under the day they were done (R43). Never rows of the tab. */
+    repeatSources?: AuditPlanRow[];
+    /** The read of those plans failed: the list says earlier-planned audits may be missing under their done day. */
+    repeatsUnavailable?: boolean;
     dateEditRule: (plan: AuditPlanRow) => DateEditRule;
     onUpdatePlanDate: (planId: string, dateYYYYMMDD: string, newCount: number) => void;
     loadDateConflicts?: DayConflictLoader;
 }) {
     const {
         auditDateById,
+        repeatSources,
+        repeatsUnavailable,
         plans,
         locInfoById,
         parentPlanRangeById,
@@ -165,7 +171,7 @@ export function HomeAuditListPanel(props: {
 
     // The rows, in the order the server sent them; an audit done on another day than
     // planned is listed a second time under the day it was done (R43).
-    const entries = placeByDay(plans, auditDateById ?? {}, TAB_SORT_DIRECTION[tab]);
+    const entries = placeByDay(plans, auditDateById ?? {}, TAB_SORT_DIRECTION[tab], repeatSources ?? []);
 
     const startEdit = (p: AuditPlanRow) => {
         setEditingId(p.id);
@@ -432,7 +438,7 @@ export function HomeAuditListPanel(props: {
                     )}
                 </div>
 
-                {!loading && <DoneDayListNote audits={countAudits(entries)} repeats={countRepeats(entries)} />}
+                {!loading && <DoneDayListNote audits={countAudits(entries)} repeats={countRepeats(entries)} outside={countOutsideRepeats(entries)} unavailable={repeatsUnavailable ?? false} />}
 
                 {/* küçük not */}
                 <div className="mt-3 text-[11px] text-slate-500 dark:text-slate-400">

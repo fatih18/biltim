@@ -16,6 +16,10 @@
  *
  * Only the `planned` entries are audits. `countAudits` is the one way to count
  * a list, so a tab total or a "N denetim" line never counts the repeat twice.
+ *
+ * A plan planned long before it was done lies outside the loaded page. Those
+ * plans are handed in separately as repeat sources: they can produce a repeat
+ * under their done day and nothing else, so they are never an audit of the list.
  */
 
 export type SortDirection = 'asc' | 'desc'
@@ -78,11 +82,16 @@ function comesBefore(a: string, b: string, direction: SortDirection): boolean {
  * on screen keeps its row where it was). Each repeat is slotted in before the
  * first plan that lies after its day, so a repeat never jumps ahead of plans
  * of its own day and several repeats of one day keep the server's order.
+ *
+ * `repeatSources` are plans the page does not hold, read only to be repeated.
+ * A source gives a repeat when its audit was done on another day than it was
+ * planned, and never a `planned` entry; one the list holds already is skipped.
  */
 export function placeByDay<P extends PlannedAudit>(
   plans: readonly P[],
   doneDays: Readonly<Record<string, string>>,
-  direction: SortDirection
+  direction: SortDirection,
+  repeatSources: readonly P[] = []
 ): DayEntry<P>[] {
   const planned: PlannedEntry<P>[] = []
   const repeats: DoneEntry<P>[] = []
@@ -94,6 +103,17 @@ export function placeByDay<P extends PlannedAudit>(
     planned.push({ kind: 'planned', key: plan.id, plan, day: plannedDay, doneDay: elsewhere ? done : null })
     // A plan with no readable planned day has nothing to say "Plan:" about.
     if (elsewhere && plannedDay !== '') {
+      repeats.push({ kind: 'done', key: `${plan.id}:done`, plan, day: done, plannedDay })
+    }
+  }
+
+  const listed = new Set(plans.map((plan) => plan.id))
+  for (const plan of repeatSources) {
+    if (listed.has(plan.id)) continue
+    listed.add(plan.id)
+    const plannedDay = dayKey(plan.planned_date)
+    const done = doneDayOf(plan, doneDays)
+    if (done !== '' && done !== plannedDay && plannedDay !== '') {
       repeats.push({ kind: 'done', key: `${plan.id}:done`, plan, day: done, plannedDay })
     }
   }
@@ -126,4 +146,16 @@ export function countAudits<P>(entries: readonly DayEntry<P>[]): number {
 /** How many audits are listed a second time under the day they were done. */
 export function countRepeats<P>(entries: readonly DayEntry<P>[]): number {
   return entries.length - countAudits(entries)
+}
+
+/**
+ * How many repeats belong to a plan the list does not hold: that audit is on
+ * the list only under the day it was done, because its plan lies outside the page.
+ */
+export function countOutsideRepeats<P extends PlannedAudit>(entries: readonly DayEntry<P>[]): number {
+  const held = new Set<string>()
+  for (const entry of entries) {
+    if (entry.kind === 'planned') held.add(entry.plan.id)
+  }
+  return entries.filter((entry) => entry.kind === 'done' && !held.has(entry.plan.id)).length
 }

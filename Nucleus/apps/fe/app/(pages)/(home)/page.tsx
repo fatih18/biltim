@@ -13,6 +13,9 @@ import { useAuditReport } from "./_hooks/useAuditReport";
 import type { DayConflictLoader } from "./_hooks/useDayConflicts";
 import { canOpenAuditReport, isFieldManagerOnly } from "./_utils/auditReport";
 import { TAB_SORT_DIRECTION, TAB_STATUS_FILTERS } from "./_utils/tabStatus";
+import { planDates } from "./_utils/planRow";
+import { repeatReadRange, type TabCondition } from "./_utils/repeatSources";
+import { useRepeatSources } from "./_hooks/useRepeatSources";
 import { RejectPlanDialog } from "./_components/RejectPlanDialog";
 import { isCarriedOutPlan, rowActionsFor } from "@/app/_utils/planReview";
 
@@ -62,8 +65,6 @@ function extractArray(res: any): any[] {
   return [];
 }
 
-type Dict = Record<string, unknown>;
-
 /*
  * Three tabs, three server questions. "Onay Bekleyen" is new (#28): the
  * auditor's submission puts a plan there, and only Merkez Ekip's "Onayla"
@@ -72,12 +73,12 @@ type Dict = Record<string, unknown>;
  */
 export type HomeTab = "upcoming" | "approval" | "completed";
 
-const STATUS_BY_TAB: Record<HomeTab, Dict> = TAB_STATUS_FILTERS;
+const STATUS_BY_TAB: Record<HomeTab, TabCondition> = TAB_STATUS_FILTERS;
 
 /** The conditions for one tab, or null when this person has no plans at all. */
-function planFilters(tab: HomeTab, access: "all" | "none" | Dict): Dict[] | null {
+function planFilters(tab: HomeTab, access: "all" | "none" | TabCondition): TabCondition[] | null {
   if (access === "none") return null;
-  const conditions: Dict[] = [
+  const conditions: TabCondition[] = [
     { field: "is_active", operator: "eq", value: true },
     { field: "location_id", operator: "isNotNull", value: true },
     STATUS_BY_TAB[tab],
@@ -219,6 +220,8 @@ export default function Page() {
 
   const [plans, setPlans] = React.useState<AuditPlanRow[]>([]);
   const [auditDateById, setAuditDateById] = React.useState<Record<string, string>>({});
+  // Plans outside this page, read only to be repeated under the day they were done (R43).
+  const repeats = useRepeatSources();
   const [parentPlans, setParentPlans] = React.useState<AuditPlanRow[]>([]);
   /*
    * Which tab is showing, and what the server says each one holds.
@@ -242,7 +245,7 @@ export default function Page() {
    * `null` = not decided yet (nothing is fetched), `"all"` = Merkez Ekip and
    * above, otherwise the condition that narrows the query to this person.
    */
-  const accessRef = React.useRef<"all" | "none" | Dict | null>(null);
+  const accessRef = React.useRef<"all" | "none" | TabCondition | null>(null);
   const [locations, setLocations] = React.useState<LocationLite[]>([]);
   const [teams, setTeams] = React.useState<AuditTeamLite[]>([]);
   const [teamMembers, setTeamMembers] = React.useState<TeamMemberRow[]>([]);
@@ -286,9 +289,11 @@ export default function Page() {
     const startUsers = safeStart(A, GET_USERS_KEY);
 
     let pending = 0;
+    // Tekrar satırlarının ilgili okumaları listeyi iskelete döndürmez (R43).
+    let tekrarAsamasi = false;
     const begin = () => {
       pending += 1;
-      setLoading(true);
+      if (!tekrarAsamasi) setLoading(true);
     };
     const end = () => {
       pending -= 1;
@@ -347,6 +352,7 @@ export default function Page() {
     const currentTab = tabRef.current;
     const filters = planFilters(currentTab, access);
     if (!filters) {
+      repeats.clear();
       setPlans([]);
       setCounts({ upcoming: 0, approval: 0, completed: 0 });
       setLoading(false);
@@ -363,10 +369,8 @@ export default function Page() {
         const arr = extractArray(res) as any[];
         const mapped = (arr ?? []).map((p: any) => ({
           ...p,
-          planned_date: normalizeDateYYYYMMDD(p?.planned_date),
+          ...planDates(p),
           parent_plan_id: p?.parent_plan_id ?? null,
-          date_range_start: normalizeDateYYYYMMDD(p?.date_range_start ?? "") || null,
-          date_range_end: normalizeDateYYYYMMDD(p?.date_range_end ?? "") || null,
           quarter: p?.quarter ?? null,
           title: p?.title ?? null,
         }));
@@ -378,6 +382,31 @@ export default function Page() {
           | undefined;
         const toplam = meta?.totalItems ?? meta?.total ?? null;
         setCounts((prev) => ({ ...prev, [currentTab]: toplam }));
+
+        /*
+         * Bu sayfada olmayan, ama sayfadaki günlerde yapılmış denetimlerin
+         * planları: yapıldıkları günde tekrar gösterilmek için okunur, sekmenin
+         * satırı ya da sayısı olmaz (R43). Sayfa sekmenin tamamını tutuyorsa
+         * okunacak bir şey yoktur.
+         */
+        const aralik = repeatReadRange(mapped, toplam);
+        if (!aralik) {
+          repeats.clear();
+        } else {
+          repeats.load({
+            startAudits: safeStart(A, AUDIT_KEYS.GET),
+            startPlans,
+            tabFilters: filters,
+            range: aralik,
+            knownAuditIds: mapped.map((p) => p?.audit_id).filter(Boolean).map(String),
+            onFound: (digerleri, denetimGunleri) => {
+              tekrarAsamasi = true;
+              setAuditDateById((prev) => ({ ...prev, ...denetimGunleri }));
+              // Kendi lokasyon / ekip / dönem bilgileri de okunsun.
+              if (digerleri.length > 0) okuIlgili([...mapped, ...digerleri]);
+            },
+          });
+        }
       },
       onErrorHandle: (e: any) => reportReadFailure(`${PLAN_KEYS.GET}`, e),
     });
@@ -474,9 +503,7 @@ export default function Page() {
             setParentPlans(
               extractArray(res).map((p: any) => ({
                 ...p,
-                planned_date: normalizeDateYYYYMMDD(p?.planned_date ?? ""),
-                date_range_start: normalizeDateYYYYMMDD(p?.date_range_start ?? "") || null,
-                date_range_end: normalizeDateYYYYMMDD(p?.date_range_end ?? "") || null,
+                ...planDates(p),
                 quarter: p?.quarter ?? null,
                 title: p?.title ?? null,
               })) as AuditPlanRow[]
@@ -639,7 +666,7 @@ export default function Page() {
     if (isPrivilegedUser) {
       accessRef.current = "all";
     } else if (scope) {
-      const branches: Dict[] = [];
+      const branches: TabCondition[] = [];
       if (scope.teamIds.length > 0)
         branches.push({ field: "assigned_team_id", operator: "in", value: scope.teamIds });
       if (scope.locationIds.length > 0)
@@ -1082,6 +1109,8 @@ export default function Page() {
           onTabChange={setTab}
           counts={counts}
           auditDateById={auditDateById}
+          repeatSources={repeats.plans}
+          repeatsUnavailable={repeats.unavailable}
         />
 
         {isPrivilegedUser && (
