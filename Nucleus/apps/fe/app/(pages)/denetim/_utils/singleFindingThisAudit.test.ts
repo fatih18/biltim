@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { explanationMissing, openFindingsFor, questionsAddedHere, sessionFindingsOfReplay } from "./singleFinding";
+import { sessionFindingsOfReplay } from "./replayedFindings";
+import { explanationMissing, openFindingsFor, questionsAddedHere } from "./singleFinding";
 
 const needsText = { requireExplanation: true };
 const bad = { rating: "bad" as const, explanation: "" };

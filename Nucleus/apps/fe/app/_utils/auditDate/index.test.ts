@@ -25,6 +25,11 @@ describe('auditDateFor', () => {
   it('tarih-saat taşıyan planı da güne indirger', () => {
     expect(auditDateFor('2026-08-01T10:30:00Z', bugun, bugun)).toBe('2026-08-01')
   })
+
+  it('"bugün" verilmezse tesisin takvimindeki bugündür, UTC günü değil (00:00-03:00 arası fark eder)', () => {
+    // A plan far ahead is pulled back to "today"; the default for today must be the plant's day.
+    expect(auditDateFor('2999-01-01', bugun)).toBe(todayAtPlant())
+  })
 })
 
 describe('atUtcMidnight', () => {

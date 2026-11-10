@@ -55,9 +55,16 @@ export type PageRequest = {
 /** A generated list action's `start`. */
 export type PageStarter = (request: PageRequest) => void
 
-/** A request cancelled by the browser is not a failure worth reporting. */
+/**
+ * A request cancelled by the browser is not a failure worth reporting.
+ *
+ * The generated action layer (createApiHook) hands `onErrorHandle` a plain
+ * `{ message }` with no `name`, so the cancellation is recognised by its text
+ * too ("signal is aborted without reason", "The user aborted a request").
+ */
 export function isAbortError(error: object): boolean {
-  return 'name' in error && error.name === 'AbortError'
+  if ('name' in error && error.name === 'AbortError') return true
+  return 'message' in error && typeof error.message === 'string' && /\b(aborted|AbortError)\b/i.test(error.message)
 }
 
 export type PagedRead = {

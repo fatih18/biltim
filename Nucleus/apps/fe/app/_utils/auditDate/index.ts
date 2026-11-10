@@ -21,7 +21,7 @@
 export function auditDateFor(
   plannedDate: string | undefined | null,
   fallback: string,
-  today: string = new Date().toISOString().slice(0, 10),
+  today: string = todayAtPlant(),
 ): string {
   const planned = (plannedDate ?? '').slice(0, 10)
   if (!planned) return fallback

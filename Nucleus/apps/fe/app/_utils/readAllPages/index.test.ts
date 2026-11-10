@@ -145,5 +145,9 @@ describe('isAbortError', () => {
     expect(isAbortError({ name: 'AbortError' })).toBe(true)
     expect(isAbortError(new Error('boom'))).toBe(false)
     expect(isAbortError([{ message: 'refused' }])).toBe(false)
+    // the shape the action layer actually produces: a message and no name
+    expect(isAbortError({ message: 'signal is aborted without reason' })).toBe(true)
+    expect(isAbortError({ message: 'The user aborted a request.' })).toBe(true)
+    expect(isAbortError({ message: 'Failed to fetch' })).toBe(false)
   })
 })

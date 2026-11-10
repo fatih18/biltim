@@ -68,12 +68,12 @@ import {
   type QueuedSingleFinding,
   queuedSubmissionLabel,
   questionsAddedHere,
-  sessionFindingsOfReplay,
   singleFindingHeading,
   singleFindingMode,
   singleFindingTitle,
   type SessionFinding,
 } from './_utils/singleFinding'
+import { sessionFindingsOfReplay } from './_utils/replayedFindings'
 import { singleFindingTeam, teamDescriptionLines, teamNamesOfUser, withoutRoleAsTeam } from './_utils/userTeams'
 import { FindingDeleteButton } from './_components/FindingDeleteButton'
 import { useAuditFindings } from './_hooks/useAuditFindings'
