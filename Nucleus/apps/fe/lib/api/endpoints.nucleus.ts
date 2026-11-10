@@ -161,6 +161,13 @@ const custom = {
    */
   BILTIM_USER_ROLES: { method: 'GET', path: '/biltim/users/roles' },
   BILTIM_SET_USER_ROLE: { method: 'POST', path: '/biltim/users/roles' },
+  /*
+   * Merkez Ekip, onay bekleyen bir denetimi sebebiyle ekibine düzeltme için
+   * geri gönderir (R30). Gövde `{ reason }` (5-500 karakter); yalnız admin.
+   * Jenerik uçtan status `rejected` yazmak reddedilir, çünkü sebep ve ekip
+   * bildirimi bu uçta birlikte yazılıyor.
+   */
+  REJECT_PLAN: { method: 'POST', path: '/biltim/plans/:plan_id/reject' },
 } as unknown as Record<string, TranslatedEndpoint>
 
 export const NucleusEndpoints = { ...systemTables, ...generated, ...custom }

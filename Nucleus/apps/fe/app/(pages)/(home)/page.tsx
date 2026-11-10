@@ -11,6 +11,9 @@ import { ADMIN_ROLES, CENTRAL_ROLES, hasPrivilege } from "@/app/_utils/routeAcce
 import { confirmDialog } from "@/app/_components/Global/ConfirmDialog";
 import { useAuditReport } from "./_hooks/useAuditReport";
 import { canOpenAuditReport, isFieldManagerOnly } from "./_utils/auditReport";
+import { TAB_STATUS_FILTERS } from "./_utils/tabStatus";
+import { RejectPlanDialog } from "./_components/RejectPlanDialog";
+import { canCorrectRejectedPlan, canRejectPlan, isCarriedOutPlan, isOnPlanTeam } from "@/app/_utils/planReview";
 
 import { HomeAuditListPanel } from "./components/HomeAuditListPanel";
 import { EditAuditModal, type EditableAudit } from "./components/EditAuditModal";
@@ -63,15 +66,12 @@ type Dict = Record<string, unknown>;
 /*
  * Three tabs, three server questions. "Onay Bekleyen" is new (#28): the
  * auditor's submission puts a plan there, and only Merkez Ekip's "Onayla"
- * moves it to "Tamamlanan".
+ * moves it to "Tamamlanan". A plan Merkez Ekip rejected (R30) stays in the
+ * first tab until its team sends the correction again.
  */
 export type HomeTab = "upcoming" | "approval" | "completed";
 
-const STATUS_BY_TAB: Record<HomeTab, Dict> = {
-  upcoming: { field: "status", operator: "notIn", value: ["completed", "pending_approval"] },
-  approval: { field: "status", operator: "in", value: ["pending_approval"] },
-  completed: { field: "status", operator: "in", value: ["completed"] },
-};
+const STATUS_BY_TAB: Record<HomeTab, Dict> = TAB_STATUS_FILTERS;
 
 /** The conditions for one tab, or null when this person has no plans at all. */
 function planFilters(tab: HomeTab, access: "all" | "none" | Dict): Dict[] | null {
@@ -111,6 +111,9 @@ export type AuditPlanRow = {
   date_range_end: string | null;
   quarter: string | null;
   title: string | null;
+  /** Set while the plan is rejected (R30); kept until it is approved. */
+  rejection_reason?: string | null;
+  rejected_at?: string | null;
 };
 
 type AuditTeamLite = {
@@ -786,6 +789,14 @@ export default function Page() {
   );
 
   /*
+   * Merkez Ekip rejects what the auditor sent (R30): the audit goes back to its
+   * own team with a reason. The dialog asks for the reason and makes the call;
+   * the plan then leaves "Onay Bekleyen" and waits, still open, for its team's
+   * correction. The server refuses anyone who is not an admin.
+   */
+  const [rejecting, setRejecting] = React.useState<AuditPlanRow | null>(null);
+
+  /*
    * Merkez Ekip can delete a plan from here (#19), including one whose
    * location or team has since been deleted — those could not be reached
    * from the planner, which lists plans under the location they belong to.
@@ -949,7 +960,7 @@ export default function Page() {
    * changes. The server applies the same rule (businessRules.ts).
    *
    *  - planned: the team leader, or Merkez Ekip, while changes remain;
-   *  - done (sent or approved): Merkez Ekip / Super Admin only (not the
+   *  - done (sent, rejected or approved): Merkez Ekip / Super Admin only (not the
    *    plant manager), as a correction that does not spend a change (#16) —
    *    the leader could rewrite the date of an audit already carried out;
    *  - the godmin, Merkez Ekip and Super Admin: any plan, any number of
@@ -959,7 +970,7 @@ export default function Page() {
     (plan: AuditPlanRow): DateEditRule => {
       const used = plan.date_change_count ?? 0;
       const left = Math.max(0, MAX_DATE_CHANGES - used);
-      const done = plan.status === "completed" || plan.status === "pending_approval";
+      const done = isCarriedOutPlan(plan.status);
       if (isGod || isAdminUser) return { allowed: true, spends: false, remaining: null };
       if (done) return { allowed: false, spends: false, remaining: null };
       const team = teams.find((t) => t.id === plan.assigned_team_id);
@@ -1036,6 +1047,17 @@ export default function Page() {
           canStartPlan={canStartPlan}
           onApprovePlan={isAdminUser ? approvePlan : undefined}
           approvingId={approvingId}
+          onRejectPlan={setRejecting}
+          canReject={(plan) => canRejectPlan({ status: plan.status, isAdmin: isAdminUser })}
+          onCorrectRejected={openAuditAnswersEdit}
+          canCorrectRejected={(plan) =>
+            canCorrectRejectedPlan({
+              status: plan.status,
+              auditId: plan.audit_id,
+              isAdmin: isAdminUser,
+              isTeamMember: isOnPlanTeam(plan.assigned_team_id, scope?.teamIds ?? []),
+            })
+          }
           onDeletePlan={isPrivilegedUser ? deletePlan : undefined}
           currentUserId={currentUserId}
           locInfoById={locInfoById}
@@ -1078,6 +1100,20 @@ export default function Page() {
           saving={auditSaving}
           onSave={saveAuditEdit}
           onClose={() => setEditingAudit(null)}
+        />
+      )}
+
+      {rejecting && (
+        <RejectPlanDialog
+          planId={rejecting.id}
+          locationName={locInfoById.get(rejecting.location_id)?.name ?? "-"}
+          plannedDate={rejecting.planned_date}
+          onClose={() => setRejecting(null)}
+          onRejected={() => {
+            setRejecting(null);
+            fetchAll();
+          }}
+          onStale={fetchAll}
         />
       )}
     </div>

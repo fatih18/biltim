@@ -10,6 +10,8 @@ import { AuditReportButton } from "./AuditReportButton";
 import { DateInput } from "@/app/_components/DateInput";
 import { DateConflictNotice } from "@/app/_components/DateConflictNotice";
 import { auditStatusLabelTr } from "@/app/_utils/StatusLabels";
+import { isPlanRejected, RESEND_LABEL } from "@/app/_utils/planReview";
+import { RejectedPlanNote } from "../_components/RejectedPlanNote";
 
 type AuditTeamLite = { id: string; name?: string | null; isActive: boolean };
 
@@ -29,6 +31,8 @@ function StatusPill({ status }: { status: string }) {
         return <span className={`${base} border-violet-800/60 bg-violet-100 dark:bg-violet-950/30 text-violet-700 dark:text-violet-200`}>{auditStatusLabelTr(status)}</span>;
     if (status === "completed")
         return <span className={`${base} border-emerald-800/60 bg-emerald-950/25 text-emerald-700 dark:text-emerald-200`}>{auditStatusLabelTr(status)}</span>;
+    if (status === "rejected")
+        return <span className={`${base} border-amber-500/70 bg-amber-100 dark:border-amber-700/70 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200`}>{auditStatusLabelTr(status)}</span>;
     if (status === "cancelled")
         return <span className={`${base} border-rose-900/60 bg-rose-950/25 text-rose-700 dark:text-rose-200`}>{auditStatusLabelTr(status)}</span>;
     return <span className={`${base} border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/50 text-slate-800 dark:text-slate-200`}>{auditStatusLabelTr(status)}</span>;
@@ -90,6 +94,12 @@ export function HomeAuditListPanel(props: {
     /** Merkez Ekip only: approve a sent audit (#28). */
     onApprovePlan?: (plan: AuditPlanRow) => void;
     approvingId?: string | null;
+    /** Merkez Ekip only: send a sent audit back to its team with a reason (R30). */
+    onRejectPlan?: (plan: AuditPlanRow) => void;
+    canReject?: (plan: AuditPlanRow) => boolean;
+    /** The plan's team and admins: correct a rejected audit and send it again (R30). */
+    onCorrectRejected?: (plan: AuditPlanRow) => void;
+    canCorrectRejected?: (plan: AuditPlanRow) => boolean;
     /** Merkez Ekip only: delete the plan row (#19). */
     onDeletePlan?: (plan: AuditPlanRow) => void;
     /** Edit the carried-out audit on the question screen (#12). */
@@ -133,6 +143,10 @@ export function HomeAuditListPanel(props: {
         canStartPlan,
         onApprovePlan,
         approvingId,
+        onRejectPlan,
+        canReject,
+        onCorrectRejected,
+        canCorrectRejected,
         onDeletePlan,
         onEditCompletedAudit,
         onEditScores,
@@ -397,6 +411,19 @@ export function HomeAuditListPanel(props: {
                                                 Saha sorumlususunuz
                                             </span>
                                         )}
+                                        {isPlanRejected(p.status) && (
+                                            <RejectedPlanNote reason={p.rejection_reason} rejectedAt={p.rejected_at} />
+                                        )}
+                                        {onCorrectRejected && canCorrectRejected?.(p) && (
+                                            <button
+                                                type="button"
+                                                onClick={() => onCorrectRejected(p)}
+                                                className="rounded-md border border-amber-700/60 bg-amber-200 px-2 py-1 text-[11px] font-semibold text-amber-900 hover:bg-amber-300 dark:border-amber-600/60 dark:bg-amber-900/40 dark:text-amber-100 dark:hover:bg-amber-900/60"
+                                                title="Denetimi soru-cevap ekranında düzelt; kaydedince onaya yeniden gönderilir"
+                                            >
+                                                {RESEND_LABEL}
+                                            </button>
+                                        )}
                                         {onApprovePlan && p.status === "pending_approval" && (
                                             <button
                                                 type="button"
@@ -416,6 +443,16 @@ export function HomeAuditListPanel(props: {
                                                 title="Denetimi soru-cevap ekranında düzenle (Merkez Ekip)"
                                             >
                                                 Düzenle
+                                            </button>
+                                        )}
+                                        {onRejectPlan && canReject?.(p) && (
+                                            <button
+                                                type="button"
+                                                onClick={() => onRejectPlan(p)}
+                                                className="rounded-md border border-rose-300 bg-rose-100 px-2 py-1 text-[11px] font-semibold text-rose-800 hover:bg-rose-200 dark:border-rose-800/60 dark:bg-rose-950/30 dark:text-rose-200 dark:hover:bg-rose-950/60"
+                                                title="Denetimi sebebiyle birlikte ekibine düzeltme için geri gönder"
+                                            >
+                                                Reddet
                                             </button>
                                         )}
                                         {onEditScores && (p.status === "completed" || p.status === "pending_approval") && p.audit_id && (
