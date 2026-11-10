@@ -8,6 +8,7 @@ import {
   FINISHED_AUDIT_FINDING_RETIRE_MESSAGE,
   findingOfFinishedAudit,
 } from './findingDelete'
+import { MAIL_COLUMNS_WRITE_MESSAGE, mailColumnsIn } from '../mail/mailColumns'
 import { ANSWER_MOVE_MESSAGE, AUDIT_STRUCTURE_WRITE_MESSAGE, auditIdsNamedIn, auditStructureKeysIn } from './rejectedAuditWrites'
 import {
   REJECTED,
@@ -1487,6 +1488,9 @@ export async function enforceBusinessRules(ctx: RuleContext): Promise<Response |
    * spelling, is refused for every caller.
    */
   if ((planCreate || planItem) && rejectionColumnsIn(body).length > 0) return refuse(REJECTED_COLUMNS_WRITE_MESSAGE)
+
+  // The mail worker's markers and attempt counts are the server's own (mail/mailColumns.ts).
+  if ((planCreate || planItem) && mailColumnsIn(body).length > 0) return refuse(MAIL_COLUMNS_WRITE_MESSAGE)
 
   if (planItem) {
     const touchesFlow = (['status', 'audit_id', 'auditor_attended', 'field_manager_attended'] as const).some(
