@@ -12,7 +12,9 @@ import { locationKey } from './locationMatch'
 
 /**
  * The names and the Turkish aliases of the roles, as `roles.name` and
- * `roles.alias` hold them. None of them is ever a team.
+ * `roles.alias` hold them, plus `basic`, the role `/auth/register` gives
+ * everyone. None of them is ever a team. Keep it level with the screens'
+ * `withoutRoleAsTeam` (fe denetim/_utils/userTeams.ts).
  */
 const ROLE_NAMES: readonly string[] = [
   'Content Manager Core Team',
@@ -25,6 +27,7 @@ const ROLE_NAMES: readonly string[] = [
   'Saha Sorumlusu',
   'Super Admin',
   'godmin',
+  'basic',
 ]
 
 /** Compared the way places are: Turkish lower case, dotted and dotless i alike (`SUPER ADMIN`, `MERKEZ EKİP`). */

@@ -21,6 +21,7 @@ describe('withoutRoleAsTeam', () => {
       'Saha Sorumlusu',
       'Super Admin',
       'godmin',
+      'basic',
     ]
     for (const name of names) expect(withoutRoleAsTeam(`Kırık raf\nEkip: ${name}`)).toBe('Kırık raf')
   })
@@ -29,6 +30,12 @@ describe('withoutRoleAsTeam', () => {
     for (const name of ['MERKEZ EKİP', 'merkez ekip', 'MERKEZ EKIP', 'MÜDÜR', 'müdür', 'DENETÇİ', 'denetçi', 'SUPER ADMIN', 'GODMIN', 'saha   sorumlusu', 'CONTENT MANAGER CORE TEAM']) {
       expect(withoutRoleAsTeam(`Kırık raf\nEkip:   ${name}  `)).toBe('Kırık raf')
     }
+  })
+
+  it('removes the line of the self-registration role `basic`, like the screens do', () => {
+    expect(withoutRoleAsTeam('Kırık raf\nEkip: basic')).toBe('Kırık raf')
+    expect(withoutRoleAsTeam('Kırık raf\nEkip: BASIC  ')).toBe('Kırık raf')
+    expect(withoutRoleAsTeam('Kırık raf\nEkip: basic ekip')).toBe('Kırık raf\nEkip: basic ekip')
   })
 
   it('keeps a line that names a real team, an empty one and one that merely mentions a role', () => {
