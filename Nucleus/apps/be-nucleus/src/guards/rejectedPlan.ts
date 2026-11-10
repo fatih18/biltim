@@ -67,9 +67,21 @@ const CLOSURE_KEYS: ReadonlySet<string> = new Set([
   'closedAt',
 ])
 
-/** A finding PUT or PATCH that carries closing keys and nothing else. An empty body closes nothing. */
-export function isClosureOnlyWrite(body: Row): boolean {
-  const keys = Object.keys(body)
+/** The keys that only name the finding being written: the client repeats the path id as `_id` (or `id`). */
+const TARGET_KEYS: readonly string[] = ['_id', 'id']
+
+/**
+ * A finding PUT or PATCH that carries closing keys and nothing else. The
+ * nucleus client leaves the target id in the body as `_id` beside the path
+ * id; that key is neutral only when it names the same finding as the path
+ * (`targetId`, canonical). At least one real closing key is still required.
+ */
+export function isClosureOnlyWrite(body: Row, targetId: string): boolean {
+  const target = targetId.toLowerCase()
+  const keys = Object.keys(body).filter((key) => {
+    const value = body[key]
+    return !(TARGET_KEYS.includes(key) && typeof value === 'string' && value.toLowerCase() === target)
+  })
   return keys.length > 0 && keys.every((key) => CLOSURE_KEYS.has(key))
 }
 

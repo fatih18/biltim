@@ -81,6 +81,25 @@ describe('closing a finding of a plan that stays rejected', () => {
     expect((await res?.json()).message).toContain('Sonrası Fotoğraf')
   })
 
+  it('is allowed with the exact bodies of the bulgular page, which repeat the path id as _id', async () => {
+    const _id = '6f0c2a1e-3b4d-4c5e-8f60-718293a4b5c6'
+    const fileId = '6f0c2a1e-3b4d-4c5e-8f60-718293a4b5c8'
+    const pageBodies: Row[] = [
+      { _id, photoAfterFiles: [{ file_id: fileId }], photoAfterFileId: fileId, photoAfterUrl: `/cdn/${fileId}`, status: 'closed' },
+      { _id, photo_after_files: [{ file_id: fileId }], photo_after_file_id: fileId, photo_after_url: `/cdn/${fileId}` },
+      { _id, status: 'in_progress' },
+    ]
+    for (const method of ['PUT', 'PATCH']) {
+      for (const payload of pageBodies) expect(await write(method, payload, FIELD_MANAGER)).toBeUndefined()
+    }
+    const bare = await write('PUT', { _id, status: 'closed' }, FIELD_MANAGER)
+    expect(bare?.status).toBe(400)
+    expect((await bare?.json()).message).toContain('Sonrası Fotoğraf')
+    const edit = await write('PUT', { _id, description: 'Kırık raf' }, FIELD_MANAGER)
+    expect(edit?.status).toBe(403)
+    expect((await edit?.json()).message).toContain(REFUSED)
+  })
+
   it('is refused to a caller with no role that closes findings, and to an auditor who only audits', async () => {
     const basic = await write('PATCH', closing[0] ?? {}, BASIC)
     expect(basic?.status).toBe(403)

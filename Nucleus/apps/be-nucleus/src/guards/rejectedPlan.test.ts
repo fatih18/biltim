@@ -17,21 +17,40 @@ describe('rejectionColumnsIn', () => {
 })
 
 describe('isClosureOnlyWrite', () => {
+  const ID = '6f0c2a1e-3b4d-4c5e-8f60-718293a4b5c6'
+
   it('wants at least one key: an empty body closes nothing', () => {
-    expect(isClosureOnlyWrite({})).toBe(false)
+    expect(isClosureOnlyWrite({}, ID)).toBe(false)
   })
 
   it('accepts the closing keys in both spellings, and nothing else', () => {
-    expect(isClosureOnlyWrite({ status: 'closed', photo_after_url: 'x', closed_at: 'd' })).toBe(true)
-    expect(isClosureOnlyWrite({ status: 'closed', photo_after_files: [], photo_after_file_id: 'x', completed_at: 'd' })).toBe(true)
-    expect(isClosureOnlyWrite({ status: 'closed', photoAfterFiles: [], photoAfterFileId: 'x', completedAt: 'd' })).toBe(true)
-    expect(isClosureOnlyWrite({ photoAfterUrl: 'x', closedAt: 'd' })).toBe(true)
+    expect(isClosureOnlyWrite({ status: 'closed', photo_after_url: 'x', closed_at: 'd' }, ID)).toBe(true)
+    expect(isClosureOnlyWrite({ status: 'closed', photo_after_files: [], photo_after_file_id: 'x', completed_at: 'd' }, ID)).toBe(true)
+    expect(isClosureOnlyWrite({ status: 'closed', photoAfterFiles: [], photoAfterFileId: 'x', completedAt: 'd' }, ID)).toBe(true)
+    expect(isClosureOnlyWrite({ photoAfterUrl: 'x', closedAt: 'd' }, ID)).toBe(true)
   })
 
   it('refuses one key beside them: the before photo, a move, a switch-off, the description', () => {
     for (const extra of ['photo_before_url', 'audit_id', 'is_active', 'description', 'due_date', 'finding_no']) {
-      expect(isClosureOnlyWrite({ status: 'closed', photo_after_url: 'x', [extra]: 'y' })).toBe(false)
+      expect(isClosureOnlyWrite({ status: 'closed', photo_after_url: 'x', [extra]: 'y' }, ID)).toBe(false)
     }
+  })
+
+  it('treats the target id the client repeats in the body as neutral (bulgular page bodies)', () => {
+    const after = { photo_after_files: [], photo_after_file_id: 'f1', photo_after_url: '/cdn/f1' }
+    expect(isClosureOnlyWrite({ _id: ID, ...after, status: 'closed' }, ID)).toBe(true)
+    expect(isClosureOnlyWrite({ _id: ID, photoAfterFiles: [], photoAfterFileId: 'f1', photoAfterUrl: '/cdn/f1' }, ID)).toBe(true)
+    expect(isClosureOnlyWrite({ _id: ID, status: 'in_progress' }, ID)).toBe(true)
+    expect(isClosureOnlyWrite({ _id: ID.toUpperCase(), status: 'closed' }, ID)).toBe(true)
+    expect(isClosureOnlyWrite({ id: ID, status: 'closed' }, ID)).toBe(true)
+  })
+
+  it('still needs a closing key, and refuses an id of another finding or anything beside it', () => {
+    expect(isClosureOnlyWrite({ _id: ID }, ID)).toBe(false)
+    expect(isClosureOnlyWrite({ _id: ID, description: 'x' }, ID)).toBe(false)
+    expect(isClosureOnlyWrite({ _id: ID, status: 'closed', description: 'x' }, ID)).toBe(false)
+    expect(isClosureOnlyWrite({ _id: 'another', status: 'closed' }, ID)).toBe(false)
+    expect(isClosureOnlyWrite({ id: 'another', status: 'closed' }, ID)).toBe(false)
   })
 })
 

@@ -1276,7 +1276,8 @@ export async function enforceBusinessRules(ctx: RuleContext): Promise<Response |
    * close findings; everything else stays Merkez Ekip's and the plan's team's.
    */
   if (FINDING_COLLECTION.test(path) || findingItem) {
-    const closing = findingItem !== null && isClosureOnlyWrite(body) && mayCloseFindings(await who())
+    const closing =
+      findingItem !== null && isClosureOnlyWrite(body, pathId(findingItem[1])) && mayCloseFindings(await who())
     if (!closing) {
       const teams = findingItem ? await rejectedPlanTeamsOfFinding(read, pathId(findingItem[1])) : []
       const named = idOf(body.audit_id)
