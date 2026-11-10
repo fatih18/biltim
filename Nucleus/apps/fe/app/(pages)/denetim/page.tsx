@@ -71,6 +71,7 @@ import { OpenFindingNotice } from './_components/OpenFindingNotice'
 import { PhotoGapList } from './_components/PhotoGapList'
 import { PhotoLabelMark } from './_components/PhotoLabelMark'
 import { PhotoRowHint } from './_components/PhotoRowHint'
+import { PhotoUploadGap } from './_components/PhotoUploadGap'
 import {
   photoGapLabel,
   photoGapToast,
@@ -78,14 +79,24 @@ import {
   questionsMissingPhoto,
   singleFindingPhotoRefusal,
 } from './_utils/photoRequired'
+import {
+  type AnswerPhotos,
+  findingMayBeWritten,
+  photoUploadAbortText,
+  rememberingUpload,
+  type PhotoAbortSubject,
+  type UploadedPhotos,
+  uploadPhotosFirst,
+} from './_utils/photoFirst'
 import { replayStampAction } from './_utils/photoRefusal'
+import { replayFindingPhotoDecision } from './_utils/replayPhotoGate'
 import {
   heldPlanGap,
   PLAN_STAMPED,
   type PlanStampOutcome,
   planStampFailure,
   planStampToast,
-  questionsLeftWithoutPhoto,
+  STAMP_RETRY_LABEL,
 } from './_utils/planStampOutcome'
 import { PhotoPreviewOverlay } from './_components/PhotoPreviewOverlay'
 import { StandaloneFindingEntry } from './_components/StandaloneFindingEntry'
@@ -470,6 +481,8 @@ type OfflineFindingPayload = {
   auditor_name?: string
   /** "Tekil Bulgu", or "<lokasyon> · <gün>" of the audit it came from (#3). */
   form_title?: string
+  /** R72: the question's photo flag when the form was queued; the replay never writes this finding photoless (replayPhotoGate.ts). */
+  require_photo?: boolean
   // photo_before_files, primary vs syncte hesaplanacak
   // photo blobs eşleşmesi: submissionPhoto table
 }
@@ -931,6 +944,16 @@ export default function FiveSAuditFormPage() {
   // A correction that was saved but not sent, or not written in full (resendPlan.ts → correctionEnd);
   // also a new audit whose plan the server refused to send (planStampOutcome.ts → heldPlanGap).
   const [savedGap, setSavedGap] = useState<SavedGap | null>(null)
+  // The audit whose plan did not go: "Yeniden gönder" stamps this one again, never a second audit (concludeSend).
+  const [heldSend, setHeldSend] = useState<{ planId: string; auditId: string } | null>(null)
+  const [retryingSend, setRetryingSend] = useState(false)
+  // A save that stopped for a required photo that did not upload (photoFirst.ts); stays until the next attempt.
+  const [uploadGap, setUploadGap] = useState<string | null>(null)
+  // What already reached the server per photo file, so a repeated save does not upload it again.
+  const uploadMemoryRef = useRef(new WeakMap<File, UploadedFileInfo>())
+  // The questions as the replay should read them now: its closure may hold the list from before they were loaded.
+  const questionsRef = useRef<Question[]>(questions)
+  questionsRef.current = questions
   // The single-finding modal's save; unlocked after every attempt, since a
   // second single finding is a legitimate thing to record.
   const singleSaveLockRef = useRef(false)
@@ -1797,10 +1820,12 @@ export default function FiveSAuditFormPage() {
              * "discard everything" as the only way out. Passing failures (no
              * connection, 5xx, 401, 408, 429) still stop here and retry.
              */
+            let skippedHere = 0
             const skipForGood = async (photoId: string) => {
               s.skippedPhotoIds = [...new Set([...(s.skippedPhotoIds ?? []), photoId])]
               await db.submissions.update(s.id, { skippedPhotoIds: s.skippedPhotoIds })
               skippedPhotosNow += 1
+              skippedHere += 1
             }
             for (const p of relatedPhotos) {
               const done = s.syncedPhotoUploads?.[p.id]
@@ -1829,6 +1854,30 @@ export default function FiveSAuditFormPage() {
               uploaded.push(up)
               s.syncedPhotoUploads = { ...(s.syncedPhotoUploads ?? {}), [p.id]: up }
               await db.submissions.update(s.id, { syncedPhotoUploads: s.syncedPhotoUploads })
+            }
+
+            /*
+             * R72: a finding on a question that demands a photo is never
+             * written without one on the server. When every photo was refused
+             * for good (or none was queued) the submission is set aside with
+             * the reason BEFORE the finding exists, and the photos skipped for
+             * this finding are released so "Tekrar dene" tries them again
+             * (replayPhotoGate.ts). The catch below records the reason.
+             */
+            const queuedQuestionId = f.question_id ?? (f.questionId !== 'SINGLE' ? f.questionId : null)
+            const photoDecision = replayFindingPhotoDecision({
+              question: questionsRef.current.find((qq) => qq.id === queuedQuestionId),
+              queuedRequirePhoto: f.require_photo,
+              queuedPhotoIds: relatedPhotos.map((p) => p.id),
+              skippedPhotoIds: s.skippedPhotoIds,
+              uploaded: uploaded.length,
+              steps,
+            })
+            if (photoDecision.action === 'set_aside') {
+              s.skippedPhotoIds = (s.skippedPhotoIds ?? []).filter((id) => !photoDecision.releasePhotoIds.includes(id))
+              await db.submissions.update(s.id, { skippedPhotoIds: s.skippedPhotoIds })
+              skippedPhotosNow -= skippedHere
+              throw apiCallError(photoDecision.reason, 422)
             }
 
             const primary = uploaded[0]
@@ -2957,6 +3006,7 @@ export default function FiveSAuditFormPage() {
         responsible_user_id: responsible?.userId || null,
         auditor_name: header.auditorName.trim(),
         form_title: auditTitle(),
+        require_photo: q.requirePhoto === true,
       })
 
       for (const f of ans.photos ?? []) {
@@ -3065,6 +3115,72 @@ export default function FiveSAuditFormPage() {
   }
 
   /*
+   * The end of an online send (planStampOutcome.ts). The draft is deleted only
+   * once the plan stamp went through: with a refused or failed stamp the audit
+   * is on the server and its plan is not sent, so the page stays, says why and
+   * offers "Yeniden gönder" for THIS audit (retryHeldSend). `planId` is null
+   * where there is no plan to stamp.
+   */
+  const concludeSend = async (planId: string | null, auditId: string, outcome: PlanStampOutcome) => {
+    const held = heldPlanGap(outcome, questions, steps)
+    if (held && planId) {
+      setHeldSend({ planId, auditId })
+      setSavedGap(held)
+      return
+    }
+    await clearDraft(planId, header)
+    setHeldSend(null)
+    setSavedGap(null)
+    // Madde 9: otomatik yeni denetime geçiş yok — ana sayfaya dön
+    if (typeof window !== 'undefined') {
+      toast.success('Denetim başarıyla kaydedildi.')
+      window.location.href = '/'
+    }
+  }
+
+  /** "Yeniden gönder": stamps the plan again with the audit already on the server; never files another audit. */
+  const retryHeldSend = async () => {
+    if (!heldSend || retryingSend) return
+    setRetryingSend(true)
+    try {
+      await concludeSend(heldSend.planId, heldSend.auditId, await markPlanCompleted(heldSend.planId, heldSend.auditId))
+    } finally {
+      setRetryingSend(false)
+    }
+  }
+
+  /*
+   * R72: the photos of the findings on photo-demanding questions go up BEFORE
+   * any row is written (photoFirst.ts). Null when one of those questions ended
+   * with no photo on the server: the save stops there, nothing was written and
+   * the form keeps what was entered. A demanding question's photos are in the
+   * returned map and are not uploaded again; other questions are not in it and
+   * upload as their finding is written.
+   */
+  const uploadRequiredPhotos = async (
+    items: readonly AnswerPhotos[],
+    subject: PhotoAbortSubject
+  ): Promise<ReadonlyMap<string, UploadedPhotos<UploadedFileInfo>> | null> => {
+    const result = await uploadPhotosFirst({
+      items,
+      questions,
+      upload: rememberingUpload(
+        (file) =>
+          uploadAnswerPhoto({ file }).catch((err) => {
+            console.error('Fotoğraf upload error', err)
+            throw err
+          }),
+        uploadMemoryRef.current
+      ),
+    })
+    if (result.ok) return result.byQuestion
+    const text = photoUploadAbortText({ failed: result.failedQuestions, steps, subject })
+    if (subject === 'audit') setUploadGap(text)
+    toast.error(text, { duration: 20000 })
+    return null
+  }
+
+  /*
    * One finding for one non-good answer, with its photos. Shared by a new
    * audit and by Merkez Ekip's edit of a carried-out one (#12), so the two
    * write the same row. It never throws; what it returns says whether the
@@ -3074,7 +3190,8 @@ export default function FiveSAuditFormPage() {
   const createFindingForAnswer = async (
     ans: QuestionAnswer,
     auditId: string,
-    detectedDate: string
+    detectedDate: string,
+    uploadedFirst?: ReadonlyMap<string, UploadedPhotos<UploadedFileInfo>>
   ): Promise<FindingWrite> => {
     const q = questions.find((qq) => qq.id === ans.questionId)
     if (!q) return { saved: false, failedPhotos: 0 }
@@ -3085,9 +3202,11 @@ export default function FiveSAuditFormPage() {
 
     const responsible2 = locationResponsibleMap.get(normLoc(effectiveLocationName)) ?? null
 
-    const uploadedPhotos: UploadedFileInfo[] = []
-    let failedPhotos = 0
-    for (const f of ans.photos ?? []) {
+    // R72: a demanding question's photos went up before the save began (uploadRequiredPhotos); they are not sent twice.
+    const first = uploadedFirst?.get(ans.questionId)
+    const uploadedPhotos: UploadedFileInfo[] = [...(first?.uploaded ?? [])]
+    let failedPhotos = first?.failed ?? 0
+    for (const f of first ? [] : (ans.photos ?? [])) {
       try {
         const up = await uploadAnswerPhoto({ file: f })
         if (up?.fileId || up?.fileUrl) uploadedPhotos.push(up)
@@ -3096,6 +3215,12 @@ export default function FiveSAuditFormPage() {
         console.error('Fotoğraf upload error', err)
         failedPhotos += 1
       }
+    }
+
+    // R72: the last door: no finding on a demanding question without a photo on the server, whatever got us here.
+    if (!findingMayBeWritten(q, uploadedPhotos.length)) {
+      console.error('Finding not written: its question demands a photo and none reached the server', ans.questionId)
+      return { saved: false, failedPhotos }
     }
 
     const primary = uploadedPhotos[0]
@@ -3144,6 +3269,9 @@ export default function FiveSAuditFormPage() {
    */
   const submitAuditEdit = async (target: NonNullable<typeof editAudit>): Promise<boolean> => {
     const A = actions as any
+    // R72: nothing is written until the photos of the new findings on demanding questions are on the server.
+    const uploadedFirst = await uploadRequiredPhotos(auditRecord.findings, 'audit')
+    if (!uploadedFirst) return false
     try {
       await startAsPromise(A[AUDIT_KEYS.PATCH]?.start, {
         payload: {
@@ -3186,7 +3314,9 @@ export default function FiveSAuditFormPage() {
     const writes = await Promise.all(
       auditRecord.answered.map(({ question: q, answer: ans }) =>
         writeQuestion({
-          writeFinding: needsFinding.has(q.id) ? () => createFindingForAnswer(ans, target.id, header.date) : null,
+          writeFinding: needsFinding.has(q.id)
+            ? () => createFindingForAnswer(ans, target.id, header.date, uploadedFirst)
+            : null,
           writeAnswer: () => {
             const fields = {
               rating: ans.rating,
@@ -3268,9 +3398,35 @@ export default function FiveSAuditFormPage() {
     }
   }
 
+  /*
+   * The save stopped because a required photo would not upload and the person
+   * chose the offline queue instead (PhotoUploadGap). The same lock and states
+   * as handleSubmit: once the form is queued the screen is done, like any save.
+   */
+  const queueAfterUploadFailure = async () => {
+    // The save button's own rule: a form that cannot be saved cannot be queued either.
+    if (submitLockRef.current || liveUnanswered.size > 0) return
+    submitLockRef.current = true
+    setSubmitState('saving')
+    let queued = false
+    try {
+      queued = await enqueueAuditAndFindingsFromForm()
+    } finally {
+      if (queued) {
+        setUploadGap(null)
+        setSubmitState('done')
+      } else {
+        submitLockRef.current = false
+        setSubmitState('idle')
+      }
+    }
+  }
+
   /** The form's save; true once the audit went through (sent, corrected, or queued). */
   const submitForm = async (): Promise<boolean> => {
     setHasAttempted(true)
+    // The message of an earlier stopped save is answered by this attempt (it is set again if this one stops too).
+    setUploadGap(null)
 
     const missing = new Set<string>()
 
@@ -3352,6 +3508,14 @@ export default function FiveSAuditFormPage() {
     }
 
     /*
+     * R72: before the audit row exists, the photos of the findings on
+     * demanding questions are on the server. When one is not, nothing has been
+     * written and the form stays as it is (photoFirst.ts).
+     */
+    const uploadedFirst = await uploadRequiredPhotos(auditRecord.findings, 'audit')
+    if (!uploadedFirst) return false
+
+    /*
      * The audit row first, then — awaited, under the same lock — its answers,
      * findings and plan stamp. They used to run in an onAfterHandle that
      * nothing waited for, so the save "finished" while they were still being
@@ -3401,7 +3565,7 @@ export default function FiveSAuditFormPage() {
 
     // The audit exists from here on: whatever happens next, the form stays locked.
     try {
-      await finishSentAudit(data)
+      await finishSentAudit(data, uploadedFirst)
     } catch (err) {
       console.error('Audit saved; a later step failed', err)
       toast.error('Denetim kaydedildi ancak sonraki adımlarda hata oluştu. Lütfen yöneticinize bildirin.')
@@ -3410,7 +3574,7 @@ export default function FiveSAuditFormPage() {
   }
 
   /** What follows a saved audit row: its answers, findings, draft cleanup and plan stamp. */
-  const finishSentAudit = async (data: any) => {
+  const finishSentAudit = async (data: any, uploadedFirst: ReadonlyMap<string, UploadedPhotos<UploadedFileInfo>>) => {
     const auditId = data?.data?.id ?? data?.id ?? data?.data?.[0]?.id ?? null
 
     if (!auditId) {
@@ -3451,22 +3615,9 @@ export default function FiveSAuditFormPage() {
 
     if (auditRecord.nonGood.length === 0) {
       setSubmitted(true)
-      await clearDraft(assignedPlan?.id ?? null, header)
-
-      if (assignedPlan?.id && auditId) {
-        // A refused stamp keeps the page open with its reason: no success toast, no redirect.
-        const held = heldPlanGap(await markPlanCompleted(assignedPlan.id, auditId), [], steps)
-        if (held) {
-          setSavedGap(held)
-          return
-        }
-      }
-
-      // Madde 9: otomatik yeni denetime geçiş yok — ana sayfaya dön
-      if (typeof window !== 'undefined') {
-        toast.success('Denetim başarıyla kaydedildi.')
-        window.location.href = '/'
-      }
+      // A refused or failed stamp keeps the page open with its reason and the draft; see concludeSend.
+      const outcome = assignedPlan?.id && auditId ? await markPlanCompleted(assignedPlan.id, auditId) : PLAN_STAMPED
+      await concludeSend(assignedPlan?.id ?? null, auditId, outcome)
       return
     }
 
@@ -3474,34 +3625,19 @@ export default function FiveSAuditFormPage() {
     // (Notlar 07.10, satır 3/16), even if a type was picked in its panel.
     const detectedDate = header.date
 
-    const jobs = auditRecord.findings.map((ans) => createFindingForAnswer(ans, auditId, detectedDate))
+    const jobs = auditRecord.findings.map((ans) => createFindingForAnswer(ans, auditId, detectedDate, uploadedFirst))
 
-    const writes = await Promise.all(jobs)
+    await Promise.all(jobs)
     setSubmitted(true)
-    await clearDraft(assignedPlan?.id ?? null, header)
 
-    if (assignedPlan?.id && auditId) {
-      /*
-       * R72: when the server refuses the stamp for a finding without its
-       * required photo, the message names the questions whose photos did not
-       * upload (planStampOutcome.ts), and the page stays instead of reporting
-       * a clean save.
-       */
-      const withoutPhoto = questionsLeftWithoutPhoto({ answers: auditRecord.findings, writes, questions })
-      const held = heldPlanGap(await markPlanCompleted(assignedPlan.id, auditId), withoutPhoto, steps)
-      if (held) {
-        setSavedGap(held)
-        return
-      }
-    }
-
-    console.log('Audit + findings (+ photos) başarıyla kaydedildi.')
-
-    // Madde 9: otomatik yeni denetime geçiş yok — ana sayfaya dön
-    if (typeof window !== 'undefined') {
-      toast.success('Denetim başarıyla kaydedildi.')
-      window.location.href = '/'
-    }
+    /*
+     * R72: the demanding questions' photos are on the server before the audit
+     * row existed, so no finding here is photoless. The draft goes only after
+     * the stamp: when the server still refuses it (a flag switched on while the
+     * form was open, older data), the page stays with the draft and says why.
+     */
+    const outcome = assignedPlan?.id && auditId ? await markPlanCompleted(assignedPlan.id, auditId) : PLAN_STAMPED
+    await concludeSend(assignedPlan?.id ?? null, auditId, outcome)
   }
 
   const handleReset = async () => {
@@ -3627,10 +3763,8 @@ export default function FiveSAuditFormPage() {
     if (!singleFinding.actionToTake.trim()) { toast.error('Alınacak faaliyet alanı zorunludur.'); return }
     if (!singleFinding.dueDate) { toast.error('Termin tarihi zorunludur.'); return }
     // R72: a finding linked to a question that demands a photo carries one (photoRequired.ts).
-    const photoRefusal = singleFindingPhotoRefusal(
-      questions.find((q) => q.id === singleFinding.linkedQuestionId),
-      singleFinding.photos
-    )
+    const linkedQuestion = questions.find((q) => q.id === singleFinding.linkedQuestionId)
+    const photoRefusal = singleFindingPhotoRefusal(linkedQuestion, singleFinding.photos)
     if (photoRefusal) { toast.error(photoRefusal); return }
 
     if (!loc) { toast.error('Lokasyon alanı zorunludur.'); return }
@@ -3714,6 +3848,7 @@ export default function FiveSAuditFormPage() {
             action_to_take: singleFinding.actionToTake.trim(),
             due_date: singleFinding.dueDate || undefined,
             form_title: findingTitle,
+            require_photo: linkedQuestion?.requirePhoto === true,
           },
         ],
         lastError: null,
@@ -3747,6 +3882,17 @@ export default function FiveSAuditFormPage() {
       setSingleFinding({ findingType: '', explanation: '', photos: [], actionToTake: '', dueDate: '', linkedQuestionId: '', location: '', date: '' })
       return
     }
+
+    /*
+     * R72: a finding linked to a question that demands a photo is not written,
+     * and its carrier audit row is not created, until a photo is on the server.
+     */
+    const uploadedFirst = await uploadRequiredPhotos(
+      linkedQuestion ? [{ questionId: linkedQuestion.id, photos: singleFinding.photos }] : [],
+      'single'
+    )
+    if (!uploadedFirst) return
+    const firstPhotos = linkedQuestion ? uploadedFirst.get(linkedQuestion.id) : undefined
 
     // online: mevcut akış — every step awaited, under the save lock
     let data: any
@@ -3796,8 +3942,8 @@ export default function FiveSAuditFormPage() {
       return
     }
 
-    const uploadedPhotos: UploadedFileInfo[] = []
-    for (const f of singleFinding.photos ?? []) {
+    const uploadedPhotos: UploadedFileInfo[] = [...(firstPhotos?.uploaded ?? [])]
+    for (const f of firstPhotos ? [] : (singleFinding.photos ?? [])) {
       try {
         const up = await uploadAnswerPhoto({ file: f })
         if (up?.fileId || up?.fileUrl) uploadedPhotos.push(up)
@@ -4987,7 +5133,14 @@ export default function FiveSAuditFormPage() {
                 {isOnline ? 'Form başarıyla gönderildi.' : 'Form offline kuyruğa alındı (internet gelince gönderilecek).'}
               </p>
             )}
-            <SavedWithGap gap={savedGap} />
+            <SavedWithGap
+              gap={savedGap}
+              retry={
+                heldSend
+                  ? { label: STAMP_RETRY_LABEL, busy: retryingSend, onClick: () => void retryHeldSend() }
+                  : undefined
+              }
+            />
 
             <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:justify-between">
               <div className="text-[11px] text-slate-600 dark:text-slate-400">
@@ -5000,6 +5153,18 @@ export default function FiveSAuditFormPage() {
               </div>
               <div className="flex flex-col items-end gap-1.5">
                 {hasAttempted && <PhotoGapList labels={photoGap.map((q) => photoGapLabel(q, steps))} />}
+                <PhotoUploadGap
+                  text={uploadGap}
+                  queue={
+                    editAudit
+                      ? undefined
+                      : {
+                          busy: submitState === 'saving',
+                          disabled: submitState !== 'idle' || liveUnanswered.size > 0,
+                          onClick: () => void queueAfterUploadFailure(),
+                        }
+                  }
+                />
                 {hasAttempted && liveUnanswered.size > 0 && (
                   <p className="text-[11px] text-rose-400">
                     <span className="font-semibold">{liveUnanswered.size}</span> soru yanıt bekliyor — form kaydedilemez.

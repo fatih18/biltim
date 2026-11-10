@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { PHOTO_REFUSAL_MARKER, isPhotoRefusal, replayStampAction } from "./photoRefusal";
+import { PHOTO_REFUSAL_MARKER, isPhotoRefusal, photoRefusalQuestionIds, replayStampAction } from "./photoRefusal";
 
 /** The API's own words for the refusal, as be-nucleus guards/photoRequired.ts builds them. */
 const API_MESSAGE =
@@ -16,6 +16,23 @@ describe("isPhotoRefusal", () => {
     expect(isPhotoRefusal(["Plan bulunamadı."])).toBe(false);
     expect(isPhotoRefusal(["Bu plan ekibinize atanmamış; planı yalnız atanan ekip gönderebilir."])).toBe(false);
     expect(isPhotoRefusal(["Bulgu için fotoğraf yüklenemedi."])).toBe(false);
+  });
+});
+
+describe("photoRefusalQuestionIds: the codes the API's message names", () => {
+  it("reads the list in brackets after the marker, in order, each code once", () => {
+    expect(photoRefusalQuestionIds([API_MESSAGE])).toEqual(["S1-Q2", "S3-Q1"]);
+    expect(photoRefusalQuestionIds([API_MESSAGE, API_MESSAGE])).toEqual(["S1-Q2", "S3-Q1"]);
+  });
+
+  it("is empty for another refusal, and for a photo refusal that carries no list", () => {
+    expect(photoRefusalQuestionIds(["Plan bulunamadı. (S1-Q2)"])).toEqual([]);
+    expect(photoRefusalQuestionIds([`Denetim gönderilemedi: ${PHOTO_REFUSAL_MARKER} fotoğrafsız bulgu var.`])).toEqual([]);
+    expect(photoRefusalQuestionIds([])).toEqual([]);
+  });
+
+  it("ignores blank entries in the list", () => {
+    expect(photoRefusalQuestionIds([`${PHOTO_REFUSAL_MARKER} (S1-Q2, , S2-Q4 ) fotoğrafsız`])).toEqual(["S1-Q2", "S2-Q4"]);
   });
 });
 

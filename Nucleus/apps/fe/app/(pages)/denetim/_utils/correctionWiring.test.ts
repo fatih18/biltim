@@ -65,7 +65,7 @@ describe("a correction counts every write before it resends", () => {
 
   it("the button and the link home read the gap", () => {
     expect(pageCode).toContain("? savedLabelOf(savedGap)");
-    expect(pageCode).toContain("<SavedWithGap gap={savedGap} />");
+    expect(pageCode).toMatch(/<SavedWithGap\s+gap=\{savedGap\}/);
   });
 
   it("the page keeps no copy of the plan status constant", () => {

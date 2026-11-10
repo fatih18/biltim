@@ -8,13 +8,18 @@
  * plan is not sent, and that must not look like a clean save. A refusal now
  * keeps the form on screen with a message that stays (the same place and look
  * a correction's "saved but not sent" uses: SavedWithGap) and no success toast.
- * A passing failure (no connection, 5xx) keeps the earlier behaviour: the
- * toast, then the way home.
+ *
+ * A passing failure (no connection, 5xx) holds the page the same way. It used
+ * to show the toast and go home, with the draft already deleted; the audit was
+ * then on the server with its plan unsent and nothing on screen to send it
+ * again. Now the draft goes only once the stamp went through, and the held
+ * page offers "Yeniden gönder" for the same audit, so nobody refills the form
+ * and files a second audit for the plan.
  */
 import type { Question, Step } from "../constants";
-import { isPhotoRefusal } from "./photoRefusal";
+import { isPhotoRefusal, photoRefusalQuestionIds } from "./photoRefusal";
 import { photoGapLabel } from "./photoRequired";
-import type { FindingWrite, SavedGap } from "./resendPlan";
+import type { SavedGap } from "./resendPlan";
 
 export type PlanStampOutcome =
   | { kind: "sent" }
@@ -29,64 +34,80 @@ export function planStampFailure(input: { refused: boolean; reasons: readonly st
   return input.refused ? { kind: "refused", reasons: input.reasons } : { kind: "failed" };
 }
 
-/** The toast for a stamp that did not go through; `long` for the one that carries the server's reasons. */
+/** The label of the button beside the held message: it stamps the same audit again. */
+export const STAMP_RETRY_LABEL = "Yeniden gönder";
+
+/**
+ * The toast for a stamp that did not go through; `long` for the one that
+ * carries the server's reasons. The photo refusal's own sentence asks the
+ * reader to add a photo, which this screen cannot do, so the toast only points
+ * at the message that stays on the page (heldPlanGap).
+ */
 export function planStampToast(outcome: PlanStampOutcome): { text: string; long: boolean } {
+  if (outcome.kind === "refused" && isPhotoRefusal(outcome.reasons)) {
+    return {
+      text: "Denetim kaydedildi ancak plan onaya gönderilemedi: fotoğrafı zorunlu bir sorunun bulgusunda fotoğraf yok. Hangi soru olduğu ve yapılacaklar ekrandaki mesajda yazıyor.",
+      long: true,
+    };
+  }
   if (outcome.kind === "refused" && outcome.reasons.length > 0) {
     return { text: `Denetim kaydedildi ancak plan onaya gönderilemedi: ${outcome.reasons.join(" ")}`, long: true };
   }
+  if (outcome.kind === "failed") {
+    return {
+      text: `Denetim kaydedildi ancak plan onaya gönderilemedi (bağlantı sorunu). Ekrandaki "${STAMP_RETRY_LABEL}" düğmesine basın.`,
+      long: false,
+    };
+  }
   return { text: "Denetim kaydedildi ancak plan onaya gönderilemedi. Lütfen yöneticinize bildirin.", long: false };
-}
-
-/** The answers whose findings were just written, as the page holds them. */
-export type WrittenAnswer = { questionId: string; photos?: readonly File[] };
-
-/**
- * The questions whose finding was saved without a single photo although the
- * question demands one: every photo of it failed to upload. A finding that
- * did not save at all is not "a finding without a photo" (the server counts
- * the rows it has), so it is left out. Each question once, in answer order.
- * `writes[i]` is what writing `answers[i]` came to (page.tsx createFindingForAnswer).
- */
-export function questionsLeftWithoutPhoto(input: {
-  answers: readonly WrittenAnswer[];
-  writes: readonly FindingWrite[];
-  questions: readonly Question[];
-}): Question[] {
-  const left: Question[] = [];
-  input.answers.forEach((answer, index) => {
-    const question = input.questions.find((q) => q.id === answer.questionId);
-    const write = input.writes[index];
-    if (!question || question.requirePhoto !== true || !write?.saved) return;
-    if ((answer.photos?.length ?? 0) - write.failedPhotos > 0) return;
-    if (!left.some((q) => q.id === question.id)) left.push(question);
-  });
-  return left;
 }
 
 /** What stays true whatever the reason: the audit is saved, the plan did not go, and the form must not be filled again. */
 const HELD_TAIL =
   "Plan onaya gitmedi ve açık kaldı. Merkez Ekip'e bildirin; denetim zaten kayıtlı olduğu için bu planı yeniden doldurmayın.";
 
+/** The stamp did not get an answer: the audit is saved, nothing is wrong with it, and the same stamp can be sent again. */
+const PASSING_FAILURE_TEXT = `Denetim ve bulguları kaydedildi ancak plan onaya gönderilemedi: bağlantı kesildi ya da sunucu yanıt vermedi. Denetim zaten kayıtlı olduğu için bu planı yeniden doldurmayın; bağlantınızı kontrol edip "${STAMP_RETRY_LABEL}" düğmesine basın.`;
+
 /**
- * The message that stays on the page when the server refused the stamp: what
+ * The photo refusal in the page's own words: which questions have a finding
+ * without its photo (named from the codes the server's message carries), that
+ * a photo cannot be added from this screen, and who to tell. The server's own
+ * sentence says "add a photo", a task the reader cannot do here, so it is not
+ * repeated.
+ */
+function photoRefusalText(reasons: readonly string[], questions: readonly Question[], steps: readonly Step[]): string {
+  const labels = photoRefusalQuestionIds(reasons).map((id) => {
+    const question = questions.find((q) => q.id === id);
+    return question ? photoGapLabel(question, steps) : id;
+  });
+  const subject =
+    labels.length === 0
+      ? "bulgu fotoğrafı zorunlu olan sorularda"
+      : labels.length === 1
+        ? "bulgu fotoğrafı zorunlu olan şu soruda"
+        : "bulgu fotoğrafı zorunlu olan şu sorularda";
+  const list = labels.length > 0 ? `: ${labels.join("; ")}` : "";
+  return `Denetim ve bulguları kaydedildi ancak onaya gönderilemedi: ${subject} fotoğrafsız bulgu var${list}. Fotoğrafsız bulgu kabul edilmez ve bu ekrandan fotoğraf eklenemez. ${HELD_TAIL}`;
+}
+
+/**
+ * The message that stays on the page when the stamp did not go through: what
  * is wrong, what it means, what to do. For the photo refusal it names the
- * questions (`withoutPhoto`, from questionsLeftWithoutPhoto); when the page
- * cannot name them it gives the server's own words, which carry the question
- * codes. Null when the stamp was not refused (the page goes on as before).
+ * questions (`questions` is the form's list, to turn the server's codes into
+ * numbers and texts); any other refusal gives the server's own reasons; a
+ * failure that passes says the same stamp can be sent again. Null when the
+ * stamp went through (the draft goes and the page leaves).
  */
 export function heldPlanGap(
   outcome: PlanStampOutcome,
-  withoutPhoto: readonly Question[],
+  questions: readonly Question[],
   steps: readonly Step[],
 ): SavedGap | null {
-  if (outcome.kind !== "refused") return null;
-  if (isPhotoRefusal(outcome.reasons) && withoutPhoto.length > 0) {
-    const labels = withoutPhoto.map((question) => photoGapLabel(question, steps)).join("; ");
-    const subject = withoutPhoto.length === 1 ? "şu soruda" : "şu sorularda";
-    return {
-      kind: "unsent",
-      text: `Denetim ve bulguları kaydedildi ancak onaya gönderilemedi: bulgu fotoğrafı zorunlu olan ${subject} bulguya fotoğraf eklenemedi (yükleme başarısız oldu): ${labels}. Fotoğrafsız bulgu kabul edilmediği için ${HELD_TAIL}`,
-    };
+  if (outcome.kind === "sent") return null;
+  if (outcome.kind === "failed") return { kind: "unsent", text: PASSING_FAILURE_TEXT };
+  if (isPhotoRefusal(outcome.reasons)) {
+    return { kind: "unsent", text: photoRefusalText(outcome.reasons, questions, steps) };
   }
   const why = outcome.reasons.length > 0 ? ` ${outcome.reasons.join(" ")}` : " Sunucu planı kabul etmedi.";
   return { kind: "unsent", text: `Denetim kaydedildi ancak plan onaya gönderilemedi:${why} ${HELD_TAIL}` };

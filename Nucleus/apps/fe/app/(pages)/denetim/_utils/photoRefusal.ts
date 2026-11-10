@@ -18,6 +18,25 @@ export function isPhotoRefusal(reasons: readonly string[]): boolean {
 }
 
 /**
+ * The question codes the refusal names: the API puts them in brackets right
+ * after the marker ("... sorularda (S1-Q2, S3-Q1) fotoğrafsız bulgu var").
+ * Empty when no reason carries a list, so the caller says it without one.
+ */
+export function photoRefusalQuestionIds(reasons: readonly string[]): string[] {
+  const ids: string[] = [];
+  for (const reason of reasons) {
+    const at = reason.indexOf(PHOTO_REFUSAL_MARKER);
+    if (at < 0) continue;
+    const list = /^\s*\(([^)]*)\)/.exec(reason.slice(at + PHOTO_REFUSAL_MARKER.length))?.[1] ?? "";
+    for (const id of list.split(",")) {
+      const code = id.trim();
+      if (code !== "" && !ids.includes(code)) ids.push(code);
+    }
+  }
+  return ids;
+}
+
+/**
  * What the offline replay does with a refused plan stamp:
  * - "clean_up": the plan itself refuses (deleted, taken over, ...). The audit
  *   and its findings are on the server and retrying the stamp would only fail

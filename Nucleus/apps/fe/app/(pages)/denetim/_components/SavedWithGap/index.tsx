@@ -4,6 +4,12 @@ import type { SavedGap } from '../../_utils/resendPlan'
 type SavedWithGapProps = {
   /** Why the saved correction is not the end of it, with its text; null shows nothing. */
   gap: SavedGap | null
+  /*
+   * A new audit whose plan did not go: the button that stamps the same audit
+   * again (planStampOutcome.ts → STAMP_RETRY_LABEL). Absent for a correction,
+   * which sends again from the home page.
+   */
+  retry?: { label: string; busy: boolean; onClick: () => void }
 }
 
 /*
@@ -13,7 +19,7 @@ type SavedWithGapProps = {
  * the one the toast gave, kept here once the toast is gone: sent-again failures
  * and failed writes each carry their own wording (resendPlan.ts → correctionEnd).
  */
-export function SavedWithGap({ gap }: SavedWithGapProps) {
+export function SavedWithGap({ gap, retry }: SavedWithGapProps) {
   if (!gap) return null
   return (
     <div
@@ -21,12 +27,24 @@ export function SavedWithGap({ gap }: SavedWithGapProps) {
       className="flex flex-col gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-[11px] text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200 sm:flex-row sm:items-center sm:justify-between"
     >
       <p>{gap.text}</p>
-      <Link
-        href="/"
-        className="inline-flex shrink-0 items-center justify-center rounded-md border border-amber-400 bg-white px-3 py-1.5 font-semibold text-amber-900 hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 dark:border-amber-500/50 dark:bg-slate-950/60 dark:text-amber-200 dark:hover:bg-slate-900 dark:focus-visible:ring-sky-400"
-      >
-        Ana sayfaya dön
-      </Link>
+      <div className="flex shrink-0 flex-col gap-2 xs:flex-row">
+        {retry ? (
+          <button
+            type="button"
+            disabled={retry.busy}
+            onClick={retry.onClick}
+            className="inline-flex items-center justify-center rounded-md border border-sky-500 bg-sky-500 px-3 py-1.5 font-semibold text-slate-950 hover:bg-sky-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-600 dark:border-sky-400 dark:bg-sky-400 dark:hover:bg-sky-300 dark:focus-visible:ring-sky-400 dark:disabled:border-slate-600 dark:disabled:bg-slate-700 dark:disabled:text-slate-400"
+          >
+            {retry.busy ? "Gönderiliyor…" : retry.label}
+          </button>
+        ) : null}
+        <Link
+          href="/"
+          className="inline-flex items-center justify-center rounded-md border border-amber-400 bg-white px-3 py-1.5 font-semibold text-amber-900 hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 dark:border-amber-500/50 dark:bg-slate-950/60 dark:text-amber-200 dark:hover:bg-slate-900 dark:focus-visible:ring-sky-400"
+        >
+          Ana sayfaya dön
+        </Link>
+      </div>
     </div>
   )
 }

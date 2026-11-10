@@ -19,28 +19,51 @@ describe("a refused plan stamp keeps the form open (online send)", () => {
     expect(pageCode).toContain("const markPlanCompleted = async (planId: string, auditId: string): Promise<PlanStampOutcome>");
   });
 
-  it("finishSentAudit holds the page on a refusal before the success toast and the redirect, on both branches", () => {
+  it("both branches of finishSentAudit end in concludeSend with the stamp's outcome, and none of them touches the draft or leaves the page itself", () => {
     const body = bodyOf("finishSentAudit");
-    const holds = [...body.matchAll(/heldPlanGap\(await markPlanCompleted\(/g)].map((m) => m.index ?? -1);
-    const successes = [...body.matchAll(/toast\.success\('Denetim başarıyla kaydedildi\.'\)/g)].map((m) => m.index ?? -1);
-    expect(holds).toHaveLength(2);
-    expect(successes).toHaveLength(2);
-    expect(holds[0]).toBeGreaterThan(0);
-    expect(holds[0]).toBeLessThan(successes[0] ?? -1);
-    expect(holds[1]).toBeGreaterThan(successes[0] ?? Number.MAX_SAFE_INTEGER);
-    expect(holds[1]).toBeLessThan(successes[1] ?? -1);
-    expect(body.match(/setSavedGap\(held\)/g)).toHaveLength(2);
-    expect(body.match(/window\.location\.href = '\/'/g)).toHaveLength(2);
+    expect(body.match(/await markPlanCompleted\(assignedPlan\.id, auditId\)/g)).toHaveLength(2);
+    expect(body.match(/await concludeSend\(assignedPlan\?\.id \?\? null, auditId, outcome\)/g)).toHaveLength(2);
+    expect(body).not.toContain("clearDraft(");
+    expect(body).not.toContain("window.location.href");
+    expect(body).not.toContain("toast.success");
   });
 
-  it("names the questions whose photos did not upload from the findings it just wrote", () => {
-    const body = bodyOf("finishSentAudit");
-    expect(body).toContain("const writes = await Promise.all(jobs)");
-    expect(body).toContain("questionsLeftWithoutPhoto({ answers: auditRecord.findings, writes, questions })");
+  it("concludeSend deletes the draft only once the stamp went through, after the held page was ruled out (R72)", () => {
+    const body = bodyOf("concludeSend");
+    const held = body.indexOf("const held = heldPlanGap(outcome, questions, steps)");
+    const hold = body.indexOf("if (held && planId) {");
+    const leave = body.indexOf("return", hold);
+    const clear = body.indexOf("await clearDraft(planId, header)");
+    const success = body.indexOf("toast.success('Denetim başarıyla kaydedildi.')");
+    const redirect = body.indexOf("window.location.href = '/'");
+    expect(held).toBeGreaterThan(0);
+    expect(hold).toBeGreaterThan(held);
+    expect(body.slice(hold, clear)).toContain("setHeldSend({ planId, auditId })");
+    expect(body.slice(hold, clear)).toContain("setSavedGap(held)");
+    expect(leave).toBeGreaterThan(hold);
+    expect(leave).toBeLessThan(clear);
+    expect(clear).toBeLessThan(success);
+    expect(success).toBeLessThan(redirect);
   });
 
-  it("the held message stays in the place a correction's 'kaydedildi, gönderilmedi' uses, and the green line steps aside", () => {
-    expect(pageCode).toContain("<SavedWithGap gap={savedGap} />");
+  it("no other step of the online send deletes the draft: only the offline queue and the reset do", () => {
+    for (const name of ["submitForm", "finishSentAudit", "submitAuditEdit", "markPlanCompleted", "retryHeldSend"]) {
+      expect(bodyOf(name)).not.toContain("clearDraft(");
+    }
+    expect(pageCode.match(/await clearDraft\(/g)).toHaveLength(3);
+  });
+
+  it("'Yeniden gönder' stamps the audit already on the server and concludes like the first try, never saves a new audit", () => {
+    const body = bodyOf("retryHeldSend");
+    expect(body).toContain("await concludeSend(heldSend.planId, heldSend.auditId, await markPlanCompleted(heldSend.planId, heldSend.auditId))");
+    expect(body).not.toContain("ADD_FIVE_S_AUDIT");
+    expect(body).not.toContain("createFindingForAnswer");
+    expect(body).toContain("if (!heldSend || retryingSend) return");
+  });
+
+  it("the held message stays in the place a correction's 'kaydedildi, gönderilmedi' uses, with the retry button, and the green line steps aside", () => {
+    expect(pageCode).toMatch(/<SavedWithGap\s+gap=\{savedGap\}\s+retry=\{/);
+    expect(pageCode).toContain("{ label: STAMP_RETRY_LABEL, busy: retryingSend, onClick: () => void retryHeldSend() }");
     expect(pageCode).toContain("{submitted && !savedGap && (");
     expect(pageCode).toContain("? savedLabelOf(savedGap)");
   });

@@ -1,13 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import type { Question, Step } from "../constants";
 import { PHOTO_REFUSAL_MARKER } from "./photoRefusal";
-import {
-  PLAN_STAMPED,
-  heldPlanGap,
-  planStampFailure,
-  planStampToast,
-  questionsLeftWithoutPhoto,
-} from "./planStampOutcome";
+import { PLAN_STAMPED, STAMP_RETRY_LABEL, heldPlanGap, planStampFailure, planStampToast } from "./planStampOutcome";
 
 const steps: Step[] = [
   { code: "S1", title: "1 - Sınıflandırma", maxScore: 20, order: 1 },
@@ -26,9 +20,8 @@ const q12 = question("S1-Q2", "S1", 2, true);
 const q31 = question("S3-Q1", "S3", 1, true);
 const q13 = question("S1-Q3", "S1", 3, false);
 const questions = [q12, q31, q13];
-const photo = new File(["x"], "bulgu.jpg", { type: "image/jpeg" });
-const saved = (failedPhotos: number) => ({ saved: true, failedPhotos });
-const API_REASON = `Denetim gönderilemedi: ${PHOTO_REFUSAL_MARKER} (S1-Q2) fotoğrafsız bulgu var. Bulguya fotoğraf ekleyin; fotoğraf yüklenemiyorsa Merkez Ekip'e bildirin.`;
+const API_REASON = `Denetim gönderilemedi: ${PHOTO_REFUSAL_MARKER} (S1-Q2) fotoğrafsız bulgu var. Bu sorularda fotoğrafsız bulgu kabul edilmez. Bulguya fotoğraf ekleyin; fotoğraf yüklenemiyorsa Merkez Ekip'e bildirin.`;
+const API_REASON_TWO = `Denetim gönderilemedi: ${PHOTO_REFUSAL_MARKER} (S1-Q2, S3-Q1) fotoğrafsız bulgu var. Bulguya fotoğraf ekleyin.`;
 
 describe("planStampFailure and planStampToast", () => {
   it("a 4xx is a refusal that keeps its reasons; anything else is a failure that passes", () => {
@@ -41,99 +34,79 @@ describe("planStampFailure and planStampToast", () => {
     const refused = planStampToast({ kind: "refused", reasons: ["Plan bulunamadı."] });
     expect(refused.text).toBe("Denetim kaydedildi ancak plan onaya gönderilemedi: Plan bulunamadı.");
     expect(refused.long).toBe(true);
-    for (const outcome of [{ kind: "failed" as const }, { kind: "refused" as const, reasons: [] }]) {
-      const generic = planStampToast(outcome);
-      expect(generic.text).toBe("Denetim kaydedildi ancak plan onaya gönderilemedi. Lütfen yöneticinize bildirin.");
-      expect(generic.long).toBe(false);
-    }
+    const generic = planStampToast({ kind: "refused", reasons: [] });
+    expect(generic.text).toBe("Denetim kaydedildi ancak plan onaya gönderilemedi. Lütfen yöneticinize bildirin.");
+    expect(generic.long).toBe(false);
+  });
+
+  it("a stamp that only failed in passing points at the retry button, not at the manager", () => {
+    const failed = planStampToast({ kind: "failed" });
+    expect(failed.text).toContain(`"${STAMP_RETRY_LABEL}"`);
+    expect(failed.text).not.toContain("yöneticinize");
+    expect(failed.long).toBe(false);
+  });
+
+  it("the photo refusal's toast does not repeat the server's 'add a photo' sentence the reader cannot act on", () => {
+    const toast = planStampToast({ kind: "refused", reasons: [API_REASON] });
+    expect(toast.text).toContain("onaya gönderilemedi");
+    expect(toast.text).not.toContain("Bulguya fotoğraf ekleyin");
+    expect(toast.long).toBe(true);
   });
 });
 
-describe("questionsLeftWithoutPhoto", () => {
-  it("names a demanding question whose every photo failed to upload", () => {
-    const left = questionsLeftWithoutPhoto({
-      answers: [
-        { questionId: "S1-Q2", photos: [photo, photo] },
-        { questionId: "S3-Q1", photos: [photo] },
-      ],
-      writes: [saved(2), saved(0)],
-      questions,
-    });
-    expect(left.map((q) => q.id)).toEqual(["S1-Q2"]);
+describe("heldPlanGap: the message that stays when the stamp did not go through", () => {
+  it("is nothing when the stamp went through", () => {
+    expect(heldPlanGap(PLAN_STAMPED, questions, steps)).toBeNull();
   });
 
-  it("does not name a question that kept at least one photo, or does not demand one", () => {
-    const left = questionsLeftWithoutPhoto({
-      answers: [
-        { questionId: "S1-Q2", photos: [photo, photo] },
-        { questionId: "S1-Q3", photos: [photo] },
-      ],
-      writes: [saved(1), saved(1)],
-      questions,
-    });
-    expect(left).toEqual([]);
+  it("holds the page for a stamp that only failed in passing: says the audit is saved, not to refill, and to send again", () => {
+    const gap = heldPlanGap({ kind: "failed" }, questions, steps);
+    expect(gap?.kind).toBe("unsent");
+    const text = gap?.text ?? "";
+    expect(text).toContain("kaydedildi ancak plan onaya gönderilemedi");
+    expect(text).toContain("yeniden doldurmayın");
+    expect(text).toContain(`"${STAMP_RETRY_LABEL}"`);
   });
 
-  it("leaves out a finding that did not save at all: the server has no row to refuse", () => {
-    const left = questionsLeftWithoutPhoto({
-      answers: [{ questionId: "S1-Q2", photos: [photo] }],
-      writes: [{ saved: false, failedPhotos: 1 }],
-      questions,
-    });
-    expect(left).toEqual([]);
-  });
-
-  it("lists each question once, in answer order, and ignores an unknown question or a missing write", () => {
-    const left = questionsLeftWithoutPhoto({
-      answers: [
-        { questionId: "S3-Q1", photos: [photo] },
-        { questionId: "S3-Q1", photos: [photo] },
-        { questionId: "S1-Q2", photos: [photo] },
-        { questionId: "S9-Q9", photos: [photo] },
-        { questionId: "S1-Q2" },
-      ],
-      writes: [saved(1), saved(1), saved(1), saved(1)],
-      questions,
-    });
-    expect(left.map((q) => q.id)).toEqual(["S3-Q1", "S1-Q2"]);
-  });
-});
-
-describe("heldPlanGap: the message that stays when the stamp is refused", () => {
-  it("is nothing when the stamp went through or only failed in passing", () => {
-    expect(heldPlanGap(PLAN_STAMPED, [], steps)).toBeNull();
-    expect(heldPlanGap({ kind: "failed" }, [q12], steps)).toBeNull();
-  });
-
-  it("for the photo refusal names the questions by number and text, says what it means and what to do", () => {
-    const gap = heldPlanGap({ kind: "refused", reasons: [API_REASON] }, [q12, q31], steps);
+  it("for the photo refusal names the questions by number and text, says what it means and who to tell", () => {
+    const gap = heldPlanGap({ kind: "refused", reasons: [API_REASON_TWO] }, questions, steps);
     expect(gap?.kind).toBe("unsent");
     const text = gap?.text ?? "";
     expect(text).toContain("onaya gönderilemedi");
     expect(text).toContain("şu sorularda");
     expect(text).toContain("1.2 · Soru S1-Q2");
     expect(text).toContain("3.1 · Soru S3-Q1");
-    expect(text).toContain("Fotoğrafsız bulgu kabul edilmediği için");
+    expect(text).toContain("Fotoğrafsız bulgu kabul edilmez");
+    expect(text).toContain("bu ekrandan fotoğraf eklenemez");
     expect(text).toContain("Plan onaya gitmedi ve açık kaldı");
     expect(text).toContain("Merkez Ekip'e bildirin");
     expect(text).toContain("yeniden doldurmayın");
   });
 
-  it("says 'şu soruda' for one question", () => {
-    const gap = heldPlanGap({ kind: "refused", reasons: [API_REASON] }, [q12], steps);
-    expect(gap?.text).toContain("şu soruda");
+  it("does not hand the reader the server's own 'add a photo' task, which this screen cannot do", () => {
+    const text = heldPlanGap({ kind: "refused", reasons: [API_REASON] }, questions, steps)?.text ?? "";
+    expect(text).not.toContain("Bulguya fotoğraf ekleyin");
+    expect(text).not.toContain("fotoğraf yüklenemiyorsa");
   });
 
-  it("when the page cannot name the questions, gives the server's own words, which carry the codes", () => {
-    const gap = heldPlanGap({ kind: "refused", reasons: [API_REASON] }, [], steps);
-    expect(gap?.text).toContain(API_REASON);
-    expect(gap?.text).toContain("Merkez Ekip'e bildirin");
+  it("says 'şu soruda' for one question", () => {
+    const gap = heldPlanGap({ kind: "refused", reasons: [API_REASON] }, questions, steps);
+    expect(gap?.text).toContain("şu soruda");
+    expect(gap?.text).toContain("1.2 · Soru S1-Q2");
+  });
+
+  it("falls back to the bare code for a question the form does not know, and says it without a list when there is none", () => {
+    const notInList = heldPlanGap({ kind: "refused", reasons: [API_REASON] }, [q31], steps);
+    expect(notInList?.text).toContain(": S1-Q2.");
+    const bare = heldPlanGap({ kind: "refused", reasons: [`Denetim gönderilemedi: ${PHOTO_REFUSAL_MARKER} fotoğrafsız bulgu var.`] }, questions, steps);
+    expect(bare?.text).toContain("bulgu fotoğrafı zorunlu olan sorularda fotoğrafsız bulgu var.");
+    expect(bare?.text).toContain("Merkez Ekip'e bildirin");
   });
 
   it("keeps the page open for any other refusal too, with its reason", () => {
-    const gap = heldPlanGap({ kind: "refused", reasons: ["Plan bulunamadı."] }, [], steps);
+    const gap = heldPlanGap({ kind: "refused", reasons: ["Plan bulunamadı."] }, questions, steps);
     expect(gap?.text).toContain("Denetim kaydedildi ancak plan onaya gönderilemedi: Plan bulunamadı.");
     expect(gap?.text).toContain("yeniden doldurmayın");
-    expect(heldPlanGap({ kind: "refused", reasons: [] }, [], steps)?.text).toContain("Sunucu planı kabul etmedi.");
+    expect(heldPlanGap({ kind: "refused", reasons: [] }, questions, steps)?.text).toContain("Sunucu planı kabul etmedi.");
   });
 });
