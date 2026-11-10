@@ -9,7 +9,7 @@ import { useGenericApiActions } from "@/app/_hooks/UseNucleusApi";
 import { useGetUserRole } from "@/app/_hooks/user/useGetUserRole";
 import { useUploadAnswerPhoto } from "./hooks/useUploadAnswersPhoto";
 import { DateInput } from "@/app/_components/DateInput";
-import { Camera, Eye, FileSpreadsheet, ImageIcon, Loader2, Trash2, Upload, X, ChevronDown, ChevronUp } from "lucide-react";
+import { Camera, Eye, ImageIcon, Loader2, Trash2, Upload, X, ChevronDown, ChevronUp } from "lucide-react";
 import { Skeleton } from "@/app/_components/Global/Skeleton";
 import { buildFileUrl } from "@/app/_utils/photos";
 import { ClipboardCheck } from "lucide-react";
@@ -21,6 +21,18 @@ import { readServerReasons } from "@/app/_components/Global/PasswordRules";
 import { dedupeKey } from "./_utils/dedupeFindings";
 import { dueDateFailureMessage } from "./_utils/dueDateFailure";
 import { FINDINGS_EXCEL_PATH, findingsExcelFallbackName, findingsExcelParams } from "./_utils/findingsExcel";
+import {
+  downloadSummary,
+  emptyChoiceMessage,
+  exportStatuses,
+  filterNotes,
+  resolveScope,
+  statusParam,
+  type ExportScope,
+  type ScopePick,
+} from "./_utils/exportScope";
+import { FindingsExportBar } from "./_components/FindingsExportBar";
+import { useFindingsExportCount } from "./_hooks/useFindingsExportCount";
 import { downloadFile } from "@/app/_utils/downloadFile";
 import { reportDownloadFailureMessage } from "@/app/_components/ReportsDashboard/_utils/downloadFailureMessage";
 import { SINGLE_FINDING_TITLE } from "@/app/_utils/singleFindingTitle";
@@ -201,6 +213,23 @@ export default function FiveSFindingsListPage() {
   // #3: findings raised during an audit, or on their own with the single-finding form.
   const [sourceFilter, setSourceFilter] = useState<"" | "audit" | "single">("");
   /*
+   * R48: what the Excel downloads. Açık / Kapalı / Tümü, starting on Açık (our
+   * promise); the list's own filters narrow the file as well. The same
+   * parameters count the rows and fetch the file, so the sentence beside the
+   * button is the file's own row count.
+   */
+  const [scopePick, setScopePick] = useState<ScopePick>(null);
+  const exportScope = resolveScope(scopePick, statusFilter);
+  const exportStatusList = exportStatuses(exportScope, statusFilter);
+  const exportParams = findingsExcelParams({
+    locationFilter,
+    statusFilter: statusParam(exportStatusList),
+    sourceFilter,
+    dateFrom,
+    dateTo,
+  });
+  const exportCount = useFindingsExportCount(exportParams, exportStatusList.length > 0);
+  /*
    * #22 (Foto 2): the register's order is the user's to choose. It was fixed
    * to newest number first, which reads as "not sorted" to anyone looking for
    * a date or a due date; the column headers now sort.
@@ -376,6 +405,7 @@ export default function FiveSFindingsListPage() {
     setDateFrom("");
     setDateTo("");
     setSourceFilter("");
+    setScopePick(null);
   };
 
   // due_date update
@@ -603,13 +633,10 @@ export default function FiveSFindingsListPage() {
   const handleDownloadExcel = async () => {
     setDownloadingExcel(true);
     try {
-      // The register as filtered on screen; a field manager's export is
-      // narrowed to their locations by the server, as the list is.
-      const result = await downloadFile(
-        FINDINGS_EXCEL_PATH,
-        findingsExcelParams({ locationFilter, statusFilter, sourceFilter, dateFrom, dateTo }),
-        findingsExcelFallbackName(new Date())
-      );
+      // The register as filtered on screen and narrowed by the Açık / Kapalı / Tümü
+      // choice (R48); a field manager's export is narrowed to their locations by
+      // the server, as the list is.
+      const result = await downloadFile(FINDINGS_EXCEL_PATH, exportParams, findingsExcelFallbackName(new Date()));
       if (!result.ok) setErrorMsg(reportDownloadFailureMessage(result.status, result.message));
     } finally {
       setDownloadingExcel(false);
@@ -755,19 +782,15 @@ export default function FiveSFindingsListPage() {
           </div>
 
           <div className="flex flex-col items-start gap-2 text-xs text-slate-600 dark:text-slate-400 md:items-end">
-            <button
-              type="button"
-              onClick={handleDownloadExcel}
-              disabled={downloadingExcel}
-              className="inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border border-emerald-600/60 bg-emerald-100 px-3 text-xs font-semibold text-emerald-700 hover:bg-emerald-200 disabled:opacity-50 dark:bg-emerald-950/30 dark:text-emerald-200 hover:dark:bg-emerald-950/60"
-            >
-              {downloadingExcel ? (
-                <Loader2 size={13} className="animate-spin" />
-              ) : (
-                <FileSpreadsheet size={13} />
-              )}
-              {downloadingExcel ? "Hazırlanıyor..." : "Bulgu Raporu (Excel)"}
-            </button>
+            <FindingsExportBar
+              scope={exportScope}
+              onScopeChange={(scope: ExportScope) => setScopePick({ scope, madeUnder: statusFilter })}
+              summary={downloadSummary(exportStatusList, exportCount)}
+              problem={emptyChoiceMessage(exportScope, statusFilter)}
+              filterNotes={filterNotes({ locationFilter, sourceFilter, dateFrom, dateTo })}
+              downloading={downloadingExcel}
+              onDownload={handleDownloadExcel}
+            />
             <span>Toplam Bulgu: {serverList.total ?? findings.length}</span>
             <span>
               {findings.length} kayıt yüklendi

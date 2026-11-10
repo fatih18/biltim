@@ -138,6 +138,12 @@ const custom = {
   // 2 — bu projeye özel
   GET_REPORTS_DASHBOARD: { method: 'GET', path: '/reports/dashboard' },
   /*
+   * Bulgular sayfasının Excel düğmesi (R48): aynı parametrelerle dosyada kaç
+   * bulgu olacağını sayar, böylece "12 açık bulgu indirilecek" indirmeden önce
+   * söylenir. Parametreler `/reports/findings.xlsx` ile aynıdır.
+   */
+  GET_REPORTS_FINDINGS_COUNT: { method: 'GET', path: '/reports/findings-count' },
+  /*
    * Kişinin ekipleri ve sorumlu olduğu lokasyonlar. Ana sayfa ve bulgular
    * listesi, bir saha sorumlusuna yalnız kendi satırlarını SUNUCUDAN istemek
    * için bunu okuyor (sekme sayıları satırlarla aynı olsun diye).
