@@ -1,4 +1,4 @@
-import { type Caller, isAdmin } from './caller'
+import { type Caller, type Read, isAdmin } from './caller'
 
 /**
  * A plan Merkez Ekip sent back for correction (customer notes, row 30).
@@ -11,7 +11,6 @@ import { type Caller, isAdmin } from './caller'
  * (`isAdmin`) and the plan's own team (its leader or an active member).
  */
 
-type Read = (text: string, params: unknown[]) => Promise<Record<string, unknown>[]>
 
 /** Whether a person leads, or is an active member of, a team (businessRules' `onPlanTeam`). */
 export type TeamLookup = (teamId: string, userId: string) => Promise<{ leader: boolean; member: boolean }>

@@ -3117,7 +3117,7 @@ describe('retiring or moving a finding of a sent or approved audit without a DEL
     }
   })
 
-  it('reads nothing for a write that carries neither column: the screens\' own updates', async () => {
+  it('asks nothing about a finished audit for a write that carries neither column: the screens\' own updates', async () => {
     const seen: string[] = []
     const read = async (text: string) => {
       seen.push(text)
@@ -3132,7 +3132,9 @@ describe('retiring or moving a finding of a sent or approved audit without a DEL
       })
       expect(res).toBeUndefined()
     }
-    expect(seen).toEqual([])
+    // The rejected-plan rule (R30) reads the finding's plan for every non-admin write; this rule's own
+    // question (is its audit sent or approved?) must stay unasked.
+    expect(seen.filter((text) => text.includes("'pending_approval'"))).toEqual([])
   })
 
   it('reads the finding by its canonical id and answers 401 when the caller is unknown', async () => {
