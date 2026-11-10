@@ -3,6 +3,7 @@ import { applyBootFixes } from './boot'
 import { closePool } from './db'
 import { enforceRequestRules } from './guards/requestGuard'
 import { startMailWorker, stopMailWorker } from './mail/worker'
+import { startNoticeWorker, stopNoticeWorker } from './notices/worker'
 import { BiltimRoutes } from './routes/biltim'
 import { ReportsRoutes } from './routes/reports'
 import { azureNotice, loadServerOptions } from './serverOptions'
@@ -54,7 +55,7 @@ async function main() {
     onRequest: ({ request, body, query }) => enforceRequestRules({ request, body, query }),
     // Our own pg pool is separate from the framework's; without this it leaked
     // on every restart. `onStop` runs after nucleus's own teardown steps.
-    onStop: [stopMailWorker, closePool],
+    onStop: [stopMailWorker, stopNoticeWorker, closePool],
   })
 
   // After the server is up, so the framework's schema push has run first.
@@ -62,6 +63,9 @@ async function main() {
 
   // Plan mails (R70, R63): sent by this worker alone, never by the request that created or completed a plan.
   startMailWorker()
+
+  // The same two events as in-app bell notices (R70, R63): no mail provider needed, so nobody waits for a mailbox.
+  startNoticeWorker()
 
   console.log(`\n✅ Biltim API listening on http://localhost:${port}`)
   console.log(`📘 Docs: http://localhost:${port}/docs`)
