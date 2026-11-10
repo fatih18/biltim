@@ -90,8 +90,11 @@ describe('a pass that fails', () => {
   it('logs one line and does not throw, and the next pass works again', async () => {
     const w = noticeWorld({ ...oneNewPlan(), brokenCandidates: 'connection terminated' })
     const ticker = createNoticeTicker({ sql: w.sql, transaction: w.transaction, log: w.deps.log })
-    expect(await ticker.tick()).toBeNull()
-    expect(w.lines).toEqual(['HATA [bildirim] tarama başarısız: connection terminated'])
+    // A failing candidate lookup is counted per kind inside the pass (one line for the pass), not thrown.
+    expect(await ticker.tick()).toMatchObject({ plans: 0, added: 0, failed: 2 })
+    expect(w.lines).toHaveLength(1)
+    expect(w.lines[0]).toContain('HATA [bildirim] 2 plan için bildirim yazılamadı')
+    expect(w.lines[0]).toContain('connection terminated')
     expect(w.notifications).toEqual([])
 
     const healthy = noticeWorld(oneNewPlan())

@@ -149,11 +149,22 @@ describe('a pass', () => {
     expect(w.notifications.some((n) => n.source.endsWith(planId(2)))).toBe(false)
   })
 
+  it('does not throw when a candidate lookup fails: it counts each failed kind, logs one line and writes nothing', async () => {
+    const w = noticeWorld({ plans: [plan()], members: [MEMBER], users: TEAM_USERS, brokenCandidates: 'bağlantı koptu' })
+    const report = await runNoticePass(w.deps)
+    expect(report).toMatchObject({ plans: 0, added: 0, failed: 2 })
+    const errors = w.lines.filter((l) => l.startsWith('HATA'))
+    expect(errors).toHaveLength(1)
+    expect(errors[0]).toContain('2 plan için bildirim yazılamadı')
+    expect(errors[0]).toContain('bağlantı koptu')
+    expect(w.notifications).toEqual([])
+  })
+
   it('takes no further plan once it is told to stop', async () => {
     const w = bigWorld(5)
     let n = 0
     w.deps.stopped = () => n++ >= 3
     const report = await runNoticePass(w.deps)
-    expect(report.plans).toBeLessThan(5)
+    expect(report.plans).toBe(1)
   })
 })

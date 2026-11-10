@@ -86,25 +86,31 @@ function interleave(lists: Pending[][]): Pending[] {
 /**
  * One pass: the plans each notice is still owed for, at most `NOTICE_BATCH` in all. A plan that fails or has nobody to
  * tell is set aside for `NOTICE_RETRY_MS`, so it cannot use up the batch every minute. A failing plan costs one line for
- * the whole pass; the plans after it are still handled. A failing candidate query is not caught here: the worker logs it.
+ * the whole pass; the plans after it are still handled. A failing candidate lookup costs its own kind only: the other
+ * kind is still looked up and handled, and the failure is counted and logged in the pass's one error line.
  */
 export async function runNoticePass(deps: NoticeDeps): Promise<NoticeReport> {
   const report: NoticeReport = { plans: 0, added: 0, nobody: 0, failed: 0, resting: 0 }
   const at = deps.now()
   forgetOld(deps.resting, at)
 
+  let firstError = ''
   const lists: Pending[][] = []
   for (const kind of NOTICE_KINDS) {
     if (deps.stopped?.()) break
-    // Plans resting take a slot in the list but not in the batch.
-    const resting = [...deps.resting.keys()].filter((key) => key.startsWith(`${kind}:`) && isResting(deps.resting, key, at)).length
-    const ids = await findNoticeCandidates(deps.sql, kind, NOTICE_BATCH + resting)
-    const due = ids.filter((id) => !isResting(deps.resting, restKey(kind, id), at))
-    report.resting += ids.length - due.length
-    lists.push(due.map((id) => ({ kind, id })))
+    try {
+      // Plans resting take a slot in the list but not in the batch.
+      const resting = [...deps.resting.keys()].filter((key) => key.startsWith(`${kind}:`) && isResting(deps.resting, key, at)).length
+      const ids = await findNoticeCandidates(deps.sql, kind, NOTICE_BATCH + resting)
+      const due = ids.filter((id) => !isResting(deps.resting, restKey(kind, id), at))
+      report.resting += ids.length - due.length
+      lists.push(due.map((id) => ({ kind, id })))
+    } catch (error) {
+      report.failed += 1
+      firstError ||= error instanceof Error ? error.message : String(error)
+    }
   }
 
-  let firstError = ''
   let told = 0
   for (const { kind, id } of interleave(lists).slice(0, NOTICE_BATCH)) {
     if (deps.stopped?.()) break

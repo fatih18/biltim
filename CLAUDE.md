@@ -423,6 +423,15 @@ tarayıcı → Next server action (factory.nucleus.ts, AUTH_API_URL)
   Tuzak: `config.json`'da `provider: "azure"` sabit kalırsa nucleus 0.10.115 değerler
   boşken de Azure servisini kurar ve her soruda uyarı basar; bu yüzden `serverOptions.ts`
   değerler boşsa `provider` anahtarını siler.
+- Zil bildirimleri (R70/R63): `src/notices/*` mailden BAĞIMSIZ çalışır, e-posta sağlayıcısı
+  olmasa da her dakika bakar. Plan açılınca (son 48 saat) ekip + saha sorumlularına,
+  plan tamamlanınca (son 48 saat, denetim tarihi son 14 gün) saha sorumlularına
+  `main.notifications`'a `plan_created` / `plan_completed` yazar; tekrarı SQL'deki
+  `not exists (user_id, source)` ve `pg_advisory_xact_lock` önler, şema değişikliği yok.
+  Gövde mailin sözlerinden türetilir (zil iki satır gösterir). Kimseye yazılamayan plan 10
+  dakika dinlenir. Kısıt: plan sonradan ekibe/saha sorumlusuna biri eklenirse, plan bir kez
+  bildirildiyse yeni kişiye yazılmaz; denetim tarihinden 14 günden geç onaylanan denetim
+  için zil yazılmaz (mail yazar).
 - `/auth/register` herkese açık (rol `basic`). Bu yüzden `/reports/*`'ın
   önünde 5S rolü isteyen bir kapı var. Yeni bir veri ucu yazarken de rol
   kontrolü ekle.
