@@ -18,6 +18,17 @@ export type PhotoTally = { placed: number; hidden: number; missing: number; unsu
 export const REPORT_PHOTO_LIMITS: PhotoLimits = { maxFiles: 400, maxBytes: 150 * 1024 * 1024, perSide: 3 }
 export const PHOTO_COLUMN_WIDTH = 26
 
+/** The photo columns of a finding row (alias `f`) that `hasPhoto` and the Excel photo cells read. */
+export const PHOTO_COLUMNS = ['before', 'after']
+  .flatMap((side) => [`f.photo_${side}_files`, `f.photo_${side}_file_id`, `f.photo_${side}_url`])
+  .join(', ')
+
+/** Said under a findings sheet whose photo caps left some out: the register narrows by place, status and date. */
+export const PHOTO_HINT = 'Raporu lokasyon, durum ya da tarih aralığıyla daraltırsanız tüm fotoğraflar eklenir.'
+
+/** The dashboard workbook takes a date range and nothing else, so that is all its hint offers. */
+export const DASHBOARD_PHOTO_HINT = 'Raporu tarih aralığıyla daraltırsanız tüm fotoğraflar eklenir.'
+
 export const NOTE_UNSUPPORTED = "Fotoğraf biçimi Excel'e eklenemiyor (HEIC/WEBP)"
 export const NOTE_MISSING = 'Fotoğraf okunamadı'
 export const NOTE_CAPPED = 'Fotoğraf sınırı aşıldı'

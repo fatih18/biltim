@@ -83,7 +83,7 @@ describe('hasBeforeAndAfterPhotos', () => {
 })
 
 describe('findingsFilter', () => {
-  const none: FindingFilters = { spellings: null, status: '', source: '', from: null, to: null, scopeUserId: null }
+  const none: FindingFilters = { spellings: null, status: '', source: '', from: null, to: null, scopeSpellings: null }
 
   it('adds no clause and no parameter when nothing is filtered', () => {
     expect(findingsFilter(none)).toEqual({ sql: '', params: [] })
@@ -101,6 +101,13 @@ describe('findingsFilter', () => {
     expect(f.params).toEqual([[]])
   })
 
+  it('narrows a field manager to the spellings of their places, and to nothing when they have none', () => {
+    const f = findingsFilter({ ...none, scopeSpellings: ['Bölge  3'] })
+    expect(f.sql).toBe(' AND f.location_name = ANY($1::text[])')
+    expect(f.params).toEqual([['Bölge  3']])
+    expect(findingsFilter({ ...none, scopeSpellings: [] }).params).toEqual([[]])
+  })
+
   it('numbers every placeholder in the order its value is pushed', () => {
     const f = findingsFilter({
       spellings: ['Pres'],
@@ -108,12 +115,14 @@ describe('findingsFilter', () => {
       source: 'audit',
       from: '2026-01-01',
       to: '2026-12-31',
-      scopeUserId: 'u-7',
+      scopeSpellings: ['Pres', 'PRES '],
     })
-    expect(f.params).toEqual([['Pres'], 'closed', 'u-7', '2026-01-01', '2026-12-31'])
+    expect(f.params).toEqual([['Pres'], 'closed', ['Pres', 'PRES '], '2026-01-01', '2026-12-31'])
     expect(f.sql).toContain('ANY($1::text[])')
     expect(f.sql).toContain('f.status = $2')
-    expect(f.sql).toContain('? $3::text')
+    // The field manager's scope is the second text[] parameter, matched on the stored spellings.
+    expect(f.sql).toContain('f.location_name = ANY($3::text[])')
+    expect(f.sql).not.toContain('lower(trim(')
     expect(f.sql).toContain('f.detected_date >= $4')
     expect(f.sql).toContain('f.detected_date <= $5')
     // R74: a single finding raised inside an audit is that audit's finding, so "audit" keeps it.

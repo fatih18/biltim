@@ -2,11 +2,13 @@ import { Type as t } from '@sinclair/typebox'
 import { type AnyRoute, defineRoute, type RouteGroup } from 'nucleus-core-ts/server'
 import { type Row, query } from '../db'
 import { todayAtPlant } from '../guards/businessRules'
-import { type Caller, callerById, isCentral } from '../guards/caller'
+import { type Caller, callerById } from '../guards/caller'
 import { buildWorkbook, type Column, statusTr, xlsxResponse } from './excel'
 import { locationFormXlsx } from './locationForm'
 import { findingSpellings } from './locationMatch'
-import { PHOTO_COLUMN_WIDTH } from './photoReport'
+import { DASHBOARD_PHOTO_HINT, PHOTO_COLUMN_WIDTH, PHOTO_COLUMNS, PHOTO_HINT } from './photoReport'
+import { FINDING_PLACE, overdueActionsSql } from './reportQueries'
+import { type FieldScope, fieldManagerScope, inManagedLocations, scoped } from './reportScope'
 
 /* ───────────────────────── who may read reports ───────────────────────── */
 
@@ -52,19 +54,11 @@ export async function refuseNonReportReaders(
   })
 }
 
-/** The photo columns `hasPhoto` and the Excel photo cells read. */
-const PHOTO_COLUMNS = ['before', 'after']
-  .flatMap((side) => [`f.photo_${side}_files`, `f.photo_${side}_file_id`, `f.photo_${side}_url`])
-  .join(', ')
-
 /** Every report that lists findings shows their before and after photos (R46). */
 const PHOTO_SHEET_COLUMNS: Column[] = [
   { header: 'Öncesi Fotoğraf', key: 'photo_before', kind: 'photo', side: 'before', width: PHOTO_COLUMN_WIDTH },
   { header: 'Sonrası Fotoğraf', key: 'photo_after', kind: 'photo', side: 'after', width: PHOTO_COLUMN_WIDTH },
 ]
-
-/** Said under a sheet whose photo caps left some out. */
-const PHOTO_HINT = 'Raporu lokasyon, durum ya da tarih aralığıyla daraltırsanız tüm fotoğraflar eklenir.'
 
 /** Only YYYY-MM-DD reaches SQL; anything else becomes "no filter". */
 function parseDate(value: unknown): string | null {
@@ -109,70 +103,37 @@ const dateWindow = {
 
 /* ───────────────────────── field manager scope ───────────────────────── */
 
-/**
- * The user whose locations a report is narrowed to, when the caller is a field
- * manager and nothing more; null = no narrowing (Merkez Ekip and above, or
- * anyone not a field manager).
- */
-async function fieldManagerScope(request: Request): Promise<string | null> {
-  const caller = await callerById(request.headers.get('x-user-id') ?? '')
-  if (!caller || isCentral(caller) || !caller.roles.includes('field manager')) return null
-  return caller.userId
-}
-
-/**
- * ` AND <column> names one of the locations user $n field-manages`, for a
- * report narrowed by `fieldManagerScope`.
- *
- * The match is done in SQL, both sides through Postgres' lower(). The export
- * used to lowercase the location names in JS and compare them to
- * lower(f.location_name), and the two disagree on Turkish capitals: JS turns
- * "İdari" into "i̇dari" (i + combining dot, 6 characters), Postgres on this
- * install's en_US.UTF-8 into "idari" (5) — so a field manager of a location
- * spelled with "İ" got an empty file.
- *
- * Managing no location matches nothing: the narrowed report is empty, never
- * the whole plant's.
- */
-function inManagedLocations(column: string, paramIndex: number): string {
-  return ` AND lower(trim(${column})) IN (
-      SELECT lower(trim(fm_l.name)) FROM five_s_locations fm_l
-       WHERE coalesce(fm_l.field_manager_user_ids, '[]'::jsonb) ? $${paramIndex}::text)`
-}
-
-/** A query's scope clause and params together, like `dateRange`. */
-function scoped(userId: string | null, params: unknown[]) {
-  if (!userId) return { on: (_column: string) => '', params }
-  const index = params.length + 1
-  return { on: (column: string) => inManagedLocations(column, index), params: [...params, userId] }
-}
+/** A field manager's narrowing (FieldScope, scoped, inManagedLocations) lives in reportScope.ts. */
 
 async function loadDashboard(
   from: string | null,
   to: string | null,
-  scopeUserId: string | null = null,
+  scope: FieldScope | null = null,
   // "Overdue" is judged on the plant's calendar. The pool's CURRENT_DATE is
   // UTC (db.ts), still yesterday between 00:00 and 03:00 in Istanbul.
-  today: string = todayAtPlant()
+  today: string = todayAtPlant(),
+  // Only the Excel draws photos; the JSON of /reports/dashboard carries none.
+  withPhotos = false
 ) {
     const f = dateRange('f.detected_date', from, to, 1)
     // #7/#24: a field manager's dashboard counts their locations, as their
     // register and export do; every finding query is narrowed by location_name.
-    const fScope = scoped(scopeUserId, f.params)
+    const fScope = scoped(scope?.spellings ?? null, f.params)
     const fWhere = `f.is_active = true${f.sql}${fScope.on('f.location_name')}`
     const fp = fScope.params
 
     // audit_date is a timestamp, so the upper bound has to cover the whole day.
     const a = dateRange('a.audit_date', from, to ? `${to} 23:59:59` : null, 1)
     // …and every audit query by the audited place, department_name.
-    const aScope = scoped(scopeUserId, a.params)
+    const aScope = scoped(scope?.spellings ?? null, a.params)
     const aWhere = `a.is_active = true${a.sql}${aScope.on('a.department_name')}`
     const ap = aScope.params
     // Findings joined under those audits are narrowed too (same $n).
     const fUnderA = aScope.on('f.location_name')
-    // Plans and the map have no date window; their $1 is the user.
-    const nScope = scoped(scopeUserId, [])
+    // The map has no date window; its $1 is the spellings. Plans name their place by id: their $1 is the user.
+    const nScope = scoped(scope?.spellings ?? null, [])
     const np = nScope.params
+    const planParams = scope ? [scope.userId] : []
     /*
      * An audit, as opposed to the row the single-finding form files its
      * finding under (#23). Those carry no plan, no answers and a score of 0;
@@ -208,16 +169,7 @@ async function loadDashboard(
          GROUP BY f.location_name, l.department_name, f.status ORDER BY count DESC`,
         fp
       ),
-      query(
-        `SELECT f.id, f.finding_no, f.location_name, f.finding_type, f.description,
-                f.action_to_take, f.due_date, f.responsible_name, f.detected_date,
-                ($${fp.length + 1}::date - f.due_date)::int AS overdue_days, ${PHOTO_COLUMNS}
-         FROM five_s_findings f
-         WHERE ${fWhere} AND f.status = 'open'
-           AND f.due_date IS NOT NULL AND f.due_date < $${fp.length + 1}::date
-         ORDER BY f.due_date ASC LIMIT 500`,
-        [...fp, today]
-      ),
+      query(overdueActionsSql(fWhere, fp.length + 1, withPhotos), [...fp, today]),
       query(
         `SELECT a.department_name, l.department_name AS directorate_name,
                 count(*)::int AS audit_count,
@@ -256,14 +208,14 @@ async function loadDashboard(
          WHERE p.is_active = true
            AND (p.location_id IS NOT NULL OR p.assigned_team_id IS NOT NULL)${
              // A plan names its place by id; a field manager's are the plans of their locations.
-             scopeUserId
+             scope
                ? ` AND p.location_id IN (
                    SELECT fm_l.id FROM five_s_locations fm_l
                     WHERE coalesce(fm_l.field_manager_user_ids, '[]'::jsonb) ? $1::text)`
                : ''
            }
          GROUP BY p.status`,
-        np
+        planParams
       ),
       query(
         `SELECT coalesce(t.name, 'Ekipsiz') AS team_name,
@@ -516,10 +468,18 @@ const dashboardXlsx = defineRoute({
       })
     }
     // The workbook carries what the screen shows this caller, no more (#7/#24).
-    const data = await loadDashboard(from, to, await fieldManagerScope(request))
+    // Photo columns are read only when the overdue sheet, the one that draws them, is in it.
+    const data = await loadDashboard(
+      from,
+      to,
+      await fieldManagerScope(request),
+      todayAtPlant(),
+      keys.includes('overdueActions')
+    )
+    // This report narrows by date range only (see DASHBOARD_PHOTO_HINT).
     const buffer = await buildWorkbook(
       keys.map((k) => ({ name: SECTIONS[k].title, columns: SECTIONS[k].columns, rows: data[k] })),
-      { photoHint: PHOTO_HINT }
+      { photoHint: DASHBOARD_PHOTO_HINT }
     )
     const window = from || to ? `-${from ?? 'basi'}_${to ?? 'sonu'}` : ''
     const name = keys.length === 1 ? SECTIONS[keys[0] as keyof DashboardData].title : '5S Raporlari'
@@ -581,7 +541,8 @@ export type FindingFilters = {
   source: string
   from: string | null
   to: string | null
-  scopeUserId: string | null
+  /** Every stored spelling of the field manager's places (managedSpellings); null = not narrowed to a field manager. */
+  scopeSpellings: string[] | null
 }
 
 /** The register's WHERE fragments and their parameters, built together so a placeholder always has its value. */
@@ -603,10 +564,10 @@ export function findingsFilter(f: FindingFilters): { sql: string; params: unknow
   if (f.source === 'single_finding') clauses.push(` AND ${STANDALONE_SINGLE}`)
   if (f.source === 'audit') clauses.push(` AND NOT ${STANDALONE_SINGLE}`)
   // #7/#24: the export shows a field manager what their register shows.
-  // Matched in SQL, not against names lowercased in JS (see inManagedLocations).
-  if (f.scopeUserId) {
+  // Matched on the spellings found by locationKey (reportScope.ts), not lower(trim()) in SQL.
+  if (f.scopeSpellings) {
     clauses.push(inManagedLocations('f.location_name', i++))
-    params.push(f.scopeUserId)
+    params.push(f.scopeSpellings)
   }
   const range = dateRange('f.detected_date', f.from, f.to, i)
   clauses.push(range.sql)
@@ -628,11 +589,11 @@ async function findingsWorkbook(
     source: String(q?.source ?? '').trim(),
     from: parseDate(q?.date_from),
     to: parseDate(q?.date_to),
-    scopeUserId: await fieldManagerScope(request),
+    scopeSpellings: (await fieldManagerScope(request))?.spellings ?? null,
   })
 
   const all: Row[] = await query(
-    `SELECT f.finding_no, f.detected_date, f.location_name, f.finding_type,
+    `SELECT f.finding_no, f.detected_date, ${FINDING_PLACE} AS location_name, f.finding_type,
             coalesce(f.step_code, '') AS step_code, f.description, f.action_to_take,
             f.due_date, f.completed_at, f.responsible_name, f.auditor_name, f.status,
             CASE WHEN ${STANDALONE_SINGLE} THEN 'Tekil Bulgu'

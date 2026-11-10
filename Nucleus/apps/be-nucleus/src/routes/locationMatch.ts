@@ -39,7 +39,7 @@ export function locationKey(value: Text): string {
   return foldTr(
     (value ?? '')
       .normalize('NFC')
-      .replace(/[​-‍⁠﻿̇]/g, '')
+      .replace(/[\u200B-\u200D\u2060\uFEFF\u0307]/g, '')
       .replace(/\s+/g, ' ')
   ).replace(/ı/g, 'i')
 }
@@ -60,6 +60,38 @@ export function spellingsOf(stored: Iterable<Text>, wanted: string): string[] {
 
 /** A name as the plant would write it: one space between words, none at the ends. */
 export const cleanName = (value: Text): string => (value ?? '').replace(/\s+/g, ' ').trim()
+
+/** The stored spellings, as written, whose key is one of `keys` (never the empty key). */
+export function spellingsInKeys(stored: Iterable<Text>, keys: ReadonlySet<string>): string[] {
+  const out = new Set<string>()
+  for (const text of stored) {
+    if (!text) continue
+    const key = locationKey(text)
+    if (key !== '' && keys.has(key)) out.add(text)
+  }
+  return [...out]
+}
+
+/**
+ * Every spelling, in the location list, in findings and in audits, of the
+ * places `userId` field-manages: what a field manager's reports are narrowed
+ * to (reportScope.ts). Equal text has an equal key, so one list serves every
+ * column. Empty when the user manages no place.
+ */
+export async function managedSpellings(userId: string, read: Read = query): Promise<string[]> {
+  const own = await read(
+    `select name from five_s_locations where coalesce(field_manager_user_ids, '[]'::jsonb) ? $1::text`,
+    [userId]
+  )
+  const keys = new Set(own.map((row) => locationKey(nameOf(row))).filter((key) => key !== ''))
+  if (keys.size === 0) return []
+  const [locations, findings, audits] = await Promise.all([
+    read('select distinct name from five_s_locations'),
+    read('select distinct location_name as name from five_s_findings where is_active = true'),
+    read('select distinct department_name as name from five_s_audits where is_active = true'),
+  ])
+  return spellingsInKeys([...locations, ...findings, ...audits].map(nameOf), keys)
+}
 
 /** Finding spellings of `wanted`, over every active finding (the register has no year). */
 export async function findingSpellings(wanted: string, read: Read = query): Promise<string[]> {
