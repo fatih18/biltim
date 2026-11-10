@@ -32,7 +32,10 @@ biltim/
 - `nucleus-core-ts` 0.10.115 = nucleus-core reposunda `f38303c`. Kaynağı
   okumak için: `git -C <nucleus-core> show f38303c:<yol>`.
 - Arka uç dosyaları: `src/index.ts` (sunucu), `src/guards/businessRules.ts`
-  (5S iş kuralları), `src/guards/caller.ts` (çağıranı ve rolleri bulma),
+  (5S iş kuralları), `src/guards/findingScope.ts` + `requestGuard.ts` (saha sorumlusu
+  lokasyon sınırı, businessRules'tan önce), `src/guards/photoRequired.ts` (R72),
+  `src/mail/` (plan postaları), `src/bootFindingFixes.ts` (açılış onarımları),
+  `src/guards/caller.ts` (çağıranı ve rolleri bulma),
   `src/routes/biltim.ts` (`/biltim/*`: kullanıcı/rol yönetimi, scope),
   `src/routes/reports.ts` + `locationForm.ts` + `excel.ts` + `photos.ts`
   (`/reports/*`), `src/boot.ts` (açılışta çalışan veri düzeltmeleri),
@@ -195,7 +198,7 @@ Chrome'undaki PSM sekmesinden görebilir; kurallar:
 | `Super Admin` | Super Admin | yönetici |
 | `Content Manager Core Team` | Merkez Ekip | yönetici: planlar, onaylar, düzeltir, kullanıcı yönetir |
 | `Manager` | Müdür | planlar, her şeyi görür; **onaylayamaz**, tamamlanmış denetimi düzeltemez |
-| `Field Manager` | Saha Sorumlusu | sonrası fotoğrafıyla bulgu kapatır (kendi lokasyonu sınırı yalnız ekranda, API'de yok) |
+| `Field Manager` | Saha Sorumlusu | sonrası fotoğrafıyla bulgu kapatır; yalnız KENDİ lokasyonunun bulgularını okur/yazar (sunucuda: `guards/findingScope.ts`, liste okumasına zorunlu lokasyon süzgeci eklenir; çift rollü Denetçi+Saha Sorumlusu yalnız lokasyon ya da `client_finding_id` süzgeçli liste okuyabilir) |
 | `Auditor` | Denetçi | denetim yapar, bulgu ekler; bulgu değiştiremez |
 
 Türkçe adlar `roles.alias`'ta tutulur. Kodda iki ana liste var:
@@ -273,7 +276,7 @@ Kodda: `guards/rejectedPlan.ts`, `routes/planReview.ts`, ön yüzde
 
 ```
 tarayıcı → Next server action (factory.nucleus.ts, AUTH_API_URL)
-        → be-nucleus: onRequest = businessRules → nucleus inbound guard → auth
+        → be-nucleus: onRequest = requestGuard (findingScope → businessRules) → nucleus inbound guard → auth
         → nucleus jenerik CRUD (/fiveSFindings ...)   veya   host route (/biltim, /reports)
 ```
 
@@ -390,7 +393,29 @@ tarayıcı → Next server action (factory.nucleus.ts, AUTH_API_URL)
   (`source='single_finding'`). Bunları her denetim sayımından ve
   ortalamadan çıkar.
 - `five_s_findings.finding_no` dizisi bir kez sıfırlandı; eski veride çift
-  numaralar var. Boot diziyi yalnız ileri alır, benzersiz indeks yok.
+  numaralar vardı. Boot (`bootFindingFixes.ts` → `findingNumbers.ts`) diziyi ileri
+  alır, çift numaraları onarır (en eski kayıt numarasını tutar, diğerleri sıradaki
+  numarayı alır, eski numara `previous_finding_no`'da kalır; Bulgular ekranında
+  "eski no" olarak görünür) ve `five_s_findings_finding_no_uq` benzersiz indeksini
+  kurar. İlk canlı açılışta şema itmesi (boot'tan ÖNCE) çift satırlar yüzünden bu
+  indeksi kuramaz: log'da bir kez `[Schema] ... could not be applied` ERROR satırları
+  çıkar, zararsızdır; boot sonra numaraları onarıp indeksi kurar. Kapanma tarihi
+  tetikleyicisi (`five_s_findings_closed_at`) de her açılışta kurulur
+  (`findingClosedAt.ts`).
+- Mail (R63/R70): `src/mail/*` arka plan çalışanı, framework'ün `nucleus.sendEmail`'i
+  üstünde. SMTP tanımlanana kadar hiçbir şey gönderilmez ve hiçbir şey bozulmaz;
+  tanımlanınca plan açılınca ekip + saha sorumluları, plan tamamlanınca (onayda)
+  saha sorumlusu mail alır. Yalnız son 48 saatteki planlar (eski planlara toplu mail
+  gitmesin). Çalışan, `nucleus` servisini `/biltim/me/scope` isteğinden tutar
+  (0.10.115 servisi yalnız handler bağlamında verir): yeniden başlatmadan sonra ilk
+  sayfa yüklenene kadar mail beklemede kalır. Durum: `GET /biltim/mail/status`, Ana
+  Veri Yönetimi'nin üstündeki durum satırı (yöneticiler) bunu gösterir.
+  AÇMAK İÇİN: sunucu `.env`'ine `SMTP_*` değerleri (bkz. `.env.docker`, `config.json`
+  `email.smtp`) VE `nodemailer` paketi gerekir. `nodemailer` bilerek `package.json`'a
+  EKLENMEDİ: sunucunun npm erişimi çoğu zaman kapalı ve `update.sh` paket dosyası
+  değişince `bun install` ister (başarısızsa teslimat durur). SMTP bilgisi geldiğinde
+  ağ açıkken `cd Nucleus/apps/be-nucleus && bun add nodemailer`, `.env`'e değerler,
+  servisi yeniden başlat; paket yoksa durum satırı bunu açıkça söyler.
 - `/auth/register` herkese açık (rol `basic`). Bu yüzden `/reports/*`'ın
   önünde 5S rolü isteyen bir kapı var. Yeni bir veri ucu yazarken de rol
   kontrolü ekle.
@@ -407,15 +432,14 @@ tarayıcı → Next server action (factory.nucleus.ts, AUTH_API_URL)
   `GODMIN_PASSWORD`'ü değiştirmek bir şey yapmaz. 5 yanlış şifre hesabı 30
   dakika kilitler. Kurtarma kullanıcı ekranındaki şifre/kilit düğmeleriyle
   yapılır.
-- SMTP yok: "şifremi unuttum" ve mail bildirimi çalışmaz.
+- SMTP ortam değişkenleri boşsa mail ve "şifremi unuttum" çalışmaz (bkz. yukarıdaki
+  Mail maddesi ve `.env.docker`).
 - Excel'e yalnız PNG/JPEG/GIF fotoğraf gömülebilir; HEIC/WEBP için hücreye
   not düşülür.
 
 ## Açık konular (founder kararı ya da müşteri işi bekliyor)
 
 - iPad'de internetsiz açılış için HTTPS (müşterinin bilgi işlemi).
-- Çift bulgu numaraları: #1/#2 hem 21.08 SSH Bakım denetiminde hem Bölge 3
-  tekil bulgularında. Öneri: Bölge 3'tekiler #12/#13 olsun.
 - Puan kuralları (`denetim/_utils/scoring.ts`): 5.5 orta/kötü ise toplamdan
   %10 düşer; listeye eklenen her soru kendi %10'unu ekler. 2.3 kuralı 22.10
   notlarıyla (satır 38) kaldırıldı; müşteri soruları yeniliyor. 5.1 orta/kötü
@@ -425,30 +449,41 @@ tarayıcı → Next server action (factory.nucleus.ts, AUTH_API_URL)
   (`denetim/_utils/attendance.ts`).
 - Canlıda lokasyonlara müdürlük ve kroki konumu girilmedi; ilgili raporlar
   bu yüzden boş.
-- `finding-closed-at.sql` tetikleyicisi boot'ta kurulmuyor; canlıda olup
-  olmadığı bilinmiyor.
-- 22.10 notlarında yapılmayanlar (müşteriyle konuşulacak ya da veri bekliyor):
-  satır 43 ve 48 (müşteri "konuşulmalı" dedi), rollerin yeniden tasarımı (22, 23, 27,
-  34'ün yorumları), satır 61 (Bölge 3 bulgularını #12/#13 yapmak: müşteri onayı yok),
-  SMTP (satır 63 ve 70), satır 72 (faz 2), Sayfa1 "özge ekipte görünmemeli" (veri mi
-  kod mu bilinmiyor).
-- 22.10 işlerinin DOĞRULANMAYAN yanları: iPad'de çevrimdışı tekrar; gerçek fotoğraflı
-  Excel'in boyutu ve süresi; godmin rolünün boot'ta SQL ile verilmesi (nucleus'un JWT
-  yolu belirteç yenilenene kadar rolü görmeyebilir, kanıtlanmadı); satır 2/17, 27,
-  28, 71, 73, 75 canlı akışları yalnız birim testle ve yerel veritabanında kısmen.
-  Yerelde Chrome'la doğrulananlar: satır 16, 30 (Reddet döngüsü), 34, 39, ana sayfa
-  listesi 320–1280 px ve koyu tema; gerçek Postgres'te: rapor uçları (üç rolle) ve
-  Reddet korumaları (Müdür ve ekip dışı denemeleri, rejection_* ve kimlik kolonları).
+- 22.10 notlarının hepsi yapıldı; bekleyen tek konu rollerin yeniden tasarımı
+  (satır 22, 23, 27, 34'ün müşteri yorumları: müşteri "tüm rolleri tekrar konuşalım"
+  diyor). Bu bir toplantı konusu; kod bugünkü rol modelini (yukarıdaki tablo) uygular.
+  Alınan kararlar (müşteri sormadı, savunulabilir ve eklemeli olanı seçildi):
+  satır 61 bulgu numaraları genel bir boot onarımıyla çözüldü (sabit #12/#13 değil: o
+  numaralar canlıda doluydu); satır 43 ve 48 vaadimiz olduğu gibi yapıldı (planlanandan
+  farklı günde yapılan denetim yapıldığı günde de görünür; bulgu Excel'inde Açık ve devam
+  eden / Kapalı / Tümü seçimi, ekrandaki süzgeçlerle kesişir); satır 63/70 mail çalışanı
+  (SMTP girilince açılır); satır 72 soru başına `require_photo` (varsayılan KAPALI: yönetici
+  Ana Veri Yönetimi > Sorular'dan açar); Sayfa1 "özge ekipte görünmemeli": "Denetimi
+  Yapan" isimleri taslağa metin olarak kopyalanıp olduğu gibi geri yükleniyordu, artık
+  yalnız ekibin güncel üyeleri + oturum açan kişi + elle eklenenler (`planAuditors.ts`).
+- Doğrulama durumu (2026-11-10): gerçek Postgres'te: boot numara onarımı + indeks +
+  tetikleyici, mail taraması (sahte servisle: davet, tamamlanma, 48 saat süpürmesi, tekrar
+  göndermeme), saha sorumlusu liste/yazma/okuma sınırı (HTTP), bulgu sayımı = Excel satırı,
+  fotoğraf kuralı SQL'i, rapor uçları, Reddet korumaları. Chrome'da: satır 16, 30, 34, 39,
+  43 (ana sayfa 320–1024 px, açık+koyu), 48 (320/480/768 px), 72 anahtarı (açık+koyu).
+  DOĞRULANMAYAN: iPad'de çevrimdışı tekrar (çevrimdışı foto reddi dahil); gerçek SMTP ile
+  gönderim; denetim formunda fotoğraf engeli ve "Denetimi Yapan" akışının ekranda uçtan
+  uca denemesi; canlıdaki ilk boot (yukarıdaki şema itmesi notu); gerçek fotoğraflı Excel'in
+  boyutu ve süresi; godmin rolünün boot'ta SQL ile verilmesinin JWT'ye yansıma zamanı;
+  çift rollü hesabın HTTP üzerinden denemesi.
 - Ana sayfadaki Raporlar özeti grafik kartlarının 320 px taşması düzeltildi
   (`ReportsDashboard` kartına `min-w-0`; Chrome'da 320 px'te scrollWidth = clientWidth).
 - Dosyalar hâlâ 200 satırın üstünde (`denetim/page.tsx` ~5000, `businessRules.ts`
   ~1700, `HomeAuditListPanel.tsx` ~500); 22.10 işlerinin yeni mantığı küçük ayrı
   dosyalara yazıldı, eski monolitler bölünmedi.
-- Bilinen açıklar:
-  - Saha sorumlusu API üzerinden kendi lokasyonu dışındaki bir bulguyu da
-    kapatabilir; sınır yalnız ekranda.
-  - Bulgu listesindeki saha sorumlusu süzmesi de yalnız ekranda; jenerik
-    `GET /fiveSFindings` her bulguyu döner.
+- Bilinen açıklar ve sınırlar:
+  - Saha sorumlusu sınırı bulguya `location_name` METNİYLE bakar: lokasyon yeniden
+    adlandırılırsa eski adla duran bulgu o saha sorumlusuna kapanır (ekran zaten
+    gizliyordu; Merkez Ekip görür). Foto dosyaları (`/cdn/<id>`, `/files/<id>`) dosya
+    kimliğiyle sunulur ve bulguya bağlı olmadığı için lokasyonla sınırlanamaz.
+  - Tek bulgunun fotoğraf zorunluluğu (R72) yalnız formda denetlenir, sunucuda değil;
+    bayrak denetim sürerken açılırsa kuyruktaki denetim tekrarda 422 ile kenara alınır.
+  - Mail: pencere (48 saat) retry'lar arasında kapanan plan hiç gönderilmez.
   - Bir denetimi aynı ekipten başka biri devam ettirirse, ilk kişinin
     çektiği fotoğraflar onun cihazında kalır.
 
