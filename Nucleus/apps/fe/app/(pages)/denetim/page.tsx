@@ -60,6 +60,16 @@ import {
   singleFindingTitle,
   type SessionFinding,
 } from './_utils/singleFinding'
+import { FindingDeleteButton } from './_components/FindingDeleteButton'
+import { useAuditFindings } from './_hooks/useAuditFindings'
+import {
+  canDeleteAuditFindings,
+  findingNumberLabel,
+  findingsPanelText,
+  mergeFindingRows,
+  withoutFinding,
+} from './_utils/findingDelete'
+import type { FiveSFindingLite } from './_utils/findingTypes'
 
 /* ───────────────────────────── Types ───────────────────────────── */
 type Rating = 'good' | 'medium' | 'bad'
@@ -135,25 +145,6 @@ type MasterRow = {
   slug?: string
   key?: string
   is_active?: boolean
-}
-
-type FiveSFindingLite = {
-  id: string
-  finding_no?: number | null
-  question_id?: string | null
-  step_code?: string | null
-  detected_date?: string
-  location_name?: string
-  finding_type?: string
-  status?: string
-  description?: string | null
-  action_to_take?: string | null
-  due_date?: string | null
-  responsible_name?: string | null
-
-  photo_before_url?: string | null
-  photo_before_file_id?: string | null
-  photo_before_files?: Array<{ file_id: string | null; url: string | null }> | null
 }
 
 
@@ -733,6 +724,23 @@ export default function FiveSAuditFormPage() {
   /** Queued submissions the server refused (setAsideAt), shown with the reason. */
   const [refusedSubmissions, setRefusedSubmissions] = useState<Array<{ id: string; label: string; error: string }>>([])
   const [activeFinding, setActiveFinding] = useState<FiveSFindingLite | null>(null)
+  /*
+   * R73: while Merkez Ekip corrects a sent or approved audit, its findings —
+   * closed ones too — are listed beside the location's open ones and each can
+   * be deleted. A deleted finding also leaves `findings`, which the open-
+   * finding warnings and numbers on the question rows are derived from.
+   */
+  const auditFindings = useAuditFindings({
+    auditId: editAudit?.id ?? null,
+    canDelete: canDeleteAuditFindings({
+      correcting: !!editAudit,
+      roleNames: roles.map((r) => r.name),
+      isGod,
+    }),
+    onDeleted: (findingId) => setFindings((prev) => withoutFinding(prev, findingId)),
+  })
+  const panelFindings = editAudit ? mergeFindingRows(findings, auditFindings.items) : findings
+  const panelText = findingsPanelText(!!editAudit)
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
@@ -2551,7 +2559,7 @@ export default function FiveSAuditFormPage() {
     <section className="mt-6 rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">Bu Lokasyondaki Açık Bulgular</div>
+          <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">{panelText.title}</div>
           <div className="mt-1 text-[11px] text-slate-600 dark:text-slate-400">
             Lokasyon: <span className="text-slate-800 dark:text-slate-200">{header.department || '-'}</span>
           </div>
@@ -2581,10 +2589,10 @@ export default function FiveSAuditFormPage() {
         </div>
       </div>
 
-      {findingsLoading ? (
+      {findingsLoading || auditFindings.loading ? (
         <div className="mt-3 text-xs text-slate-600 dark:text-slate-400">Bulgular yükleniyor...</div>
-      ) : findings.length === 0 ? (
-        <div className="mt-3 text-xs text-slate-600 dark:text-slate-400">Bu lokasyonda açık bulgu yok.</div>
+      ) : panelFindings.length === 0 ? (
+        <div className="mt-3 text-xs text-slate-600 dark:text-slate-400">{panelText.empty}</div>
       ) : (
         <div className="mt-3 overflow-x-auto">
           <table className="min-w-full text-left text-xs text-slate-800 dark:text-slate-200">
@@ -2597,10 +2605,11 @@ export default function FiveSAuditFormPage() {
                 <th className="px-3 py-2">Termin</th>
                 <th className="px-3 py-2">Sorumlu</th>
                 <th className="px-3 py-2">Detay</th>
+                {auditFindings.canDelete ? <th className="px-3 py-2">Sil</th> : null}
               </tr>
             </thead>
             <tbody>
-              {findings.map((f, idx) => (
+              {panelFindings.map((f, idx) => (
                 <tr key={f.id} className="border-t border-slate-300 dark:border-slate-800/80">
                   <td className="px-3 py-2 text-[11px] text-slate-600 dark:text-slate-400">{f.finding_no ?? idx + 1}</td>
                   <td className="px-3 py-2 text-[11px] text-slate-700 dark:text-slate-300">{String(f.detected_date ?? '-')}</td>
@@ -2617,6 +2626,18 @@ export default function FiveSAuditFormPage() {
                       Gör
                     </button>
                   </td>
+                  {auditFindings.canDelete ? (
+                    <td className="px-3 py-2">
+                      {auditFindings.isDeletable(f.id) ? (
+                        <FindingDeleteButton
+                          label={findingNumberLabel(f)}
+                          busy={auditFindings.deletingId === f.id}
+                          disabled={auditFindings.deletingId !== null}
+                          onDelete={() => void auditFindings.remove(f)}
+                        />
+                      ) : null}
+                    </td>
+                  ) : null}
                 </tr>
               ))}
             </tbody>
