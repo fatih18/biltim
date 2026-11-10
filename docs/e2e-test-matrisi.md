@@ -1,6 +1,6 @@
 # Biltim — uçtan uca test matrisi
 
-Koddan çıkarıldı: 8 ekran, 393 senaryo.
+Koddan çıkarıldı: 8 ekran, 400 senaryo.
 Her satır arayüzden izlenebilir bir adım dizisidir; "beklenen" sütunu neyin kanıt sayılacağını söyler.
 
 ## Raporlar (/raporlar) — "5S Raporları"  (36 senaryo)
@@ -587,7 +587,7 @@ Her satır arayüzden izlenebilir bir adım dizisidir; "beklenen" sütunu neyin 
    - Roller: super admin, godmin, Merkez Ekip
 
 
-## Ana sayfa (/) — 5S Denetimler listesi + (yetkiliyse) 5S Rapor Özeti  (67 senaryo)
+## Ana sayfa (/) — 5S Denetimler listesi + (yetkiliyse) 5S Rapor Özeti  (71 senaryo)
 
 1. **Açılışta beş listenin yüklenmesi**  _[düşük · okur]_
    - Adımlar: Giriş yaptıktan sonra ana sayfayı (/) aç. "Denetimler" başlıklı panelin altında satırların gelmesini bekle.
@@ -924,8 +924,28 @@ Her satır arayüzden izlenebilir bir adım dizisidir; "beklenen" sütunu neyin 
    - Beklenen: Sayfa başına yalnızca 1 istek olur; sürekli artan bir istek dizisi (ölçülmüş regresyon: tek sayfa yüklemesinde 211 istek) görülmemelidir. Filtre değiştirmeden yeni istek çıkmaz.
    - Roller: Super Admin, godmin, Manager, Merkez Ekip
 
+68. **Reddet: Merkez Ekip denetimi sebebiyle ekibine geri gönderir**  _[YÜKSEK · yazar]_
+   - Adımlar: Merkez Ekip hesabıyla ana sayfada "Onay Bekleyen" sekmesine geç ve durumu "Onay Bekliyor" olan bir planın satırında "Reddet"e bas. Açılan "Denetimi Reddet" penceresinde "Reddetme sebebi" alanı boşken "Reddet ve Ekibe Geri Gönder"e bas; sonra 4 karakterlik bir sebep yaz ve tekrar bas; sonra "3. sorudaki fotoğraf başka bir lokasyona ait." yaz ve gönder.
+   - Beklenen: Boş sebepte pencere kapanmaz ve istek gitmez: "Sebep yazılmadan denetim reddedilemez. Ekip neyi düzelteceğini bu yazıdan anlayacak." çıkar; 4 karakterde "Sebep en az 5 karakter olmalı (şu an 4). Ekip neyi düzelteceğini bu yazıdan anlayacak." çıkar; sayaç "N / 500" yazar ve 500'ü aşan sebepte kırmızıya döner. Geçerli sebeple POST /biltim/plans/<plan id>/reject gider, "Denetim düzeltme için ekibine geri gönderildi." toast'ı çıkar, pencere kapanır ve liste yeniden okunur: plan "Onay Bekleyen" sekmesinden çıkar (sekme sayacı 1 azalır) ve "Plan / Yaklaşan" sekmesinde "Düzeltme Bekliyor" rozetiyle durur. five_s_audit_plans satırında status='rejected', rejection_reason yazılan sebep, rejected_at dolu olur; denetim, cevaplar ve bulgular SİLİNMEZ, yeni denetim açılmaz. Plan o sırada başka biri tarafından reddedilmiş ya da onaylanmışsa pencere açık kalır, sunucunun mesajı pencerede yazar ve liste yeniden okunur.
+   - Roller: Yalnız Merkez Ekip, Super Admin ve godmin. Müdür ve diğer roller satırda "Reddet"i hiç görmez; uç noktayı doğrudan çağırırlarsa 403 "Denetimi yalnız Merkez Ekip, Super Admin ve godmin reddedebilir. ..." alır ve plan değişmez.
 
-## Denetim formu — 5S Denetim Formu (Sahalar), /denetim  (58 senaryo)
+69. **Reddedilen plan: ekipte rozet, sebep ve bildirim**  _[YÜKSEK · okur]_
+   - Adımlar: 68'deki gibi reddedilmiş planın ekibinden bir denetçiyle (lider ya da aktif üye) giriş yap; üst menüdeki bildirim zilini aç, sonra ana sayfada "Plan / Yaklaşan" sekmesinde o planın satırına bak. Aynı satıra ekip dışından biriyle (başka ekibin üyesi) de bak.
+   - Beklenen: Zilde "Denetim düzeltme bekliyor: <lokasyon>" başlıklı bildirim durur; metni "<lokasyon> lokasyonunun <GG.AA.YYYY> tarihli denetimi Merkez Ekip tarafından düzeltilmek üzere ekibinize geri gönderildi. Gerekçe: <sebep> ..." diye başlar ve "Düzelt ve Yeniden Gönder"i anar. Satırda durum rozeti "Düzeltme Bekliyor"dur (amber) ve satırın altında "Merkez Ekip düzeltme istedi" başlıklı not sebep metnini (satır sonları korunur) ve reddedilme zamanını (GG.AA.YYYY SS:DD, işletmenin saatiyle) gösterir. Ekip üyesinin satırında notun yanında (telefonda altında tam genişlikte) "Düzelt ve Yeniden Gönder" düğmesi vardır. Ekip dışındakinin satırında rozet ve not görünür ama düğme YOKTUR. Not yalnız plan reddedilmişken görünür; yeniden onaya gönderilince ya da onaylanınca satırdan kalkar. Ekip dışındaki kişiye bildirim gitmez; ekibin lideri ve aktif üyeleri aynı bildirimi tek kez alır.
+   - Roller: Bildirimi planın lideri ve aktif üyeleri alır; düğmeyi planın ekibi ve Merkez Ekip / Super Admin / godmin görür (rowActionsFor). Rozet ve not ana sayfayı açan herkese görünür.
+
+70. **Düzelt ve Yeniden Gönder: düzelt, gönder, plan Onay Bekleyen'e döner**  _[YÜKSEK · yazar]_
+   - Adımlar: Reddedilmiş planın ekibinden biriyle satırdaki "Düzelt ve Yeniden Gönder"e bas; denetim formunda bandı ve "Merkez Ekip'in düzeltme sebebi" kutusunu oku, bir sorunun puanını değiştir ve sayfanın altındaki "Düzelt ve Yeniden Gönder" düğmesine bas. Sonra Merkez Ekip hesabıyla "Onay Bekleyen" sekmesine bak.
+   - Beklenen: /denetim?editAuditId=<denetim id>&planId=<plan id> açılır; yeni denetim açılmaz. Bantta "Merkez Ekip bu denetimi düzeltme için ekibine geri gönderdi. Düzeltmeyi kaydettiğinizde puanlar ve yanıtlar bu denetimin üzerine yazılır ve denetim onaya yeniden gönderilir; yeni bir denetim açılmaz." yazar ve "Merkez Ekip'in düzeltme sebebi" kutusu sebebi ve zamanı gösterir. Kayıttan sonra "Düzeltme kaydedildi; denetim onaya yeniden gönderildi." toast'ı çıkar ve ana sayfaya dönülür. Plan status='pending_approval' olur ve Merkez Ekip'in "Onay Bekleyen" sekmesinde "Onay Bekliyor" rozetiyle, "Onayla" ve "Reddet" düğmeleriyle yeniden listelenir; satırda artık sebep notu yoktur. Denetimin kendisi aynı kalır, puan ve cevaplar yeni değerlerdir. Kayıt gitti ama yeniden gönderim gitmediyse form kapanmaz ve ekranda kalan yazı "Düzeltmeler kaydedildi ancak denetim onaya yeniden gönderilemedi ..." diye başlayıp ana sayfadaki "Düzelt ve Yeniden Gönder" düğmesine bir kez daha basmayı söyler; plan o zamana kadar "Düzeltme Bekliyor" kalır.
+   - Roller: Planın ekibi (lider ve aktif üye) ile Merkez Ekip, Super Admin, godmin. Ekip dışındaki biri aynı denetimi doğrudan yazarsa sunucu 403 "Bu denetim düzeltme için geri gönderildi; düzeltmeyi yalnız planın ekibi ve Merkez Ekip yapabilir. ..." verir.
+
+71. **Reddedilmiş planın bulgusunda termin değişikliği ekip dışından reddedilir**  _[orta · yazar]_
+   - Adımlar: Reddedilmiş bir planın denetimine ait bir bulgu için Müdür ya da planın ekibinde olmayan bir Saha Sorumlusu hesabıyla /bulgular'da o bulgunun "Termin" tarihini değiştir.
+   - Beklenen: Tarih hücresi bir an yeni değeri gösterir; sunucu PUT /fiveSFindings/<id> isteğini 403 ile reddeder, sayfa "Termin değiştirilemedi: Bu denetim düzeltme için geri gönderildi; düzeltmeyi yalnız planın ekibi ve Merkez Ekip yapabilir. Düzeltmeyi planın ekibinden isteyin. Liste eski termine döndü." toast'ını gösterir ve liste yeniden okunup eski terminle döner. Sunucu bir sebep vermediyse toast "Termin değiştirilemedi, liste eski termine döndü. Bağlantınızı kontrol edip tekrar deneyin." der. Merkez Ekip ve planın ekibinden biri (termini düzenleme yetkisiyle) aynı değişikliği yapabilir.
+   - Roller: Termin hücresini düzenleyebilen roller; reddi sunucudaki rejectedRefusal kuralı verir (be-nucleus/src/guards/businessRules.ts).
+
+
+## Denetim formu — 5S Denetim Formu (Sahalar), /denetim  (61 senaryo)
 
 1. **Yükleme durumu**  _[düşük · okur]_
    - Adımlar: /denetim adresini aç, sayfa ilk açılırken ekrana bak.
@@ -949,8 +969,8 @@ Her satır arayüzden izlenebilir bir adım dizisidir; "beklenen" sütunu neyin 
 
 5. **URL'den planId ile doğrudan plan açma**  _[orta · okur]_
    - Adımlar: Ana sayfadan bir plana tıkla ya da adres çubuğuna /denetim?planId=<plan uuid> yaz.
-   - Beklenen: Plan seçim ekranı hiç gösterilmez, doğrudan o planın formu açılır (bu, denetimin açıkça başlatıldığı iki yoldan biridir; öteki listeden plan seçmektir); başlıktaki 'Plan:' satırı o planın lokasyon/tarihini gösterir. planId kullanıcının açabileceği bir plan değilse parametre yok sayılır ve normal akış (seçim ekranı veya 'plan yok' ekranı) gelir.
-   - Roller: Planın atandığı ekibin üyesi; her planı açabilen roller (manager, content manager core team, super admin, godmin) ekibi dışındaki bir planı da buradan başlatır (denetim/_utils/planEntry.ts).
+   - Beklenen: Plan seçim ekranı hiç gösterilmez, doğrudan o planın formu açılır (bu, denetimin açıkça başlatıldığı iki yoldan biridir; öteki listeden plan seçmektir); başlıktaki 'Plan:' satırı o planın lokasyon/tarihini gösterir. planId kullanıcının açabileceği bir plan değilse parametre yok sayılmaz ve başka bir plan sessizce açılmaz: sebep ekranda yazılır ve altında 'Denetim Seç' listesi gelir (kişinin açabileceği hiçbir plan yoksa 'Ekibinize planlanan bir denetim yok' ekranı gelir, sebep orada da yazılır). Sebep metinleri: 'Seçtiğiniz denetim artık başlatılamıyor: başlatılmış, onaya gönderilmiş ya da silinmiş olabilir.' (plan listede yok), 'Seçtiğiniz denetimin kaydı bu cihazda gönderilmeyi bekliyor; aynı denetim ikinci kez başlatılamaz. Bağlantı gelince otomatik gönderilir.' (çevrimdışı kuyrukta), 'Saha sorumlusu olduğunuz lokasyonun denetimini siz yapamazsınız; bu denetimi ekipteki diğer denetçiler başlatmalıdır.' (Müdür dahil, kendi lokasyonu) ve 'Seçtiğiniz denetim ekibinize atanmamış; yalnız kendi ekibinizin denetimlerini başlatabilirsiniz.'
+   - Roller: Planın atandığı ekibin üyesi; her planı görebilen roller (Müdür, Merkez Ekip, Super Admin, godmin) ekibi dışındaki bir planı da buradan başlatır. Saha sorumlusu olduğu lokasyonun planını Merkez Ekip, Super Admin ve godmin başlatabilir, Müdür başlatamaz (denetim/_utils/planChoice.ts).
 
 6. **Plan yokken 'Tekrar Kontrol Et'**  _[düşük · okur]_
    - Adımlar: 'Ekibinize planlanan bir denetim yok' ekranında 'Tekrar Kontrol Et' düğmesine bas.
@@ -1216,6 +1236,21 @@ Her satır arayüzden izlenebilir bir adım dizisidir; "beklenen" sütunu neyin 
    - Adımlar: Tam form açıkken 'Denetimi Yapan' listesinden iki kişi seç; sonra 'Tekil Bulgu +' aç, modaldaki 'Denetimi Yapan' kutusunu tek bir isimle değiştir, 'İptal' ile kapat ve ana formdaki alana bak.
    - Beklenen: Ana formdaki 'Denetimi Yapan' seçimi de modalda yazılan değere düşer — modal ayrı bir alan değil, aynı header.auditorName state'ini yazar; 'İptal' bunu geri almaz. Çoklu seçim kutusu artık yalnızca modalda yazılan isimleri işaretli gösterir.
    - Roller: 'Tekil Bulgu +' düğmesini gören roller (manager / auditor / content manager core team).
+
+59. **R16: atanmış denetimi olan kişi denetimi başlatmadan 'Tekil Bulgu +' ile bulgu girer**  _[YÜKSEK · yazar]_
+   - Adımlar: Ekibine planlı (status='planned') bir denetim atanmış bir denetçiyle /denetim aç (adreste planId yok). 'Denetim Seç' listesinde hiçbir plana 'Denetime Başla →' demeden 'Tekil Bulgu +'ya bas; modalda 'Lokasyon' ve 'Tarih'i seç, 'Bağlı soru'yu boş bırak, bulgu tipi, açıklama, alınacak faaliyet ve termini doldurup kaydet.
+   - Beklenen: Sayfa açılır açılmaz hiçbir denetim kendiliğinden başlamaz (tek plan olsa bile); atanmış olmak denetimi başlatmış saymaz. Modal plansız açılır: bağlı soru isteğe bağlıdır ('Bağlı soru seçilmedi' toast'ı ÇIKMAZ), Lokasyon ve Tarih modalın kendi alanlarıdır, 'Ekip' alanı kişinin gerçek denetim ekiplerini gösterir (hiç ekibi yoksa alan ve açıklamadaki 'Ekip:' satırı hiç çıkmaz, rol adı asla ekip olarak yazılmaz). POST /fiveSAudits gövdesi source='single_finding' taşır ve plan_id TAŞIMAZ; bulgunun 'Ana Denetim'i 'Tekil Bulgu', açıklamasının ilk satırı 'TEKİL BULGU' olur. five_s_audit_plans satırı 'planned' ve audit_id=null kalır; plan ana sayfada 'Plan / Yaklaşan'da durur ve 'Denetime Başla →' ile hâlâ başlatılabilir. Bulgu /bulgular'da 'Tekil bulgular' süzgecinde görünür.
+   - Roller: 'Tekil Bulgu +' düğmesini gören roller (manager / auditor / content manager core team); senaryo, ekibine plan atanmış bir kişiyle yapılır (denetim/_utils/planChoice.ts: hiçbir plan kendiliğinden açılmaz).
+
+60. **Denetim içinde girilen tekil bulgu: soru zorunlu, plan bağlanır, denetimin adıyla görünür**  _[YÜKSEK · yazar]_
+   - Adımlar: Bir planı 'Denetime Başla →' ya da /denetim?planId=<plan id> ile başlat. Formda 'Tekil Bulgu +'ya bas ve önce 'Bağlı soru'yu boş bırakıp kaydet; sonra listeden bir soru seç, tip, açıklama, faaliyet ve termini doldurup kaydet. Ardından /bulgular'da bulguyu bul ve 'Ana Denetim' sütununa bak. Denetim onaylandıktan sonra ana sayfada o denetimin satırından 'Raporu İndir'i bas ve indirilen çalışma kitabının bulgu sayfasına bak.
+   - Beklenen: Soru boşken kırmızı toast: 'Bağlı soru seçilmedi. Denetim sırasında girilen tekil bulgu hangi soruya ait olduğu bilinmeden kaydedilemez; listeden bir soru seçin.' ve kayıt oluşmaz. 'Ekip' alanı planın kendi ekibidir. Kayıtta POST /fiveSAudits gövdesi source='single_finding' ve plan_id=<başlatılan planın id'si> taşır; internet yokken kuyruğa alınan bulgu tekrar gönderilirken de aynı plan_id gider. Bulgunun form_title'ı denetimin adıdır ('<Lokasyon> · GG.AA.YYYY'), açıklamasının ilk satırı 'Ana Denetim: <denetim adı>' olur ('TEKİL BULGU' DEĞİL). /bulgular'da 'Ana Denetim' sütununda denetimin adı yazar; 'Kaynak: Denetim bulguları' süzgeci bulguyu listeler, 'Tekil bulgular' süzgeci listelemez. Denetimin raporunda bulgu, denetimin öteki bulgularıyla birlikte bulgu sayfasında yer alır. Taşıyıcı satır ne denetim sayısında ne puan ortalamasında sayılır.
+   - Roller: 'Tekil Bulgu +' düğmesini gören roller. 'Raporu İndir'de saha sorumlusu yalnız onaylanmış denetimin raporunu açar (be-nucleus/src/routes/auditReport.ts); bulgunun rapora girmesi için denetimin taşıyıcı satırı plan_id ile bağlı olmalıdır (be-nucleus yarısı).
+
+61. **Düzeltme ekranı: denetim içi tekil bulgu listelenir ve Merkez Ekip tarafından silinebilir (R73)**  _[YÜKSEK · yazar]_
+   - Adımlar: 60'taki gibi içinde tekil bulgu girilmiş bir denetim onaya gönderilmiş ya da onaylanmış olsun. Merkez Ekip hesabıyla ana sayfada o denetimin satırında 'Düzenle'ye bas; 'Bu Denetimin ve Lokasyonun Bulguları' panelinde tekil bulguyu bul, satırındaki 'Sil'e bas ve onay penceresinde 'Sil'i seç. Aynı satıra Müdür hesabıyla da bak.
+   - Beklenen: Panelde denetimin kendi bulguları ve denetim içinde girilmiş tekil bulgu (kapatılmış olanlar dahil) numarası büyükten küçüğe birlikte listelenir; her ikisinin satırında 'Sil' vardır. Aynı lokasyondaki başka denetimlerin açık bulgularında ve plansız tekil bulguda 'Sil' YOKTUR. Okuma sırası: önce GET /fiveSAudits (plan_id=<denetimin planı>, source='single_finding', 200'er satırlık sayfalarla), sonra denetimin ve bu taşıyıcıların audit_id'leri için GET /fiveSFindings (is_active=true, sayfa sayfa); bir sayfa okunamazsa liste yarım gösterilmez, 'Bu denetimin bulguları okunamadı. Sayfayı yenileyip tekrar deneyin.' çıkar. Onaydan sonra DELETE /fiveSFindings/<id> gider, '#N numaralı bulgu silindi.' toast'ı çıkar, satır panelden ve sorudaki açık bulgu uyarısından kalkar. Müdür hesabında satırda 'Düzenle' düğmesi hiç yoktur (düzeltmeyi yalnız Merkez Ekip, Super Admin ve godmin yapar); Müdür bulguyu yine de doğrudan silmeye çalışırsa sunucu 403 verir. Denetimin planı yoksa (plan silinmiş ve adreste planId de yok) panel yalnız denetimin kendi bulgularını listeler.
+   - Roller: Silme: Merkez Ekip, Super Admin, godmin (canDeleteAuditFindings). Müdür ve diğer roller düzeltme ekranına girmez, silemez.
 
 
 ## Ana Veri Yönetimi — /ana-veri-yonetimi (4 sekme: Veri Girişi, Denetim Planlama, Denetim Ekipleri, Sorular)  (71 senaryo)
