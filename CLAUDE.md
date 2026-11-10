@@ -207,6 +207,18 @@ menüsünde elle kopyalanmış rol kontrolleri (`Header/ClientSide`) var. Bir ro
 kuralını değiştirirken bunların hepsine bak. godmin'i her kontrolde ayrıca say:
 `hasPrivilege(roles, list, isGod)` ve `isGodminUser`.
 
+- godmin'in iki yolu: `users.is_god` bayrağı (uygulamanın kendi kontrolleri) ve
+  `godmin` rolü (nucleus'un jenerik CRUD'u: `POST /fiveSAudits`, `POST /fiveSFindings`
+  dahil). Boot'taki `grantGodminRole` (`src/godminRole.ts`) bayraklı her hesaba rolü
+  de verir. Ön yüzde menü ve ekran kontrolleri `isGod`'u `hasPrivilege` /
+  `routeAccess/menuAccess` üzerinden sayar; rol adına tek başına bakma.
+- Denetim ekranında hangi planın açılacağı `denetim/_utils/planChoice.ts`'de
+  karar verilir: ana sayfadan tıklanan plan (`?planId=`) her zaman kazanır, açılamıyorsa
+  sebep ekranda yazılır ve başka plan sessizce açılmaz. Merkez Ekip, Super Admin ve
+  godmin her planı görür ve kendi lokasyonununkini de başlatır (sunucudaki #27
+  `isAdmin` istisnası); Müdür her planı görür ama kendi lokasyonunu başlatamaz;
+  denetçi yalnız kendi ekibinin planlarını görür.
+
 Plan durumu: `planned` → denetçi gönderince `pending_approval` → Merkez Ekip
 onaylayınca `completed` (bir de `cancelled` var). Planlı tarihi ekip lideri
 ve Müdür en fazla 2 kez değiştirebilir. Merkez Ekip, Super Admin ve godmin

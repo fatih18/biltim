@@ -63,7 +63,7 @@ function callAsPromise(start: (args: any) => void, payload: any): Promise<any> {
 /* ─── Component ─── */
 export function QuestionsPanel() {
   const actions = useGenericApiActions();
-  const { roleName, roles, isLoading: roleLoading } = useGetUserRole();
+  const { roleName, roles, isGod, isLoading: roleLoading } = useGetUserRole();
 
   /*
    * hasPrivilege, not a list of role names.
@@ -78,8 +78,8 @@ export function QuestionsPanel() {
   const isAdmin = React.useMemo(() => {
     if (roleLoading) return false;
     const names = [roleName ?? "", ...(roles ?? []).map((r) => r.name ?? "")];
-    return hasPrivilege(names, ["manager", "content manager core team"]);
-  }, [roleName, roles, roleLoading]);
+    return hasPrivilege(names, ["manager", "content manager core team"], isGod);
+  }, [roleName, roles, roleLoading, isGod]);
 
   const [steps, setSteps] = React.useState<StepRow[]>([]);
   const [questions, setQuestions] = React.useState<QuestionRow[]>([]);

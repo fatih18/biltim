@@ -159,13 +159,13 @@ export default function FiveSFindingsListPage() {
   const myRoleNames = userRoles.map((r) => r.name);
   const OVERRIDE_ROLES = ["super admin", "manager", "content manager core team", "field manager"];
   const hasAuditor = userRoles.some((r) => r.name.toLowerCase() === "auditor");
-  const hasOverrideRole = hasPrivilege(myRoleNames, OVERRIDE_ROLES);
+  const hasOverrideRole = hasPrivilege(myRoleNames, OVERRIDE_ROLES, isGod);
   const isAuditor = hasAuditor && !hasOverrideRole;
   const CLOSE_ALLOWED_ROLES = ["field manager", "super admin", "manager"];
-  const canCloseFinding = hasPrivilege(myRoleNames, CLOSE_ALLOWED_ROLES);
+  const canCloseFinding = hasPrivilege(myRoleNames, CLOSE_ALLOWED_ROLES, isGod);
   // Madde 5: Sadece Merkez Ekip / Manager / Super Admin bulgu silebilir
   const DELETE_ALLOWED_ROLES = ["super admin", "manager", "content manager core team"];
-  const canDeleteFinding = hasPrivilege(myRoleNames, DELETE_ALLOWED_ROLES);
+  const canDeleteFinding = hasPrivilege(myRoleNames, DELETE_ALLOWED_ROLES, isGod);
   // #31: evidence on a closed finding is removed only by Merkez Ekip / Super Admin.
   const canRemoveClosedPhotos = hasPrivilege(myRoleNames, ADMIN_ROLES, isGod);
   // Reopening a closed finding is the same circle's; the server refuses anyone else.

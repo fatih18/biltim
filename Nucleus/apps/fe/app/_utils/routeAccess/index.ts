@@ -63,10 +63,10 @@ export const CENTRAL_ROLES = ["content manager core team", "super admin", "manag
  */
 export const ADMIN_ROLES = ["content manager core team", "super admin"] as const;
 
-const isSuperAdmin = (roles: string[]) =>
+export const isSuperAdmin = (roles: string[]) =>
   roles.includes("super admin") || roles.includes("godmin");
 
-const isContentManagerCoreTeam = (roles: string[]) =>
+export const isContentManagerCoreTeam = (roles: string[]) =>
   roles.some((n) => n.includes("content manager") && n.includes("core team"));
 
 const startsWithAny = (path: string, prefixes: string[]) =>

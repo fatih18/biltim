@@ -30,7 +30,7 @@ export function LoginChecker({ children }: { children: React.ReactNode }) {
   const path = usePathname()
   const router = useRouter()
 
-  const { roleName, roles } = useGetUserRole()
+  const { roleName, roles, isGod } = useGetUserRole()
 
   const isCheckingRef = useRef(false)
   const redirectedRef = useRef(false)
@@ -112,8 +112,9 @@ export function LoginChecker({ children }: { children: React.ReactNode }) {
    * requests — which should never have painted at all.
    */
   const roleNames = [roleName ?? '', ...(roles ?? []).map((r) => r?.name ?? '')].filter(Boolean)
-  const me = store.user as { data?: { isGod?: boolean }; isGod?: boolean } | undefined
-  const isGod = Boolean(me?.data?.isGod ?? me?.isGod)
+  // `isGod` is read the one way every screen reads it (isGodminUser): the flag in
+  // any of the shapes /auth/me arrives in, or a role named "godmin" (R27). This
+  // gate used to look at `isGod` alone, in two of those shapes.
   const isRestricted = requiresAuth && Boolean(requirementFor(path))
   const isAllowed = !isRestricted || (Boolean(store.user) && canAccessRoute(path, roleNames, isGod))
 

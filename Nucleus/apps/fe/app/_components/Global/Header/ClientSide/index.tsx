@@ -35,6 +35,11 @@ import type {
   HeaderViewStateUpdates,
 } from '../types'
 import { useGetUserRole } from '@/app/_hooks/user/useGetUserRole'
+import {
+  canSeeMasterMenus as canSeeMasterMenusFor,
+  canSeeUsersMenu,
+  isAuditorOnlyAccount,
+} from '@/app/_utils/routeAccess/menuAccess'
 import { useGenericApiActions } from '@/app/_hooks/UseNucleusApi' // ✅ sadece NotificationDropdown’da kullanılıyor
 import { toast } from 'sonner'
 
@@ -414,7 +419,7 @@ export function ClientSide({
   const headerStore = useHeaderStore()
   const { isExpanded, isProfileOpen, isSearchOpen, activeNav } = headerStore.ui
 
-  const { roleName, roles, isLoading: isRoleLoading } = useGetUserRole()
+  const { roleName, roles, isGod, isLoading: isRoleLoading } = useGetUserRole()
   const normRole = (v: string) => (v ?? '').trim().toLowerCase().replace(/\s+/g, ' ')
 
   const allRoleNames = useMemo(() => {
@@ -423,45 +428,23 @@ export function ClientSide({
       .map((x) => normRole(String(x)))
   }, [roleName, roles])
 
-  const canSeeUsersPage = useMemo(() => {
-    if (isRoleLoading) return false
-    return allRoleNames.some(
-      (n) =>
-        n === 'super admin' ||
-        n === 'godmin' ||
-        (n.includes('content manager') && n.includes('core team'))
-    )
-  }, [allRoleNames, isRoleLoading])
+  // The rules live in _utils/routeAccess/menuAccess; the godmin counts through
+  // `isGod` too, not only through a role named "godmin" (R27).
+  const canSeeUsersPage = useMemo(
+    () => !isRoleLoading && canSeeUsersMenu(allRoleNames, isGod),
+    [allRoleNames, isRoleLoading, isGod]
+  )
 
-  const canSeeMasterMenus = useMemo(() => {
-    if (isRoleLoading) return false
-    return allRoleNames.some((n) => {
-      if (n === 'manager') return true
-      const hasContentManager = n.includes('content manager')
-      const hasCoreTeam = n.includes('core team')
-      if (hasContentManager && hasCoreTeam) return true
-      if (n === 'super admin' || n === 'godmin') return true
-      return false
-    })
-  }, [allRoleNames, isRoleLoading])
+  const canSeeMasterMenus = useMemo(
+    () => !isRoleLoading && canSeeMasterMenusFor(allRoleNames, isGod),
+    [allRoleNames, isRoleLoading, isGod]
+  )
 
   // Madde 4: Sadece Denetçi rolüne sahip kullanıcılar Bulgular sayfasını göremez
-  const isAuditorOnly = useMemo(() => {
-    if (isRoleLoading) return false
-    if (allRoleNames.length === 0) return false
-    const hasAuditor = allRoleNames.some((n) => n === 'auditor' || n === 'denetçi')
-    if (!hasAuditor) return false
-    const hasOtherPrivileged =
-      allRoleNames.includes('godmin') ||
-      allRoleNames.some(
-        (n) =>
-          n === 'super admin' ||
-          n === 'manager' ||
-          n === 'field manager' ||
-          (n.includes('content manager') && n.includes('core team'))
-      )
-    return !hasOtherPrivileged
-  }, [allRoleNames, isRoleLoading])
+  const isAuditorOnly = useMemo(
+    () => !isRoleLoading && isAuditorOnlyAccount(allRoleNames, isGod),
+    [allRoleNames, isRoleLoading, isGod]
+  )
 
   const isUsersHref = (href?: string) => {
     if (!href) return false
