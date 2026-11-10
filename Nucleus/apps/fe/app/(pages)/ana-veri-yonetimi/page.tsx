@@ -25,6 +25,7 @@ import { ADMIN_ROLES, hasPrivilege } from "@/app/_utils/routeAccess";
 import { confirmDialog } from "@/app/_components/Global/ConfirmDialog";
 import { attachRoles } from "@/app/_utils/userRoles";
 import { readFailureMessage } from "./_utils/readFailure";
+import { MailStatusLine } from "./_components/MailStatusLine";
 
 type MasterKind = "actions" | "findingTypes" | "locations";
 
@@ -941,6 +942,9 @@ export default function Page() {
                         />
                     </div>
                 </header>
+
+                {/* Plan mails (R63, R70): the status route answers only Merkez Ekip, Super Admin and godmin. */}
+                {isAdmin ? <MailStatusLine /> : null}
 
                 {tab === "master" ? (
                     <div className="grid gap-4 lg:grid-cols-3">

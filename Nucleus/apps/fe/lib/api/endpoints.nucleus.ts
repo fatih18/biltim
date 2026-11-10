@@ -176,8 +176,9 @@ const custom = {
   REJECT_PLAN: { method: 'POST', path: '/biltim/plans/:plan_id/reject' },
   /*
    * Plan e-postalarının (R70, R63) durumu: sağlayıcı kurulu mu, gönderen adres,
-   * bekleyen ve vazgeçilen plan sayıları. Yalnız okuma; Merkez Ekip, Super
-   * Admin ve godmin. Henüz bir ekranı yok.
+   * bekleyen, vazgeçilen ve süresi geçen plan sayıları. Yalnız okuma; Merkez
+   * Ekip, Super Admin ve godmin. Ekranı: Ana Veri Yönetimi'nin başlığı altındaki
+   * `MailStatusLine`.
    */
   BILTIM_MAIL_STATUS: { method: 'GET', path: '/biltim/mail/status' },
 } as unknown as Record<string, TranslatedEndpoint>
