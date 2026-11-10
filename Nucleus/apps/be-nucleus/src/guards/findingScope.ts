@@ -12,7 +12,8 @@ import {
   FINDING_WRITE_MESSAGE,
   UNIDENTIFIED_MESSAGE,
 } from './findingScopeMessages'
-import { isClosureOnlyWrite, rejectedPlanTeamsOfFinding } from './rejectedPlan'
+import { BRACKET_FILTERS, isPlaceLookup, parseFilters } from './findingScopeFilters'
+import { carriesClosingKey, rejectedPlanTeamsOfFinding } from './rejectedPlan'
 
 /**
  * A field manager's findings stop at their own locations (customer notes, row
@@ -35,11 +36,13 @@ import { isClosureOnlyWrite, rejectedPlanTeamsOfFinding } from './rejectedPlan'
  *   - Writes (PUT, PATCH, DELETE): every scoped field manager, an auditor who is
  *     also one included. Closing is the field manager's job and stops at their
  *     places; the audit screens never PUT a finding.
- *   - Reads (list, one finding, distinct): a field manager who is NOT also an
- *     auditor. An auditor reads the open findings of the place they audit
- *     (the audit form, and the offline replay that looks a finding up by
- *     `client_finding_id`); the API cannot tell that read from the register's,
- *     so a dual-role account keeps it.
+ *   - Reads (list, one finding, distinct): every scoped field manager. An
+ *     auditor who is also one keeps only the two list reads the audit form
+ *     makes (`isPlaceLookup`): the open findings of the place being audited
+ *     (`location_name`) and the offline replay's duplicate check
+ *     (`client_finding_id`). Any other read of theirs (an unfiltered list,
+ *     distinct, a finding of a foreign place) is limited like a pure field
+ *     manager's: they see their own region only (row 49).
  */
 
 /** The query the router hands a guard: the same object the generic route's handler reads. */
@@ -63,7 +66,6 @@ export type ScopeResult = {
 
 /** A closing is a few keys; a body this large is not one, so it never counts as one. */
 const CORRECTION_BODY_MAX = 256 * 1024
-const BRACKET_FILTERS = /^filters\[/
 
 /** The `locationKey` of every place the user field-manages; empty when they manage none. */
 async function managedKeys(read: Read, userId: string): Promise<Set<string>> {
@@ -80,16 +82,6 @@ const isOwn = (keys: ReadonlySet<string>, location: string): boolean => {
 async function findingLocation(read: Read, id: string): Promise<string | undefined> {
   const rows = await read(FINDING_LOCATION_SQL, [id])
   return rows[0] ? nameOf({ name: rows[0].location_name }) : undefined
-}
-
-function parseFilters(raw: string): ReadonlyArray<object> | null {
-  if (raw === '') return []
-  try {
-    const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed : null
-  } catch {
-    return null
-  }
 }
 
 /**
@@ -127,14 +119,15 @@ async function readRefusal(read: Read, caller: Caller, id: string): Promise<Resp
  * A finding of a plan sent back for correction, written as a correction: that
  * is the plan's team's and Merkez Ekip's (`rejectedRefusal`, which runs after
  * this guard), whoever else the writer is. Closing it stays the field manager's
- * job and is never a correction here.
+ * job and is never a correction here: a body that sets the status or any
+ * closing key is a closing, even when it carries other keys as well.
  */
 async function isTeamCorrection(ctx: ScopeContext, read: Read, id: string): Promise<boolean> {
   if ((await rejectedPlanTeamsOfFinding(read, id)).length === 0) return false
   if (ctx.request.method === 'DELETE') return true
   const declared = Number(ctx.request.headers.get('content-length'))
   if (Number.isFinite(declared) && declared > CORRECTION_BODY_MAX) return false
-  return !isClosureOnlyWrite(await readBody({ request: ctx.request, body: undefined }), id)
+  return !carriesClosingKey(await readBody({ request: ctx.request, body: undefined }))
 }
 
 async function writeRefusal(ctx: ScopeContext, read: Read, caller: Caller, id: string): Promise<Response | undefined> {
@@ -154,11 +147,11 @@ async function scopedRefusal(ctx: ScopeContext, read: Read, caller: Caller, targ
     case 'bulk':
       return refuse(FINDING_BULK_MESSAGE, 403)
     case 'distinct':
-      return auditor ? undefined : refuse(FINDING_DISTINCT_MESSAGE, 403)
+      return refuse(FINDING_DISTINCT_MESSAGE, 403)
     case 'read':
-      return auditor ? undefined : readRefusal(read, caller, target.id)
+      return readRefusal(read, caller, target.id)
     case 'list':
-      return auditor ? undefined : narrowList(ctx.query, read, caller)
+      return auditor && isPlaceLookup(ctx.query) ? undefined : narrowList(ctx.query, read, caller)
   }
 }
 

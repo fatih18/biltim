@@ -89,6 +89,18 @@ export function isClosureOnlyWrite(body: Row, targetId: string): boolean {
   return keys.length > 0 && keys.every((key) => CLOSURE_KEYS.has(key))
 }
 
+/** `CLOSURE_KEYS` in `squash` spelling, so `photoAfterFiles`, `photo_after_files` and `Photo-After-Files` all count. */
+const CLOSURE_SQUASHED: ReadonlySet<string> = new Set([...CLOSURE_KEYS].map(squash))
+
+/**
+ * Whether a finding write sets the status or any closing key, alone or beside
+ * other keys. A write that closes is a closing even when it also edits the
+ * description: it is never a correction of a rejected plan's findings.
+ */
+export function carriesClosingKey(body: Row): boolean {
+  return Object.keys(body).some((key) => CLOSURE_SQUASHED.has(squash(key)))
+}
+
 /**
  * The roles that close findings today: the Saha Sorumlusu, whose core job it is,
  * and Merkez Ekip, Super Admin, Müdür and the godmin, who manage them. The

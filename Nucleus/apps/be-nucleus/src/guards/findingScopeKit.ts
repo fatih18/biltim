@@ -30,6 +30,8 @@ export type World = {
   rejectedTeams?: string[]
   /** The stored finding row the closing rules read. */
   row?: Row
+  /** Whether the caller is an active member of the rejected plan's team. */
+  onTeam?: boolean
 }
 
 export const OPEN_ROW: Row = { status: 'open', photo_after_url: null, photo_after_file_id: null, photo_after_files: [] }
@@ -44,6 +46,8 @@ export function world(w: World = {}) {
       return w.finding === undefined ? [] : [{ location_name: w.finding }]
     if (text.includes('select distinct location_name')) return (w.stored ?? []).map((name) => ({ name }))
     if (text.includes('main.five_s_locations')) return (w.managed ?? []).map((name) => ({ name }))
+    if (text.includes('from main.five_s_audit_teams t'))
+      return w.onTeam ? [{ leader_user_id: 'u-lead', is_member: true }] : []
     if (text.includes('main.five_s_audit_plans'))
       return (w.rejectedTeams ?? []).map((team) => ({ status: 'rejected', assigned_team_id: team }))
     return []

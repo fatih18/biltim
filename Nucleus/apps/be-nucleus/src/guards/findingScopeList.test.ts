@@ -10,7 +10,6 @@ import {
 } from './findingScopeMessages'
 import {
   AUDITOR,
-  AUDITOR_FM,
   CENTRAL,
   FINDING,
   FIELD_MANAGER,
@@ -99,7 +98,7 @@ describe('a field manager listing findings', () => {
 
 describe('everyone else lists the findings as before', () => {
   it('leaves the query alone and asks nothing of the database', async () => {
-    for (const caller of [GOD, SUPER_ADMIN, CENTRAL, MANAGER, AUDITOR, MANAGER_FM, AUDITOR_FM]) {
+    for (const caller of [GOD, SUPER_ADMIN, CENTRAL, MANAGER, AUDITOR, MANAGER_FM]) {
       for (const path of ['/fiveSFindings', '/fiveSFindings/distinct/status']) {
         const { query, run, calls } = read(caller, { managed: [MINE], stored: STORED }, path, '?limit=5')
         expect((await run()).refusal).toBeUndefined()
@@ -107,13 +106,6 @@ describe('everyone else lists the findings as before', () => {
         expect(calls).toHaveLength(0)
       }
     }
-  })
-
-  it('keeps an auditor who is also a field manager reading what the audit form reads', async () => {
-    const { query, run } = read(AUDITOR_FM, { managed: [MINE], stored: STORED }, '/fiveSFindings', '?limit=5')
-    expect((await run()).refusal).toBeUndefined()
-    expect(query.filters).toBeUndefined()
-    expect((await read(AUDITOR_FM, { finding: OTHER, managed: [MINE] }, `/fiveSFindings/${FINDING}`).run()).refusal).toBeUndefined()
   })
 })
 
