@@ -20,6 +20,7 @@ import { SavedWithGap } from './_components/SavedWithGap'
 import { editPlanVerdict } from './_utils/editPlanRead'
 import { detailsLockOf } from './_utils/findingDetailsLock'
 import { readAllTeams } from './_utils/readAllTeams'
+import { tallyQuestionWrites, writeQuestion } from './_utils/correctionWrites'
 import {
   correctionEnd,
   correctionVerdict,
@@ -64,6 +65,7 @@ import {
   explanationMissing,
   findingNoOf,
   openFindingsFor,
+  type QueuedSingleFinding,
   queuedSubmissionLabel,
   questionsAddedHere,
   sessionFindingsOfReplay,
@@ -742,7 +744,7 @@ export default function FiveSAuditFormPage() {
    * from it cannot show them — and offline the form then demanded a second
    * finding for the very defect just recorded.
    */
-  const [queuedSingleFindings, setQueuedSingleFindings] = useState<Array<{ questionId: string; location: string }>>([])
+  const [queuedSingleFindings, setQueuedSingleFindings] = useState<QueuedSingleFinding[]>([])
   /*
    * Single findings this screen saved online, linked to a question. The server
    * read that follows can lag, fail or fall back to an older snapshot; until it
@@ -813,7 +815,7 @@ export default function FiveSAuditFormPage() {
   const findingsAddedHere = questionsAddedHere(
     header.department,
     {
-      queuedQuestionIds: queuedQuestionIdsAt(header.department),
+      queued: queuedSingleFindings,
       session: sessionFindings,
     },
     assignedPlan?.id ?? null
@@ -1168,7 +1170,12 @@ export default function FiveSAuditFormPage() {
           .flatMap((s) =>
             (s.findings ?? [])
               .filter((f) => !!f.question_id)
-              .map((f) => ({ questionId: String(f.question_id), location: String(f.location_name ?? '') }))
+              .map((f) => ({
+                questionId: String(f.question_id),
+                location: String(f.location_name ?? ''),
+                // The audit it was queued inside; null for a standalone finding.
+                planId: s.planId ?? null,
+              }))
           )
       )
       setRefusedSubmissions(
@@ -3045,34 +3052,49 @@ export default function FiveSAuditFormPage() {
     }
 
     const answeredAt = new Date().toISOString()
-    const results = await Promise.allSettled(
-      auditRecord.answered
-        .map(({ question: q, answer: ans }) => {
-          const fields = {
-            rating: ans.rating,
-            explanation: ans.explanation?.trim() || null,
-            finding_type: ans.findingType || null,
-            has_open_finding:
-              ans.rating !== 'good' && (!!ans.findingType || openFindingsByQuestion.has(q.id)),
-          }
-          const existing = target.answerIdByQuestion.get(q.id)
-          return existing
-            ? startAsPromise(A[ANSWER_KEYS.PATCH]?.start, { payload: { _id: existing, ...fields } })
-            : startAsPromise(A[ANSWER_KEYS.ADD]?.start, {
-              payload: {
-                audit_id: target.id,
-                question_id: q.id,
-                step_code: q.stepCode,
-                answered_at: answeredAt,
-                ...fields,
-              },
-            })
+    /*
+     * A question's finding is written BEFORE its answer, and the answer only
+     * once the finding saved (correctionWrites.ts → writeQuestion). An answer
+     * stored as Orta/Kötü without its finding is not asked for one when the
+     * team reopens the audit, and the audit then went on without the finding.
+     */
+    const needsFinding = new Set(auditRecord.findings.map((a) => a.questionId))
+    const writes = await Promise.all(
+      auditRecord.answered.map(({ question: q, answer: ans }) =>
+        writeQuestion({
+          writeFinding: needsFinding.has(q.id) ? () => createFindingForAnswer(ans, target.id, header.date) : null,
+          writeAnswer: () => {
+            const fields = {
+              rating: ans.rating,
+              explanation: ans.explanation?.trim() || null,
+              finding_type: ans.findingType || null,
+              has_open_finding:
+                ans.rating !== 'good' && (!!ans.findingType || openFindingsByQuestion.has(q.id)),
+            }
+            const existing = target.answerIdByQuestion.get(q.id)
+            const written = existing
+              ? startAsPromise(A[ANSWER_KEYS.PATCH]?.start, { payload: { _id: existing, ...fields } })
+              : startAsPromise(A[ANSWER_KEYS.ADD]?.start, {
+                payload: {
+                  audit_id: target.id,
+                  question_id: q.id,
+                  step_code: q.stepCode,
+                  answered_at: answeredAt,
+                  ...fields,
+                },
+              })
+            return written.then(
+              () => true,
+              (err) => {
+                console.error('Soru yanıtı kaydedilemedi', err)
+                return false
+              }
+            )
+          },
         })
+      )
     )
-    const failedAnswers = results.filter((r) => r.status === 'rejected').length
-    const findingWrites = await Promise.all(
-      auditRecord.findings.map((ans) => createFindingForAnswer(ans, target.id, header.date))
-    )
+    const { failedAnswers, findingWrites } = tallyQuestionWrites(writes)
 
     /*
      * R30: the correction of a rejected plan sends it again — the same audit,

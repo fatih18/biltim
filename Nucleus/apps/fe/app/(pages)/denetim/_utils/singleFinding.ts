@@ -117,20 +117,37 @@ export function openFindingsFor(
 }
 
 /*
+ * A single finding still waiting in the offline queue. `planId` is the plan of
+ * the audit that was open when it was queued, null for a standalone finding
+ * (the queued submission's own planId): only the former was added "in this
+ * audit", exactly as for a SessionFinding's `auditPlanId`.
+ */
+export type QueuedSingleFinding = {
+  questionId: string;
+  location: string;
+  planId: string | null;
+};
+
+/*
  * The questions that got a single finding during THIS audit, at its location:
  * saved from the modal a moment ago (session) or still waiting in the offline
  * queue. A finding that was already open before the audit started is not one
  * of them (see explanationMissing), and neither is a standalone finding saved
- * earlier in the same page visit: a session finding counts only when it was
- * raised inside the audit now open (`auditPlanId`, the plan it started).
+ * or queued earlier in the same page visit: a session or queued finding counts
+ * only when it was raised inside the audit now open (`auditPlanId` /
+ * `planId`, the plan it started).
  */
 export function questionsAddedHere(
   location: string,
-  sources: { queuedQuestionIds: readonly string[]; session: readonly SessionFinding[] },
+  sources: { queued: readonly QueuedSingleFinding[]; session: readonly SessionFinding[] },
   auditPlanId: string | null,
 ): Set<string> {
   const here = foldTr(location);
-  const added = new Set<string>(sources.queuedQuestionIds.filter(Boolean));
+  const added = new Set<string>();
+  for (const queued of sources.queued) {
+    if (auditPlanId === null || queued.planId !== auditPlanId) continue;
+    if (here && queued.questionId && foldTr(queued.location) === here) added.add(queued.questionId);
+  }
   for (const saved of sources.session) {
     if (auditPlanId === null || saved.auditPlanId !== auditPlanId) continue;
     if (saved.questionId && foldTr(saved.location) === here) added.add(saved.questionId);

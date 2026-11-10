@@ -43,9 +43,12 @@ describe("a correction counts every write before it resends", () => {
     expect(body.match(/failedPhotos \+= 1/g)).toHaveLength(2);
   });
 
-  it("submitAuditEdit tallies answers, findings and photos and leaves the decision to the helper", () => {
+  it("submitAuditEdit writes each finding before its answer and tallies answers, findings and photos", () => {
     const body = bodyOf("submitAuditEdit");
-    expect(body).toContain("const findingWrites = await Promise.all(");
+    expect(body).toContain("writeQuestion({");
+    expect(body).toContain("writeFinding: needsFinding.has(q.id)");
+    expect(body).toContain("const { failedAnswers, findingWrites } = tallyQuestionWrites(writes)");
+    expect(body).not.toContain("Promise.allSettled");
     expect(body).toContain("...tallyFindingWrites(findingWrites)");
     expect(body).toContain("correctionVerdict({");
     expect(body).toContain("verdict.resend && assignedPlan");
@@ -84,6 +87,13 @@ describe("a standalone single finding is no part of the audit that opens later",
     const at = pageCode.indexOf("questionsAddedHere(\n");
     expect(at).toBeGreaterThan(-1);
     expect(pageCode.slice(at, at + 260)).toContain("assignedPlan?.id ?? null");
+  });
+
+  it("a queued one carries the plan its submission was queued for, and the added-here set reads it", () => {
+    expect(bodyOf("refreshQueuedCount")).toContain("planId: s.planId ?? null");
+    const at = pageCode.indexOf("questionsAddedHere(\n");
+    expect(pageCode.slice(at, at + 260)).toContain("queued: queuedSingleFindings");
+    expect(pageCode).toContain("useState<QueuedSingleFinding[]>([])");
   });
 });
 
