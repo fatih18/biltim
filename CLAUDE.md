@@ -339,7 +339,10 @@ tarayıcı → Next server action (factory.nucleus.ts, AUTH_API_URL)
   tanımlayıcılarda Türkçe katlama kullanma.
 - Domain tablolarında yabancı anahtar yok; jenerik DELETE kalıcı siler.
   Bulgular lokasyona METİNLE bağlı (`location_name`), denetimler de
-  `department_name` ile. Lokasyon adı değişirse bağ kopar.
+  `department_name` ile. Lokasyon adı değişirse bağ kopar. Excel raporları adı
+  büyük/küçük harf, boşluk ve i/ı farkından bağımsız eşler (`routes/locationMatch.ts`);
+  form Excel'i denetimleri ayrıca `location_id` ile de bağlar, yeniden adlandırılan
+  lokasyonun denetimleri ve bulguları formda kalır.
 - Tekil bulgu, puanı 0 olan sahte bir denetim satırının altında durur
   (`source='single_finding'`). Bunları her denetim sayımından ve
   ortalamadan çıkar.

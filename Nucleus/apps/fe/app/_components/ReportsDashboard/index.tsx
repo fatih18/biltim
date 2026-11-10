@@ -22,6 +22,8 @@ import { useGetUserRole } from '@/app/_hooks/user/useGetUserRole'
 import { useMyScope } from '@/app/_hooks/user/useMyScope'
 import { CENTRAL_ROLES, hasPrivilege } from '@/app/_utils/routeAccess'
 import { toast } from 'sonner'
+import { LocationFormExport } from './_components/LocationFormExport'
+import { downloadWorkbook } from './_utils/downloadWorkbook'
 
 /* ───────────── Types ───────────── */
 
@@ -85,27 +87,6 @@ function Card(props: {
       {props.children}
     </section>
   )
-}
-
-/**
- * Download a workbook the backend builds. Same-origin through the /reports
- * rewrite in next.config.ts, so the session cookie goes with it.
- */
-async function downloadWorkbook(path: string, params: Record<string, string>): Promise<void> {
-  const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v)).toString()
-  const res = await fetch(`${path}${qs ? `?${qs}` : ''}`, { cache: 'no-store' })
-  if (!res.ok) throw new Error(`Excel indirilemedi (${res.status})`)
-  const blob = await res.blob()
-  const cd = res.headers.get('Content-Disposition') ?? ''
-  const filename = cd.match(/filename="?([^";]+)"?/)?.[1] ?? 'rapor.xlsx'
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  URL.revokeObjectURL(url)
 }
 
 function StatCard(props: { label: string; value: string; tone?: 'default' | 'good' | 'warn' | 'bad' }) {
@@ -289,108 +270,6 @@ function BeforeAfterReport({ dateFrom, dateTo }: { dateFrom: string; dateTo: str
           </div>
         )
       })}
-    </div>
-  )
-}
-
-/* ───────────── Bölge 5S formu (F2) ───────────── */
-
-/*
- * The plant's own yearly workbook for one area — "5S Denetim Bulgu ve Soru
- * Formu": the findings sheet with photos and one question sheet per audit.
- * Built by the backend (/reports/location-form.xlsx) in the layout of the
- * file the customer sent.
- */
-function LocationFormExport() {
-  const actions = useGenericApiActions()
-  const { roles, isGod } = useGetUserRole()
-  const { scope } = useMyScope()
-  // A field manager is offered their own locations; the server refuses the rest.
-  const roleNames = roles.map((r) => r.name)
-  const scoped = hasPrivilege(roleNames, ['field manager']) && !hasPrivilege(roleNames, CENTRAL_ROLES, isGod)
-  const [allLocations, setLocations] = React.useState<string[]>([])
-  const locations = scoped
-    ? allLocations.filter((l) =>
-        (scope?.fieldManagerLocationNames ?? []).some(
-          (n) => n.trim().toLocaleLowerCase('tr') === l.toLocaleLowerCase('tr')
-        )
-      )
-    : allLocations
-  const [location, setLocation] = React.useState('')
-  const thisYear = new Date().getFullYear()
-  const [year, setYear] = React.useState(String(thisYear))
-  const [busy, setBusy] = React.useState(false)
-  const [error, setError] = React.useState<string | null>(null)
-
-  React.useEffect(() => {
-    const a = (actions as any).GET_FIVE_S_LOCATIONS
-    if (!a?.start) return
-    a.start({
-      payload: { page: 1, limit: 500, orderBy: 'name', orderDirection: 'asc', filters: { is_active: true } },
-      onAfterHandle: (res: any) => {
-        const root = res?.data
-        const arr: any[] = root?.data ?? (Array.isArray(root) ? root : Array.isArray(res) ? res : [])
-        setLocations([...new Set(arr.map((l) => String(l?.name ?? '').trim()).filter(Boolean))])
-      },
-      onErrorHandle: () => setLocations([]),
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const download = async () => {
-    if (!location) return
-    setBusy(true)
-    setError(null)
-    try {
-      await downloadWorkbook('/reports/location-form.xlsx', { location_name: location, year })
-    } catch (err) {
-      setError((err as Error).message || 'Form indirilemedi')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <div className="flex flex-wrap items-end gap-3">
-      <div className="space-y-1">
-        <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300">Lokasyon</label>
-        <select
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-          className="min-w-[220px] rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2 text-xs"
-        >
-          <option value="">Lokasyon seçin</option>
-          {locations.map((l) => (
-            <option key={l} value={l}>
-              {l}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="space-y-1">
-        <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300">Yıl</label>
-        <select
-          value={year}
-          onChange={(e) => setYear(e.target.value)}
-          className="rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2 text-xs"
-        >
-          {[thisYear, thisYear - 1, thisYear - 2].map((y) => (
-            <option key={y} value={y}>
-              {y}
-            </option>
-          ))}
-        </select>
-      </div>
-      <button
-        type="button"
-        onClick={download}
-        disabled={!location || busy}
-        className="inline-flex items-center gap-1.5 rounded-md border border-emerald-700/50 bg-white dark:bg-slate-950/60 px-3 py-2 text-xs font-medium text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 hover:dark:bg-emerald-950/30 disabled:opacity-50"
-      >
-        {busy ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
-        Bulgu ve Soru Formu (Excel)
-      </button>
-      {error && <span className="text-xs text-rose-700 dark:text-rose-300">{error}</span>}
     </div>
   )
 }
