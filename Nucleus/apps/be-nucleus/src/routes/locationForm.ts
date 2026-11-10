@@ -6,7 +6,9 @@ import { callerById } from '../guards/caller'
 import { auditAttendanceNote } from './auditAttendanceNote'
 import { type AuditReportTarget, auditReportRefusal, dayTr, isScopedFieldManager, loadAuditReportTarget } from './auditReport'
 import { excelDay, xlsxResponse } from './excel'
-import { fitBox, locatePhotos, type Photo, photoIds, readPhoto } from './photos'
+import { createPhotoEmbedder } from './findingPhotos'
+import { cleanName, nameOf, placeInYear, sameLocation } from './locationMatch'
+import { oneAtATime, photoNote, REPORT_PHOTO_LIMITS } from './photoReport'
 
 /**
  * A location's year on the customer's own paper form (F2, 7 Oct mail).
@@ -41,18 +43,19 @@ function findingText(description: unknown): string {
   return explanation || text
 }
 
-/** Field managers' names for the "Sorumlu" line. */
-async function responsibleNames(locationName: string): Promise<string> {
+/** Field managers' names for the "Sorumlu" line, of the location rows `ids`. */
+async function responsibleNames(ids: string[]): Promise<string> {
+  if (ids.length === 0) return ''
   const rows = await query(
     `select coalesce(nullif(trim(concat_ws(' ', p.first_name, p.last_name)), ''), u.email) as name
        from five_s_locations l
        cross join lateral jsonb_array_elements_text(coalesce(l.field_manager_user_ids, '[]'::jsonb)) as fm(id)
        join users u on u.id::text = fm.id
        left join profiles p on p.user_id = u.id
-      where lower(trim(l.name)) = lower(trim($1))`,
-    [locationName]
+      where l.id = any($1::uuid[])`,
+    [ids]
   )
-  return rows.map((r) => String(r.name ?? '')).filter(Boolean).join(', ')
+  return [...new Set(rows.map((r) => String(r.name ?? '')).filter(Boolean))].join(', ')
 }
 
 /*
@@ -78,14 +81,46 @@ export function oneAtATime<T>(task: () => Promise<T>): Promise<T> {
 /*
  * `audit` narrows the workbook to one audit (the report of one audit, row 75):
  * its own question sheet and the findings raised in it — whatever place or day
- * they name — instead of the location's year. `$4` is that audit's id, or NULL
- * for the yearly form, which reads exactly as it did.
+ * they name — instead of the location's year. `$5` is that audit's id, or NULL
+ * for the yearly form. `completedOnly` is a field manager asking: audits whose
+ * plan is not approved yet stay out of both shapes, so the yearly form cannot
+ * be used to read what the one-audit report refuses.
  */
-async function buildForm(locationName: string, year: number, audit: AuditReportTarget | null = null): Promise<Response> {
+async function buildForm(
+  askedName: string,
+  year: number,
+  audit: AuditReportTarget | null = null,
+  completedOnly = false
+): Promise<Response> {
   const from = `${year}-01-01`
   const to = `${year}-12-31`
   const auditId = audit?.auditId ?? null
-  const [findings, audits, steps, questions, sorumlu] = await Promise.all([
+  /*
+   * The place, as the data spells it: findings and audits are linked to a
+   * location by text, so every spelling of the name that year used is matched
+   * (placeInYear), and audits planned on the location by its id as well, so a
+   * renamed location keeps its history. `locationName` is the location row's
+   * own name when there is one: the header and the "Bölüm" line never come
+   * out empty or in the spelling of a stray row.
+   */
+  const place = await placeInYear(askedName, { from, to })
+  const locationName = place.name
+  const audits = await query(
+    `select a.id, a.plan_id, a.audit_date, a.auditor_name, a.total_score, a.target_score,
+            a.score_s1, a.score_s2, a.score_s3, a.score_s4, a.score_s5
+       from five_s_audits a
+      where a.is_active = true and a.source is distinct from 'single_finding'
+        and ($5::text is null
+             and (a.department_name = any($1::text[]) or a.location_id = any($2::uuid[]))
+             and a.audit_date >= $3 and a.audit_date < ($4::date + 1)
+             or a.id::text = $5)
+        and (not $6::boolean or exists (
+              select 1 from five_s_audit_plans p
+               where (p.audit_id = a.id or p.id = a.plan_id) and p.status = 'completed'))
+      order by a.audit_date asc`,
+    [place.auditNames, place.ids, from, to, auditId, completedOnly]
+  )
+  const [findings, steps, questions, sorumlu] = await Promise.all([
     query(
       `select f.finding_no, f.detected_date, f.location_name, f.finding_type, f.description,
               f.action_to_take, f.due_date, f.completed_at, f.status,
@@ -93,22 +128,12 @@ async function buildForm(locationName: string, year: number, audit: AuditReportT
               f.photo_after_files, f.photo_after_file_id, f.photo_after_url
          from five_s_findings f
         where f.is_active = true
-          and ($4::text is null and lower(trim(f.location_name)) = lower(trim($1))
+          and ($5::text is null
+               and (f.location_name = any($1::text[]) or f.audit_id = any($4::uuid[]))
                and f.detected_date between $2 and $3
-               or f.audit_id::text = $4)
+               or f.audit_id::text = $5)
         order by f.detected_date asc, f.finding_no asc nulls last`,
-      [locationName, from, to, auditId]
-    ),
-    query(
-      `select a.id, a.plan_id, a.audit_date, a.auditor_name, a.total_score, a.target_score,
-              a.score_s1, a.score_s2, a.score_s3, a.score_s4, a.score_s5
-         from five_s_audits a
-        where a.is_active = true and a.source is distinct from 'single_finding'
-          and ($4::text is null and lower(trim(a.department_name)) = lower(trim($1))
-               and a.audit_date >= $2 and a.audit_date < ($3::date + 1)
-               or a.id::text = $4)
-        order by a.audit_date asc`,
-      [locationName, from, to, auditId]
+      [place.findingNames, from, to, audits.map((a) => String(a.id)), auditId]
     ),
     query(`select code, title, max_score, "order" from five_s_steps where is_active order by "order"`),
     query(
@@ -116,7 +141,7 @@ async function buildForm(locationName: string, year: number, audit: AuditReportT
          from five_s_questions q join five_s_steps s on s.id = q.step_id
         where q.is_active order by s."order", q."order"`
     ),
-    responsibleNames(locationName),
+    responsibleNames(place.ids),
   ])
 
   const answersByAudit = new Map<string, Map<string, Row>>()
@@ -188,35 +213,22 @@ async function buildForm(locationName: string, year: number, audit: AuditReportT
   })
 
   /*
-   * One photo per side — the first, as on the paper form — found in one
-   * lookup and read one at a time as the rows are written. exceljs builds the
-   * whole file in memory, so a year's export is capped twice: by count, and
-   * by the bytes embedded — 400 photos of up to 15 MB each is 6 GB, and the
-   * count alone let all of it in. Once a photo would cross either cap, no
+   * Photos go through the shared embedder (findingPhotos.ts): up to three
+   * pictures a side, found in one lookup and read one at a time, capped by
+   * files and by bytes embedded — 400 photos of up to 15 MB each is 6 GB, and
+   * a count alone let all of it in. Once a photo would cross either cap, no
    * further photo is read; the cell says so rather than the export failing.
+   * Where a finding has no photo the paper form's cell stays empty.
    */
-  const MAX_PHOTOS = 400
-  const MAX_PHOTO_TOTAL_BYTES = 150 * 1024 * 1024
-  const wantedIds = findings.flatMap((f) => [photoIds(f, 'before')[0], photoIds(f, 'after')[0]]).filter(
-    (id): id is string => Boolean(id)
-  )
-  const files = await locatePhotos(wantedIds)
-  const embeddedByFile = new Map<string, { imageId: number; photo: Pick<Photo, 'width' | 'height'> }>()
-  const failedByFile = new Map<string, 'unsupported' | null>()
-  let embeddedBytes = 0
-  let full = false
+  const textHeight = (f: Row) => Math.max(30, Math.min(120, 15 * Math.ceil(findingText(f.description).length / 50)))
 
   let r = 6
-  let embedded = 0
-  let missing = 0
-  let unsupported = 0
-  let capped = 0
   for (const f of findings) {
     const row = fs.getRow(r)
     row.values = [
       f.finding_no == null ? '' : Number(f.finding_no),
       excelDay(f.detected_date),
-      String(f.location_name ?? ''),
+      cleanName(String(f.location_name ?? '')) || locationName,
       String(f.finding_type ?? ''),
       findingText(f.description),
       '',
@@ -230,64 +242,21 @@ async function buildForm(locationName: string, year: number, audit: AuditReportT
     row.eachCell({ includeEmpty: true }, (c, n) => {
       if (n <= 10) c.border = BOX
     })
-
-    let tall = false
-    for (const [col, side] of [[5, 'before'], [6, 'after']] as const) {
-      const id = photoIds(f, side)[0]
-      if (!id) continue
-      const cell = row.getCell(col + 1)
-      // A photo already in the workbook is placed again at no cost.
-      let image = embeddedByFile.get(id)
-      if (!image) {
-        // Read each file once: a photo that failed is not read again for its next cell.
-        let failed = failedByFile.get(id)
-        if (!failedByFile.has(id)) {
-          if (full || embeddedByFile.size >= MAX_PHOTOS) {
-            full = true
-            capped += 1
-            cell.value = 'Fotoğraf sınırı aşıldı'
-            continue
-          }
-          const file = files.get(id)
-          const read = file ? await readPhoto(file, MAX_PHOTO_TOTAL_BYTES - embeddedBytes) : null
-          if (read === 'over-budget') {
-            full = true
-            capped += 1
-            cell.value = 'Fotoğraf sınırı aşıldı'
-            continue
-          }
-          if (read === null || read === 'unsupported') {
-            failed = read
-            failedByFile.set(id, read)
-          } else {
-            image = {
-              imageId: workbook.addImage({ buffer: read.buffer as never, extension: read.extension }),
-              photo: { width: read.width, height: read.height },
-            }
-            embeddedByFile.set(id, image)
-            embeddedBytes += read.buffer.length
-          }
-        }
-        if (!image) {
-          if (failed === 'unsupported') {
-            unsupported += 1
-            cell.value = "Fotoğraf biçimi Excel'e eklenemiyor (HEIC/WEBP)"
-          } else {
-            missing += 1
-            cell.value = 'Fotoğraf okunamadı'
-          }
-          continue
-        }
-      }
-      // Column F/G are 26 characters ≈ 185 px wide; row height 92 pt ≈ 122 px.
-      const box = fitBox(image.photo, 178, 116)
-      fs.addImage(image.imageId, { tl: { col: col + 0.03, row: r - 1 + 0.03 }, ext: box })
-      embedded += 1
-      tall = true
-    }
-    row.height = tall ? 92 : Math.max(30, Math.min(120, 15 * Math.ceil(findingText(f.description).length / 50)))
+    row.height = textHeight(f)
     r += 1
   }
+
+  const embedder = createPhotoEmbedder(workbook)
+  const tally = await embedder.fill({
+    sheet: fs,
+    rows: findings,
+    firstRow: 6,
+    slots: [
+      { col: 6, side: 'before', width: 26 },
+      { col: 7, side: 'after', width: 26 },
+    ],
+    textPt: (i) => textHeight(findings[i] ?? {}),
+  })
 
   r += 1
   const open = findings.filter((f) => f.status !== 'closed').length
@@ -301,16 +270,17 @@ async function buildForm(locationName: string, year: number, audit: AuditReportT
     fs.getCell(`B${r}`).value = value
     r += 1
   }
+  // What is wrong, what it means, what to do: never an empty form without a word.
   const notes = [
-    missing > 0 ? `${missing} fotoğraf dosyası okunamadı` : '',
-    unsupported > 0 ? `${unsupported} fotoğraf Excel'in desteklemediği biçimde (HEIC/WEBP)` : '',
-    capped > 0
-      ? `${capped} fotoğraf, rapor başına ${MAX_PHOTOS} fotoğraf / ${MAX_PHOTO_TOTAL_BYTES / (1024 * 1024)} MB sınırını aştığı için eklenmedi`
+    photoNote(tally, REPORT_PHOTO_LIMITS),
+    place.ids.length === 0 ? `"${locationName}" adı Ana Veri Yönetimi'ndeki lokasyonlarla eşleşmedi.` : '',
+    findings.length === 0 && audits.length === 0
+      ? `${year} yılında bu lokasyon adıyla kayıtlı bulgu ya da denetim yok. Kayıtlar lokasyona adıyla bağlıdır; ad sonradan değiştirildiyse eski kayıtlar eski adı taşır. Ana Veri Yönetimi'nde lokasyon adını ve yılı kontrol edin.`
       : '',
   ].filter(Boolean)
-  if (notes.length > 0) {
-    fs.getCell(`A${r + 1}`).value = `${notes.join('; ')} — ilgili hücrelerde not olarak belirtildi.`
-    fs.getCell(`A${r + 1}`).font = { italic: true, color: { argb: 'FFB45309' } }
+  for (const [n, note] of notes.entries()) {
+    fs.getCell(`A${r + 1 + n}`).value = note
+    fs.getCell(`A${r + 1 + n}`).font = { italic: true, color: { argb: 'FFB45309' } }
   }
 
   /* ── 5S Denetim Formu (<ay>) — one per audit ── */
@@ -458,7 +428,7 @@ async function buildForm(locationName: string, year: number, audit: AuditReportT
   }
 
   console.log(
-    `[location-form] ${locationName} ${year}: ${findings.length} bulgu, ${audits.length} denetim, ${embedded} fotoğraf gömüldü (${embeddedByFile.size} dosya, ${Math.round(embeddedBytes / 1024)} KB), ${missing} okunamadı, ${unsupported} desteklenmeyen, ${capped} sınır dışı`
+    `[location-form] ${locationName} ${year}: ${findings.length} bulgu, ${audits.length} denetim, ${tally.placed} fotoğraf gömüldü (${embedder.usage().files} dosya, ${Math.round(embedder.usage().bytes / 1024)} KB), ${tally.missing} okunamadı, ${tally.unsupported} desteklenmeyen, ${tally.capped} sınır dışı, ${tally.hidden} hücre sınırı dışı; ${place.ids.length} lokasyon kaydı, ${place.findingNames.length}/${place.auditNames.length} yazım`
   )
   const buffer = (await workbook.xlsx.writeBuffer()) as ArrayBuffer
   return xlsxResponse(
@@ -507,13 +477,12 @@ export const locationFormXlsx = defineRoute({
     // A field manager gets the form of their own locations only, as the register shows them (#7/#24).
     const caller = await callerById(request.headers.get('x-user-id') ?? '')
     if (caller && isScopedFieldManager(caller)) {
-      const own = await query(
-        `select 1 from five_s_locations
-          where lower(trim(name)) = lower(trim($1))
-            and coalesce(field_manager_user_ids, '[]'::jsonb) ? $2::text`,
-        [locationName, caller.userId]
+      const mine = await query(
+        `select name from five_s_locations
+          where coalesce(field_manager_user_ids, '[]'::jsonb) ? $1::text`,
+        [caller.userId]
       )
-      if (own.length === 0) {
+      if (!mine.some((l) => sameLocation(nameOf(l), locationName))) {
         return new Response(JSON.stringify({ success: false, message: 'Bu lokasyonun formunu görme yetkiniz yok.' }), {
           status: 403,
           headers: { 'content-type': 'application/json' },
@@ -531,7 +500,7 @@ export const locationFormXlsx = defineRoute({
     }
 
     // The checks above answer at once; the build waits its turn.
-    return oneAtATime(() => buildForm(locationName, year, audit))
+    return oneAtATime(() => buildForm(locationName, year, audit, !!caller && isScopedFieldManager(caller)))
   },
 })
 

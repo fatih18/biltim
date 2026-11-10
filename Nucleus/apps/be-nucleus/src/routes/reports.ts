@@ -5,6 +5,8 @@ import { todayAtPlant } from '../guards/businessRules'
 import { type Caller, callerById, isCentral } from '../guards/caller'
 import { buildWorkbook, type Column, statusTr, xlsxResponse } from './excel'
 import { locationFormXlsx } from './locationForm'
+import { findingSpellings } from './locationMatch'
+import { PHOTO_COLUMN_WIDTH } from './photoReport'
 
 /* ───────────────────────── who may read reports ───────────────────────── */
 
@@ -49,6 +51,20 @@ export async function refuseNonReportReaders(
     headers: { 'content-type': 'application/json' },
   })
 }
+
+/** The photo columns `hasPhoto` and the Excel photo cells read. */
+const PHOTO_COLUMNS = ['before', 'after']
+  .flatMap((side) => [`f.photo_${side}_files`, `f.photo_${side}_file_id`, `f.photo_${side}_url`])
+  .join(', ')
+
+/** Every report that lists findings shows their before and after photos (R46). */
+const PHOTO_SHEET_COLUMNS: Column[] = [
+  { header: 'Öncesi Fotoğraf', key: 'photo_before', kind: 'photo', side: 'before', width: PHOTO_COLUMN_WIDTH },
+  { header: 'Sonrası Fotoğraf', key: 'photo_after', kind: 'photo', side: 'after', width: PHOTO_COLUMN_WIDTH },
+]
+
+/** Said under a sheet whose photo caps left some out. */
+const PHOTO_HINT = 'Raporu lokasyon, durum ya da tarih aralığıyla daraltırsanız tüm fotoğraflar eklenir.'
 
 /** Only YYYY-MM-DD reaches SQL; anything else becomes "no filter". */
 function parseDate(value: unknown): string | null {
@@ -195,7 +211,7 @@ async function loadDashboard(
       query(
         `SELECT f.id, f.finding_no, f.location_name, f.finding_type, f.description,
                 f.action_to_take, f.due_date, f.responsible_name, f.detected_date,
-                ($${fp.length + 1}::date - f.due_date)::int AS overdue_days
+                ($${fp.length + 1}::date - f.due_date)::int AS overdue_days, ${PHOTO_COLUMNS}
          FROM five_s_findings f
          WHERE ${fWhere} AND f.status = 'open'
            AND f.due_date IS NOT NULL AND f.due_date < $${fp.length + 1}::date
@@ -461,6 +477,7 @@ const SECTIONS: Record<
       { header: 'Lokasyon', key: 'location_name', width: 26 },
       { header: 'Bulgu Tipi', key: 'finding_type', width: 22 },
       { header: 'Açıklama', key: 'description', width: 48 },
+      ...PHOTO_SHEET_COLUMNS,
       { header: 'Yapılacak Aksiyon', key: 'action_to_take', width: 36 },
       { header: 'Tespit Tarihi', key: 'detected_date', kind: 'date' },
       { header: 'Termin', key: 'due_date', kind: 'date' },
@@ -501,7 +518,8 @@ const dashboardXlsx = defineRoute({
     // The workbook carries what the screen shows this caller, no more (#7/#24).
     const data = await loadDashboard(from, to, await fieldManagerScope(request))
     const buffer = await buildWorkbook(
-      keys.map((k) => ({ name: SECTIONS[k].title, columns: SECTIONS[k].columns, rows: data[k] }))
+      keys.map((k) => ({ name: SECTIONS[k].title, columns: SECTIONS[k].columns, rows: data[k] })),
+      { photoHint: PHOTO_HINT }
     )
     const window = from || to ? `-${from ?? 'basi'}_${to ?? 'sonu'}` : ''
     const name = keys.length === 1 ? SECTIONS[keys[0] as keyof DashboardData].title : '5S Raporlari'
@@ -535,11 +553,6 @@ const findingsQuery = t.Object({
  */
 const STANDALONE_SINGLE = `(a.source IS NOT DISTINCT FROM 'single_finding' AND coalesce(nullif(trim(f.form_title), ''), 'Tekil Bulgu') = 'Tekil Bulgu')`
 
-/** The photo columns `hasPhoto` reads. */
-const PHOTO_COLUMNS = ['before', 'after']
-  .flatMap((side) => [`f.photo_${side}_files`, `f.photo_${side}_file_id`, `f.photo_${side}_url`])
-  .join(', ')
-
 /**
  * Does the finding carry a photo on this side? Any of the three places a photo
  * has been kept counts: the array column (a non-empty list), or the
@@ -561,41 +574,62 @@ export function hasPhoto(f: Row, side: 'before' | 'after'): boolean {
 
 export const hasBeforeAndAfterPhotos = (f: Row) => hasPhoto(f, 'before') && hasPhoto(f, 'after')
 
+export type FindingFilters = {
+  /** Every stored spelling of the chosen location (findingSpellings); null = no location filter. */
+  spellings: string[] | null
+  status: string
+  source: string
+  from: string | null
+  to: string | null
+  scopeUserId: string | null
+}
+
+/** The register's WHERE fragments and their parameters, built together so a placeholder always has its value. */
+export function findingsFilter(f: FindingFilters): { sql: string; params: unknown[] } {
+  const clauses: string[] = []
+  const params: unknown[] = []
+  let i = 1
+  if (f.spellings) {
+    // Matched on the spellings the findings use for this place (locationMatch.ts), not
+    // lower(trim()) in SQL, which kept a "Bölge  3" or non-breaking-space row out.
+    clauses.push(` AND f.location_name = ANY($${i++}::text[])`)
+    params.push(f.spellings)
+  }
+  if (f.status && ['open', 'in_progress', 'closed'].includes(f.status)) {
+    clauses.push(` AND f.status = $${i++}`)
+    params.push(f.status)
+  }
+  // A single finding raised inside an audit is that audit's finding (R74): only a standalone one is "single_finding".
+  if (f.source === 'single_finding') clauses.push(` AND ${STANDALONE_SINGLE}`)
+  if (f.source === 'audit') clauses.push(` AND NOT ${STANDALONE_SINGLE}`)
+  // #7/#24: the export shows a field manager what their register shows.
+  // Matched in SQL, not against names lowercased in JS (see inManagedLocations).
+  if (f.scopeUserId) {
+    clauses.push(inManagedLocations('f.location_name', i++))
+    params.push(f.scopeUserId)
+  }
+  const range = dateRange('f.detected_date', f.from, f.to, i)
+  clauses.push(range.sql)
+  params.push(...range.params)
+  return { sql: clauses.join(''), params }
+}
+
 async function findingsWorkbook(
   q: Record<string, string | undefined> | undefined,
   forceOpen: boolean,
   request: Request
 ) {
   const locationName = String(q?.location_name ?? '').trim()
-  const status = forceOpen ? 'open' : String(q?.status ?? '').trim()
-  const source = String(q?.source ?? '').trim()
-  const from = parseDate(q?.date_from)
-  const to = parseDate(q?.date_to)
   const withPhotos = ['1', 'true'].includes(String(q?.with_photos ?? '').trim().toLowerCase())
 
-  const clauses: string[] = []
-  const params: unknown[] = []
-  let i = 1
-  if (locationName) {
-    clauses.push(` AND lower(trim(f.location_name)) = lower(trim($${i++}))`)
-    params.push(locationName)
-  }
-  if (status && ['open', 'in_progress', 'closed'].includes(status)) {
-    clauses.push(` AND f.status = $${i++}`)
-    params.push(status)
-  }
-  if (source === 'single_finding') clauses.push(` AND ${STANDALONE_SINGLE}`)
-  if (source === 'audit') clauses.push(` AND NOT ${STANDALONE_SINGLE}`)
-  // #7/#24: the export shows a field manager what their register shows.
-  // Matched in SQL, not against names lowercased in JS (see inManagedLocations).
-  const scopeUserId = await fieldManagerScope(request)
-  if (scopeUserId) {
-    clauses.push(inManagedLocations('f.location_name', i++))
-    params.push(scopeUserId)
-  }
-  const range = dateRange('f.detected_date', from, to, i)
-  clauses.push(range.sql)
-  params.push(...range.params)
+  const { sql: where, params } = findingsFilter({
+    spellings: locationName ? await findingSpellings(locationName) : null,
+    status: forceOpen ? 'open' : String(q?.status ?? '').trim(),
+    source: String(q?.source ?? '').trim(),
+    from: parseDate(q?.date_from),
+    to: parseDate(q?.date_to),
+    scopeUserId: await fieldManagerScope(request),
+  })
 
   const all: Row[] = await query(
     `SELECT f.finding_no, f.detected_date, f.location_name, f.finding_type,
@@ -607,10 +641,10 @@ async function findingsWorkbook(
                  THEN concat_ws(' – ', a.department_name, to_char(a.audit_date, 'DD.MM.YYYY'))
                  WHEN a.source IS NOT DISTINCT FROM 'single_finding' AND NOT ${STANDALONE_SINGLE}
                  THEN replace(f.form_title, ' · ', ' – ')
-                 ELSE '' END AS audit_label${withPhotos ? `, ${PHOTO_COLUMNS}` : ''}
+                 ELSE '' END AS audit_label, ${PHOTO_COLUMNS}
      FROM five_s_findings f
      LEFT JOIN five_s_audits a ON a.id = f.audit_id
-     WHERE f.is_active = true${clauses.join('')}
+     WHERE f.is_active = true${where}
      ORDER BY f.finding_no ASC NULLS LAST`,
     params
   )
@@ -628,6 +662,7 @@ async function findingsWorkbook(
         { header: 'Bulgu Tipi', key: 'finding_type', width: 20 },
         { header: '5S Adımı', key: 'step_code', width: 10 },
         { header: 'Açıklama', key: 'description', width: 48 },
+        ...PHOTO_SHEET_COLUMNS,
         { header: 'Yapılacak Aksiyon', key: 'action_to_take', width: 32 },
         { header: 'Termin', key: 'due_date', kind: 'date' },
         { header: 'Kapanış Tarihi', key: 'completed_at', kind: 'date' },
@@ -637,7 +672,7 @@ async function findingsWorkbook(
       ],
       rows,
     },
-  ])
+  ], { photoHint: PHOTO_HINT })
   const suffix = locationName ? `-${locationName}` : ''
   const kind = withPhotos ? 'fotografli-bulgu' : forceOpen ? 'acik-bulgu' : 'bulgu'
   return xlsxResponse(buffer, `5s-${kind}-raporu${suffix}-${todayAtPlant()}.xlsx`)

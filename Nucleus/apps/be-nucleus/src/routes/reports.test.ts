@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'bun:test'
 import type { Caller } from '../guards/caller'
-import { hasBeforeAndAfterPhotos, hasPhoto, maySeeReports, refuseNonReportReaders } from './reports'
+import {
+  type FindingFilters,
+  findingsFilter,
+  hasBeforeAndAfterPhotos,
+  hasPhoto,
+  maySeeReports,
+  refuseNonReportReaders,
+} from './reports'
 
 const who = (roles: string[], isGod = false): Caller => ({ userId: 'u-1', isGod, roles })
 
@@ -72,5 +79,50 @@ describe('hasBeforeAndAfterPhotos', () => {
     expect(hasPhoto({ photo_after_files: JSON.stringify(photo) }, 'after')).toBe(true)
     expect(hasPhoto({ photo_after_files: '[]' }, 'after')).toBe(false)
     expect(hasPhoto({ photo_after_files: 'not json' }, 'after')).toBe(false)
+  })
+})
+
+describe('findingsFilter', () => {
+  const none: FindingFilters = { spellings: null, status: '', source: '', from: null, to: null, scopeUserId: null }
+
+  it('adds no clause and no parameter when nothing is filtered', () => {
+    expect(findingsFilter(none)).toEqual({ sql: '', params: [] })
+  })
+
+  it('matches the location on every stored spelling, as one text[] parameter', () => {
+    const f = findingsFilter({ ...none, spellings: ['Bölge 3', 'BÖLGE  3'] })
+    expect(f.sql).toBe(' AND f.location_name = ANY($1::text[])')
+    expect(f.params).toEqual([['Bölge 3', 'BÖLGE  3']])
+  })
+
+  it('matches nothing, never everything, when no spelling of the place exists', () => {
+    const f = findingsFilter({ ...none, spellings: [] })
+    expect(f.sql).toContain('ANY($1::text[])')
+    expect(f.params).toEqual([[]])
+  })
+
+  it('numbers every placeholder in the order its value is pushed', () => {
+    const f = findingsFilter({
+      spellings: ['Pres'],
+      status: 'closed',
+      source: 'audit',
+      from: '2026-01-01',
+      to: '2026-12-31',
+      scopeUserId: 'u-7',
+    })
+    expect(f.params).toEqual([['Pres'], 'closed', 'u-7', '2026-01-01', '2026-12-31'])
+    expect(f.sql).toContain('ANY($1::text[])')
+    expect(f.sql).toContain('f.status = $2')
+    expect(f.sql).toContain('? $3::text')
+    expect(f.sql).toContain('f.detected_date >= $4')
+    expect(f.sql).toContain('f.detected_date <= $5')
+    expect(f.sql).toContain("a.source IS DISTINCT FROM 'single_finding'")
+    // Every $n in the SQL has a value, and no value is left without one.
+    const used = new Set([...f.sql.matchAll(/\$(\d+)/g)].map((m) => Number(m[1])))
+    expect([...used].sort()).toEqual(f.params.map((_, n) => n + 1))
+  })
+
+  it('ignores a status it does not know', () => {
+    expect(findingsFilter({ ...none, status: 'bogus' })).toEqual({ sql: '', params: [] })
   })
 })
