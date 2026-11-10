@@ -1,12 +1,14 @@
-import { describe, expect, it } from 'bun:test'
-import { readFileSync } from 'node:fs'
+import { afterAll, describe, expect, it } from 'bun:test'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
   DEFAULT_FROM_NAME,
   SMTP_OPTIONAL,
   SMTP_REQUIRED,
-  type ServerOptions,
+  isServerOptions,
   loadServerOptions,
+  readServerOptions,
   smtpNotice,
   smtpState,
   withSmtpSwitch,
@@ -16,6 +18,9 @@ const CONFIG = join(import.meta.dir, '..', 'config.json')
 
 const EMPTY: Record<string, string> = Object.fromEntries([...SMTP_REQUIRED, ...SMTP_OPTIONAL].map((name) => [name, '']))
 const COMPLETE = { ...EMPTY, SMTP_HOST: 'smtp.office365.com', SMTP_USER: 'denetim@firma.example', SMTP_PASSWORD: 'abcd efgh ijkl mnop' }
+
+type CredentialKey = 'host' | 'port' | 'secure' | 'user' | 'password' | 'sender_address'
+const CREDENTIAL_KEYS: readonly CredentialKey[] = ['host', 'port', 'secure', 'user', 'password', 'sender_address']
 
 /**
  * nucleus-core-ts 0.10.115, `resolveCredential` with no secrets store (Nucleus/index.ts):
@@ -47,7 +52,7 @@ describe('config.json email block', () => {
   })
 
   it('resolves to nothing for every credential while all of them are empty, so the provider cannot come up', () => {
-    for (const key of ['host', 'port', 'secure', 'user', 'password', 'sender_address'] as const) {
+    for (const key of CREDENTIAL_KEYS) {
       expect(resolveLikeNucleus(EMPTY, String(smtp?.[key]))).toBeUndefined()
     }
   })
@@ -60,7 +65,7 @@ describe('config.json email block', () => {
   })
 
   it('does not pin a provider: nucleus would build it on every call even with nothing to send through', () => {
-    const raw: ServerOptions = JSON.parse(readFileSync(CONFIG, 'utf-8'))
+    const raw = readServerOptions(CONFIG)
     expect(raw.email?.provider).toBeUndefined()
     expect(raw.email?.smtp?.enabled).toBe(false)
   })
@@ -140,5 +145,69 @@ describe('withSmtpSwitch', () => {
     expect(options.authentication?.accessToken?.secret).toBe('ACCESS_TOKEN_SECRET')
     expect(options.authorization?.godminEmail).toBe('GODMIN_EMAIL')
     expect(options.email?.smtp?.password).toBe('SMTP_PASSWORD')
+  })
+})
+
+describe('isServerOptions', () => {
+  it('accepts the options of the file and an object without an email block', () => {
+    expect(isServerOptions(readServerOptions(CONFIG))).toBe(true)
+    expect(isServerOptions({ appId: 'biltim' })).toBe(true)
+    expect(isServerOptions({ email: {} })).toBe(true)
+    expect(isServerOptions({ email: { smtp: { enabled: false } } })).toBe(true)
+  })
+
+  it('rejects an email block, or an smtp block, that is not an object', () => {
+    for (const email of [null, 'smtp', 3, true, [], ['smtp']]) {
+      expect(isServerOptions({ email })).toBe(false)
+    }
+    for (const smtp of [null, 'SMTP_HOST', 3, false, [], [1]]) {
+      expect(isServerOptions({ email: { smtp } })).toBe(false)
+    }
+  })
+})
+
+describe('readServerOptions', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'biltim-options-'))
+  afterAll(() => rmSync(dir, { recursive: true, force: true }))
+
+  const write = (name: string, text: string): string => {
+    const path = join(dir, name)
+    writeFileSync(path, text)
+    return path
+  }
+
+  it('reads an options file', () => {
+    const path = write('ok.json', '{"appId":"biltim","email":{"smtp":{"enabled":false,"host":"SMTP_HOST"}}}')
+    expect(readServerOptions(path)).toEqual({ appId: 'biltim', email: { smtp: { enabled: false, host: 'SMTP_HOST' } } })
+  })
+
+  it('refuses a file that is not an object, naming the file', () => {
+    const NOT_OBJECTS: readonly { name: string; text: string }[] = [
+      { name: 'null.json', text: 'null' },
+      { name: 'list.json', text: '[1]' },
+      { name: 'text.json', text: '"options"' },
+      { name: 'number.json', text: '7' },
+    ]
+    for (const { name, text } of NOT_OBJECTS) {
+      const path = write(name, text)
+      expect(() => readServerOptions(path)).toThrow(`${path} is not a nucleus options object`)
+    }
+  })
+
+  it('refuses a file whose email block or smtp block is not an object', () => {
+    const email = write('email.json', '{"email":"smtp"}')
+    const smtp = write('smtp.json', '{"email":{"smtp":null}}')
+    expect(() => readServerOptions(email)).toThrow('is not a nucleus options object')
+    expect(() => loadServerOptions(smtp, COMPLETE)).toThrow('is not a nucleus options object')
+  })
+
+  it('lets a file that is not JSON fail the way JSON.parse does', () => {
+    expect(() => readServerOptions(write('broken.json', '{"appId":'))).toThrow()
+  })
+
+  it('applies the switch after the check', () => {
+    const path = write('switch.json', '{"email":{"smtp":{"enabled":false,"host":"SMTP_HOST"}}}')
+    expect(loadServerOptions(path, COMPLETE).email?.smtp?.enabled).toBe(true)
+    expect(loadServerOptions(path, EMPTY).email?.smtp?.enabled).toBe(false)
   })
 })

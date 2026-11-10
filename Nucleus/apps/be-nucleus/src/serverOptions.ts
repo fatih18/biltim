@@ -17,6 +17,10 @@ import type { CreateNucleusServerOptions } from 'nucleus-core-ts/server'
  * settings would log `[SmtpEmailService] No host configured` over and over. So the flag stays
  * `false` in the file and is set here, once at boot, from what the environment actually holds:
  * complete credentials switch the provider on, anything less leaves it off and silent.
+ *
+ * Mail needs two things on the server: these SMTP_* values AND the `nodemailer` package, which
+ * nucleus loads lazily and which is not in package.json (see `mail/mailer.ts`). A change to
+ * either takes a restart of the backend: the switch is decided here, once, not per request.
  */
 
 /** What createNucleusServer takes as `config.options` once it is an object. */
@@ -80,8 +84,38 @@ export function withSmtpSwitch(options: ServerOptions, env: Env): ServerOptions 
   }
 }
 
+/** A JSON value, the widest thing `JSON.parse` can hand back. */
+type Json = string | number | boolean | null | Json[] | { [key: string]: Json }
+
+type JsonObject = { [key: string]: Json }
+
+function isJsonObject(value: Json | undefined): value is JsonObject {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/**
+ * Whether a parsed object can be read as nucleus options: the part this file touches, the `email`
+ * block and its `smtp` block, must be objects where they exist. The rest of the file is nucleus's
+ * own to validate at boot; checking it here would only copy its rules.
+ */
+export function isServerOptions(value: object): value is ServerOptions {
+  const email: Json | undefined = Reflect.get(value, 'email')
+  if (email === undefined) return true
+  if (!isJsonObject(email)) return false
+  const smtp = email.smtp
+  return smtp === undefined || isJsonObject(smtp)
+}
+
+/** The file as it stands, read the way nucleus reads a path and checked with `isServerOptions`; throws when it is not options. */
+export function readServerOptions(path: string): ServerOptions {
+  const parsed: Json = JSON.parse(readFileSync(path, 'utf-8'))
+  if (!isJsonObject(parsed) || !isServerOptions(parsed)) {
+    throw new Error(`${path} is not a nucleus options object: a JSON object whose "email" and "email.smtp" are objects`)
+  }
+  return parsed
+}
+
 /** Reads config.json from the working directory the way nucleus does for a path, then applies `withSmtpSwitch`. */
 export function loadServerOptions(path: string, env: Env = process.env): ServerOptions {
-  const parsed: ServerOptions = JSON.parse(readFileSync(path, 'utf-8'))
-  return withSmtpSwitch(parsed, env)
+  return withSmtpSwitch(readServerOptions(path), env)
 }
