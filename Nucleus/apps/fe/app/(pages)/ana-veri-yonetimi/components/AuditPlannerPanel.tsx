@@ -3,10 +3,14 @@
 import React from "react";
 import type { Audit, AuditStatus, LocationEntity, User } from "./types";
 import { normalizeName } from "./utils";
-import { Badge, DangerButton, Input, PrimaryButton, Select } from "./ui";
+import { Badge, DangerButton, Input, PrimaryButton, SecondaryButton, Select } from "./ui";
 import { ChevronRight } from "lucide-react";
 import { DateInput } from "@/app/_components/DateInput";
+import { DateConflictNotice } from "@/app/_components/DateConflictNotice";
 import { auditStatusLabelTr } from "@/app/_utils/StatusLabels";
+import { findDateConflicts } from "@/app/_utils/dateConflicts";
+import { plannerConflictWorld } from "../_utils/conflictWorld";
+import { ParentPlanEditForm, type ParentPlanEdit } from "../_components/ParentPlanEditForm";
 
 type AuditTeam = { id: string; name: string; leaderUserId?: string | null };
 
@@ -32,6 +36,11 @@ export function AuditPlannerPanel(props: {
   onUpdateStatus: (id: string, status: AuditStatus) => void;
   onUpdateDate: (id: string, newDate: string, newCount: number) => void;
   onDelete: (id: string) => void;
+  /**
+   * Save a period plan's new name and range; answers whether it was saved
+   * (R68, R69). Offered to Merkez Ekip, Super Admin and the godmin only.
+   */
+  onUpdateParentPlan?: (id: string, next: ParentPlanEdit) => Promise<boolean>;
   /** Active team memberships, for the auditor clash (#26) and field-manager (#13) checks. */
   teamMembers?: Array<{ teamId: string; userId: string }>;
   /** The godmin moves any date any number of times, spending nothing (#32). */
@@ -47,6 +56,8 @@ export function AuditPlannerPanel(props: {
   const teamMembers = props.teamMembers ?? [];
   const isGod = props.isGod ?? false;
   const canFinish = isGod || (props.isAdmin ?? false);
+  // The same people who finish an audit revise a period (R68, R69).
+  const canEditPeriod = canFinish && !!props.onUpdateParentPlan;
 
   /** The team's people: its leader and its active members. */
   const peopleOf = (teamId: string) =>
@@ -109,6 +120,7 @@ export function AuditPlannerPanel(props: {
   const [ppTitle, setPpTitle] = React.useState("");
   const [ppOpen, setPpOpen] = React.useState(false);
   const [expandedParentIds, setExpandedParentIds] = React.useState<Set<string>>(new Set());
+  const [editingParentId, setEditingParentId] = React.useState<string | null>(null);
 
   // ── Sub-plan form ───────────────────────────────────────────────────────────
   const [plannedDate, setPlannedDate] = React.useState("");
@@ -150,86 +162,36 @@ export function AuditPlannerPanel(props: {
     (plannedDate < selectedParentRange.start || plannedDate > selectedParentRange.end)
   );
 
-  // ── Conflict detection ─────────────────────────────────────────────────────
-  function detectConflicts(date: string, teamId: string, locId: string, excludeId?: string): string[] {
-    if (!date || !teamId || !locId) return [];
-    const same = subPlans.filter((a) => a.plannedDate === date && a.id !== excludeId && a.status !== "cancelled");
-    const warns: string[] = [];
-
-    const selTeam = teams.find((t) => t.id === teamId);
-
-    const teamConflict = same.find((a) => a.assignedTeamId === teamId);
-    if (teamConflict) {
-      const tName = selTeam?.name ?? teamId;
-      const cLoc = locations.find((l) => l.id === teamConflict.locationId)?.name ?? "-";
-      warns.push(`"${tName}" ekibi bu tarihte "${cLoc}" denetiminde görevli.`);
-    }
-
-    const leaderId = selTeam?.leaderUserId;
-    if (leaderId) {
-      const leaderConflict = same.find(
-        (a) => a.assignedTeamId !== teamId && teams.find((t) => t.id === a.assignedTeamId)?.leaderUserId === leaderId
-      );
-      if (leaderConflict) {
-        const leaderName = users.find((u) => u.id === leaderId)?.name ?? leaderId;
-        const cLoc = locations.find((l) => l.id === leaderConflict.locationId)?.name ?? "-";
-        const cTeam = teams.find((t) => t.id === leaderConflict.assignedTeamId)?.name ?? "-";
-        warns.push(`Ekip lideri (${leaderName}) bu tarihte "${cLoc}" denetiminde (${cTeam}) görevli.`);
-      }
-    }
-
-    // #26: one of this team's auditors is already on another team's audit that day.
-    const mine = peopleOf(teamId);
-    for (const plan of same) {
-      if (plan.assignedTeamId === teamId) continue;
-      /*
-       * The leader is left out only where the leader warning above already
-       * names them — the other team is LED by the same person. When our
-       * leader is merely a member of that other team, no leader warning fires,
-       * and dropping them here hid the clash altogether.
-       */
-      const otherLeaderId = teams.find((t) => t.id === plan.assignedTeamId)?.leaderUserId;
-      const leaderAlreadyWarned = !!leaderId && String(otherLeaderId ?? "") === String(leaderId);
-      const shared = [...peopleOf(plan.assignedTeamId)].filter(
-        (id) => mine.has(id) && !(leaderAlreadyWarned && id === String(leaderId))
-      );
-      if (shared.length > 0) {
-        const cLoc = locations.find((l) => l.id === plan.locationId)?.name ?? "-";
-        warns.push(`Denetçi (${shared.map(nameOf).join(", ")}) bu tarihte "${cLoc}" denetiminde de görevli.`);
-      }
-    }
-
-    const selLoc = locations.find((l) => l.id === locId);
-    const selFM = selLoc?.fieldManagerUserIds ?? [];
-    if (selFM.length > 0) {
-      for (const plan of same) {
-        if (plan.locationId === locId) continue;
-        const pLoc = locations.find((l) => l.id === plan.locationId);
-        const pFM = pLoc?.fieldManagerUserIds ?? [];
-        const overlap = selFM.filter((id) => pFM.includes(id));
-        if (overlap.length > 0) {
-          const names = overlap.map((uid) => users.find((u) => u.id === uid)?.name ?? uid).join(", ");
-          warns.push(`Saha sorumlusu (${names}) bu tarihte "${pLoc?.name ?? "-"}" denetiminde görevli.`);
-        }
-      }
-    }
-    return warns;
-  }
-
-  const createConflicts = React.useMemo(
-    () => detectConflicts(plannedDate, assignedTeamId, locationId),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [plannedDate, assignedTeamId, locationId, subPlans, locations, teams, users, teamMembers]
-  );
+  // ── Conflict detection (R28) ───────────────────────────────────────────────
+  // One shared check, so this screen and the home page answer the same way.
+  // A team and a day are enough; the location only adds the field manager check.
+  const conflictWorld = plannerConflictWorld({ audits, teams, locations, users, teamMembers });
+  const createConflicts = findDateConflicts(conflictWorld, {
+    date: plannedDate,
+    teamId: assignedTeamId,
+    locationId,
+  });
   const createClash = fieldManagerClash(assignedTeamId, locationId);
 
   function getEditConflicts(auditId: string, newDate: string): string[] {
     const a = subPlans.find((x) => x.id === auditId);
     if (!a) return [];
-    return detectConflicts(newDate, a.assignedTeamId, a.locationId, auditId);
+    return findDateConflicts(conflictWorld, {
+      planId: auditId,
+      date: newDate,
+      teamId: a.assignedTeamId,
+      locationId: a.locationId,
+    });
   }
 
   // ── Handlers ───────────────────────────────────────────────────────────────
+  // The form stays open when the server refuses, so what was typed is kept.
+  async function saveParentPlan(id: string, next: ParentPlanEdit): Promise<boolean> {
+    const saved = (await props.onUpdateParentPlan?.(id, next)) ?? false;
+    if (saved) setEditingParentId(null);
+    return saved;
+  }
+
   function submitParentPlan() {
     if (!ppQuarter || !ppStart || !ppEnd) return;
     onCreateParentPlan({ quarter: ppQuarter, dateRangeStart: ppStart, dateRangeEnd: ppEnd, title: normalizeName(ppTitle) || undefined });
@@ -344,7 +306,7 @@ export function AuditPlannerPanel(props: {
                           });
                         }
                       }}
-                      className="flex w-full cursor-pointer items-center justify-between gap-4 px-4 py-3 text-left transition-colors hover:bg-slate-100 hover:dark:bg-slate-800/40"
+                      className="flex w-full cursor-pointer flex-wrap items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-100 hover:dark:bg-slate-800/40"
                     >
                       <div className="flex items-center gap-3">
                         <ChevronRight
@@ -361,9 +323,22 @@ export function AuditPlannerPanel(props: {
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-wrap items-center gap-2 xs:gap-3">
                         <span className="text-[11px] text-slate-500 dark:text-slate-400">{childCount} denetim planı</span>
                         <Badge>{auditStatusLabelTr(pp.status)}</Badge>
+                        {canEditPeriod && (
+                          <SecondaryButton
+                            type="button"
+                            className="py-1"
+                            aria-expanded={editingParentId === pp.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingParentId(editingParentId === pp.id ? null : pp.id);
+                            }}
+                          >
+                            Düzenle
+                          </SecondaryButton>
+                        )}
                         <DangerButton
                           className="py-1"
                           onClick={(e) => {
@@ -375,6 +350,15 @@ export function AuditPlannerPanel(props: {
                         </DangerButton>
                       </div>
                     </div>
+
+                    {canEditPeriod && editingParentId === pp.id && (
+                      <ParentPlanEditForm
+                        plan={pp}
+                        childDates={childPlans.filter((c) => c.status !== "cancelled").map((c) => c.plannedDate)}
+                        onSave={saveParentPlan}
+                        onCancel={() => setEditingParentId(null)}
+                      />
+                    )}
 
                     {isExpanded && (
                       <div className="border-t border-slate-800/60 bg-slate-950/20">
@@ -414,9 +398,10 @@ export function AuditPlannerPanel(props: {
                                           value={editingDateVal}
                                           onChange={(v) => setEditingDateVal(v)}
                                         />
-                                        {editingDateVal && getEditConflicts(a.id, editingDateVal).map((w, i) => (
-                                          <p key={i} className="text-[11px] text-amber-700 dark:text-amber-300">⚠ {w}</p>
-                                        ))}
+                                        <DateConflictNotice
+                                          compact
+                                          warnings={editingDateVal ? getEditConflicts(a.id, editingDateVal) : []}
+                                        />
                                         <div className="flex gap-1">
                                           <button
                                             type="button"
@@ -558,14 +543,7 @@ export function AuditPlannerPanel(props: {
             </div>
           </div>
 
-          {createConflicts.length > 0 && (
-            <div className="rounded-md border border-amber-500/30 bg-amber-100 dark:bg-amber-500/10 px-3 py-2 space-y-1">
-              <p className="text-[11px] font-semibold text-amber-700 dark:text-amber-300">⚠ Çakışma Uyarısı</p>
-              {createConflicts.map((w, i) => (
-                <p key={i} className="text-[11px] text-amber-700 dark:text-amber-200">{w}</p>
-              ))}
-            </div>
-          )}
+          <DateConflictNotice warnings={createConflicts} />
 
           {createClash.length > 0 && (
             <div className="rounded-md border border-rose-500/40 bg-rose-100 dark:bg-rose-500/10 px-3 py-2">
@@ -620,9 +598,10 @@ export function AuditPlannerPanel(props: {
                             value={editingDateVal}
                             onChange={(v) => setEditingDateVal(v)}
                           />
-                          {editingDateVal && getEditConflicts(a.id, editingDateVal).map((w, i) => (
-                            <p key={i} className="text-[11px] text-amber-700 dark:text-amber-300">⚠ {w}</p>
-                          ))}
+                          <DateConflictNotice
+                            compact
+                            warnings={editingDateVal ? getEditConflicts(a.id, editingDateVal) : []}
+                          />
                           <div className="flex gap-1">
                             <button
                               type="button"

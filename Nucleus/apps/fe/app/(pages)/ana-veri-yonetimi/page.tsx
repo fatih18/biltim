@@ -17,6 +17,7 @@ import {
 import { useGenericApiActions } from "@/app/_hooks/UseNucleusApi";
 import { readListResponse } from "@/app/_hooks/UseServerList";
 import { TeamsTab } from "./components/TeamsTab";
+import type { ParentPlanEdit } from "./_components/ParentPlanEditForm";
 import { toast } from "sonner";
 import { useGetUserRole } from "@/app/_hooks/user/useGetUserRole";
 import { ADMIN_ROLES, hasPrivilege } from "@/app/_utils/routeAccess";
@@ -355,19 +356,43 @@ export default function Page() {
      */
     const [teamMembers, setTeamMembers] = React.useState<Array<{ teamId: string; userId: string }>>([]);
     const fetchTeamMembers = React.useCallback(() => {
-        const start = safeStart(actionsRef.current as any, TEAM_KEYS.MEMBERS);
+        const start = safeStart(actionsRef.current, TEAM_KEYS.MEMBERS);
         if (!start) return;
-        start({
-            payload: { page: 1, limit: 5000, filters: { is_active: true } },
-            onAfterHandle: (res: any) => {
-                setTeamMembers(
-                    extractArray(res)
-                        .map((m: any) => ({ teamId: String(m?.team_id ?? m?.teamId ?? ""), userId: String(m?.user_id ?? m?.userId ?? "") }))
-                        .filter((m: { teamId: string; userId: string }) => m.teamId && m.userId)
-                );
-            },
-            onErrorHandle: (error: any) => console.error(`${TEAM_KEYS.MEMBERS} error`, error),
-        });
+        /*
+         * Every page. nucleus clamps a page to 200 whatever `limit` says, and a
+         * member missing here is an auditor the same-day clash warning (R28)
+         * cannot see: it only knows the people it was given.
+         */
+        const PAGE = 200;
+        const collected: Array<{ teamId: string; userId: string }> = [];
+        const readPage = (page: number) =>
+            start({
+                payload: {
+                    page,
+                    limit: PAGE,
+                    filters: { is_active: true },
+                    // A fixed order, so no row moves between pages while they are read.
+                    orderBy: [
+                        { column: "created_at", direction: "asc" },
+                        { column: "id", direction: "asc" },
+                    ],
+                },
+                onAfterHandle: (res: object) => {
+                    const rows = extractArray(res);
+                    collected.push(
+                        ...rows
+                            .map((m) => ({ teamId: String(m?.team_id ?? m?.teamId ?? ""), userId: String(m?.user_id ?? m?.userId ?? "") }))
+                            .filter((m) => m.teamId && m.userId)
+                    );
+                    if (rows.length === PAGE && page < 50) {
+                        readPage(page + 1);
+                        return;
+                    }
+                    setTeamMembers(collected);
+                },
+                onErrorHandle: (error: object) => console.error(`${TEAM_KEYS.MEMBERS} error`, error),
+            });
+        readPage(1);
     }, []);
 
     const fetchTeams = React.useCallback(() => {
@@ -777,6 +802,47 @@ export default function Page() {
         });
     }, []);
 
+    /*
+     * R68, R69: Merkez Ekip revises a period plan's name and date range. The
+     * server refuses anyone else, a range that runs backwards, and one that
+     * would leave an audit plan outside it; its message goes to the toast and
+     * the form stays open. Answers whether it was saved.
+     */
+    const updateParentPlan = (id: string, next: ParentPlanEdit) =>
+        new Promise<boolean>((resolve) => {
+            const start = safeStart(actionsRef.current, PLAN_KEYS.UPDATE);
+            if (!start) {
+                resolve(false);
+                return;
+            }
+            start({
+                payload: {
+                    _id: id,
+                    quarter: next.quarter,
+                    date_range_start: next.dateRangeStart,
+                    date_range_end: next.dateRangeEnd,
+                },
+                onAfterHandle: () => {
+                    setAuditPlans((prev) =>
+                        prev.map((x) =>
+                            x.id === id
+                                ? { ...x, quarter: next.quarter, dateRangeStart: next.dateRangeStart, dateRangeEnd: next.dateRangeEnd }
+                                : x
+                        )
+                    );
+                    toast.success("Dönem planı güncellendi.");
+                    resolve(true);
+                },
+                onErrorHandle: (error: { name?: string }) => {
+                    if (error?.name !== "AbortError") {
+                        console.error(`${PLAN_KEYS.UPDATE} (period) error`, error);
+                        toast.error(serverMessage(error, "Dönem planı güncellenemedi."));
+                    }
+                    resolve(false);
+                },
+            });
+        });
+
     const updatePlanStatus = React.useCallback((id: string, status: string) => {
         const A = actionsRef.current as any;
         const key = PLAN_KEYS.UPDATE;
@@ -933,6 +999,7 @@ export default function Page() {
                         }}
                         onUpdateStatus={(id, status) => updatePlanStatus(id, status)}
                         onUpdateDate={(id, date, count) => updatePlanDate(id, date, count)}
+                        onUpdateParentPlan={updateParentPlan}
                         onDelete={(id) => void deletePlan(id)}
                         teamMembers={teamMembers}
                         isGod={isGod}

@@ -7,6 +7,7 @@ import { SkeletonTable } from "@/app/_components/Global/Skeleton";
 import type { TeamInfo, AuditPlanRow, LocInfo, HomeTab, DateEditRule } from "../page";
 import { TeamLeaderWithMembersTooltip } from "./TeamLeaderWithMembersTooltip";
 import { DateInput } from "@/app/_components/DateInput";
+import { DateConflictNotice } from "@/app/_components/DateConflictNotice";
 import { auditStatusLabelTr } from "@/app/_utils/StatusLabels";
 
 type AuditTeamLite = { id: string; name?: string | null; isActive: boolean };
@@ -280,9 +281,10 @@ export function HomeAuditListPanel(props: {
                                                         ⚠ Seçilen tarih ana plan aralığı dışında
                                                     </p>
                                                 )}
-                                                {editDate && getDateConflicts?.(p.id, editDate).map((w, i) => (
-                                                    <p key={i} className="text-[11px] text-amber-700 dark:text-amber-300">⚠ {w}</p>
-                                                ))}
+                                                <DateConflictNotice
+                                                    compact
+                                                    warnings={editDate ? (getDateConflicts?.(p.id, editDate) ?? []) : []}
+                                                />
                                                 <div className="flex gap-1">
                                                     <button
                                                         className="rounded-md border border-emerald-800/60 bg-emerald-100 dark:bg-emerald-950/30 px-3 py-1 text-xs text-emerald-700 dark:text-emerald-200 hover:bg-emerald-950/50 disabled:opacity-50"
