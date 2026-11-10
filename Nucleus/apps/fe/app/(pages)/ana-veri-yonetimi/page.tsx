@@ -23,6 +23,8 @@ import { toast } from "sonner";
 import { useGetUserRole } from "@/app/_hooks/user/useGetUserRole";
 import { ADMIN_ROLES, hasPrivilege } from "@/app/_utils/routeAccess";
 import { confirmDialog } from "@/app/_components/Global/ConfirmDialog";
+import { attachRoles } from "@/app/_utils/userRoles";
+import { readFailureMessage } from "./_utils/readFailure";
 
 type MasterKind = "actions" | "findingTypes" | "locations";
 
@@ -283,52 +285,17 @@ export default function Page() {
                  * with roles absent the rule passed ANYONE. It showed a warning
                  * saying so and listed every user.
                  *
-                 * The mapping lives in its own table, so it is read from there
+                 * The mapping lives in its own tables, so it is read from there
                  * and attached here, once, for every screen taking `users`.
+                 * Every page of both tables (`app/_utils/userRoles`): one read
+                 * gives 200 rows at most, so a user past the 200th assignment
+                 * would otherwise have no roles.
                  */
-                const attachRoles = (withRoles: Map<string, string[]>) => {
-                    setUsers(
-                        mapped.map((u: any) => ({ ...u, roles: (withRoles.get(String(u.id)) ?? []).map((name) => ({ name })) }))
-                    );
+                attachRoles(mapped, safeStart(A, "GET_ROLES"), safeStart(A, "GET_USER_ROLES"), () =>
+                    toast.error(readFailureMessage("roles"))
+                ).then((withRoles) => {
+                    setUsers(withRoles);
                     setUsersLoading(false);
-                };
-
-                const startRoles = safeStart(A, "GET_ROLES");
-                const startUserRoles = safeStart(A, "GET_USER_ROLES");
-                if (!startRoles || !startUserRoles) {
-                    setUsers(mapped);
-                    setUsersLoading(false);
-                    return;
-                }
-
-                const asPromise = (start: any, payload: any) =>
-                    new Promise<any[]>((resolve) => {
-                        start({
-                            payload,
-                            onAfterHandle: (r: any) => resolve(extractArray(r)),
-                            onErrorHandle: () => resolve([]),
-                        });
-                    });
-
-                Promise.all([
-                    asPromise(startRoles, { page: 1, limit: 200 }),
-                    asPromise(startUserRoles, { page: 1, limit: 2000 }),
-                ]).then(([roleRows, userRoleRows]) => {
-                    const roleName = new Map<string, string>();
-                    for (const r of roleRows) {
-                        const id = String((r as any)?.id ?? "");
-                        const name = String((r as any)?.name ?? "");
-                        if (id && name) roleName.set(id, name);
-                    }
-                    const byUser = new Map<string, string[]>();
-                    for (const ur of userRoleRows) {
-                        const uid = String((ur as any)?.userId ?? (ur as any)?.user_id ?? "");
-                        const rid = String((ur as any)?.roleId ?? (ur as any)?.role_id ?? "");
-                        const name = roleName.get(rid);
-                        if (!uid || !name) continue;
-                        byUser.set(uid, [...(byUser.get(uid) ?? []), name]);
-                    }
-                    attachRoles(byUser);
                 });
             },
             onError: (error) => {
@@ -338,7 +305,7 @@ export default function Page() {
                 }
                 console.error("GET_USERS error", error);
                 setUsersLoading(false);
-
+                toast.error(readFailureMessage("users"));
             },
         });
     }, []);
@@ -432,7 +399,7 @@ export default function Page() {
                 }
                 console.error(`${key} error`, error);
                 setTeamsLoading(false);
-
+                toast.error(readFailureMessage("teams"));
             },
         });
     }, []);
@@ -484,7 +451,7 @@ export default function Page() {
                     }
                     console.error(`${key} error`, error);
                     setLoading(kind, false);
-
+                    toast.error(readFailureMessage(kind));
                 },
             });
         },
