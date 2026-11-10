@@ -3684,7 +3684,7 @@ export default function FiveSAuditFormPage() {
     const singleLocResp = locationResponsibleMap.get(normLoc(loc || '')) ?? null
 
     try {
-      const created = await startAsPromise((actions as any).ADD_FIVE_S_FINDING?.start, {
+      const created = await startAsPromise(actions.ADD_FIVE_S_FINDING?.start, {
         payload: {
           audit_id: auditId,
           question_id: singleFinding.linkedQuestionId || undefined,
