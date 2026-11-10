@@ -275,7 +275,7 @@ Her satır arayüzden izlenebilir bir adım dizisidir; "beklenen" sütunu neyin 
 
 18. **Mükerrer açık bulguların tek satırda toplanması**  _[düşük · okur]_
    - Adımlar: Aynı soruya (question_id) ve aynı lokasyona ait, durumu "Açık" olan birden fazla bulgu bulunan bir listeyi aç ve "Tip" sütununa bak.
-   - Beklenen: Bu bulgular tek satırda gösterilir; "Tip" değerinin yanında sarı rozette "+N tekrar" yazar ve üstüne gelince "Aynı soru ve lokasyon için tekrar eden açık bulgular tekilleştirildi" ipucu çıkar. Bu tamamen tarayıcıda yapılır: sunucudan gelen satır sayısı değişmez, dolayısıyla üstteki "N bulgu · M tanesi yüklendi" sayacı tablodaki satır sayısından FAZLA olur. Kapanmış/devam eden bulgular ve question_id'si olmayanlar hiç birleştirilmez.
+   - Beklenen: Bu bulgular tek satırda gösterilir; "Tip" değerinin yanında sarı rozette "+N tekrar" yazar ve üstüne gelince "Aynı soru ve lokasyon için tekrar eden bulgular tek satırda gösteriliyor; kayıtlar silinmedi" ipucu çıkar. Aynı denetimin (aynı "Ana Denetim" adı) aynı soru ve lokasyon için KAPANMIŞ ikizleri de tek satırda toplanır; farklı denetimlerin kapanmış bulguları ayrı kalır. Bu tamamen tarayıcıda yapılır: sunucudan gelen satır sayısı değişmez, dolayısıyla üstteki "N bulgu · M tanesi yüklendi" sayacı tablodaki satır sayısından FAZLA olur. "Devam ediyor" durumundakiler açıklarla birleşir; question_id'si olmayanlar hiç birleştirilmez.
    - Roller: Sayfayı açabilen herkes
 
 19. **Bulgu durumunu "Devam ediyor" yapma**  _[orta · yazar]_
@@ -932,9 +932,9 @@ Her satır arayüzden izlenebilir bir adım dizisidir; "beklenen" sütunu neyin 
    - Beklenen: Tek kutuda 'Planlanan denetimler kontrol ediliyor...' yazısı görünür; plan/liste/form hiç render edilmez. Atama çağrıları bitince kutu kaybolur.
    - Roller: Giriş yapmış herkes. /denetim ROUTE_REQUIREMENTS içinde yok, rol kapısı yok (routeAccess/index.ts:66).
 
-2. **Kendi ekibine ait çoklu plan seçim ekranı**  _[düşük · okur]_
-   - Adımlar: Kullanıcının üyesi olduğu ekibe is_active=true, status='planned', audit_id=null olan EN AZ İKİ plan atanmışken /denetim aç.
-   - Beklenen: 'Denetim Seç' başlığı ve altında 'Ekibinize atanmış birden fazla planlı denetim var. Lütfen hangi denetimi yapacağınızı seçin.' metni; her plan için lokasyon adı, 'Ekip:', 'Tarih:' ve 'Seç →' içeren kart listelenir.
+2. **Kendi ekibine ait plan seçim ekranı (tek plan da dahil)**  _[YÜKSEK · okur]_
+   - Adımlar: Kullanıcının üyesi olduğu ekibe is_active=true, status='planned', audit_id=null olan BİR ya da daha fazla plan atanmışken /denetim aç (adreste planId yok).
+   - Beklenen: Denetim formu kendiliğinden AÇILMAZ (tek plan olsa bile). 'Denetim Seç' başlığı ve altında 'Ekibinize atanmış planlı denetimler aşağıda. Denetime başlamak için birini seçin; seçmediğiniz sürece hiçbir denetim başlamaz.' metni; her plan için lokasyon adı, 'Ekip:', 'Tarih:' ve 'Denetime Başla →' içeren kart listelenir. Tekil bulgu yetkisi olan rolde kartların altında 'Denetim yapmadan bulgu girin' bölümü ve 'Tekil Bulgu +' düğmesi görünür: bu düğmeyle kaydedilen bulgu plana bağlanmaz, bağlı soru isteğe bağlıdır, lokasyon modalda seçilir ve saha sorumlusu lokasyondan gelir; 'Ana Denetim' sütununda 'Tekil Bulgu' yazar.
    - Roller: Plana atanmış ekibin üyesi veya lideri (memberSetByTeam, page.tsx:1151-1171).
 
 3. **Yetkiliye tüm açık planların listelenmesi**  _[YÜKSEK · okur]_
@@ -943,14 +943,14 @@ Her satır arayüzden izlenebilir bir adım dizisidir; "beklenen" sütunu neyin 
    - Roller: hasPrivilege(names,['manager','planner','superadmin']) — godmin her zaman geçer. DİKKAT: normalizeRoleName 'Super Admin' rolünü 'super admin' yapar, listede 'superadmin' (bitişik) yazdığı için düz super admin GEÇMEZ; sadece godmin geçer (routeAccess/index.ts:38-48, page.tsx:483-487).
 
 4. **Listeden plan seçme**  _[düşük · okur]_
-   - Adımlar: 'Denetim Seç' ekranında bir plan kartına ('Seç →') tıkla.
+   - Adımlar: 'Denetim Seç' ekranında bir plan kartına ('Denetime Başla →') tıkla.
    - Beklenen: Ekran tam denetim formuna döner; başlıktaki 'Plan:' satırında seçilen planın ekip adı, lokasyonu ve planlanan tarihi görünür; 'Ekip' ve 'Lokasyon' salt-okunur kutuları dolar; 'Denetimi Yapan' listesi o planın ekip üyeleriyle dolar.
    - Roller: Ekran 2'ye ulaşabilen herkes.
 
 5. **URL'den planId ile doğrudan plan açma**  _[orta · okur]_
    - Adımlar: Ana sayfadan bir plana tıkla ya da adres çubuğuna /denetim?planId=<plan uuid> yaz.
-   - Beklenen: Plan seçim ekranı hiç gösterilmez, doğrudan o planın formu açılır; başlıktaki 'Plan:' satırı o planın lokasyon/tarihini gösterir. planId kullanıcının KENDİ ekibine ait değilse parametre yok sayılır ve normal akış (seçim ekranı veya 'plan yok' ekranı) gelir.
-   - Roller: Yalnızca planın atandığı ekibin üyesi; matched listesinde aranıyor (page.tsx:1179).
+   - Beklenen: Plan seçim ekranı hiç gösterilmez, doğrudan o planın formu açılır (bu, denetimin açıkça başlatıldığı iki yoldan biridir; öteki listeden plan seçmektir); başlıktaki 'Plan:' satırı o planın lokasyon/tarihini gösterir. planId kullanıcının açabileceği bir plan değilse parametre yok sayılır ve normal akış (seçim ekranı veya 'plan yok' ekranı) gelir.
+   - Roller: Planın atandığı ekibin üyesi; her planı açabilen roller (manager, content manager core team, super admin, godmin) ekibi dışındaki bir planı da buradan başlatır (denetim/_utils/planEntry.ts).
 
 6. **Plan yokken 'Tekrar Kontrol Et'**  _[düşük · okur]_
    - Adımlar: 'Ekibinize planlanan bir denetim yok' ekranında 'Tekrar Kontrol Et' düğmesine bas.

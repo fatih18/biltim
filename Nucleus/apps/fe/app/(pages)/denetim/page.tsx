@@ -32,8 +32,6 @@ import {
   type AnswerRowPayload,
   scoreAudit,
   formatScore,
-  isExplanationRequired,
-  mapOpenFindingsByQuestion,
   RATING_FACTOR,
   requiresNewFinding,
   TARGET_SCORE,
@@ -47,6 +45,20 @@ import {
   isAuditPassive,
 } from './_utils/attendance'
 import { NOT_ATTENDED_CONFIRM, noAnswersNotice, unknownAttendanceWarning } from './_utils/attendanceText'
+import { OpenFindingNotice } from './_components/OpenFindingNotice'
+import { PhotoPreviewOverlay } from './_components/PhotoPreviewOverlay'
+import { StandaloneFindingEntry } from './_components/StandaloneFindingEntry'
+import { decidePlanEntry } from './_utils/planEntry'
+import {
+  explanationMissing,
+  findingNoOf,
+  openFindingsFor,
+  queuedSubmissionLabel,
+  singleFindingHeading,
+  singleFindingMode,
+  singleFindingTitle,
+  type SessionFinding,
+} from './_utils/singleFinding'
 
 /* ───────────────────────────── Types ───────────────────────────── */
 type Rating = 'good' | 'medium' | 'bad'
@@ -671,6 +683,12 @@ export default function FiveSAuditFormPage() {
   })
 
   const [assignmentLoading, setAssignmentLoading] = useState(true)
+  /*
+   * The planned audit the person STARTED, null otherwise. Set only by an
+   * explicit start (the address names the plan, or it is picked from the list)
+   * or by the correction of a sent audit — never because an audit is assigned
+   * (R16; planEntry.ts). It decides whether "Tekil Bulgu" is in-audit or alone.
+   */
   const [assignedPlan, setAssignedPlan] = useState<PlanRow | null>(null)
   const [currentUserId, setCurrentUserId] = useState<string>('')
 
@@ -704,6 +722,13 @@ export default function FiveSAuditFormPage() {
    * finding for the very defect just recorded.
    */
   const [queuedSingleFindings, setQueuedSingleFindings] = useState<Array<{ questionId: string; location: string }>>([])
+  /*
+   * Single findings this screen saved online, linked to a question. The server
+   * read that follows can lag, fail or fall back to an older snapshot; until it
+   * lists them they are still the question's open finding, or the form asked
+   * for a second finding on the question just recorded (Notlar 22.10, R2/R17).
+   */
+  const [sessionFindings, setSessionFindings] = useState<SessionFinding[]>([])
   /** Queued submissions the server refused (setAsideAt), shown with the reason. */
   const [refusedSubmissions, setRefusedSubmissions] = useState<Array<{ id: string; label: string; error: string }>>([])
   const [activeFinding, setActiveFinding] = useState<FiveSFindingLite | null>(null)
@@ -731,11 +756,16 @@ export default function FiveSAuditFormPage() {
   }
   // Madde 1: Açık bulgusu olan sorular (soru satırı uyarısı için)
   // Question id -> the numbers of its open findings (#35: the row shows "#7",
-  // not just a count). Rules in scoring.ts → mapOpenFindingsByQuestion.
+  // not just a count). Rules in singleFinding.ts → openFindingsFor.
   const openFindingsByQuestion = useMemo(
-    () => mapOpenFindingsByQuestion(findings, queuedQuestionIdsAt(header.department)),
+    () =>
+      openFindingsFor(header.department, {
+        findings,
+        queuedQuestionIds: queuedQuestionIdsAt(header.department),
+        session: sessionFindings,
+      }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [findings, queuedSingleFindings, header.department]
+    [findings, queuedSingleFindings, sessionFindings, header.department]
   )
 
   /*
@@ -904,7 +934,7 @@ export default function FiveSAuditFormPage() {
       const ans = answers[q.id]
       if (!ans || !ans.rating) { s.add(q.id); continue }
       if (isUnchangedStoredAnswer(q.id, ans.rating)) continue
-      if (isExplanationRequired(q, ans) && !ans.explanation.trim()) s.add(q.id)
+      if (explanationMissing(q, ans, openFindingsByQuestion.has(q.id))) s.add(q.id)
       if (needsFindingDetails(q.id, ans)) {
         if (!ans.findingType) s.add(q.id)
         if (!ans.actionToTake?.trim()) s.add(q.id)
@@ -1088,9 +1118,13 @@ export default function FiveSAuditFormPage() {
           .filter((s) => !!s.setAsideAt)
           .map((s) => ({
             id: s.id,
-            label: `${s.auditPayload?.source === 'single_finding' ? 'Tekil bulgu' : 'Denetim'} — ${
-              s.auditPayload?.department_name ?? '-'
-            } · ${s.auditPayload?.audit_date ?? '-'}`,
+            // R74: a single finding raised inside an audit is named after that audit.
+            label: queuedSubmissionLabel({
+              source: s.auditPayload?.source,
+              formTitle: s.findings?.[0]?.form_title,
+              department: s.auditPayload?.department_name,
+              date: s.auditPayload?.audit_date,
+            }),
             error: s.lastError ?? '',
           }))
       )
@@ -1845,7 +1879,11 @@ export default function FiveSAuditFormPage() {
     const qid = singleFinding.linkedQuestionId
     if (!singleFindingOpen || !qid || !singleFinding.location.trim()) return []
     const map = singleFindingOtherPlace
-      ? mapOpenFindingsByQuestion(singleFindingPlaceFindings, queuedQuestionIdsAt(singleFindingOtherPlace))
+      ? openFindingsFor(singleFindingOtherPlace, {
+          findings: singleFindingPlaceFindings,
+          queuedQuestionIds: queuedQuestionIdsAt(singleFindingOtherPlace),
+          session: sessionFindings,
+        })
       : openFindingsByQuestion
     return map.get(qid) ?? []
   })()
@@ -2291,8 +2329,21 @@ export default function FiveSAuditFormPage() {
         typeof window !== 'undefined'
           ? new URLSearchParams(window.location.search).get('planId')
           : null
-      if (urlPlanId) {
-        const target = matched.find((p) => String(p.id) === String(urlPlanId))
+      /*
+       * An audit starts only on purpose: the address names the plan ("Denetime
+       * Başla" on the home page) or the person picks it from the list. A lone
+       * assigned plan used to be attached here by itself, which left no way to
+       * file a plan-less single finding (Notlar 22.10, satır 16);
+       * `assignedPlan` is now set only by an explicit start.
+       */
+      const entry = decidePlanEntry({
+        requestedPlanId: urlPlanId,
+        ownPlanIds: matched.map((p) => String(p.id)),
+        openablePlanIds: activePlans.map((p) => String(p.id)),
+        canOpenAny: canOpenAnyPlanRef.current,
+      })
+      if (entry.kind === 'start') {
+        const target = activePlans.find((p) => String(p.id) === entry.planId)
         if (target) {
           const metaMapUrl: Record<string, { locationName: string; teamName: string }> = {
             [target.id]: {
@@ -2320,69 +2371,29 @@ export default function FiveSAuditFormPage() {
         }
       }
 
-      if (matched.length === 0 && canOpenAnyPlanRef.current && activePlans.length > 0) {
-        const metaAll: Record<string, { locationName: string; teamName: string }> = {}
-        for (const p of activePlans) {
-          metaAll[p.id] = {
+      if (entry.kind === 'choose') {
+        // Nothing started: the plans are offered next to "Tekil Bulgu +".
+        const offered = activePlans.filter((p) => entry.planIds.includes(String(p.id)))
+        const metaOffered: Record<string, { locationName: string; teamName: string }> = {}
+        for (const p of offered) {
+          metaOffered[p.id] = {
             locationName: locs.find((l) => l.id === p.location_id)?.name ?? '',
             teamName: teams.find((t) => t.id === p.assigned_team_id)?.name ?? '',
           }
         }
-        setPlanMetaMap(metaAll)
-        setAvailablePlans(activePlans)
-        setIsOwnTeamSelection(false)
+        setPlanMetaMap(metaOffered)
+        setAvailablePlans(offered)
+        setIsOwnTeamSelection(entry.own)
         setPlanSelectionMode(true)
         setHeader((prev) => ({ ...prev, auditorName: prev.auditorName || auditorFallback }))
         return
       }
 
-      if (matched.length === 0) {
-        setAssignedPlan(null)
-        setHeader((prev) => ({
-          ...prev,
-          auditorName: prev.auditorName || auditorFallback,
-        }))
-        return
-      }
-
-      const metaMap: Record<string, { locationName: string; teamName: string }> = {}
-      for (const p of matched) {
-        metaMap[p.id] = {
-          locationName: locs.find((l) => l.id === p.location_id)?.name ?? '',
-          teamName: teams.find((t) => t.id === p.assigned_team_id)?.name ?? '',
-        }
-      }
-      setPlanMetaMap(metaMap)
-
-      if (matched.length > 1) {
-        setAvailablePlans(matched)
-        setIsOwnTeamSelection(true)
-        setPlanSelectionMode(true)
-        setHeader((prev) => ({ ...prev, auditorName: prev.auditorName || auditorFallback }))
-        return
-      }
-
-      const chosen = matched[0]!
-      setAssignedPlan(chosen)
-
-      const teamName = metaMap[chosen.id]?.teamName ?? ''
-      const locName = metaMap[chosen.id]?.locationName ?? ''
-
-      const memberOpts = buildTeamMemberOptions(chosen.assigned_team_id, members, teams, usersById)
-      setTeamMemberOptions(memberOpts)
-
-      const nextHeader = {
-        teamName,
-        department: locName,
-        date: auditDateFor(chosen.planned_date, header.date),
-        auditorName: header.auditorName || auditorFallback,
-      } satisfies AuditFormHeader
-
-      setPlanDate(String(chosen.planned_date ?? '').slice(0, 10))
-      setHeader(nextHeader)
-
-      // ✅ draft restore (plan-based)
-      await tryRestoreDraft(chosen.id, nextHeader)
+      setAssignedPlan(null)
+      setHeader((prev) => ({
+        ...prev,
+        auditorName: prev.auditorName || auditorFallback,
+      }))
     } catch (e) {
       console.error('fetchAssignment error', e)
       setAssignedPlan(null)
@@ -2396,12 +2407,19 @@ export default function FiveSAuditFormPage() {
     setAssignedPlan(plan)
 
     const meta = planMetaMap[plan.id] ?? { teamName: '', locationName: '' }
+    /*
+     * The list is now the way into every audit, so this start must do what the
+     * address-named one does: the audit's date cannot run ahead of today (the
+     * API refuses a future audit), and the plan keeps its own date on the
+     * "Plan:" line.
+     */
     const nextHeader: AuditFormHeader = {
       teamName: meta.teamName,
       department: meta.locationName,
-      date: plan.planned_date || header.date,
+      date: auditDateFor(plan.planned_date, header.date),
       auditorName: header.auditorName,
     }
+    setPlanDate(String(plan.planned_date ?? '').slice(0, 10))
     setHeader(nextHeader)
 
     const { members, teams, usersById } = assignmentDataRef.current
@@ -2677,9 +2695,9 @@ export default function FiveSAuditFormPage() {
   /*
    * #3: which audit a finding came from, written on the finding itself so the
    * register can show and filter it. Same words as the backend's backfill of
-   * older rows (be-nucleus/src/boot.ts).
+   * older rows (be-nucleus/src/boot.ts). A single finding raised inside an audit
+   * carries this same name (R74; singleFinding.ts → singleFindingTitle).
    */
-  const SINGLE_FINDING_TITLE = 'Tekil Bulgu'
   const auditTitle = () => {
     const [y, m, d] = (header.date ?? '').slice(0, 10).split('-')
     return [header.department.trim(), y && m && d ? `${d}.${m}.${y}` : ''].filter(Boolean).join(' · ')
@@ -3055,7 +3073,7 @@ export default function FiveSAuditFormPage() {
       // Same rule as liveUnanswered: an answer a correction did not touch is not re-checked.
       if (isUnchangedStoredAnswer(q.id, ans.rating)) continue
 
-      if (isExplanationRequired(q, ans) && !ans.explanation.trim()) missing.add(q.id)
+      if (explanationMissing(q, ans, openFindingsByQuestion.has(q.id))) missing.add(q.id)
 
       if (needsFindingDetails(q.id, ans)) {
         if (!ans.findingType) missing.add(q.id)
@@ -3321,7 +3339,14 @@ export default function FiveSAuditFormPage() {
   }
 
   const saveSingleFinding = async () => {
-    const isNoPlanFlow = !assignedPlan
+    /*
+     * In an audit only when the person STARTED one (assignedPlan is set by an
+     * explicit start, never by an assignment alone): see singleFinding.ts →
+     * singleFindingMode. The audit's name goes on a finding raised inside it.
+     */
+    const mode = singleFindingMode(assignedPlan?.id)
+    const isNoPlanFlow = !mode.inAudit
+    const findingTitle = singleFindingTitle(mode, auditTitle())
     // The modal's own place and day, not the audit header's (see singleFinding.location).
     const loc = (singleFinding.location || '').trim()
     const findingDate = singleFinding.date
@@ -3354,8 +3379,10 @@ export default function FiveSAuditFormPage() {
      * the finding on the right line of the report. One raised outside any audit
      * has no question to belong to, so there it stays optional.
      */
-    if (!isNoPlanFlow && !singleFinding.linkedQuestionId) {
-      toast.error('Denetim sırasında girilen tekil bulgu bir soruya bağlanmalıdır.')
+    if (mode.questionRequired && !singleFinding.linkedQuestionId) {
+      toast.error(
+        'Bağlı soru seçilmedi. Denetim sırasında girilen tekil bulgu hangi soruya ait olduğu bilinmeden kaydedilemez; listeden bir soru seçin.'
+      )
       return
     }
     if (!singleFinding.findingType) { toast.error('Bulgu tipi zorunludur.'); return }
@@ -3376,7 +3403,11 @@ export default function FiveSAuditFormPage() {
       const openHere =
         normLoc(loc) === normLoc(header.department)
           ? openFindingsByQuestion
-          : mapOpenFindingsByQuestion(await readOpenFindings(loc), queuedQuestionIdsAt(loc))
+          : openFindingsFor(loc, {
+              findings: await readOpenFindings(loc),
+              queuedQuestionIds: queuedQuestionIdsAt(loc),
+              session: sessionFindings,
+            })
       const twins = openHere.get(singleFinding.linkedQuestionId) ?? []
       if (twins.length > 0) {
         const ok = await confirmDialog({
@@ -3428,7 +3459,7 @@ export default function FiveSAuditFormPage() {
             location_name: loc || 'Bilinmeyen Lokasyon',
             finding_type: singleFinding.findingType,
             description: [
-              'TEKİL BULGU',
+              singleFindingHeading(findingTitle),
               `Ekip: ${header.teamName || 'Content Manager Core Team'}`,
               singleFinding.linkedQuestionId ? `Bağlı Soru: ${singleFinding.linkedQuestionId}` : null,
               `Bulgu Tipi: ${singleFinding.findingType}`,
@@ -3439,7 +3470,7 @@ export default function FiveSAuditFormPage() {
             responsible_user_id: locationResponsibleMap.get(normLoc(loc))?.userId || null,
             action_to_take: singleFinding.actionToTake.trim(),
             due_date: singleFinding.dueDate || undefined,
-            form_title: SINGLE_FINDING_TITLE,
+            form_title: findingTitle,
           },
         ],
         lastError: null,
@@ -3534,7 +3565,7 @@ export default function FiveSAuditFormPage() {
     const beforeArr = toPhotoArr(uploadedPhotos)
 
     const descriptionLines: string[] = [
-      'TEKİL BULGU',
+      singleFindingHeading(findingTitle),
       `Ekip: ${header.teamName || 'Content Manager Core Team'}`,
       ...(singleFinding.linkedQuestionId
         ? [
@@ -3551,7 +3582,7 @@ export default function FiveSAuditFormPage() {
     const singleLocResp = locationResponsibleMap.get(normLoc(loc || '')) ?? null
 
     try {
-      await startAsPromise((actions as any).ADD_FIVE_S_FINDING?.start, {
+      const created = await startAsPromise((actions as any).ADD_FIVE_S_FINDING?.start, {
         payload: {
           audit_id: auditId,
           question_id: singleFinding.linkedQuestionId || undefined,
@@ -3569,13 +3600,22 @@ export default function FiveSAuditFormPage() {
           action_to_take: singleFinding.actionToTake.trim(),
           due_date: singleFinding.dueDate || undefined,
           auditor_name: header.auditorName.trim(),
-          form_title: SINGLE_FINDING_TITLE,
+          form_title: findingTitle,
 
           photo_before_files: beforeArr,
           photo_before_file_id: primary?.fileId,
           photo_before_url: primary?.fileUrl,
         },
       })
+
+      // The question's open finding from now on, whatever the next read says (R2/R17).
+      const linkedQuestionId = singleFinding.linkedQuestionId
+      if (linkedQuestionId) {
+        setSessionFindings((prev) => [
+          ...prev,
+          { questionId: linkedQuestionId, location: loc, findingNo: findingNoOf(created) },
+        ])
+      }
 
       toast.success('Tekil bulgu başarıyla kaydedildi.')
       setSingleFindingOpen(false)
@@ -3897,7 +3937,7 @@ export default function FiveSAuditFormPage() {
           <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">Denetim Seç</h2>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
             {isOwnTeamSelection
-              ? 'Ekibinize atanmış birden fazla planlı denetim var. Lütfen hangi denetimi yapacağınızı seçin.'
+              ? 'Ekibinize atanmış planlı denetimler aşağıda. Denetime başlamak için birini seçin; seçmediğiniz sürece hiçbir denetim başlamaz.'
               : 'Ekibinize atanmış planlı bir denetim yok. Yetkiniz olduğu için açık denetimlerin tamamı aşağıda listeleniyor.'}
           </p>
 
@@ -3920,13 +3960,19 @@ export default function FiveSAuditFormPage() {
                         Tarih: <span className="text-slate-700 dark:text-slate-300">{p.planned_date || '-'}</span>
                       </div>
                     </div>
-                    <span className="text-xs text-sky-700 dark:text-sky-400">Seç →</span>
+                    <span className="text-xs text-sky-700 dark:text-sky-400">Denetime Başla →</span>
                   </div>
                 </button>
               )
             })}
           </div>
+
+          {canCreateSingleFinding ? <StandaloneFindingEntry onOpen={openSingleFindingModal} /> : null}
+          {RefusedQueueNotice}
         </div>
+
+        {singleFindingModal}
+        <PhotoPreviewOverlay url={previewUrl} onClose={() => setPreviewUrl(null)} />
       </div>
     )
   }
@@ -4102,6 +4148,27 @@ export default function FiveSAuditFormPage() {
       </div>
     )
   }
+
+  /*
+   * The question detail modal's "(zorunlu)": the finding details are asked only
+   * where this answer needs a NEW finding; on a question that already has an
+   * open finding they are optional and nothing is written from them.
+   */
+  const detailsRequired =
+    activeQuestion && activeAnswer ? needsFindingDetails(activeQuestion.id, activeAnswer) : true
+  const detailsMark = (
+    <span className={detailsRequired ? 'text-rose-600 dark:text-rose-400' : 'text-slate-500 dark:text-slate-400'}>
+      {detailsRequired ? '(zorunlu)' : '(isteğe bağlı)'}
+    </span>
+  )
+  // The explanation follows explanationMissing: waived only by an open finding.
+  const explanationRequired =
+    !!activeQuestion && activeQuestion.requireExplanation && !openFindingsByQuestion.has(activeQuestion.id)
+  const explanationMark = (
+    <span className={explanationRequired ? 'text-rose-600 dark:text-rose-400' : 'text-slate-500 dark:text-slate-400'}>
+      {explanationRequired ? '(Orta/Kötü için zorunlu)' : '(isteğe bağlı)'}
+    </span>
+  )
 
   // Assigned plan flow (full audit form)
   return (
@@ -4436,14 +4503,7 @@ export default function FiveSAuditFormPage() {
                                     ⚠ Yanıt Gerekli
                                   </span>
                                 )}
-                                {openFindingsByQuestion.has(q.id) && (
-                                  <span
-                                    className="ml-2 inline-flex items-center rounded-sm bg-amber-500/20 px-1.5 py-0.5 text-[11px] font-semibold text-amber-900 dark:text-amber-300 ring-1 ring-amber-500/40"
-                                    title="Bu soruya bağlı henüz kapanmamış bulgu var"
-                                  >
-                                    ⚠ Açık bulgu {openFindingsByQuestion.get(q.id)?.join(', ')}
-                                  </span>
-                                )}
+                                <OpenFindingNotice labels={openFindingsByQuestion.get(q.id) ?? []} rating={rating} />
                               </td>
 
                               {hasAnyDetails && (
@@ -4541,11 +4601,7 @@ export default function FiveSAuditFormPage() {
                               {isMissingMobile && (
                                 <span className="ml-1 inline-flex items-center rounded-sm bg-rose-500/20 px-1 py-0.5 text-[11px] font-semibold text-rose-400">⚠</span>
                               )}
-                              {openFindingsByQuestion.has(q.id) && (
-                                <span className="ml-1 inline-flex items-center rounded-sm bg-amber-500/20 px-1 py-0.5 text-[11px] font-semibold text-amber-700 dark:text-amber-300">
-                                  ⚠ Açık bulgu {openFindingsByQuestion.get(q.id)?.join(', ')}
-                                </span>
-                              )}
+                              <OpenFindingNotice labels={openFindingsByQuestion.get(q.id) ?? []} rating={rating} />
                             </div>
                             <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-600 dark:text-slate-400">
                               <span className="inline-flex items-center gap-1 rounded-full bg-slate-200 dark:bg-slate-800/80 px-2 py-0.5">
@@ -4674,7 +4730,10 @@ export default function FiveSAuditFormPage() {
             <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:justify-between">
               <div className="text-[11px] text-slate-600 dark:text-slate-400">
                 <p>* Puanlama; İyi / Orta / Kötü seçimine göre otomatik hesaplanır.</p>
-                <p>* Orta / Kötü seçimlerinde bulgu tipi, açıklama ve aksiyon alanları zorunludur.</p>
+                <p>
+                  * Orta / Kötü seçimlerinde bulgu tipi, açıklama ve aksiyon alanları zorunludur; soru zaten açık bir
+                  bulguya bağlıysa istenmez.
+                </p>
                 <p>* Offline iken kayıt kuyruğa alınır.</p>
               </div>
               <div className="flex flex-col items-end gap-1.5">
@@ -4728,6 +4787,10 @@ export default function FiveSAuditFormPage() {
                     {activeQuestion.stepCode} - {activeQuestion.text}
                   </h3>
                   <p className="mt-1 text-[11px] text-slate-600 dark:text-slate-400">Orta / Kötü değerlendirmeler için detayları doldurun.</p>
+                  <OpenFindingNotice
+                    labels={openFindingsByQuestion.get(activeQuestion.id) ?? []}
+                    rating={activeAnswer.rating}
+                  />
                 </div>
                 <button type="button" onClick={closeDetailModal} className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-800 hover:dark:text-slate-200">
                   ✕
@@ -4737,7 +4800,7 @@ export default function FiveSAuditFormPage() {
               <div className="mt-4 space-y-4 text-xs">
                 <div>
                   <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">
-                    Bulgu Tipi <span className="text-rose-400">(zorunlu)</span>
+                    Bulgu Tipi {detailsMark}
                   </label>
                   <select
                     value={activeAnswer.findingType ?? ''}
@@ -4769,7 +4832,7 @@ export default function FiveSAuditFormPage() {
 
                 <div>
                   <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">
-                    Açıklama <span className="text-rose-400">(Orta/Kötü için zorunlu)</span>
+                    Açıklama {explanationMark}
                   </label>
                   <textarea
                     rows={3}
@@ -4836,7 +4899,7 @@ export default function FiveSAuditFormPage() {
 
                 <div>
                   <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">
-                    Alınacak Faaliyet <span className="text-rose-400">(zorunlu)</span>
+                    Alınacak Faaliyet {detailsMark}
                   </label>
                   <select
                     value={activeAnswer.actionToTake ?? ''}
@@ -4862,7 +4925,7 @@ export default function FiveSAuditFormPage() {
 
                 <div>
                   <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">
-                    Termin Tarihi <span className="text-rose-400">(zorunlu)</span>
+                    Termin Tarihi {detailsMark}
                   </label>
                   <DateInput
                    
@@ -4874,7 +4937,7 @@ export default function FiveSAuditFormPage() {
 
                 <div>
                   <label className="mb-1 block font-medium text-slate-700 dark:text-slate-300">
-                    Tespit Edildiği Yer <span className="text-rose-400">(zorunlu)</span>
+                    Tespit Edildiği Yer {detailsMark}
                   </label>
                   <input
                     type="text"
