@@ -25,12 +25,12 @@ import {
   buildTeamMemberOptions,
   draftAuditorsOf,
   type AuditorOption,
-  recordedAuditorName,
   removedAuditorsNotice,
   settleAuditors,
-  withNamedAuditors,
+  withManualAuditors,
   withSignedInAuditor,
 } from './_utils/planAuditors'
+import { correctionAuditors } from './_utils/correctionAuditors'
 import { tallyQuestionWrites, writeQuestion } from './_utils/correctionWrites'
 import {
   correctionEnd,
@@ -1408,6 +1408,31 @@ export default function FiveSAuditFormPage() {
     })
   }
 
+  /*
+   * The names a restored draft may bring back (_utils/planAuditors): the team's
+   * current people, the signed-in person and people added by hand. Those added
+   * by hand get their tick in the menu again, so they can be taken off.
+   */
+  const settleDraftAuditors = (
+    recordedName: string | null | undefined,
+    recorded: readonly AuditorOption[] | null | undefined,
+    prefill: string,
+    allowed: AuditorOption[],
+  ) => {
+    const { signedIn, usersById } = assignmentDataRef.current
+    const settled = settleAuditors({
+      recordedName,
+      recorded,
+      allowed,
+      prefill,
+      signedIn,
+      everyone: [...usersById].map(([id, name]) => ({ id, name })),
+    })
+    if (settled.removed.length > 0) toast.message(removedAuditorsNotice(settled.removed, allowed.length > 0))
+    if (settled.manual.length > 0) setTeamMemberOptions((prev) => withManualAuditors(prev, settled.manual))
+    return settled
+  }
+
   // Madde 13: önce sunucu taslağı dene (başka kullanıcı/cihaz devri), yoksa lokal
   const tryRestoreServerDraft = async (planId: string, prefill: string, allowed: AuditorOption[]): Promise<boolean> => {
     if (typeof navigator !== 'undefined' && !navigator.onLine) return false
@@ -1429,16 +1454,10 @@ export default function FiveSAuditFormPage() {
       if (h && typeof h === 'object') {
         /*
          * The draft's names are a copy from when it was written, shared by the
-         * whole team: only the team's current people and the signed-in person
-         * come back from it (_utils/planAuditors).
+         * whole team: only the team's current people, the signed-in person and
+         * people added by hand come back from it (_utils/planAuditors).
          */
-        const settled = settleAuditors({
-          recordedName: h.auditorName,
-          recorded: h.auditors,
-          allowed,
-          prefill,
-        })
-        if (settled.removed.length > 0) toast.message(removedAuditorsNotice(settled.removed))
+        const settled = settleDraftAuditors(h.auditorName, h.auditors, prefill, allowed)
         setHeader((prev) => ({
           teamName: String(h.teamName ?? prev.teamName),
           department: String(h.department ?? prev.department),
@@ -1480,14 +1499,8 @@ export default function FiveSAuditFormPage() {
       const draft = await db.drafts.get(draftKey)
       if (!draft) return
 
-      // The same rule as the server draft: names come back only for the team's current people.
-      const settled = settleAuditors({
-        recordedName: draft.header?.auditorName,
-        recorded: draft.header?.auditors,
-        allowed,
-        prefill: h.auditorName,
-      })
-      if (settled.removed.length > 0) toast.message(removedAuditorsNotice(settled.removed))
+      // The same rule as the server draft.
+      const settled = settleDraftAuditors(draft.header?.auditorName, draft.header?.auditors, h.auditorName, allowed)
 
       /*
        * The draft is the real state — except for its date. A draft saved
@@ -2475,22 +2488,23 @@ export default function FiveSAuditFormPage() {
           hadAnswers: answerRows.length > 0,
         })
         setAnswers((prev) => ({ ...prev, ...loaded }))
+        // A sent audit keeps the names recorded on it; each of them also gets a tick of its own.
+        const correction = correctionAuditors({
+          teamId: plan ? plan.assigned_team_id : null,
+          members,
+          teams,
+          usersById,
+          recordedName: audit.auditor_name,
+        })
         if (plan) {
           setAssignedPlan(plan)
           setPlanDate(String(plan.planned_date ?? '').slice(0, 10))
-          // A sent audit keeps the names recorded on it; each of them also gets a tick of its own.
-          setTeamMemberOptions(
-            withNamedAuditors(
-              buildTeamMemberOptions(plan.assigned_team_id, members, teams, usersById),
-              audit.auditor_name,
-              [...usersById].map(([id, name]) => ({ id, name })),
-            ),
-          )
+          if (correction.options) setTeamMemberOptions(correction.options)
         }
         setHeader({
           teamName: (plan && teams.find((t) => t.id === plan.assigned_team_id)?.name) || '—',
           department: String(audit.department_name ?? ''),
-          auditorName: recordedAuditorName(audit.auditor_name),
+          auditorName: correction.auditorName,
           date: normalizeDateYYYYMMDD(String(audit.audit_date ?? '')) || header.date,
           fieldManagerAttended: initialFieldManagerAttended,
         })
@@ -4616,7 +4630,9 @@ export default function FiveSAuditFormPage() {
                                   const name = assignmentDataRef.current.usersById.get(extraAuditorId)
                                   if (!name) return
                                   setTeamMemberOptions((prev) =>
-                                    prev.some((m) => m.id === extraAuditorId) ? prev : [...prev, { id: extraAuditorId, name }]
+                                    prev.some((m) => m.id === extraAuditorId)
+                                      ? prev
+                                      : [...prev, { id: extraAuditorId, name, manual: true }]
                                   )
                                   if (!selectedAuditors.includes(name)) toggleAuditor(name)
                                   setExtraAuditorId('')

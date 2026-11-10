@@ -1,7 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
   buildTeamMemberOptions,
-  recordedAuditorName,
   removedAuditorsNotice,
   settleAuditors,
   withSignedInAuditor,
@@ -100,30 +99,15 @@ describe("settleAuditors — what a draft may bring back", () => {
     expect(settled.removed).toEqual(["Özge Neccar"]);
   });
 
-  it("with no list to judge by (a team with nobody to offer) the typed text is kept as it is", () => {
+  it("with nothing to judge by (no list and no signed-in person) the typed text is kept as it is", () => {
     const settled = settleAuditors({ recordedName: "Biri Birisi", allowed: [], prefill: "Sudenur Yaşa" });
-    expect(settled).toEqual({ auditorName: "Biri Birisi", removed: [] });
+    expect(settled).toEqual({ auditorName: "Biri Birisi", removed: [], manual: [] });
   });
 
   it("a draft that kept no names leaves the prefill; one that kept an empty field keeps it empty", () => {
     expect(settleAuditors({ recordedName: null, allowed: allowedNow(), prefill: "Sudenur Yaşa" }).auditorName).toBe("Sudenur Yaşa");
     expect(settleAuditors({ recordedName: undefined, allowed: allowedNow(), prefill: "Sudenur Yaşa" }).auditorName).toBe("Sudenur Yaşa");
     expect(settleAuditors({ recordedName: "", allowed: allowedNow(), prefill: "Sudenur Yaşa" }).auditorName).toBe("");
-  });
-});
-
-describe("recordedAuditorName — an audit that exists keeps its history", () => {
-  it("completed audit keeps every recorded name, whoever is on the team today", () => {
-    const recorded = "Özge Neccar, Sudenur Yaşa, Ahmet Kırlı";
-    expect(namesOfOptions(optionsNow())).not.toContain("Özge Neccar");
-    expect(recordedAuditorName(recorded)).toBe(recorded);
-    // The same text as a DRAFT would lose her; the audit row is not a draft.
-    expect(settleAuditors({ recordedName: recorded, allowed: optionsNow(), prefill: "" }).auditorName).not.toBe(recorded);
-  });
-
-  it("an audit with no recorded names reads as an empty field", () => {
-    expect(recordedAuditorName(null)).toBe("");
-    expect(recordedAuditorName(undefined)).toBe("");
   });
 });
 
@@ -134,6 +118,12 @@ describe("removedAuditorsNotice — what is wrong, what it means, what to do", (
     expect(text).toContain("ekibinde olmadığı için");
     expect(text).toContain("çıkarıldı");
     expect(text).toContain("Ekip dışından kişi ekle");
+  });
+
+  it("the plain text field has no such menu: it says to write the name again", () => {
+    const text = removedAuditorsNotice(["Özge Neccar"], false);
+    expect(text).not.toContain("Ekip dışından kişi ekle");
+    expect(text).toContain("alana yeniden yazın");
   });
 
   it("is empty when nobody was left out", () => {

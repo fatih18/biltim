@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { buildTeamMemberOptions, draftAuditorsOf, withNamedAuditors, withSignedInAuditor } from "./planAuditors";
+import { buildTeamMemberOptions, draftAuditorsOf, withManualAuditors, withSignedInAuditor } from "./planAuditors";
 import { members, namesOfOptions, OKSIJEN, optionsNow, teams, users } from "./planAuditorsFixture";
 
 /*
@@ -65,17 +65,23 @@ describe("withSignedInAuditor — the team plus the person doing the audit", () 
   });
 });
 
-describe("withNamedAuditors — a correction gives every recorded name a tick", () => {
-  const everyone = [...users].map(([id, name]) => ({ id, name }));
-
-  it("adds the recorded person who is not offered, so the name can be taken off by hand", () => {
-    const options = withNamedAuditors(optionsNow(), "Özge Neccar, Sudenur Yaşa", everyone);
+describe("withManualAuditors — a person added by hand gets her tick back", () => {
+  it("adds the hand-added person to the menu, marked, so she can be taken off again", () => {
+    const options = withManualAuditors(optionsNow(), [{ id: "u-ozge", name: "Özge Neccar", manual: true }]);
     expect(namesOfOptions(options)).toEqual(["Mehmet Lider", "Sudenur Yaşa", "Ahmet Kırlı", "Özge Neccar"]);
+    expect(options.find((o) => o.id === "u-ozge")?.manual).toBe(true);
   });
 
-  it("adds nobody for a name nobody holds, and nothing to a list that is empty", () => {
-    expect(withNamedAuditors(optionsNow(), "Kimse Yok", everyone)).toHaveLength(3);
-    expect(withNamedAuditors([], "Özge Neccar", everyone)).toEqual([]);
+  it("does not repeat a person the menu already offers (by id or by name)", () => {
+    const manual = [
+      { id: "u-sude", name: "Sudenur Yaşa", manual: true },
+      { id: "u-other", name: "AHMET KIRLI", manual: true },
+    ];
+    expect(withManualAuditors(optionsNow(), manual)).toHaveLength(3);
+  });
+
+  it("leaves a menu that is empty (the plain text field) empty", () => {
+    expect(withManualAuditors([], [{ id: "u-ozge", name: "Özge Neccar", manual: true }])).toEqual([]);
   });
 });
 
@@ -99,5 +105,18 @@ describe("draftAuditorsOf — the people behind the names, stored with a draft",
       { id: "u-other", name: "ALİ VELİ" },
     ];
     expect(draftAuditorsOf("Ali Veli", twins)).toEqual([{ id: "u-team", name: "Ali Veli" }]);
+  });
+
+  it("keeps the manual mark of a person added by hand, and marks nobody else", () => {
+    const withHandAdded = [...optionsNow(), { id: "u-ozge", name: "Özge Neccar", manual: true }, ...pools];
+    expect(draftAuditorsOf("Sudenur Yaşa, Özge Neccar", withHandAdded)).toEqual([
+      { id: "u-sude", name: "Sudenur Yaşa" },
+      { id: "u-ozge", name: "Özge Neccar", manual: true },
+    ]);
+  });
+
+  it("a person who is also in a later pool without the mark is still the one found first", () => {
+    const twice = [{ id: "u-ozge", name: "Özge Neccar", manual: true }, { id: "u-ozge", name: "Özge Neccar" }];
+    expect(draftAuditorsOf("Özge Neccar", twice)).toEqual([{ id: "u-ozge", name: "Özge Neccar", manual: true }]);
   });
 });
