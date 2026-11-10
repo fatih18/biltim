@@ -430,21 +430,12 @@ export function ClientSide({
 
   // The rules live in _utils/routeAccess/menuAccess; the godmin counts through
   // `isGod` too, not only through a role named "godmin" (R27).
-  const canSeeUsersPage = useMemo(
-    () => !isRoleLoading && canSeeUsersMenu(allRoleNames, isGod),
-    [allRoleNames, isRoleLoading, isGod]
-  )
+  const canSeeUsersPage = !isRoleLoading && canSeeUsersMenu(allRoleNames, isGod)
 
-  const canSeeMasterMenus = useMemo(
-    () => !isRoleLoading && canSeeMasterMenusFor(allRoleNames, isGod),
-    [allRoleNames, isRoleLoading, isGod]
-  )
+  const canSeeMasterMenus = !isRoleLoading && canSeeMasterMenusFor(allRoleNames, isGod)
 
   // Madde 4: Sadece Denetçi rolüne sahip kullanıcılar Bulgular sayfasını göremez
-  const isAuditorOnly = useMemo(
-    () => !isRoleLoading && isAuditorOnlyAccount(allRoleNames, isGod),
-    [allRoleNames, isRoleLoading, isGod]
-  )
+  const isAuditorOnly = !isRoleLoading && isAuditorOnlyAccount(allRoleNames, isGod)
 
   const isUsersHref = (href?: string) => {
     if (!href) return false

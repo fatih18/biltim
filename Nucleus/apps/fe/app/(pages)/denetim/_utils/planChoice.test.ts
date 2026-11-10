@@ -177,6 +177,21 @@ describe('a plan that cannot be opened is explained, never swapped', () => {
   })
 })
 
+describe('nothing requested never opens an audit (R16)', () => {
+  const alone = { isFieldManagerOf: () => false } // viewers: auditor, Müdür, Merkez Ekip / godmin without a team
+  const viewers = [alone, { ...alone, seesEveryPlan: true }, { ...alone, ...MERKEZ, isOnTeam: () => false }]
+
+  it('a lone plan gives the pick list, never an opened audit; only a click opens it', () => {
+    for (const over of viewers) {
+      for (const requestedPlanId of [null, '', '   ']) {
+        const result = choosePlan(input({ ...over, plans: [P_OWN], requestedPlanId }))
+        expect(result).toMatchObject({ kind: 'pick', plans: [P_OWN], notice: null })
+      }
+      expect(choosePlan(input({ ...over, plans: [P_OWN], requestedPlanId: 'p-own' })).kind).toBe('open')
+    }
+  })
+})
+
 describe('pickIntro', () => {
   it('has a distinct sentence for each list', () => {
     const sentences = new Set([pickIntro('own-team'), pickIntro('all'), pickIntro('all-no-team')])
