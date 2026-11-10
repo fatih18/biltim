@@ -16,6 +16,7 @@ import {
 } from "./components";
 import { useGenericApiActions } from "@/app/_hooks/UseNucleusApi";
 import { readListResponse } from "@/app/_hooks/UseServerList";
+import { NEWEST_FIRST, OLDEST_FIRST, isAbortError, readAllPages } from "@/app/_utils/readAllPages";
 import { TeamsTab } from "./components/TeamsTab";
 import type { ParentPlanEdit } from "./_components/ParentPlanEditForm";
 import { toast } from "sonner";
@@ -267,10 +268,11 @@ export default function Page() {
 
         setUsersLoading(true);
 
-        start({
-            payload: { page: 1, limit: 500 },
-            onAfterHandle: (res: any) => {
-                const rows = extractArray(res);
+        // Every page: a list read gives 200 rows at most, whatever `limit` says.
+        readAllPages({
+            start,
+            payload: { sort: OLDEST_FIRST },
+            onDone: (rows) => {
                 const mapped = rows.map(toUserFromGetUsersRow);
 
                 /*
@@ -329,8 +331,8 @@ export default function Page() {
                     attachRoles(byUser);
                 });
             },
-            onErrorHandle: (error: any) => {
-                if (error?.name === "AbortError") {
+            onError: (error) => {
+                if (isAbortError(error)) {
                     setUsersLoading(false);
                     return;
                 }
@@ -390,7 +392,15 @@ export default function Page() {
                     }
                     setTeamMembers(collected);
                 },
-                onErrorHandle: (error: object) => console.error(`${TEAM_KEYS.MEMBERS} error`, error),
+                onErrorHandle: (error: object) => {
+                    if (isAbortError(error)) return;
+                    console.error(`${TEAM_KEYS.MEMBERS} error`, error);
+                    /*
+                     * Without the members the auditor warnings are gone and the
+                     * board looks as if nobody clashes. Say so, as the plans read does.
+                     */
+                    toast.error("Ekip üyeleri okunamadı; denetçi çakışma uyarıları gösterilemiyor. Sayfayı yenileyip tekrar deneyin.");
+                },
             });
         readPage(1);
     }, []);
@@ -406,16 +416,17 @@ export default function Page() {
 
         setTeamsLoading(true);
 
-        start({
-            payload: { page: 1, limit: 1000, orderBy: "created_at", orderDirection: "desc" },
-            onAfterHandle: (res: any) => {
-                const rows = extractArray(res);
+        // Every page: a list read gives 200 rows at most, whatever `limit` says.
+        readAllPages({
+            start,
+            payload: { sort: NEWEST_FIRST },
+            onDone: (rows) => {
                 const mapped = rows.map(toTeamLite);
                 setTeams(mapped);
                 setTeamsLoading(false);
             },
-            onErrorHandle: (error: any) => {
-                if (error?.name === "AbortError") {
+            onError: (error) => {
+                if (isAbortError(error)) {
                     setTeamsLoading(false);
                     return;
                 }
@@ -456,17 +467,18 @@ export default function Page() {
             const setList = getSetter(kind);
             setLoading(kind, true);
 
-            start({
-                payload: { page: 1, limit: 200, orderBy: "created_at", orderDirection: "desc" },
-                onAfterHandle: (res: any) => {
-                    const rows = extractArray(res);
+            // Every page: the location list also feeds the same-day clash check (R28).
+            readAllPages({
+                start,
+                payload: { sort: NEWEST_FIRST },
+                onDone: (rows) => {
                     const mapper = kind === "locations" ? toLocationEntity : toMasterEntity;
                     const mapped = rows.map(mapper);
                     setList(mapped as MasterEntity[]);
                     setLoading(kind, false);
                 },
-                onErrorHandle: (error: any) => {
-                    if (error?.name === "AbortError") {
+                onError: (error) => {
+                    if (isAbortError(error)) {
                         setLoading(kind, false);
                         return;
                     }
@@ -682,7 +694,15 @@ export default function Page() {
         const collected: any[] = [];
         const readPage = (page: number) =>
             start({
-                payload: { page, limit: PAGE, orderBy: "planned_date", orderDirection: "desc" },
+                payload: {
+                    page,
+                    limit: PAGE,
+                    // Many plans share a day: without a tie-break a plan can fall between two pages.
+                    orderBy: [
+                        { column: "planned_date", direction: "desc" },
+                        { column: "id", direction: "asc" },
+                    ],
+                },
                 onAfterHandle: (res: any) => {
                     const rows = extractArray(res);
                     collected.push(...rows);
