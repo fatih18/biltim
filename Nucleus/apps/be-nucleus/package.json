@@ -17,8 +17,7 @@
     "drizzle-kit": "0.31.5",
     "ioredis": "latest",
     "pg": "latest",
-    "exceljs": "^4.4.0",
-    "nodemailer": "^9.0.3"
+    "exceljs": "^4.4.0"
   },
   "devDependencies": {
     "@types/pg": "^8.23.1"
