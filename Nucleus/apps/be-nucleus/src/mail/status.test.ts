@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'bun:test'
 import { BiltimRoutes } from '../routes/biltim'
+import { isMailerInstalled } from './mailer'
 import { fakeRuntime, mailWorld, type RuntimeOptions } from './mailKit'
 import { forgetMailRuntime, latchedMailRuntime } from './runtime'
 import { createMailStatusRoute, mailStatus } from './status'
@@ -25,10 +26,13 @@ const BACKLOG = {
   expired_completions: '1',
 }
 
-function status(userId: string | null, runtimeOptions: RuntimeOptions | null = { provider: 'smtp' }) {
+function status(userId: string | null, runtimeOptions: RuntimeOptions | null = { provider: 'smtp' }, mailerInstalled = true) {
   const w = mailWorld({ plans: [], callers: CALLERS, backlog: BACKLOG })
   const runtime = runtimeOptions ? fakeRuntime(runtimeOptions, w.events).runtime : null
-  return mailStatus({ userId, runtime }, { read: w.deps.sql }).then((outcome) => ({ outcome, calls: w.calls }))
+  return mailStatus({ userId, runtime }, { read: w.deps.sql, mailerInstalled: () => mailerInstalled }).then((outcome) => ({
+    outcome,
+    calls: w.calls,
+  }))
 }
 
 describe('who may read the mail status', () => {
@@ -65,6 +69,8 @@ describe('what it reports', () => {
     const { outcome } = await status('u-ce', { provider: 'smtp', sender: 'denetim@firma.example' })
     expect(outcome.body.data).toEqual({
       available: true,
+      providerConfigured: true,
+      mailerInstalled: true,
       provider: 'smtp',
       senderAddress: 'denetim@firma.example',
       windowHours: 48,
@@ -104,6 +110,54 @@ describe('what it reports', () => {
   it('reports the same when the worker has not been handed the mail service at all', async () => {
     const { outcome } = await status('u-ce', null)
     expect(outcome.body.data).toMatchObject({ available: false, provider: null, senderAddress: '' })
+  })
+})
+
+describe('the nodemailer package', () => {
+  it('reports it as missing while SMTP values are filled in: a provider is on but cannot start, and none is named', async () => {
+    const { outcome } = await status('u-ce', { available: false, provider: 'smtp', sender: '' }, false)
+    expect(outcome.body.data).toMatchObject({
+      available: false,
+      providerConfigured: true,
+      mailerInstalled: false,
+      provider: null,
+      senderAddress: '',
+    })
+  })
+
+  it('reports no configured provider when no SMTP values are filled in, whether or not the package is there', async () => {
+    for (const installed of [true, false]) {
+      const { outcome } = await status('u-ce', { available: false, provider: null, sender: '' }, installed)
+      expect(outcome.body.data).toMatchObject({ available: false, providerConfigured: false, mailerInstalled: installed })
+    }
+  })
+
+  it('reports no configured provider when the worker has not been handed the mail service at all', async () => {
+    const { outcome } = await status('u-ce', null, true)
+    expect(outcome.body.data).toMatchObject({ providerConfigured: false, mailerInstalled: true })
+  })
+
+  it('looks the package up on every read, not once at start', async () => {
+    const w = mailWorld({ plans: [], callers: CALLERS, backlog: BACKLOG })
+    const runtime = fakeRuntime({ available: false, provider: 'smtp' }, w.events).runtime
+    let installed = false
+    const deps = { read: w.deps.sql, mailerInstalled: () => installed }
+    expect((await mailStatus({ userId: 'u-ce', runtime }, deps)).body.data?.mailerInstalled).toBe(false)
+    installed = true
+    expect((await mailStatus({ userId: 'u-ce', runtime }, deps)).body.data?.mailerInstalled).toBe(true)
+  })
+
+  it('is asked of the real package lookup when no answer of its own is handed in', async () => {
+    const w = mailWorld({ plans: [], callers: CALLERS, backlog: BACKLOG })
+    const runtime = fakeRuntime({}, w.events).runtime
+    const outcome = await mailStatus({ userId: 'u-ce', runtime }, { read: w.deps.sql })
+    expect(outcome.body.data?.mailerInstalled).toBe(isMailerInstalled())
+  })
+
+  it('is not reported to someone who may not read the status', async () => {
+    const { outcome } = await status('u-aud', { provider: 'smtp' }, false)
+    expect(outcome.status).toBe(403)
+    expect(outcome.body.data).toBeUndefined()
   })
 })
 

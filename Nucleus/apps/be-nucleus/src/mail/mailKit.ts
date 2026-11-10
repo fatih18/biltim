@@ -150,7 +150,7 @@ export function fakeRuntime(options: RuntimeOptions, events: string[]) {
   let available = options.available ?? true
   const runtime: MailRuntime = {
     isEmailAvailable: () => available,
-    emailProvider: () => options.provider ?? 'smtp',
+    emailProvider: () => (options.provider === undefined ? 'smtp' : options.provider),
     emailSenderAddress: () => options.sender ?? 'denetim@firma.example',
     sendEmail: async (payload) => {
       events.push('send')

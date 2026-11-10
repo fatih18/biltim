@@ -2,6 +2,7 @@ import { defineRoute } from 'nucleus-core-ts/server'
 import { type Sql, query } from '../db'
 import { callerById, isAdmin } from '../guards/caller'
 import { readExpired } from './expired'
+import { isMailerInstalled } from './mailer'
 import { readBacklog } from './queries'
 import { latchMailRuntime, latchedMailRuntime } from './runtime'
 import { MAIL_EXPIRED_LOOKBACK_DAYS, MAIL_MAX_ATTEMPTS, MAIL_WINDOW_HOURS, type MailRuntime } from './types'
@@ -12,12 +13,23 @@ import { MAIL_EXPIRED_LOOKBACK_DAYS, MAIL_MAX_ATTEMPTS, MAIL_WINDOW_HOURS, type 
  * gave up or ran out of their window. Read only, for Merkez Ekip, Super Admin and the godmin (`isAdmin`;
  * Super Admin outranks Merkez Ekip on the users screen, so it is not left out).
  *
+ * Mail needs two things on the server: the SMTP_* values AND the `nodemailer` package (not in package.json,
+ * see `mailer.ts`), and a change to either takes a restart of the backend. `providerConfigured` and
+ * `mailerInstalled` let the screen tell "no SMTP values" from "values entered, package missing".
+ *
  * It also hands the mail service to the worker (`runtime.ts`), like every
  * other host route that reads `ctx.nucleus`.
  */
 
 export type MailStatusData = {
   available: boolean
+  /**
+   * A provider is switched on (nucleus names one: for Biltim the SMTP_* values are filled in) whether or not it could
+   * start. `providerConfigured` with `available` false and `mailerInstalled` false means "waiting for the nodemailer package".
+   */
+  providerConfigured: boolean
+  /** The `nodemailer` package can be loaded from the backend (`mailer.ts`); it is not in package.json. */
+  mailerInstalled: boolean
   provider: 'azure' | 'gmail' | 'smtp' | null
   senderAddress: string
   windowHours: number
@@ -48,7 +60,8 @@ export type MailStatusBody = {
 
 export type MailStatusOutcome = { status: number; body: MailStatusBody }
 
-export type MailStatusDeps = { read: Sql }
+/** `mailerInstalled` defaults to the real package lookup; a test hands in its own answer. */
+export type MailStatusDeps = { read: Sql; mailerInstalled?: () => boolean }
 
 const defaultDeps: MailStatusDeps = { read: query }
 
@@ -74,6 +87,8 @@ export async function mailStatus(
   const available = input.runtime?.isEmailAvailable() === true
   const data: MailStatusData = {
     available,
+    providerConfigured: input.runtime?.emailProvider() != null,
+    mailerInstalled: (deps.mailerInstalled ?? isMailerInstalled)(),
     provider: available ? (input.runtime?.emailProvider() ?? null) : null,
     senderAddress: available ? (input.runtime?.emailSenderAddress() ?? '') : '',
     windowHours: MAIL_WINDOW_HOURS,
