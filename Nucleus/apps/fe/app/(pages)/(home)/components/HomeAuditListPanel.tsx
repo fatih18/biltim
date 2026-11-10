@@ -11,8 +11,9 @@ import { DateInput } from "@/app/_components/DateInput";
 import { ChosenDayConflicts } from "./ChosenDayConflicts";
 import type { DayConflictLoader } from "../_hooks/useDayConflicts";
 import { auditStatusLabelTr } from "@/app/_utils/StatusLabels";
-import { isPlanRejected, RESEND_LABEL } from "@/app/_utils/planReview";
-import { RejectedPlanNote } from "../_components/RejectedPlanNote";
+import { isPlanRejected } from "@/app/_utils/planReview";
+import { RejectedPlanRow } from "../_components/RejectedPlanRow";
+import { MobileCellLabel } from "../_components/MobileCellLabel";
 
 type AuditTeamLite = { id: string; name?: string | null; isActive: boolean };
 
@@ -49,7 +50,7 @@ function SegTabs({
     items: { value: string; label: string }[];
 }) {
     return (
-        <div className="inline-flex rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/40 p-1">
+        <div className="inline-flex flex-wrap rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/40 p-1">
             {items.map((it) => {
                 const active = it.value === value;
                 return (
@@ -94,6 +95,7 @@ export function HomeAuditListPanel(props: {
     canStartPlan?: (plan: AuditPlanRow) => boolean;
     /** Merkez Ekip only: approve a sent audit (#28). */
     onApprovePlan?: (plan: AuditPlanRow) => void;
+    canApprove?: (plan: AuditPlanRow) => boolean;
     approvingId?: string | null;
     /** Merkez Ekip only: send a sent audit back to its team with a reason (R30). */
     onRejectPlan?: (plan: AuditPlanRow) => void;
@@ -143,6 +145,7 @@ export function HomeAuditListPanel(props: {
         onStartAudit,
         canStartPlan,
         onApprovePlan,
+        canApprove,
         approvingId,
         onRejectPlan,
         canReject,
@@ -199,13 +202,13 @@ export function HomeAuditListPanel(props: {
 
     return (
         <section className="rounded-xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900/40">
-            <div className="flex items-start justify-between gap-3 border-b border-slate-300 dark:border-slate-800 px-4 py-3">
+            <div className="flex flex-col gap-3 border-b border-slate-300 dark:border-slate-800 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                     <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">Denetimler</div>
                     <div className="mt-1 text-xs text-slate-600 dark:text-slate-400">Planlanan / yaklaşan ve tamamlanan denetimler.</div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                     <SegTabs
                         value={tab}
                         onChange={(v) => {
@@ -242,11 +245,12 @@ export function HomeAuditListPanel(props: {
                 <div className="overflow-hidden rounded-lg border border-slate-300 dark:border-slate-800">
                     {/*
                       Six column labels do not fit a phone: measured at 375px they
-                      overlapped each other — "Lokasyon" ran into "Müdür". Each row
-                      below already repeats its own labels at that width, so the
-                      header is desktop-only rather than squeezed.
+                      overlapped each other — "Lokasyon" ran into "Müdür". Below
+                      `md` a plan is a card of two columns (three from `sm`) whose
+                      cells carry their own labels, so the header is a table-only
+                      line rather than squeezed.
                     */}
-                    <div className="hidden grid-cols-12 bg-slate-50 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-slate-600 sm:grid dark:bg-slate-900/60 dark:text-slate-400">
+                    <div className="hidden grid-cols-12 bg-slate-50 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-slate-600 md:grid dark:bg-slate-900/60 dark:text-slate-400">
                         <div className="col-span-2">Tarih</div>
                         <div className="col-span-2">Dönem</div>
                         <div className="col-span-2">Lokasyon</div>
@@ -279,9 +283,10 @@ export function HomeAuditListPanel(props: {
                                 (editDate < parentRange.start || editDate > parentRange.end));
 
                             return (
-                                <div key={p.id} className="grid grid-cols-12 items-start gap-2 border-t border-slate-300 dark:border-slate-800/80 px-3 py-2">
-                                    {/* Tarih */}
-                                    <div className="col-span-2">
+                                <div key={p.id} className="grid grid-cols-2 items-start gap-x-3 gap-y-2 border-t border-slate-300 dark:border-slate-800/80 px-3 py-2 sm:grid-cols-3 md:grid-cols-12 md:gap-2">
+                                    {/* Tarih; while the date is being edited it takes the whole line of a card */}
+                                    <div className={isEditing ? "col-span-2 sm:col-span-3 md:col-span-2" : "col-span-1 md:col-span-2"}>
+                                        <MobileCellLabel>Tarih</MobileCellLabel>
                                         {isEditing ? (
                                             <div className="flex flex-col gap-1">
                                                 <DateInput
@@ -354,7 +359,8 @@ export function HomeAuditListPanel(props: {
                                     </div>
 
                                     {/* Dönem */}
-                                    <div className="col-span-2">
+                                    <div className="col-span-1 md:col-span-2">
+                                        <MobileCellLabel>Dönem</MobileCellLabel>
                                         {parentRange ? (
                                             <div className="flex flex-col gap-0.5">
                                                 <span className="inline-block rounded border border-indigo-700/50 bg-indigo-100 dark:bg-indigo-950/40 px-1.5 py-0.5 text-[11px] font-semibold text-indigo-600 dark:text-indigo-300">
@@ -369,9 +375,13 @@ export function HomeAuditListPanel(props: {
                                         )}
                                     </div>
 
-                                    <div className="col-span-2 text-sm text-slate-900 dark:text-slate-100">{loc}</div>
+                                    <div className="col-span-1 break-words text-sm text-slate-900 md:col-span-2 dark:text-slate-100">
+                                        <MobileCellLabel>Lokasyon</MobileCellLabel>
+                                        {loc}
+                                    </div>
 
-                                    <div className="col-span-2 flex flex-col gap-0.5">
+                                    <div className="col-span-1 flex flex-col gap-0.5 md:col-span-2">
+                                        <MobileCellLabel>Müdür / Saha Sor.</MobileCellLabel>
                                         {managerName && (
                                             <div className="flex items-center gap-1 text-[11px]">
                                                 <span className="font-medium text-slate-500 dark:text-slate-400">Müdür:</span>
@@ -389,11 +399,13 @@ export function HomeAuditListPanel(props: {
                                         )}
                                     </div>
 
-                                    <div className="col-span-2">
+                                    <div className="col-span-1 md:col-span-2">
+                                        <MobileCellLabel>Ekip / Lider</MobileCellLabel>
                                         <TeamLeaderWithMembersTooltip teamId={p.assigned_team_id} teamInfoById={teamInfoById} />
                                     </div>
 
-                                    <div className="col-span-2 flex flex-col items-center gap-1 text-center">
+                                    <div className="col-span-1 flex flex-col items-start gap-1 text-left md:col-span-2 md:items-center md:text-center">
+                                        <MobileCellLabel>Durum</MobileCellLabel>
                                         <StatusPill status={p.status} />
                                         {onStartAudit && tab === "upcoming" && p.status === "planned" && (canStartPlan?.(p) ?? true) && (
                                             <button
@@ -409,20 +421,7 @@ export function HomeAuditListPanel(props: {
                                                 Saha sorumlususunuz
                                             </span>
                                         )}
-                                        {isPlanRejected(p.status) && (
-                                            <RejectedPlanNote reason={p.rejection_reason} rejectedAt={p.rejected_at} />
-                                        )}
-                                        {onCorrectRejected && canCorrectRejected?.(p) && (
-                                            <button
-                                                type="button"
-                                                onClick={() => onCorrectRejected(p)}
-                                                className="rounded-md border border-amber-700/60 bg-amber-200 px-2 py-1 text-[11px] font-semibold text-amber-900 hover:bg-amber-300 dark:border-amber-600/60 dark:bg-amber-900/40 dark:text-amber-100 dark:hover:bg-amber-900/60"
-                                                title="Denetimi soru-cevap ekranında düzelt; kaydedince onaya yeniden gönderilir"
-                                            >
-                                                {RESEND_LABEL}
-                                            </button>
-                                        )}
-                                        {onApprovePlan && p.status === "pending_approval" && (
+                                        {onApprovePlan && canApprove?.(p) && (
                                             <button
                                                 type="button"
                                                 onClick={() => onApprovePlan(p)}
@@ -480,6 +479,13 @@ export function HomeAuditListPanel(props: {
                                             </button>
                                         )}
                                     </div>
+                                    {isPlanRejected(p.status) && (
+                                        <RejectedPlanRow
+                                            reason={p.rejection_reason}
+                                            rejectedAt={p.rejected_at}
+                                            onCorrect={onCorrectRejected && canCorrectRejected?.(p) ? () => onCorrectRejected(p) : undefined}
+                                        />
+                                    )}
                                 </div>
                             );
                         })

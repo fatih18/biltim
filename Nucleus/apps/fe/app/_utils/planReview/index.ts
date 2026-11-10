@@ -40,6 +40,15 @@ export function isCarriedOutPlan(status: string | null | undefined): boolean {
 }
 
 /**
+ * "Onayla" is offered on a sent audit to admins (Merkez Ekip, Super Admin,
+ * godmin) and to nobody else; Müdür approves nothing and rejects nothing.
+ * A rejected plan is not offered it: it waits for its team's correction first.
+ */
+export function canApprovePlan(input: { status: string; isAdmin: boolean }): boolean {
+  return input.isAdmin && input.status === PLAN_STATUS_SENT
+}
+
+/**
  * "Reddet" is offered on a sent audit to admins (Merkez Ekip, Super Admin,
  * godmin) and to nobody else; Müdür approves nothing and rejects nothing.
  */

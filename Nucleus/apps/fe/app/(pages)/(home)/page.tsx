@@ -14,7 +14,7 @@ import type { DayConflictLoader } from "./_hooks/useDayConflicts";
 import { canOpenAuditReport, isFieldManagerOnly } from "./_utils/auditReport";
 import { TAB_STATUS_FILTERS } from "./_utils/tabStatus";
 import { RejectPlanDialog } from "./_components/RejectPlanDialog";
-import { canCorrectRejectedPlan, canRejectPlan, isCarriedOutPlan, isOnPlanTeam } from "@/app/_utils/planReview";
+import { canApprovePlan, canCorrectRejectedPlan, canRejectPlan, isCarriedOutPlan, isOnPlanTeam } from "@/app/_utils/planReview";
 
 import { HomeAuditListPanel } from "./components/HomeAuditListPanel";
 import { EditAuditModal, type EditableAudit } from "./components/EditAuditModal";
@@ -1047,7 +1047,8 @@ export default function Page() {
           plans={plans}
           onStartAudit={startAudit}
           canStartPlan={canStartPlan}
-          onApprovePlan={isAdminUser ? approvePlan : undefined}
+          onApprovePlan={approvePlan}
+          canApprove={(plan) => canApprovePlan({ status: plan.status, isAdmin: isAdminUser })}
           approvingId={approvingId}
           onRejectPlan={setRejecting}
           canReject={(plan) => canRejectPlan({ status: plan.status, isAdmin: isAdminUser })}
