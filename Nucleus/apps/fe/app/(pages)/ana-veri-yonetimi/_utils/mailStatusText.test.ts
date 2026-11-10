@@ -5,8 +5,8 @@ import type { MailStatusView } from "./mailStatusView";
 const VIEW: MailStatusView = {
   available: true,
   providerConfigured: true,
-  mailerInstalled: true,
-  provider: "smtp",
+  packageInstalled: true,
+  provider: "azure",
   senderAddress: "denetim@firma.example",
   windowHours: 48,
   maxAttempts: 5,
@@ -31,10 +31,11 @@ describe("when no provider is configured", () => {
     const text = buildMailStatusText(off());
     expect(text.tone).toBe("off");
     expect(text.headline).toBe(
-      "E-posta bildirimleri kapalı: SMTP tanımlı değil. Tanımlanana kadar plan ve denetim postaları gönderilmez."
+      "E-posta bildirimleri kapalı: Azure Communication Services bağlantı bilgisi girilmedi. Girilene kadar plan ve denetim postaları gönderilmez."
     );
-    expect(text.detail).toContain("sunucu ortam değişkenlerine SMTP_* değerlerini girin");
-    expect(text.detail).toContain("SMTP_HOST, SMTP_USER ve SMTP_PASSWORD");
+    expect(text.detail).toContain(
+      "Sunucu ortam değişkenlerine AZURE_EMAIL_CONNECTION_STRING ve AZURE_EMAIL_SENDER_ADDRESS değerlerini girip servisi yeniden başlatın."
+    );
     expect(text.detail).toContain("sistem yöneticisi");
   });
 
@@ -56,17 +57,17 @@ describe("when no provider is configured", () => {
 
   it("keeps the instruction first, then the waiting plans, then the missed ones", () => {
     const detail = buildMailStatusText(off({ pending: 2, expired: 1 })).detail ?? "";
-    expect(detail.indexOf("Ne yapmalı")).toBe(0);
-    expect(detail.indexOf("bekliyor")).toBeGreaterThan(detail.indexOf("Ne yapmalı"));
+    expect(detail.indexOf("Sunucu ortam değişkenlerine")).toBe(0);
+    expect(detail.indexOf("bekliyor")).toBeGreaterThan(detail.indexOf("yeniden başlatın"));
     expect(detail.indexOf("süresi dolduğu")).toBeGreaterThan(detail.indexOf("bekliyor"));
   });
 });
 
-describe("when the SMTP values are in but the nodemailer package is not installed", () => {
-  const missing = (over: Partial<MailStatusView> = {}) => off({ providerConfigured: true, mailerInstalled: false, ...over });
-  const SENTENCE = "SMTP bilgileri girildi ama nodemailer paketi sunucuda kurulu değil.";
+describe("when the Azure values are in but the @azure/communication-email package is not installed", () => {
+  const missing = (over: Partial<MailStatusView> = {}) => off({ providerConfigured: true, packageInstalled: false, ...over });
+  const SENTENCE = "Azure e-posta bilgileri girildi ama '@azure/communication-email' paketi sunucuda kurulu değil.";
   const HOW =
-    "Sunucunun npm erişimi açıkken be-nucleus klasöründe bun add nodemailer çalıştırıp servisi yeniden başlatın.";
+    "Sunucuda Nucleus klasöründe bun install --frozen-lockfile çalıştırıp servisi yeniden başlatın (npm erişimi gerekir).";
 
   it("says what is wrong, that no mail goes out, and what to do, in amber", () => {
     const text = buildMailStatusText(missing());
@@ -76,10 +77,10 @@ describe("when the SMTP values are in but the nodemailer package is not installe
     expect(text.detail).toContain("sistem yöneticisi");
   });
 
-  it("does not say the SMTP values are missing: they are in", () => {
+  it("does not say the Azure values are missing: they are in", () => {
     const text = buildMailStatusText(missing());
-    expect(text.headline).not.toContain("SMTP tanımlı değil");
-    expect(text.detail).not.toContain("SMTP_* değerlerini girin");
+    expect(text.headline).not.toContain("bağlantı bilgisi girilmedi");
+    expect(text.detail).not.toContain("AZURE_EMAIL_CONNECTION_STRING");
   });
 
   it("starts with the way out, then the waiting plans, then the missed ones", () => {
@@ -95,14 +96,14 @@ describe("when the SMTP values are in but the nodemailer package is not installe
     expect(detail).not.toContain("süresi dolduğu");
   });
 
-  it("is the plain off line while the package is installed, and while no SMTP value is filled in", () => {
-    for (const view of [off({ providerConfigured: true, mailerInstalled: true }), off({ providerConfigured: false, mailerInstalled: false })]) {
-      expect(buildMailStatusText(view).headline).toContain("SMTP tanımlı değil");
+  it("is the plain off line while the package is installed, and while no Azure value is filled in", () => {
+    for (const view of [off({ providerConfigured: true, packageInstalled: true }), off({ providerConfigured: false, packageInstalled: false })]) {
+      expect(buildMailStatusText(view).headline).toContain("bağlantı bilgisi girilmedi");
     }
   });
 
   it("never replaces the line of a provider that is running", () => {
-    const text = buildMailStatusText({ ...VIEW, mailerInstalled: false });
+    const text = buildMailStatusText({ ...VIEW, packageInstalled: false });
     expect(text.headline).toContain("E-posta bildirimleri açık");
   });
 });
@@ -112,7 +113,7 @@ describe("when a provider is configured", () => {
     const text = buildMailStatusText(VIEW);
     expect(text.tone).toBe("on");
     expect(text.headline).toBe(
-      "E-posta bildirimleri açık: SMTP, gönderen denetim@firma.example. Bekleyen: 3, hatalı: 0, süresi geçen: 0."
+      "E-posta bildirimleri açık: Azure, gönderen denetim@firma.example. Bekleyen: 3, hatalı: 0, süresi geçen: 0."
     );
     expect(text.detail).toBeNull();
   });
@@ -123,7 +124,7 @@ describe("when a provider is configured", () => {
     );
   });
 
-  it("calls the other providers by their names", () => {
+  it("calls each provider by its name", () => {
     expect(buildMailStatusText({ ...VIEW, provider: "azure" }).headline).toContain("açık: Azure,");
     expect(buildMailStatusText({ ...VIEW, provider: "gmail" }).headline).toContain("açık: Gmail,");
   });

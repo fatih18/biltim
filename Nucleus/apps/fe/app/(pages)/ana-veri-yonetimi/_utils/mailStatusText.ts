@@ -19,7 +19,6 @@ export type MailStatusText = {
 };
 
 const PROVIDER_LABEL: Record<MailProvider, string> = {
-  smtp: "SMTP",
   azure: "Azure",
   gmail: "Gmail",
 };
@@ -50,31 +49,31 @@ function offBacklogParts(view: MailStatusView): string[] {
 
 function offText(view: MailStatusView): MailStatusText {
   const parts = [
-    "Ne yapmalı: sunucu ortam değişkenlerine SMTP_* değerlerini girin (SMTP_HOST, SMTP_USER ve SMTP_PASSWORD zorunlu) ve arka ucu yeniden başlatın; bu adımı sistem yöneticisi yapar.",
+    "Sunucu ortam değişkenlerine AZURE_EMAIL_CONNECTION_STRING ve AZURE_EMAIL_SENDER_ADDRESS değerlerini girip servisi yeniden başlatın. Bu adımı sistem yöneticisi yapar.",
     ...offBacklogParts(view),
   ];
   return {
     tone: "off",
     headline:
-      "E-posta bildirimleri kapalı: SMTP tanımlı değil. Tanımlanana kadar plan ve denetim postaları gönderilmez.",
+      "E-posta bildirimleri kapalı: Azure Communication Services bağlantı bilgisi girilmedi. Girilene kadar plan ve denetim postaları gönderilmez.",
     detail: parts.join(" "),
   };
 }
 
 /**
- * The SMTP values are in but the nodemailer package is not on the server (it is not in package.json: customer
- * servers usually have no npm access, and a changed package file stops update.sh). Nothing is sent until
- * someone installs it, so the line says what is wrong, what it means and who does what.
+ * The Azure values are in but the @azure/communication-email package cannot be loaded on the server (it is an
+ * optional dependency of nucleus-core-ts that normally comes with bun install). Nothing is sent until it is
+ * there, so the line says what is wrong, what it means and who does what.
  */
-function mailerMissingText(view: MailStatusView): MailStatusText {
+function packageMissingText(view: MailStatusView): MailStatusText {
   const parts = [
-    "Sunucunun npm erişimi açıkken be-nucleus klasöründe bun add nodemailer çalıştırıp servisi yeniden başlatın. Bu adımı sistem yöneticisi yapar.",
+    "Sunucuda Nucleus klasöründe bun install --frozen-lockfile çalıştırıp servisi yeniden başlatın (npm erişimi gerekir). Bu adımı sistem yöneticisi yapar.",
     ...offBacklogParts(view),
   ];
   return {
     tone: "off",
     headline:
-      "SMTP bilgileri girildi ama nodemailer paketi sunucuda kurulu değil. Paket kurulana kadar plan ve denetim postaları gönderilmez.",
+      "Azure e-posta bilgileri girildi ama '@azure/communication-email' paketi sunucuda kurulu değil. Paket kurulana kadar plan ve denetim postaları gönderilmez.",
     detail: parts.join(" "),
   };
 }
@@ -102,5 +101,5 @@ function onText(view: MailStatusView): MailStatusText {
 
 export function buildMailStatusText(view: MailStatusView): MailStatusText {
   if (view.available) return onText(view);
-  return view.providerConfigured && !view.mailerInstalled ? mailerMissingText(view) : offText(view);
+  return view.providerConfigured && !view.packageInstalled ? packageMissingText(view) : offText(view);
 }

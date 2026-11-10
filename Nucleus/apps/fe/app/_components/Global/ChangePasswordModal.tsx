@@ -22,7 +22,7 @@ interface ChangePasswordModalProps {
  * Kullanıcının kendi şifresini değiştirmesi.
  *
  * Bu ekran yokken şifresini değiştirmek isteyen kişinin tek yolu bir yöneticiye
- * gitmekti; unutan kişinin ise hiçbir yolu yoktu, çünkü kurulumda SMTP yok ve
+ * gitmekti; unutan kişinin ise hiçbir yolu yoktu, çünkü kurulumda e-posta sağlayıcısı yok ve
  * "şifremi unuttum" bağlantısı hiç gönderilemiyor. Sunucu tarafı
  * (`POST /auth/password-change`) kurulu sürümde zaten vardı, yalnızca config'de
  * kapalıydı ve arayüzden çağıran kimse yoktu.

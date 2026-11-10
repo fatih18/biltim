@@ -15,18 +15,18 @@ export type Json = string | number | boolean | null | Json[] | { [key: string]: 
 
 type JsonObject = { [key: string]: Json };
 
-export type MailProvider = "smtp" | "azure" | "gmail";
+export type MailProvider = "azure" | "gmail";
 
 export type MailStatusView = {
   /** A provider is configured and can send. */
   available: boolean;
   /**
-   * A provider is switched on (the SMTP values are filled in) whether or not it could start. With `available` false
-   * and `mailerInstalled` false the server is waiting for the nodemailer package. False when the server does not say.
+   * A provider is switched on (the Azure mail values are filled in) whether or not it could start. With `available` false
+   * and `packageInstalled` false the server is waiting for the @azure/communication-email package. False when the server does not say.
    */
   providerConfigured: boolean;
-  /** The nodemailer package is installed on the server. True when the server does not say (an older backend). */
-  mailerInstalled: boolean;
+  /** The @azure/communication-email package is installed on the server. True when the server does not say (an older backend). */
+  packageInstalled: boolean;
   provider: MailProvider | null;
   /** Empty when the provider did not say. */
   senderAddress: string;
@@ -56,7 +56,7 @@ function flagOf(value: Json | undefined, fallback: boolean): boolean {
 }
 
 function providerOf(value: Json | undefined): MailProvider | null {
-  return value === "smtp" || value === "azure" || value === "gmail" ? value : null;
+  return value === "azure" || value === "gmail" ? value : null;
 }
 
 /** The status object inside the body, whichever way it arrived. */
@@ -92,7 +92,7 @@ export function readMailStatus(body: Json | null | undefined): MailStatusView | 
   return {
     available,
     providerConfigured: flagOf(status.providerConfigured, false),
-    mailerInstalled: flagOf(status.mailerInstalled, true),
+    packageInstalled: flagOf(status.packageInstalled, true),
     provider: providerOf(status.provider),
     senderAddress: typeof sender === "string" ? sender.trim() : "",
     windowHours,

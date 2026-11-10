@@ -21,7 +21,7 @@ interface UsersSetPasswordModalProps {
 /*
  * Bir kullanıcının şifresini yönetici olarak değiştirmek.
  *
- * Biltim'de SMTP yok, yani "şifremi unuttum" bağlantısı hiçbir zaman gelmiyor.
+ * Biltim'de e-posta sağlayıcısı tanımlı değil, yani "şifremi unuttum" bağlantısı hiçbir zaman gelmiyor.
  * Kalan tek kurtarma yolu bu: yönetici yeni bir şifre koyar ve kişiye kendisi
  * söyler. Söyleyebilmesi için şifreyi GÖREBİLMESİ gerekiyor — o yüzden alan
  * gizlenebilir ama varsayılan gizli değil ve yanında kopyalama var. Ekranda
