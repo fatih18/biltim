@@ -12,9 +12,13 @@ export function useAuditReport() {
   const open = async (plan: { id: string; audit_id: string | null }) => {
     if (busyId || !plan.audit_id) return
     setBusyId(plan.id)
-    const result = await downloadFile(AUDIT_REPORT_PATH, auditReportParams(plan.audit_id), 'denetim-raporu.xlsx')
-    setBusyId(null)
-    if (!result.ok) toast.error(auditReportFailureMessage(result.status, result.message))
+    try {
+      const result = await downloadFile(AUDIT_REPORT_PATH, auditReportParams(plan.audit_id), 'denetim-raporu.xlsx')
+      if (!result.ok) toast.error(auditReportFailureMessage(result.status, result.message))
+    } finally {
+      // Whatever happened, the button is released: a stuck busyId keeps every report button shut.
+      setBusyId(null)
+    }
   }
 
   return { busyId, open }

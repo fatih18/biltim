@@ -23,7 +23,8 @@ import { useMyScope } from '@/app/_hooks/user/useMyScope'
 import { CENTRAL_ROLES, hasPrivilege } from '@/app/_utils/routeAccess'
 import { toast } from 'sonner'
 import { LocationFormExport } from './_components/LocationFormExport'
-import { downloadWorkbook } from './_utils/downloadWorkbook'
+import { downloadFile } from '@/app/_utils/downloadFile'
+import { reportDownloadFailureMessage } from './_utils/downloadFailureMessage'
 
 /* ───────────── Types ───────────── */
 
@@ -364,16 +365,18 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
     async (section: string, path = '/reports/dashboard.xlsx', extra: Record<string, string> = {}) => {
       setExporting(section)
       try {
-        await downloadWorkbook(path, {
-          ...(path === '/reports/dashboard.xlsx' && section !== 'all' ? { section } : {}),
-          date_from: dateFrom,
-          date_to: dateTo,
-          ...extra,
-        })
-      } catch (err) {
-        console.error('report export error', err)
+        const result = await downloadFile(
+          path,
+          {
+            ...(path === '/reports/dashboard.xlsx' && section !== 'all' ? { section } : {}),
+            date_from: dateFrom,
+            date_to: dateTo,
+            ...extra,
+          },
+          'rapor.xlsx'
+        )
         // A toast, not the load-error state: that one replaces the whole dashboard.
-        toast.error((err as Error).message || 'Excel indirilemedi')
+        if (!result.ok) toast.error(reportDownloadFailureMessage(result.status, result.message))
       } finally {
         setExporting(null)
       }

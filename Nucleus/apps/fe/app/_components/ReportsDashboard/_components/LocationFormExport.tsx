@@ -2,8 +2,9 @@
 
 import { Download, Loader2 } from 'lucide-react'
 import { useState } from 'react'
+import { downloadFile } from '@/app/_utils/downloadFile'
 import { useLocationOptions } from '../_hooks/useLocationOptions'
-import { downloadWorkbook } from '../_utils/downloadWorkbook'
+import { reportDownloadFailureMessage } from '../_utils/downloadFailureMessage'
 
 /*
  * The plant's own yearly workbook for one area — "5S Denetim Bulgu ve Soru
@@ -29,9 +30,8 @@ export function LocationFormExport() {
     setBusy(true)
     setError(null)
     try {
-      await downloadWorkbook('/reports/location-form.xlsx', { location_name: location, year })
-    } catch (err) {
-      setError(err instanceof Error && err.message ? err.message : 'Form indirilemedi. Biraz sonra tekrar deneyin.')
+      const result = await downloadFile('/reports/location-form.xlsx', { location_name: location, year }, 'rapor.xlsx')
+      if (!result.ok) setError(reportDownloadFailureMessage(result.status, result.message))
     } finally {
       setBusy(false)
     }
