@@ -65,6 +65,7 @@ import {
 } from './_utils/scoring'
 import { AttendanceBox, QuestionsFieldset } from './_components'
 import { initialAttendanceOf } from './_utils/attendance'
+import { ilikeLiteral } from './_utils/ilikeLiteral'
 import { buildAuditRecord, questionPoint, showsDetailsColumn } from './_utils/auditRecord'
 import { NOT_ATTENDED_CONFIRM, noAnswersNotice, unknownAttendanceWarning } from './_utils/attendanceText'
 import { OpenFindingNotice } from './_components/OpenFindingNotice'
@@ -2104,7 +2105,7 @@ export default function FiveSAuditFormPage() {
             orderDirection: 'desc',
             filters: [
               { field: 'is_active', operator: 'eq', value: true },
-              { field: 'location_name', operator: 'ilike', value: loc },
+              { field: 'location_name', operator: 'ilike', value: ilikeLiteral(loc) },
               { field: 'status', operator: 'in', value: ['open', 'in_progress'] },
             ],
           },
