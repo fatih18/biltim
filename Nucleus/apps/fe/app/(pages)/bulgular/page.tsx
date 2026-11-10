@@ -31,7 +31,7 @@ import {
   statusParam,
   type ScopePick,
 } from "./_utils/exportScope";
-import { toPageStatus } from "./_utils/pageStatus";
+import { CLOSED_STATUS, toPageStatus, toRowStatus, toSourceFilter } from "./_utils/pageStatus";
 import { FindingsExportBar } from "./_components/FindingsExportBar";
 import { PreviousFindingNo } from "./_components/PreviousFindingNo";
 import { useFindingsExportCount } from "./_hooks/useFindingsExportCount";
@@ -442,7 +442,7 @@ export default function FiveSFindingsListPage() {
   const handleStatusChange = (finding: FiveSFinding, value: string) => {
     if (isAuditor) return;
 
-    const newStatus = (value as FindingStatus) || "open";
+    const newStatus = toRowStatus(value);
 
     if (finding.status === "closed" && newStatus !== "closed" && !canReopenFinding) {
       setErrorMsg("Kapanmış bulguyu yalnızca Merkez Ekip yeniden açabilir.");
@@ -560,7 +560,7 @@ export default function FiveSFindingsListPage() {
                 photo_after_files: nextAfter,
                 photo_after_file_id: lastFileId ?? null,
                 photo_after_url: lastFileId ? buildFileUrl(lastFileId) : null,
-                ...(autoClose ? { status: "closed" as FindingStatus } : {}),
+                ...(autoClose ? { status: CLOSED_STATUS } : {}),
               }
             : f
         )
@@ -837,7 +837,7 @@ export default function FiveSFindingsListPage() {
                 <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300">Kaynak</label>
                 <select
                   value={sourceFilter}
-                  onChange={(e) => setSourceFilter(e.target.value as "" | "audit" | "single")}
+                  onChange={(e) => setSourceFilter(toSourceFilter(e.target.value))}
                   className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-3 py-2 text-xs outline-none ring-sky-500/40 focus:border-sky-400 focus:ring-2"
                 >
                   <option value="">Tümü</option>
