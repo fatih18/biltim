@@ -79,7 +79,14 @@ export type CorrectionVerdict = {
   failureText: string | null
 }
 
+/**
+ * What did not save, what that means and what to do. A failed finding left its
+ * answer at the rating it was stored with (correctionWrites.ts), so reopening
+ * the audit demands the finding again; a failed photo is the one write a
+ * reopening does not repeat, and the correction screen has no way to add it.
+ */
 function failureTextOf(input: CorrectionInput, resendDue: boolean): string {
+  const rewrite = input.failedAnswers > 0 || input.failedFindings > 0
   const parts = [
     input.failedAnswers > 0 ? `${input.failedAnswers} soru yanıtı` : '',
     input.failedFindings > 0 ? `${input.failedFindings} bulgu` : '',
@@ -87,15 +94,23 @@ function failureTextOf(input: CorrectionInput, resendDue: boolean): string {
   ].filter((part) => part !== '')
   const what = `Düzeltme eksik kaydedildi. Kaydedilemeyen: ${parts.join(', ')}.`
   const held = resendDue ? ' Eksik düzeltmeyle onaya gitmesin diye denetim yeniden gönderilmedi.' : ''
-  const resendStep = resendDue ? ` Sonra ana sayfada "${RESEND_LABEL}" düğmesiyle denetimi onaya gönderin.` : ''
-  if (input.failedFindings > 0 || input.failedPhotos > 0) {
-    // Reopening does not write a finding again: its answer is already stored below İyi.
-    return `${what}${held} Eksik bulguyu ya da fotoğrafı Tekil Bulgu ile ekleyin; denetimi yeniden açıp kaydetmek onu yeniden yazmaz.${resendStep}`
+  const via = resendDue ? `ana sayfada "${RESEND_LABEL}" düğmesiyle` : 'ana sayfadan'
+  const steps: string[] = []
+  if (rewrite) {
+    const kept =
+      input.failedFindings > 0
+        ? ' Bulgusu kaydedilemeyen sorular önceki yanıtlarıyla duruyor; bulgu yeniden istenecek.'
+        : ''
+    const withFinding = input.failedFindings > 0 ? 'bulgularıyla birlikte ' : ''
+    steps.push(`${kept} Denetimi ${via} tekrar açıp kaydedilemeyen yanıtları ${withFinding}yeniden girin ve kaydedin.`)
   }
-  const reopen = resendDue
-    ? ` Ana sayfada "${RESEND_LABEL}" düğmesiyle denetimi tekrar açıp kaydedin.`
-    : ' Ana sayfadan denetimi yeniden açıp kaydedin.'
-  return `${what}${held}${reopen}`
+  if (input.failedPhotos > 0) {
+    steps.push(
+      ' Eksik fotoğraflar denetim yeniden açılıp kaydedilse de yüklenmez: ana sayfadan Denetim ekranına gidip Tekil Bulgu ile ekleyin.'
+    )
+    if (resendDue && !rewrite) steps.push(` Sonra ${via} denetimi onaya gönderin.`)
+  }
+  return `${what}${held}${steps.join('')}`
 }
 
 /**
@@ -114,21 +129,20 @@ export function correctionVerdict(input: CorrectionInput): CorrectionVerdict {
   }
 }
 
-/** Why the saved correction is not the end of it: not sent for approval, or part of it not written. */
-export type SavedGap = 'unsent' | 'incomplete'
+/**
+ * Why the saved correction is not the end of it, with the text that stays on
+ * the page (the toast says the same once and is gone):
+ * 'unsent': everything saved, only sending it again failed;
+ * 'incomplete': a write did not save, and the text names which.
+ */
+export type SavedGapKind = 'unsent' | 'incomplete'
+export type SavedGap = { kind: SavedGapKind; text: string }
 
 /** The save button's label once the correction went through. */
 export function savedLabelOf(gap: SavedGap | null): string {
-  if (gap === 'unsent') return 'Kaydedildi, gönderilmedi'
-  if (gap === 'incomplete') return 'Kaydedildi, eksikler var'
+  if (gap?.kind === 'unsent') return 'Kaydedildi, gönderilmedi'
+  if (gap?.kind === 'incomplete') return 'Kaydedildi, eksikler var'
   return 'Kaydedildi'
-}
-
-/** The line that stays beside the button while the gap is open. */
-export function savedGapText(gap: SavedGap): string {
-  return gap === 'unsent'
-    ? `Düzeltmeler kaydedildi ancak denetim onaya gönderilmedi. Ana sayfada "${RESEND_LABEL}" düğmesiyle devam edin.`
-    : 'Düzeltmenin bir kısmı kaydedilemedi. Ayrıntı yukarıdaki uyarıda; ana sayfadan denetimi yeniden açın.'
 }
 
 export type CorrectionEnd = {
@@ -145,14 +159,16 @@ export type CorrectionEnd = {
  */
 export function correctionEnd(verdict: CorrectionVerdict, stamp: ResendOutcome | null): CorrectionEnd {
   if (verdict.failureText !== null) {
-    return { leave: false, gap: verdict.resendDue ? 'unsent' : 'incomplete', tone: 'error', text: verdict.failureText }
+    const text = verdict.failureText
+    return { leave: false, gap: { kind: 'incomplete', text }, tone: 'error', text }
   }
   if (!verdict.resend) {
     return { leave: true, gap: null, tone: 'success', text: correctionSavedText(false) }
   }
   const outcome: ResendOutcome = stamp ?? { ok: false, message: null }
   if (!outcome.ok) {
-    return { leave: false, gap: 'unsent', tone: 'error', text: resendFailureText(outcome.message) }
+    const text = resendFailureText(outcome.message)
+    return { leave: false, gap: { kind: 'unsent', text }, tone: 'error', text }
   }
   return { leave: true, gap: null, tone: 'success', text: correctionSavedText(true) }
 }

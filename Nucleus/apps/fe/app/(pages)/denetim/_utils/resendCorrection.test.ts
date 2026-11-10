@@ -3,7 +3,6 @@ import { RESEND_LABEL } from '../../../_utils/planReview'
 import {
   correctionEnd,
   correctionVerdict,
-  savedGapText,
   savedLabelOf,
   tallyFindingWrites,
   type CorrectionInput,
@@ -55,14 +54,35 @@ describe('correctionVerdict', () => {
     expect(correctionVerdict({ ...clean('rejected'), failedFindings: 1 }).failureText).not.toContain('soru yanıtı')
   })
 
-  it('tells what to do: reopen for failed answers, a single finding for a failed finding or photo', () => {
+  it('tells what to do: reopen for a failed answer or finding, the home page for a failed photo', () => {
     const answers = correctionVerdict({ ...clean('rejected'), failedAnswers: 1 }).failureText ?? ''
     expect(answers).toContain(RESEND_LABEL)
     expect(answers).not.toContain('Tekil Bulgu')
+    // A failed finding holds its answer back (correctionWrites.ts), so reopening writes the finding again.
     const finding = correctionVerdict({ ...clean('rejected'), failedFindings: 1 }).failureText ?? ''
-    expect(finding).toContain('Tekil Bulgu')
-    expect(finding).toContain('yeniden yazmaz')
     expect(finding).toContain(RESEND_LABEL)
+    expect(finding).toContain('önceki yanıtlarıyla duruyor')
+    expect(finding).toContain('bulgu yeniden istenecek')
+    expect(finding).not.toContain('Tekil Bulgu')
+    expect(finding).not.toContain('yeniden yazmaz')
+  })
+
+  it('names the place for a failed photo: the correction screen has no Tekil Bulgu button', () => {
+    const photo = correctionVerdict({ ...clean('rejected'), failedPhotos: 1 }).failureText ?? ''
+    expect(photo).toContain('ana sayfadan Denetim ekranına gidip Tekil Bulgu ile ekleyin')
+    expect(photo).toContain('yeniden açılıp kaydedilse de yüklenmez')
+    // Photos alone: add them, then send the audit again.
+    expect(photo).toContain(`Sonra ana sayfada "${RESEND_LABEL}" düğmesiyle denetimi onaya gönderin.`)
+    const notRejected = correctionVerdict({ ...clean('completed'), failedPhotos: 1 }).failureText ?? ''
+    expect(notRejected).toContain('Tekil Bulgu ile ekleyin')
+    expect(notRejected).not.toContain(RESEND_LABEL)
+  })
+
+  it('a failed photo next to a failed answer: one reopening step, and the photo is still named', () => {
+    const text = correctionVerdict({ ...clean('rejected'), failedAnswers: 1, failedPhotos: 2 }).failureText ?? ''
+    expect(text).toContain('1 soru yanıtı, 2 fotoğraf')
+    expect(text).toContain('Tekil Bulgu ile ekleyin')
+    expect(text.split(RESEND_LABEL)).toHaveLength(2)
   })
 
   it('on a plan that is not rejected a failure is still said, but nothing is "not sent"', () => {
@@ -91,11 +111,11 @@ describe('correctionEnd', () => {
     expect(end).toEqual({ leave: true, gap: null, tone: 'success', text: 'Denetim güncellendi.' })
   })
 
-  it('stays, unsent, when a write failed on a rejected plan; the stamp was not tried', () => {
+  it('stays, incomplete, when a write failed on a rejected plan; the stamp was not tried', () => {
     const verdict = correctionVerdict({ ...clean('rejected'), failedPhotos: 1 })
     const end = correctionEnd(verdict, null)
     expect(end.leave).toBe(false)
-    expect(end.gap).toBe('unsent')
+    expect(end.gap).toEqual({ kind: 'incomplete', text: verdict.failureText ?? '' })
     expect(end.tone).toBe('error')
     expect(end.text).toBe(verdict.failureText ?? '')
   })
@@ -103,14 +123,14 @@ describe('correctionEnd', () => {
   it('stays, incomplete, when a write failed on a plan that was not rejected', () => {
     const end = correctionEnd(correctionVerdict({ ...clean('completed'), failedFindings: 2 }), null)
     expect(end.leave).toBe(false)
-    expect(end.gap).toBe('incomplete')
+    expect(end.gap?.kind).toBe('incomplete')
     expect(end.tone).toBe('error')
   })
 
   it('stays, unsent, when the stamp itself is refused, with the server message', () => {
     const end = correctionEnd(correctionVerdict(clean('rejected')), { ok: false, message: 'Denetim zaten onaylandı.' })
     expect(end.leave).toBe(false)
-    expect(end.gap).toBe('unsent')
+    expect(end.gap?.kind).toBe('unsent')
     expect(end.tone).toBe('error')
     expect(end.text).toContain('Denetim zaten onaylandı.')
     expect(end.text).toContain('Düzeltmeler kaydedildi')
@@ -119,19 +139,35 @@ describe('correctionEnd', () => {
   it('a due stamp that was never tried is not a success', () => {
     const end = correctionEnd(correctionVerdict(clean('rejected')), null)
     expect(end.leave).toBe(false)
-    expect(end.gap).toBe('unsent')
+    expect(end.gap?.kind).toBe('unsent')
+  })
+
+  it('keeps the end text in the gap, so the line beside the button says what the toast said', () => {
+    const failed = correctionEnd(correctionVerdict({ ...clean('rejected'), failedFindings: 1 }), null)
+    expect(failed.gap?.text).toBe(failed.text)
+    const refused = correctionEnd(correctionVerdict(clean('rejected')), { ok: false, message: null })
+    expect(refused.gap?.text).toBe(refused.text)
+  })
+
+  it('a failed write is not worded as "saved, only the resend failed"', () => {
+    for (const failure of [{ failedAnswers: 1 }, { failedFindings: 1 }, { failedPhotos: 1 }]) {
+      const end = correctionEnd(correctionVerdict({ ...clean('rejected'), ...failure }), null)
+      expect(end.gap?.text).toContain('Kaydedilemeyen')
+      expect(end.gap?.text).not.toContain('Düzeltmeler kaydedildi ancak')
+      expect(end.gap?.text).not.toContain('yukarıdaki uyarıda')
+    }
   })
 })
 
 describe('the save button once the correction went through', () => {
   it('reads Kaydedildi only when nothing is missing', () => {
     expect(savedLabelOf(null)).toBe('Kaydedildi')
-    expect(savedLabelOf('unsent')).toBe('Kaydedildi, gönderilmedi')
-    expect(savedLabelOf('incomplete')).not.toBe('Kaydedildi')
+    expect(savedLabelOf({ kind: 'unsent', text: 'x' })).toBe('Kaydedildi, gönderilmedi')
+    expect(savedLabelOf({ kind: 'incomplete', text: 'x' })).toBe('Kaydedildi, eksikler var')
   })
 
-  it('says what to do beside the button', () => {
-    expect(savedGapText('unsent')).toContain(RESEND_LABEL)
-    expect(savedGapText('incomplete')).toContain('ana sayfadan')
+  it('a rejected plan whose writes failed reads "eksikler var", not "gönderilmedi"', () => {
+    const end = correctionEnd(correctionVerdict({ ...clean('rejected'), failedAnswers: 1 }), null)
+    expect(savedLabelOf(end.gap)).toBe('Kaydedildi, eksikler var')
   })
 })
