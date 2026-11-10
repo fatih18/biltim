@@ -38,8 +38,8 @@ describe("a refused plan stamp keeps the form open (online send)", () => {
     const redirect = body.indexOf("window.location.href = '/'");
     expect(held).toBeGreaterThan(0);
     expect(hold).toBeGreaterThan(held);
-    expect(body.slice(hold, clear)).toContain("setHeldSend({ planId, auditId })");
-    expect(body.slice(hold, clear)).toContain("setSavedGap(held)");
+    // The hold itself (state and the remembered record) is holdSend's; see r72PolishWiring.test.ts.
+    expect(body.slice(hold, clear)).toContain("await holdSend(planId, auditId, held)");
     expect(leave).toBeGreaterThan(hold);
     expect(leave).toBeLessThan(clear);
     expect(clear).toBeLessThan(success);

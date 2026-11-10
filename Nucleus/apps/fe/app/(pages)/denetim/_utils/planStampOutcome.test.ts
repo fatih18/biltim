@@ -79,8 +79,19 @@ describe("heldPlanGap: the message that stays when the stamp did not go through"
     expect(text).toContain("Fotoğrafsız bulgu kabul edilmez");
     expect(text).toContain("bu ekrandan fotoğraf eklenemez");
     expect(text).toContain("Plan onaya gitmedi ve açık kaldı");
-    expect(text).toContain("Merkez Ekip'e bildirin");
     expect(text).toContain("yeniden doldurmayın");
+  });
+
+  it("for the photo refusal names the accurate cure: Merkez Ekip switches 'Fotoğraf Zorunlu' off in Ana Veri Yönetimi > Sorular, then 'Yeniden gönder' passes", () => {
+    const two = heldPlanGap({ kind: "refused", reasons: [API_REASON_TWO] }, questions, steps)?.text ?? "";
+    expect(two).toContain("Ana Veri Yönetimi > Sorular");
+    expect(two).toContain('"Fotoğraf Zorunlu" ayarını kapatmalı');
+    expect(two).toContain("bu sorular için");
+    expect(two).toContain(`"${STAMP_RETRY_LABEL}" düğmesine basın, plan geçer`);
+    expect(two).not.toContain("Merkez Ekip'e bildirin");
+    const one = heldPlanGap({ kind: "refused", reasons: [API_REASON] }, questions, steps)?.text ?? "";
+    expect(one).toContain("bu soru için");
+    expect(one).not.toContain("bu sorular için");
   });
 
   it("does not hand the reader the server's own 'add a photo' task, which this screen cannot do", () => {
@@ -100,13 +111,17 @@ describe("heldPlanGap: the message that stays when the stamp did not go through"
     expect(notInList?.text).toContain(": S1-Q2.");
     const bare = heldPlanGap({ kind: "refused", reasons: [`Denetim gönderilemedi: ${PHOTO_REFUSAL_MARKER} fotoğrafsız bulgu var.`] }, questions, steps);
     expect(bare?.text).toContain("bulgu fotoğrafı zorunlu olan sorularda fotoğrafsız bulgu var.");
-    expect(bare?.text).toContain("Merkez Ekip'e bildirin");
+    expect(bare?.text).toContain("ilgili sorular için");
+    expect(bare?.text).toContain('"Fotoğraf Zorunlu" ayarını kapatmalı');
   });
 
   it("keeps the page open for any other refusal too, with its reason", () => {
     const gap = heldPlanGap({ kind: "refused", reasons: ["Plan bulunamadı."] }, questions, steps);
     expect(gap?.text).toContain("Denetim kaydedildi ancak plan onaya gönderilemedi: Plan bulunamadı.");
     expect(gap?.text).toContain("yeniden doldurmayın");
+    // A reason that is not the photo refusal has no switch to name: it still goes to Merkez Ekip.
+    expect(gap?.text).toContain("Merkez Ekip'e bildirin");
+    expect(gap?.text).not.toContain("Fotoğraf Zorunlu");
     expect(heldPlanGap({ kind: "refused", reasons: [] }, questions, steps)?.text).toContain("Sunucu planı kabul etmedi.");
   });
 });

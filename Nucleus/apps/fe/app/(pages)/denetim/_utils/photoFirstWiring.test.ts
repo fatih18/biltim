@@ -33,8 +33,8 @@ describe("the photos of demanding questions go up before any row is written (onl
 
   it("the uploaded photos reach the finding writes, so they are not sent twice", () => {
     expect(bodyOf("submitForm")).toContain("await finishSentAudit(data, uploadedFirst)");
-    expect(pageCode).toContain(
-      "const finishSentAudit = async (data: any, uploadedFirst: ReadonlyMap<string, UploadedPhotos<UploadedFileInfo>>)"
+    expect(pageCode).toMatch(
+      /const finishSentAudit = async \(\s*data: CreatedResponse,\s*uploadedFirst: ReadonlyMap<string, UploadedPhotos<UploadedFileInfo>>\s*\)/
     );
     expect(bodyOf("finishSentAudit")).toContain(
       "createFindingForAnswer(ans, auditId, detectedDate, uploadedFirst)"
@@ -70,6 +70,7 @@ describe("the photos of demanding questions go up before any row is written (onl
     expect(body).toContain("uploadMemoryRef.current");
     expect(body).toContain("photoUploadAbortText({ failed: result.failedQuestions, steps, subject })");
     expect(body).toContain("if (subject === 'audit') setUploadGap(text)");
+    expect(body).toContain("else setSingleUploadGap(text)");
     expect(body).toContain("toast.error(text, { duration: 20000 })");
     expect(body).toContain("return null");
   });
@@ -82,8 +83,10 @@ describe("the photos of demanding questions go up before any row is written (onl
   });
 
   it("the message stays on the page, with the way to the offline queue only for a new audit", () => {
-    expect(pageCode.match(/<PhotoUploadGap\s/g)).toHaveLength(1);
-    const at = pageCode.indexOf("<PhotoUploadGap");
+    // One beside the save button (with the queue), one in the single finding's modal (without it).
+    expect(pageCode.match(/<PhotoUploadGap\s/g)).toHaveLength(2);
+    const at = pageCode.indexOf("<PhotoUploadGap\n");
+    expect(at).toBeGreaterThan(0);
     const tag = pageCode.slice(at, pageCode.indexOf("/>", at));
     expect(tag).toContain("text={uploadGap}");
     expect(tag).toContain("editAudit");

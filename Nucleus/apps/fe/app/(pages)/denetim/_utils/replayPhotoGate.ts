@@ -35,15 +35,53 @@ export type ReplayPhotoDecision =
   | { action: "create" }
   | { action: "set_aside"; reason: string; releasePhotoIds: string[] };
 
-/** Whether the finding sits on a question that demands a photo, by the queued flag or the question as read now. */
+/**
+ * Whether the finding sits on a question that demands a photo. The question as
+ * read NOW decides: Merkez Ekip may have switched the flag off since the form
+ * was queued, and that is the way out of a refused record, so a flag stored at
+ * queue time must not keep it true. The queued flag speaks only for a question
+ * the list no longer knows (deleted, or a standalone single finding).
+ */
 export function replayRequiresPhoto(input: Pick<ReplayFindingPhotos, "question" | "queuedRequirePhoto">): boolean {
-  return input.queuedRequirePhoto === true || input.question?.requirePhoto === true;
+  if (input.question) return input.question.requirePhoto === true;
+  return input.queuedRequirePhoto === true;
 }
 
-/** What the refused list shows: what is wrong, what it means, what to do. */
-export function replayPhotoRefusalText(question: Question | undefined, steps: readonly Step[]): string {
+/**
+ * Whether the replay may start: the question list in hand is the server's (or
+ * the last one read from it), not the built-in fallback. Before that, "the
+ * question has no photo rule" would only mean "the list is not here yet", and a
+ * finding on a demanding question would be judged by nothing. The caller waits
+ * and retries later; an answer from the server with no question at all counts
+ * as loaded (no question exists, so no photo rule does either).
+ */
+export function replayQuestionsReady(input: { answered: boolean; count: number }): boolean {
+  return input.answered || input.count > 0;
+}
+
+/** Said when the replay was asked to start before the questions were read. */
+export const REPLAY_WAITS_FOR_QUESTIONS_TEXT =
+  "Çevrimdışı kayıtlar henüz gönderilmedi: soru listesi okunamadığı için hangi bulguların fotoğraf istediği bilinmiyor. Bağlantıyı kontrol edip sayfayı yenileyin ya da biraz sonra tekrar deneyin; kayıtlar cihazda duruyor.";
+
+/** The phrase every refusal text of the replay's own photo gate carries; the discard confirmation recognises the record by it. */
+export const REPLAY_PHOTO_REFUSAL_MARKER = "bulgu fotoğrafı zorunlu ama";
+
+/**
+ * What the refused list shows: what is wrong, what it means, what to do. With
+ * no photo queued at all there is nothing to retry: "Tekrar dene" would meet
+ * the same empty finding, so the only way out is to discard it and enter the
+ * finding again with a photo.
+ */
+export function replayPhotoRefusalText(
+  question: Question | undefined,
+  steps: readonly Step[],
+  queuedPhotoCount: number,
+): string {
   const name = question ? photoGapLabel(question, steps) : "Bu bulgunun sorusu";
-  return `${name}: bulgu fotoğrafı zorunlu ama fotoğraf sunucuya yüklenemedi ya da hiç eklenmemiş, bu yüzden fotoğrafsız bulgu oluşturulmadı. Fotoğraflar cihazda duruyor: bağlantıyı kontrol edip "Tekrar dene"ye basın. "Kuyruktan çıkar" bu sorunun bulgusunu kalıcı olarak atlar.`;
+  if (queuedPhotoCount === 0) {
+    return `${name}: ${REPLAY_PHOTO_REFUSAL_MARKER} bu bulguya hiç fotoğraf eklenmemiş, bu yüzden fotoğrafsız bulgu oluşturulmadı. "Tekrar dene" bir şey değiştirmez; tek yol "Kuyruktan çıkar"a basıp bu bulguyu fotoğrafıyla yeniden girmektir. "Kuyruktan çıkar" bu sorunun bulgusunu kalıcı olarak atlar.`;
+  }
+  return `${name}: ${REPLAY_PHOTO_REFUSAL_MARKER} fotoğraf sunucuya yüklenemedi, bu yüzden fotoğrafsız bulgu oluşturulmadı. Fotoğraflar cihazda duruyor: bağlantıyı kontrol edip "Tekrar dene"ye basın. "Kuyruktan çıkar" bu sorunun bulgusunu kalıcı olarak atlar.`;
 }
 
 /** Create the finding, or set the submission aside before it is created. */
@@ -52,7 +90,7 @@ export function replayFindingPhotoDecision(input: ReplayFindingPhotos): ReplayPh
   const skipped = new Set(input.skippedPhotoIds ?? []);
   return {
     action: "set_aside",
-    reason: replayPhotoRefusalText(input.question, input.steps),
+    reason: replayPhotoRefusalText(input.question, input.steps, input.queuedPhotoIds.length),
     releasePhotoIds: input.queuedPhotoIds.filter((id) => skipped.has(id)),
   };
 }

@@ -72,7 +72,8 @@ const PASSING_FAILURE_TEXT = `Denetim ve bulguları kaydedildi ancak plan onaya 
 /**
  * The photo refusal in the page's own words: which questions have a finding
  * without its photo (named from the codes the server's message carries), that
- * a photo cannot be added from this screen, and who to tell. The server's own
+ * a photo cannot be added from this screen, and the way out (photoHeldTail:
+ * Merkez Ekip switches the photo flag off, then "Yeniden gönder"). The server's own
  * sentence says "add a photo", a task the reader cannot do here, so it is not
  * repeated.
  */
@@ -88,7 +89,18 @@ function photoRefusalText(reasons: readonly string[], questions: readonly Questi
         ? "bulgu fotoğrafı zorunlu olan şu soruda"
         : "bulgu fotoğrafı zorunlu olan şu sorularda";
   const list = labels.length > 0 ? `: ${labels.join("; ")}` : "";
-  return `Denetim ve bulguları kaydedildi ancak onaya gönderilemedi: ${subject} fotoğrafsız bulgu var${list}. Fotoğrafsız bulgu kabul edilmez ve bu ekrandan fotoğraf eklenemez. ${HELD_TAIL}`;
+  return `Denetim ve bulguları kaydedildi ancak onaya gönderilemedi: ${subject} fotoğrafsız bulgu var${list}. Fotoğrafsız bulgu kabul edilmez ve bu ekrandan fotoğraf eklenemez. ${photoHeldTail(labels.length)}`;
+}
+
+/**
+ * The way out of the photo refusal, which is a switch and not a message to
+ * pass on: Merkez Ekip turns "Fotoğraf Zorunlu" off for the named question(s)
+ * in Ana Veri Yönetimi > Sorular, and the server checks that flag when the plan
+ * is stamped, so "Yeniden gönder" on this screen passes afterwards.
+ */
+function photoHeldTail(questionCount: number): string {
+  const which = questionCount === 0 ? "ilgili sorular" : questionCount === 1 ? "bu soru" : "bu sorular";
+  return `Plan onaya gitmedi ve açık kaldı. Çıkış yolu: Merkez Ekip, Ana Veri Yönetimi > Sorular ekranında ${which} için "Fotoğraf Zorunlu" ayarını kapatmalı; ardından bu ekrandaki "${STAMP_RETRY_LABEL}" düğmesine basın, plan geçer. Denetim zaten kayıtlı olduğu için bu planı yeniden doldurmayın.`;
 }
 
 /**

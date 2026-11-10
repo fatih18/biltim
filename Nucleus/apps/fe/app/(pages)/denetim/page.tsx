@@ -89,7 +89,22 @@ import {
   uploadPhotosFirst,
 } from './_utils/photoFirst'
 import { replayStampAction } from './_utils/photoRefusal'
-import { replayFindingPhotoDecision } from './_utils/replayPhotoGate'
+import {
+  REPLAY_WAITS_FOR_QUESTIONS_TEXT,
+  replayFindingPhotoDecision,
+  replayQuestionsReady,
+} from './_utils/replayPhotoGate'
+import { auditHeaderProblem } from './_utils/auditHeaderCheck'
+import { discardConfirmMessage, discardStampsPlan } from './_utils/discardRefused'
+import {
+  forgetHeldSend,
+  heldGapOf,
+  type HeldSendStore,
+  recallHeldSend,
+  rememberHeldSend,
+} from './_utils/heldSend'
+import { type CreatedResponse, createdIdOf, unsavedFindingsGap } from './_utils/newAuditFindings'
+import { submittedLine } from './_utils/submittedLine'
 import {
   heldPlanGap,
   PLAN_STAMPED,
@@ -641,6 +656,15 @@ async function loadSnapshot<T>(id: string): Promise<T | null> {
 
 const db = typeof window !== 'undefined' ? new FiveSOfflineDB() : (null as any)
 
+/** Where a plan's held send is remembered: the snapshots table, one record per plan (_utils/heldSend.ts). */
+const heldSendStore: HeldSendStore = {
+  read: (key) => loadSnapshot(key),
+  write: (key, value) => saveSnapshot(key, value),
+  remove: async (key) => {
+    await db?.snapshots.delete(key)
+  },
+}
+
 /* ───────────────────────────── Page ───────────────────────────── */
 export default function FiveSAuditFormPage() {
   const actions = useGenericApiActions()
@@ -954,6 +978,14 @@ export default function FiveSAuditFormPage() {
   // The questions as the replay should read them now: its closure may hold the list from before they were loaded.
   const questionsRef = useRef<Question[]>(questions)
   questionsRef.current = questions
+  // Whether `questions` is the server's list (or the last one read from it) and not the built-in fallback: the replay waits for it (replayPhotoGate.ts → replayQuestionsReady).
+  const [questionsLoaded, setQuestionsLoaded] = useState(false)
+  const questionsLoadedRef = useRef(false)
+  questionsLoadedRef.current = questionsLoaded
+  // The form was handed in to the offline queue, not sent: the line under the summary says which (submittedLine.ts).
+  const [formQueued, setFormQueued] = useState(false)
+  // A single finding's save that stopped for a required photo: stays in its modal until the next attempt (photoFirst.ts).
+  const [singleUploadGap, setSingleUploadGap] = useState<string | null>(null)
   // The single-finding modal's save; unlocked after every attempt, since a
   // second single finding is a legitimate thing to record.
   const singleSaveLockRef = useRef(false)
@@ -983,6 +1015,7 @@ export default function FiveSAuditFormPage() {
       dueDate: prev.dueDate || header.date,
       linkedQuestionId: '',
     }))
+    setSingleUploadGap(null)
     setSingleFindingOpen(true)
   }
   const closeSingleFindingModal = () => setSingleFindingOpen(false)
@@ -1294,9 +1327,16 @@ export default function FiveSAuditFormPage() {
   }
 
   const discardRefusedSubmission = async (id: string, label: string) => {
+    // Read first: the confirmation says what discarding does to THIS record (discardRefused.ts).
+    const record: OfflineAuditSubmission | undefined = await db?.submissions.get(id).catch(() => undefined)
     const ok = await confirmDialog({
       title: 'Kayıt kuyruktan çıkarılsın mı?',
-      message: `${label} sunucu tarafından reddedildi ve cihazda bekliyor. Çıkarılırsa bu kayıt ve fotoğrafları cihazdan silinir; geri alınamaz.`,
+      message: discardConfirmMessage(label, {
+        planId: record?.planId,
+        syncedAuditId: record?.syncedAuditId,
+        source: record?.auditPayload?.source,
+        lastError: record?.lastError,
+      }),
       confirmLabel: 'Kuyruktan çıkar',
       cancelLabel: 'Vazgeç',
       tone: 'danger',
@@ -1310,7 +1350,11 @@ export default function FiveSAuditFormPage() {
        * offered again and audited twice.
        */
       const s = (await db.submissions.get(id)) as OfflineAuditSubmission | undefined
-      if (s?.syncedAuditId && s.planId && s.auditPayload?.source !== 'single_finding') {
+      if (
+        s?.syncedAuditId &&
+        s.planId &&
+        discardStampsPlan({ planId: s.planId, syncedAuditId: s.syncedAuditId, source: s.auditPayload?.source })
+      ) {
         try {
           await stampPlanSent(
             s.planId,
@@ -1659,6 +1703,18 @@ export default function FiveSAuditFormPage() {
      * written `syncedAuditId`, create the audit twice.
      */
     if (syncing || syncingRef.current) return
+    /*
+     * R72: the replay judges every queued finding by its question's photo flag
+     * as the server has it NOW, so it does not start on the built-in fallback
+     * list, where "no photo rule" only means "the list is not here yet". The
+     * auto-sync effect starts it again once the questions are loaded; a tap on
+     * the sync button reads them again and says why nothing was sent.
+     */
+    if (!questionsLoadedRef.current) {
+      toast.message(REPLAY_WAITS_FOR_QUESTIONS_TEXT)
+      void fetchQuestionsFromBE()
+      return
+    }
     syncingRef.current = true
     setSyncing(true)
 
@@ -2156,6 +2212,9 @@ export default function FiveSAuditFormPage() {
 
     // ✅ draft restore (plan-based)
     await tryRestoreDraft(plan.id, nextHeader, auditorOptions)
+
+    // R72: an audit already on the server whose plan did not go is held again, not filled in a second time.
+    await restoreHeldSend(plan.id)
   }
 
   const fetchAssignment = async () => {
@@ -2731,6 +2790,8 @@ export default function FiveSAuditFormPage() {
           return next
         })
       }
+      // The list in hand is the server's (or its last read), not the fallback; never flips back to false on a later failed read.
+      if (replayQuestionsReady({ answered: qRes !== null, count: rawQ.length })) setQuestionsLoaded(true)
     } catch (err) {
       console.error('fetchQuestionsFromBE error', err)
     }
@@ -2780,9 +2841,11 @@ export default function FiveSAuditFormPage() {
   useEffect(() => {
     if (!isOnline) return
     if (queuedCount <= 0) return
+    // R72: not before the question list is loaded (syncOfflineQueue); this runs again when it is.
+    if (!questionsLoaded) return
     syncOfflineQueue()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOnline, queuedCount])
+  }, [isOnline, queuedCount, questionsLoaded])
 
   const activeQuestion = useMemo(
     () => (activeDetailQuestionId ? questions.find((q) => q.id === activeDetailQuestionId) ?? null : null),
@@ -3054,6 +3117,8 @@ export default function FiveSAuditFormPage() {
     }
     await clearDraft(planId, header)
 
+    // The line under the summary says "kuyruğa alındı", not "gönderildi" (submittedLine.ts).
+    setFormQueued(true)
     setSubmitted(true)
     toast.success('İnternet yok veya kayıt hatası oluştu. Form offline kuyruğa eklendi. İnternet gelince otomatik senkronlanır.')
     return true
@@ -3115,6 +3180,33 @@ export default function FiveSAuditFormPage() {
   }
 
   /*
+   * The plan did not go: the page holds the form with `gap` and offers "Yeniden
+   * gönder" for this audit, and the hold is written to the offline database
+   * (heldSend.ts), so leaving the screen and opening the plan again brings the
+   * same message and button back instead of an empty form to fill twice.
+   */
+  const holdSend = async (planId: string, auditId: string, gap: SavedGap) => {
+    setHeldSend({ planId, auditId })
+    setSavedGap(gap)
+    await rememberHeldSend(heldSendStore, { planId, auditId, kind: gap.kind, text: gap.text })
+  }
+
+  /*
+   * Opening a plan whose audit is already on the server but whose stamp did not
+   * go (heldSend.ts): the form comes back locked, with the held message and
+   * "Yeniden gönder", exactly as the first screen left it.
+   */
+  const restoreHeldSend = async (planId: string) => {
+    const held = await recallHeldSend(heldSendStore, planId)
+    if (!held || submitLockRef.current) return
+    submitLockRef.current = true
+    setSubmitState('done')
+    setSubmitted(true)
+    setHeldSend({ planId, auditId: held.auditId })
+    setSavedGap(heldGapOf(held))
+  }
+
+  /*
    * The end of an online send (planStampOutcome.ts). The draft is deleted only
    * once the plan stamp went through: with a refused or failed stamp the audit
    * is on the server and its plan is not sent, so the page stays, says why and
@@ -3124,11 +3216,11 @@ export default function FiveSAuditFormPage() {
   const concludeSend = async (planId: string | null, auditId: string, outcome: PlanStampOutcome) => {
     const held = heldPlanGap(outcome, questions, steps)
     if (held && planId) {
-      setHeldSend({ planId, auditId })
-      setSavedGap(held)
+      await holdSend(planId, auditId, held)
       return
     }
     await clearDraft(planId, header)
+    if (planId) await forgetHeldSend(heldSendStore, planId)
     setHeldSend(null)
     setSavedGap(null)
     // Madde 9: otomatik yeni denetime geçiş yok — ana sayfaya dön
@@ -3175,7 +3267,9 @@ export default function FiveSAuditFormPage() {
     })
     if (result.ok) return result.byQuestion
     const text = photoUploadAbortText({ failed: result.failedQuestions, steps, subject })
+    // Both stay on screen where the person works (the form's summary, the single finding's modal) after the toast is gone.
     if (subject === 'audit') setUploadGap(text)
+    else setSingleUploadGap(text)
     toast.error(text, { duration: 20000 })
     return null
   }
@@ -3406,6 +3500,12 @@ export default function FiveSAuditFormPage() {
   const queueAfterUploadFailure = async () => {
     // The save button's own rule: a form that cannot be saved cannot be queued either.
     if (submitLockRef.current || liveUnanswered.size > 0) return
+    // Nor a form whose header the save would refuse: it would only be refused later, on replay (auditHeaderCheck.ts).
+    const headerProblem = auditHeaderProblem(header)
+    if (headerProblem) {
+      toast.error(headerProblem)
+      return
+    }
     submitLockRef.current = true
     setSubmitState('saving')
     let queued = false
@@ -3430,12 +3530,10 @@ export default function FiveSAuditFormPage() {
 
     const missing = new Set<string>()
 
-    if (!header.teamName || !header.department || !header.date) {
-      toast.error('Ekip, Lokasyon ve Tarih alanları plan üzerinden otomatik gelmelidir.')
-      return false
-    }
-    if (!header.auditorName) {
-      toast.error('Denetimi Yapan alanı zorunludur.')
+    // The same check "Kuyruğa al" runs before it stores the form (auditHeaderCheck.ts).
+    const headerProblem = auditHeaderProblem(header)
+    if (headerProblem) {
+      toast.error(headerProblem)
       return false
     }
 
@@ -3574,8 +3672,11 @@ export default function FiveSAuditFormPage() {
   }
 
   /** What follows a saved audit row: its answers, findings, draft cleanup and plan stamp. */
-  const finishSentAudit = async (data: any, uploadedFirst: ReadonlyMap<string, UploadedPhotos<UploadedFileInfo>>) => {
-    const auditId = data?.data?.id ?? data?.id ?? data?.data?.[0]?.id ?? null
+  const finishSentAudit = async (
+    data: CreatedResponse,
+    uploadedFirst: ReadonlyMap<string, UploadedPhotos<UploadedFileInfo>>
+  ) => {
+    const auditId = createdIdOf(data)
 
     if (!auditId) {
       console.warn('Audit ID bulunamadı, findings kaydı atlanıyor.')
@@ -3627,8 +3728,24 @@ export default function FiveSAuditFormPage() {
 
     const jobs = auditRecord.findings.map((ans) => createFindingForAnswer(ans, auditId, detectedDate, uploadedFirst))
 
-    await Promise.all(jobs)
+    const writes = await Promise.all(jobs)
     setSubmitted(true)
+
+    /*
+     * A finding that did not save holds the stamp, as a correction does
+     * (newAuditFindings.ts): the audit and its answers are on the server, the
+     * plan is not sent so that it does not go to approval without a finding,
+     * and the page stays with the message and "Yeniden gönder". Without a plan
+     * there is nothing to hold; the message is still said.
+     */
+    const unsaved = unsavedFindingsGap({ findings: auditRecord.findings, writes, questions, steps })
+    if (unsaved) {
+      toast.error(unsaved.text, { duration: 20000 })
+      if (assignedPlan?.id) {
+        await holdSend(assignedPlan.id, auditId, unsaved)
+        return
+      }
+    }
 
     /*
      * R72: the demanding questions' photos are on the server before the audit
@@ -3666,6 +3783,7 @@ export default function FiveSAuditFormPage() {
     }
 
     setSubmitted(false)
+    setFormQueued(false)
     setAnswers(() =>
       Object.fromEntries(
         questions.map((q) => [
@@ -3713,6 +3831,8 @@ export default function FiveSAuditFormPage() {
   }
 
   const saveSingleFinding = async () => {
+    // The message of an earlier stopped save is answered by this attempt (it is set again if this one stops too).
+    setSingleUploadGap(null)
     /*
      * In an audit only when the person STARTED one (assignedPlan is set by an
      * explicit start, never by an assignment alone): see singleFinding.ts →
@@ -4292,6 +4412,13 @@ export default function FiveSAuditFormPage() {
             />
           </div>
         </div>
+
+        {/* A save stopped for a required photo that did not upload: the reason stays here (photoFirst.ts), the toast is gone after 20 s. */}
+        {singleUploadGap ? (
+          <div className="mt-4">
+            <PhotoUploadGap text={singleUploadGap} />
+          </div>
+        ) : null}
 
         <div className="mt-5 flex justify-end gap-2 text-xs">
           <button
@@ -5130,7 +5257,7 @@ export default function FiveSAuditFormPage() {
 
             {submitted && !savedGap && (
               <p className="text-xs text-emerald-700 dark:text-emerald-300">
-                {isOnline ? 'Form başarıyla gönderildi.' : 'Form offline kuyruğa alındı (internet gelince gönderilecek).'}
+                {submittedLine({ queued: formQueued, online: isOnline })}
               </p>
             )}
             <SavedWithGap
