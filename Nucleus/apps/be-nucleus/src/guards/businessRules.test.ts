@@ -1107,6 +1107,33 @@ describe('camelCase bodies — what the frontend’s nucleus client actually sen
     expect((await res?.json()).message).toContain('finding_no')
   })
 
+  it('R61: the old number of a renumbered finding is the system\'s: refused on create, and on every later write', async () => {
+    const created = await enforceBusinessRules({
+      request: jsonReq('POST', '/fiveSFindings', {
+        description: 'x',
+        locationName: 'y',
+        findingType: 'z',
+        detectedDate: '2026-08-01',
+        previousFindingNo: 1,
+      }),
+      body: undefined,
+      read: reader([]),
+    })
+    expect(created?.status).toBe(400)
+    expect((await created?.json()).message).toContain('previous_finding_no')
+    for (const method of ['PUT', 'PATCH']) {
+      for (const key of ['previousFindingNo', 'findingNo']) {
+        const res = await enforceBusinessRules({
+          request: jsonReq(method, '/fiveSFindings/f1', { [key]: 3 }),
+          body: undefined,
+          read: reader([{ status: 'open' }]),
+          caller: GOD,
+        })
+        expect(res?.status).toBe(400)
+      }
+    }
+  })
+
   it('a required field left blank', async () => {
     const res = await enforceBusinessRules({
       request: jsonReq('POST', '/fiveSFindings', {

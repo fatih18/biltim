@@ -933,6 +933,10 @@
           "generatedByDefaultAsIdentity": true
         },
         {
+          "name": "previous_finding_no",
+          "type": "integer"
+        },
+        {
           "name": "detected_date",
           "type": "date"
         },
@@ -1013,6 +1017,15 @@
         {
           "name": "form_title",
           "type": "text"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "five_s_findings_finding_no_uq",
+          "columns": [
+            "finding_no"
+          ],
+          "unique": true
         }
       ]
     },

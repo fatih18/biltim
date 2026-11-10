@@ -1331,6 +1331,10 @@ export async function enforceBusinessRules(ctx: RuleContext): Promise<Response |
     if (present(body, 'finding_no')) {
       return refuse('Bulgu numarasını sistem verir; finding_no gönderilemez.')
     }
+    // The old number of a renumbered finding is an audit trail the boot writes (findingNumbers.ts).
+    if (present(body, 'previous_finding_no')) {
+      return refuse('Önceki bulgu numarasını sistem yazar; previous_finding_no gönderilemez.')
+    }
     const missing = ['description', 'location_name', 'finding_type', 'detected_date'].filter(
       (k) => !present(body, k)
     )
@@ -1346,6 +1350,9 @@ export async function enforceBusinessRules(ctx: RuleContext): Promise<Response |
   // Nor can a number be rewritten later — it is how the plant cites a finding.
   if (findingItem && present(body, 'finding_no')) {
     return refuse('Bulgu numarası değiştirilemez.')
+  }
+  if (findingItem && present(body, 'previous_finding_no')) {
+    return refuse('Önceki bulgu numarası değiştirilemez; sistem onu denetim izi olarak tutar.')
   }
 
   /*

@@ -1622,6 +1622,7 @@ export const fiveSFindingsColumns = {
 	questionId: text('question_id'),
 	stepCode: text('step_code'),
 	findingNo: integer('finding_no').generatedByDefaultAsIdentity(),
+	previousFindingNo: integer('previous_finding_no'),
 	detectedDate: date('detected_date'),
 	locationName: text('location_name'),
 	findingType: text('finding_type'),
@@ -1643,10 +1644,18 @@ export const fiveSFindingsColumns = {
 	formTitle: text('form_title'),
 };
 
-export const fiveSFindings = pgTable('five_s_findings', fiveSFindingsColumns);
+export const fiveSFindingsIndexes = (t: { findingNo: PgColumn }) => [
+	uniqueIndex('five_s_findings_finding_no_uq').on(t.findingNo),
+];
+
+export const fiveSFindings = pgTable('five_s_findings', fiveSFindingsColumns, (t) => [
+	uniqueIndex('five_s_findings_finding_no_uq').on(t.findingNo),
+]);
 
 export function createFiveSFindingsForSchema(schema: ReturnType<typeof pgSchema>) {
-	return schema.table('five_s_findings', fiveSFindingsColumns);
+	return schema.table('five_s_findings', fiveSFindingsColumns, (t) => [
+		uniqueIndex('five_s_findings_finding_no_uq').on(t.findingNo),
+	]);
 }
 
 export const fiveSLocationsColumns = {

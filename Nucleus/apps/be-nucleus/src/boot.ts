@@ -1,4 +1,5 @@
 import { query } from './db'
+import { ensureUniqueFindingNumbers, renumberDuplicateFindings } from './findingNumbers'
 import { godminGrantLog, grantGodminRole } from './godminRole'
 
 /**
@@ -161,6 +162,19 @@ export async function applyBootFixes(): Promise<void> {
       console.error(`[boot] ${table}.${column} sayacı ilerletilemedi`, error)
     }
   }
+
+  /*
+   * R61: the numbers that were already handed out twice. The block above
+   * guarantees nextval is past the stored maximum, so the renumbered rows get
+   * fresh numbers; then the unique index makes a repeat impossible. Neither
+   * stops the boot (findingNumbers.ts).
+   */
+  try {
+    await renumberDuplicateFindings()
+  } catch (error) {
+    console.error('[boot] tekrar eden bulgu numaraları düzeltilemedi', error)
+  }
+  await ensureUniqueFindingNumbers()
 
   try {
     /*
