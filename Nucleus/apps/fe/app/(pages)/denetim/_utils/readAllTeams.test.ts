@@ -5,11 +5,10 @@ import { keepingStatus, readAllTeams, type ErrorOf } from './readAllTeams'
 
 type StatusError = Error & { status: number | null }
 
-const errorOf: ErrorOf = (body, code) => {
-  const error = new Error(String('message' in body ? body.message : 'failed')) as StatusError
-  error.status = typeof code === 'number' ? code : null
-  return error
-}
+const errorOf: ErrorOf = (body, code): StatusError =>
+  Object.assign(new Error(String('message' in body ? body.message : 'failed')), {
+    status: typeof code === 'number' ? code : null,
+  })
 
 const teamsOf = (count: number): ListRow[] =>
   Array.from({ length: count }, (_, i) => ({
