@@ -51,28 +51,46 @@ export const PHOTO_QUESTION_FINDINGS_SQL = `select f.question_id, f.finding_no,
       where q.external_id = f.question_id and q.require_photo is true)
  order by f.finding_no`
 
-/** A non-blank string. */
-const filled = (value: unknown): boolean => typeof value === 'string' && value.trim() !== ''
+/**
+ * What a jsonb photo column holds once parsed: JSON. A row's cells arrive
+ * untyped from node-pg; each one is narrowed with typeof / Array.isArray at the
+ * place it is read, so no wider type is needed past that line.
+ */
+type Json = string | number | boolean | null | Json[] | { [key: string]: Json }
 
-/** One entry of a photo list names a file: a string, or an object with an id, url or path. */
-function namesPhoto(item: unknown): boolean {
-  if (typeof item === 'string') return filled(item)
-  if (!item || typeof item !== 'object' || Array.isArray(item)) return false
-  const o: Row = { ...item }
-  return ['file_id', 'fileId', 'id', 'url', 'path'].some((key) => filled(o[key]))
+/** The keys that name a file inside a photo entry. */
+const PHOTO_KEYS: readonly string[] = ['file_id', 'fileId', 'id', 'url', 'path']
+
+/** A non-blank string. */
+const filled = (value: string): boolean => value.trim() !== ''
+
+/** True when the named cell of the row holds a non-blank string (a number, a null or an object is not a name). */
+function hasText(row: Row, key: string): boolean {
+  const cell = row[key]
+  return typeof cell === 'string' && filled(cell)
 }
 
-/** A jsonb array as node-pg hands it over: already parsed, or still text. */
-function listOf(value: unknown): unknown[] {
-  let v = value
-  if (typeof v === 'string') {
-    try {
-      v = JSON.parse(v)
-    } catch {
-      return []
-    }
+/** One entry of a photo list names a file: a string, or an object with an id, url or path. */
+function namesPhoto(item: Json): boolean {
+  if (typeof item === 'string') return filled(item)
+  if (item === null || typeof item !== 'object' || Array.isArray(item)) return false
+  return PHOTO_KEYS.some((key) => hasText(item, key))
+}
+
+/** The parsed value of a jsonb column that arrived as text; nothing when it is not JSON. */
+function parseJson(text: string): Json | undefined {
+  try {
+    return JSON.parse(text)
+  } catch {
+    return undefined
   }
-  return Array.isArray(v) ? v : []
+}
+
+/** The photo list of a finding row: a jsonb array as node-pg hands it over, already parsed or still text. */
+function photoListOf(row: Row): Json[] {
+  const cell = row.photo_before_files
+  const parsed = typeof cell === 'string' ? parseJson(cell) : cell
+  return Array.isArray(parsed) ? parsed : []
 }
 
 /**
@@ -82,8 +100,8 @@ function listOf(value: unknown): unknown[] {
  * to the "after" side).
  */
 export function hasBeforePhoto(row: Row): boolean {
-  if (filled(row.photo_before_url) || filled(row.photo_before_file_id)) return true
-  return listOf(row.photo_before_files).some(namesPhoto)
+  if (hasText(row, 'photo_before_url') || hasText(row, 'photo_before_file_id')) return true
+  return photoListOf(row).some(namesPhoto)
 }
 
 /**
@@ -100,9 +118,17 @@ export function questionsMissingPhoto(rows: readonly Row[]): string[] {
   return ids
 }
 
+/**
+ * The words that identify this refusal in its text. The API answers with the
+ * message only, so the audit form (offline replay, online send) recognises the
+ * photo refusal by this phrase: it must stay in the message, and the frontend's
+ * photoRefusal.test.ts reads this file to prove it does.
+ */
+export const PHOTO_REFUSAL_MARKER = 'bulgu fotoğrafı zorunlu olan sorularda'
+
 /** What the sender is told: what is wrong, what it means, what to do. */
 export function missingPhotoMessage(questionIds: readonly string[]): string {
-  return `Denetim gönderilemedi: bulgu fotoğrafı zorunlu olan sorularda (${questionIds.join(', ')}) fotoğrafsız bulgu var. Bu sorularda fotoğrafsız bulgu kabul edilmez. Bulguya fotoğraf ekleyin; fotoğraf yüklenemiyorsa Merkez Ekip'e bildirin.`
+  return `Denetim gönderilemedi: ${PHOTO_REFUSAL_MARKER} (${questionIds.join(', ')}) fotoğrafsız bulgu var. Bu sorularda fotoğrafsız bulgu kabul edilmez. Bulguya fotoğraf ekleyin; fotoğraf yüklenemiyorsa Merkez Ekip'e bildirin.`
 }
 
 /**

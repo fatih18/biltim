@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test'
 import { PENDING_APPROVAL, enforceBusinessRules } from './businessRules'
 import type { Caller } from './caller'
+import type { Row } from '../db'
 import { missingPhotoMessage } from './photoRequired'
 
 const AUDIT = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
@@ -10,8 +11,8 @@ const AUDITOR: Caller = { userId: 'u-aud', isGod: false, roles: ['auditor'] }
 const CENTRAL: Caller = { userId: 'u-ce', isGod: false, roles: ['content manager core team'] }
 
 describe('sending a plan with a photo-demanding question (R72)', () => {
-  type Rows = Record<string, unknown>[]
-  const plan = (status: string, findings: Rows, stored: Record<string, unknown> = {}) => {
+  type Rows = Row[]
+  const plan = (status: string, findings: Rows, stored: Row = {}) => {
     const asked: string[] = []
     const read = async (text: string): Promise<Rows> => {
       asked.push(text)
@@ -24,7 +25,7 @@ describe('sending a plan with a photo-demanding question (R72)', () => {
     }
     return { read, asked }
   }
-  const put = (payload: unknown, read: (text: string) => Promise<Rows>, caller: Caller = AUDITOR) =>
+  const put = (payload: Row, read: (text: string) => Promise<Rows>, caller: Caller = AUDITOR) =>
     enforceBusinessRules({
       request: new Request('http://localhost:4001/fiveSAuditPlans/p1', {
         method: 'PUT',

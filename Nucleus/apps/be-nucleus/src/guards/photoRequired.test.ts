@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'bun:test'
+import type { QueryParam } from './caller'
 import {
   PHOTO_QUESTION_FINDINGS_SQL,
+  PHOTO_REFUSAL_MARKER,
   auditPhotoRefusal,
   entersSentState,
   hasBeforePhoto,
@@ -63,6 +65,13 @@ describe('hasBeforePhoto', () => {
   it('does not take the after side for the before side', () => {
     expect(hasBeforePhoto({ photo_after_url: '/cdn/x', photo_after_files: [{ id: FILE }] })).toBe(false)
   })
+
+  it('does not take a number, a flag or a nested object for the name of a file', () => {
+    expect(hasBeforePhoto({ photo_before_url: 7, photo_before_file_id: true })).toBe(false)
+    expect(hasBeforePhoto({ photo_before_files: [{ id: 7 }, { url: { nested: '/cdn/x' } }, { path: ['/cdn/x'] }] })).toBe(false)
+    expect(hasBeforePhoto({ photo_before_files: '{"id":"x"}' })).toBe(false)
+    expect(hasBeforePhoto({ photo_before_files: '["  "]' })).toBe(false)
+  })
 })
 
 describe('questionsMissingPhoto', () => {
@@ -98,11 +107,16 @@ describe('missingPhotoMessage', () => {
     expect(text).toContain('fotoğrafsız bulgu kabul edilmez')
     expect(text).toContain('Bulguya fotoğraf ekleyin')
   })
+
+  it('carries the marker the audit form recognises the refusal by', () => {
+    expect(PHOTO_REFUSAL_MARKER).toBe('bulgu fotoğrafı zorunlu olan sorularda')
+    expect(missingPhotoMessage(['S1-Q2'])).toContain(PHOTO_REFUSAL_MARKER)
+  })
 })
 
 describe('auditPhotoRefusal', () => {
   it('asks only for the audit’s findings on photo-demanding questions', async () => {
-    const asked: { text: string; params: unknown[] }[] = []
+    const asked: { text: string; params: QueryParam[] }[] = []
     const refusal = await auditPhotoRefusal(async (text, params) => {
       asked.push({ text, params })
       return []
