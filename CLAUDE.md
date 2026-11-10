@@ -45,8 +45,8 @@ biltim/
 ## Komutlar
 
 ```bash
-# yerel geliştirme (Postgres + Redis gerekir: Nucleus/docker-compose.db.yml)
-cd Nucleus && bun install && bun run dev        # be-nucleus + fe (3000)
+# yerel geliştirme (Postgres 16 + Redis 7 gerekir, aşağıdaki kurulum bölümüne bak)
+cd Nucleus && bun install && bun run dev        # be-nucleus (1001) + fe (3000)
 
 # arka uç
 cd Nucleus/apps/be-nucleus
@@ -62,11 +62,37 @@ NEXT_DIST_DIR=.next-verify bun run build         # canlı .next'e dokunmadan der
 # sonra: rm -rf .next-verify && git checkout -- tsconfig.json
 ```
 
-- Yerel `.env` dosyaları git'te yok (be-nucleus/.env, fe/.env.local). Yeni
-  bilgisayarda `be-nucleus/.env`'i `.env.docker` şablonundan oluştur:
-  `DATABASE_URL, REDIS_HOST, REDIS_PORT, ACCESS_TOKEN_SECRET,
-  REFRESH_TOKEN_SECRET, SESSION_TOKEN_SECRET, PORT=1001, GODMIN_EMAIL,
-  GODMIN_PASSWORD`. Yerel DB adı `biltim_v2`.
+### Yeni bilgisayarda yerel veritabanı (sıfırdan, ~5 dakika)
+
+Canlı veritabanına dışarıdan erişim yok, bağlantısı da paylaşılmaz. Her
+geliştirme makinesi kendi yerel veritabanını kurar:
+
+1. Postgres 16 ve Redis 7'yi çalıştır. `Nucleus/docker-compose.db.yml` tam
+   Docker kurulumu içindir ve portları dışarı açmaz; yerelde onu kullanma.
+   - macOS: `brew install postgresql@16 redis`, sonra
+     `brew services start postgresql@16` ve `brew services start redis`.
+   - Docker:
+     `docker run -d --name biltim-pg -e POSTGRES_PASSWORD=<şifre> -p 5432:5432 postgres:16`
+     ve `docker run -d --name biltim-redis -p 6379:6379 redis:7-alpine`.
+2. `createdb biltim_v2` (Docker'da: `docker exec biltim-pg createdb -U postgres biltim_v2`).
+3. `be-nucleus/.env`'i oluştur. `.env.docker` şablondur. Değişkenler:
+   `DATABASE_URL=postgresql://<kullanıcı>:<şifre>@localhost:5432/biltim_v2`,
+   `REDIS_HOST=127.0.0.1`, `REDIS_PORT=6379`, `PORT=1001`; üç token secret'ı
+   (`ACCESS_/REFRESH_/SESSION_TOKEN_SECRET`) için yeni rastgele değerler;
+   `GODMIN_EMAIL` ve `GODMIN_PASSWORD` yerel godmin hesabı için. Şifre yalnız
+   ilk açılışta yazılır.
+4. `cd Nucleus && bun install`, sonra arka ucu BİR KEZ başlat ve
+   `curl localhost:1001/health` 200 dönünce kapat:
+   `cd apps/be-nucleus && bun run src/index.ts`. Nucleus bu açılışta tabloları,
+   claim'leri ve godmin hesabını kurar.
+5. Rolleri, 5S adımlarını ve soruları yükle, sonra rol yetkilerini ver:
+   `psql -d biltim_v2 -f seed-local-dev.sql` ve
+   `psql -d biltim_v2 -f roles-nucleus-claims.sql` (be-nucleus içinden).
+6. Arka ucu yeniden başlat. Log'da `[boot] N rol yetkisi eklendi` görünür.
+   godmin ile gir, test kullanıcılarını Kullanıcılar ekranından oluştur.
+
+Seed'deki sorular yer tutucudur; puan kurallarını (5.1, 5.5) denemeye
+yeter. Bu yol 10.11.2026'da boş bir veritabanında baştan sona denendi.
 - `fe/.env` git'te ve `localhost:1001`'i gösterir. Bir makinede
   `fe/.env.local` varsa onu ezer. Founder'ın Mac'indeki `.env.local` 4001'i
   gösteriyor, `be-nucleus/.env` ise `PORT=1001` diyor. Arka uç 1001'deyken ön
@@ -182,10 +208,11 @@ kuralını değiştirirken bunların hepsine bak. godmin'i her kontrolde ayrıca
 `hasPrivilege(roles, list, isGod)` ve `isGodminUser`.
 
 Plan durumu: `planned` → denetçi gönderince `pending_approval` → Merkez Ekip
-onaylayınca `completed` (bir de `cancelled` var). Planlı tarih en fazla 2 kez
-değişir. Değiştirebilenler: ekip lideri ve merkez roller (Merkez Ekip, Super
-Admin, Müdür); godmin için sınır yok. Tamamlanmış ya da onay bekleyen
-denetimin tarihini yalnız yöneticiler (`ADMIN_ROLES`) değiştirir.
+onaylayınca `completed` (bir de `cancelled` var). Planlı tarihi ekip lideri
+ve Müdür en fazla 2 kez değiştirebilir. Merkez Ekip, Super Admin ve godmin
+sınırsız değiştirir ve hak harcamaz (22.10 notları satır 34, `16ba539`).
+Tamamlanmış ya da onay bekleyen denetimin tarihini yalnız yöneticiler
+(`ADMIN_ROLES`) değiştirir.
 
 ## İstek nasıl akıyor (en çok buradan hata çıkar)
 
@@ -331,8 +358,10 @@ tarayıcı → Next server action (factory.nucleus.ts, AUTH_API_URL)
 - iPad'de internetsiz açılış için HTTPS (müşterinin bilgi işlemi).
 - Çift bulgu numaraları: #1/#2 hem 21.08 SSH Bakım denetiminde hem Bölge 3
   tekil bulgularında. Öneri: Bölge 3'tekiler #12/#13 olsun.
-- Puan cezaları toplanarak uygulanıyor: 2.3 ve 5.5 ayrı ayrı toplamın
-  %10'unu düşürür, ikisi birlikte %20. 5.1 orta/kötü ise 5. adım 0 olur.
+- Puan kuralları (`denetim/_utils/scoring.ts`): 5.5 orta/kötü ise toplamdan
+  %10 düşer; listeye eklenen her soru kendi %10'unu ekler. 2.3 kuralı 22.10
+  notlarıyla (satır 38) kaldırıldı; müşteri soruları yeniliyor. 5.1 orta/kötü
+  ise 5. adım 0 olur.
   "Bölge sorumlusu katıldı" işaretlenmezse puan 0 olur.
 - Canlıda lokasyonlara müdürlük ve kroki konumu girilmedi; ilgili raporlar
   bu yüzden boş.
