@@ -720,7 +720,7 @@ export function ReportsDashboard({ compact = false }: { compact?: boolean }) {
                 {(data?.planCompliance ?? []).map((r, i) => (
                   <tr key={i} className="border-t border-slate-300 dark:border-slate-800/80">
                     <td className="px-3 py-2">
-                      {str(r.status) === 'planned' ? 'Planlandı' : str(r.status) === 'pending_approval' ? 'Onay Bekliyor' : str(r.status) === 'completed' ? 'Tamamlandı' : str(r.status) === 'cancelled' ? 'İptal' : str(r.status)}
+                      {str(r.status) === 'planned' ? 'Planlandı' : str(r.status) === 'pending_approval' ? 'Onay Bekliyor' : str(r.status) === 'rejected' ? 'Düzeltme Bekliyor' : str(r.status) === 'completed' ? 'Tamamlandı' : str(r.status) === 'cancelled' ? 'İptal' : str(r.status)}
                     </td>
                     <td className="px-3 py-2 text-center">{num(r.count)}</td>
                     <td className="px-3 py-2 text-center text-emerald-700 dark:text-emerald-300">{num(r.auditor_attended)}</td>

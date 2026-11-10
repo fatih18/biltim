@@ -6,6 +6,8 @@ export const AUDIT_STATUS_LABELS_TR: Record<string, string> = {
   planned: 'Planlandı',
   // Denetçi formu gönderdi, Merkez Ekip henüz onaylamadı.
   pending_approval: 'Onay Bekliyor',
+  // Merkez Ekip denetimi düzeltme için ekibine geri gönderdi (Reddet).
+  rejected: 'Düzeltme Bekliyor',
   completed: 'Tamamlandı',
   cancelled: 'İptal edildi',
   canceled: 'İptal edildi',

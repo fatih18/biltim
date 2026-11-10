@@ -9,6 +9,7 @@ import { DateInput } from "@/app/_components/DateInput";
 import { DateConflictNotice } from "@/app/_components/DateConflictNotice";
 import { auditStatusLabelTr } from "@/app/_utils/StatusLabels";
 import { findDateConflicts } from "@/app/_utils/dateConflicts";
+import { isCarriedOutPlan, isPlanRejected } from "@/app/_utils/planReview";
 import { plannerConflictWorld } from "../_utils/conflictWorld";
 import { ParentPlanEditForm, type ParentPlanEdit } from "../_components/ParentPlanEditForm";
 
@@ -81,8 +82,8 @@ export function AuditPlannerPanel(props: {
   /** A plan date move: who may, and whether it spends one of the two changes. */
   const dateRule = (a: Audit) => {
     const used = a.dateChangeCount ?? 0;
-    const done = a.status === "completed" || a.status === "pending_approval";
-    // A carried-out audit's date is a correction: admins only, nothing spent.
+    const done = isCarriedOutPlan(a.status);
+    // A carried-out audit's date (sent, rejected or approved) is a correction: admins only, nothing spent.
     if (done) return { canChange: canFinish, spends: false, label: "Tarihi Düzenle" };
     // Merkez Ekip, Super Admin and the godmin move any date, any number of times.
     const free = isGod || canFinish;
@@ -94,6 +95,10 @@ export function AuditPlannerPanel(props: {
    * audit_id: the audit form drops such plans, so a sent audit set back to
    * planned could never be redone. "Tamamlandı" (approving) and reopening a
    * completed plan are for admins only; the server refuses the same.
+   * "Düzeltme Bekliyor" (rejected, R30) is shown when it is the plan's status
+   * but never offered: it is set only by "Reddet" on the home list, with a
+   * reason, and the server refuses it from here. Approving a rejected plan
+   * waits for its team's resend, so "Tamamlandı" is off for it too.
    */
   const renderStatusSelect = (a: Audit) => {
     const lockedCompleted = a.status === "completed" && !canFinish;
@@ -107,7 +112,10 @@ export function AuditPlannerPanel(props: {
       >
         <option value="planned" disabled={!!a.auditId}>Planlandı</option>
         <option value="pending_approval">Onay Bekliyor</option>
-        <option value="completed" disabled={!canFinish}>Tamamlandı</option>
+        {isPlanRejected(a.status) && (
+          <option value="rejected" disabled>{auditStatusLabelTr(a.status)}</option>
+        )}
+        <option value="completed" disabled={!canFinish || isPlanRejected(a.status)}>Tamamlandı</option>
         <option value="cancelled">İptal edildi</option>
       </Select>
     );
