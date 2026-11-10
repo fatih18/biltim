@@ -3,6 +3,8 @@ import { type AnyRoute, defineRoute, type RouteGroup } from 'nucleus-core-ts/ser
 import config from '../../config.json'
 import { query } from '../db'
 import { type Caller, callerById, isAdmin } from '../guards/caller'
+import { latchMailRuntime } from '../mail/runtime'
+import { mailStatusRoute } from '../mail/status'
 import { rejectPlanRoute } from './planReview'
 
 /**
@@ -46,6 +48,8 @@ const myScope = defineRoute({
   path: '/me/scope',
   detail: { tags: ['Biltim'], summary: "The caller's teams and locations" },
   handler: async (ctx) => {
+    // The home page calls this on every visit: that is how the mail worker gets nucleus's mail service (mail/runtime.ts).
+    latchMailRuntime(ctx.nucleus)
     const caller = await callerOf(ctx)
     if (!caller) return fail(ctx, 401, 'Oturum bulunamadı.')
 
@@ -752,5 +756,6 @@ const routes: AnyRoute[] = [
   unlockUser,
   setPassword,
   rejectPlanRoute,
+  mailStatusRoute,
 ]
 export const BiltimRoutes: RouteGroup = { prefix: '/biltim', routes }

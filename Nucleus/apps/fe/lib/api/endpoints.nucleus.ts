@@ -168,6 +168,12 @@ const custom = {
    * bildirimi bu uçta birlikte yazılıyor.
    */
   REJECT_PLAN: { method: 'POST', path: '/biltim/plans/:plan_id/reject' },
+  /*
+   * Plan e-postalarının (R70, R63) durumu: sağlayıcı kurulu mu, gönderen adres,
+   * bekleyen ve vazgeçilen plan sayıları. Yalnız okuma; Merkez Ekip, Super
+   * Admin ve godmin. Henüz bir ekranı yok.
+   */
+  BILTIM_MAIL_STATUS: { method: 'GET', path: '/biltim/mail/status' },
 } as unknown as Record<string, TranslatedEndpoint>
 
 export const NucleusEndpoints = { ...systemTables, ...generated, ...custom }

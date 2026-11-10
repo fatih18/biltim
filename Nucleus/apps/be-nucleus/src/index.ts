@@ -2,6 +2,7 @@ import { type CreateNucleusServerOptions, createNucleusServer } from 'nucleus-co
 import { applyBootFixes } from './boot'
 import { closePool } from './db'
 import { enforceRequestRules } from './guards/requestGuard'
+import { startMailWorker, stopMailWorker } from './mail/worker'
 import { BiltimRoutes } from './routes/biltim'
 import { ReportsRoutes } from './routes/reports'
 
@@ -49,11 +50,14 @@ async function main() {
     onRequest: ({ request, body, query }) => enforceRequestRules({ request, body, query }),
     // Our own pg pool is separate from the framework's; without this it leaked
     // on every restart. `onStop` runs after nucleus's own teardown steps.
-    onStop: [closePool],
+    onStop: [stopMailWorker, closePool],
   })
 
   // After the server is up, so the framework's schema push has run first.
   await applyBootFixes()
+
+  // Plan mails (R70, R63): sent by this worker alone, never by the request that created or completed a plan.
+  startMailWorker()
 
   console.log(`\n✅ Biltim API listening on http://localhost:${port}`)
   console.log(`📘 Docs: http://localhost:${port}/docs`)
