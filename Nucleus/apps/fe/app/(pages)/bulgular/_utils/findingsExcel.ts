@@ -5,6 +5,8 @@
  * locations, as it does the list.
  */
 
+import { todayAtPlant } from "@/app/_utils/auditDate";
+
 export const FINDINGS_EXCEL_PATH = "/reports/findings.xlsx";
 
 /** The register's filters as the screen holds them; an empty string is "not set". */
@@ -28,7 +30,10 @@ export function findingsExcelParams(filters: FindingsExcelFilters): Record<strin
   };
 }
 
-/** The name the file gets when the server sent none: `5s-bulgu-raporu-YYYY-AA-GG.xlsx`. */
+/**
+ * The name the file gets when the server sent none: `5s-bulgu-raporu-YYYY-AA-GG.xlsx`,
+ * dated by the plant's day (UTC would name yesterday between 00:00 and 03:00).
+ */
 export function findingsExcelFallbackName(now: Date): string {
-  return `5s-bulgu-raporu-${now.toISOString().slice(0, 10)}.xlsx`;
+  return `5s-bulgu-raporu-${todayAtPlant(now)}.xlsx`;
 }

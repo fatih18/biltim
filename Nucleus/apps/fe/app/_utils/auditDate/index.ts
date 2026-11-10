@@ -46,3 +46,22 @@ export function auditDateFor(
 export function atUtcMidnight(ymd: string): Date {
   return new Date(`${(ymd ?? '').slice(0, 10)}T00:00:00Z`)
 }
+
+const PLANT_ZONE = 'Europe/Istanbul'
+
+/**
+ * Today on the plant's calendar, as `YYYY-AA-GG`: the same answer as the
+ * server's `todayAtPlant`.
+ *
+ * `toISOString()` is UTC, so between 00:00 and 03:00 in Turkey it still names
+ * the previous day. The locale is named (`en-CA` prints year-month-day) so the
+ * browser's own language never changes the shape.
+ */
+export function todayAtPlant(now: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: PLANT_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now)
+}

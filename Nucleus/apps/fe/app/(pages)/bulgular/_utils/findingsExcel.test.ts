@@ -40,4 +40,11 @@ describe("findingsExcelFallbackName", () => {
   it("is dated by the day it was made", () => {
     expect(findingsExcelFallbackName(new Date("2026-11-10T09:00:00Z"))).toBe("5s-bulgu-raporu-2026-11-10.xlsx");
   });
+
+  it("is dated by the plant's day, not UTC's, between 00:00 and 03:00 in Turkey", () => {
+    // 22:30 UTC on the 9th is 01:30 on the 10th at the plant (UTC+3).
+    expect(findingsExcelFallbackName(new Date("2026-11-09T22:30:00Z"))).toBe("5s-bulgu-raporu-2026-11-10.xlsx");
+    // 20:59 UTC is still 23:59 on the 9th.
+    expect(findingsExcelFallbackName(new Date("2026-11-09T20:59:00Z"))).toBe("5s-bulgu-raporu-2026-11-09.xlsx");
+  });
 });

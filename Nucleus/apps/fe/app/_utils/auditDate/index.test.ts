@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { atUtcMidnight, auditDateFor } from './index'
+import { atUtcMidnight, auditDateFor, todayAtPlant } from './index'
 
 describe('auditDateFor', () => {
   const bugun = '2026-09-08'
@@ -44,5 +44,18 @@ describe('atUtcMidnight', () => {
 
   it('gün taşıyan bir damgayı da o güne sabitler', () => {
     expect(atUtcMidnight('2026-09-08T23:45:00Z').toISOString()).toBe('2026-09-08T00:00:00.000Z')
+  })
+})
+
+describe('todayAtPlant', () => {
+  it('is the plant day, three hours ahead of UTC', () => {
+    // 22:30 UTC on 9 November is 01:30 on the 10th in Istanbul.
+    expect(todayAtPlant(new Date('2026-11-09T22:30:00Z'))).toBe('2026-11-10')
+    expect(todayAtPlant(new Date('2026-11-09T20:59:00Z'))).toBe('2026-11-09')
+    expect(todayAtPlant(new Date('2026-11-09T21:00:00Z'))).toBe('2026-11-10')
+  })
+
+  it('prints year-month-day with two digits, whatever the browser language', () => {
+    expect(todayAtPlant(new Date('2026-03-05T12:00:00Z'))).toBe('2026-03-05')
   })
 })
