@@ -1333,6 +1333,114 @@ describe('starting an audit (#27), every door', () => {
   })
 })
 
+describe('who may start the audit of their own location (R71) and open a plan-less single finding (R27)', () => {
+  // koray: Merkez Ekip and, at the same time, the field manager of the place being audited.
+  const KORAY: Caller = { userId: 'u-koray', isGod: false, roles: ['content manager core team'] }
+  const SUPER_ADMIN_FM: Caller = { userId: 'u-sa-fm', isGod: false, roles: ['super admin'] }
+  /** The godmin by the flag alone: no role row, as an account flagged by hand. */
+  const GOD_FLAG_ONLY: Caller = { userId: 'u-god-fm', isGod: true, roles: [] }
+  const GOD_ROLE_FM: Caller = { userId: 'u-god-role', isGod: true, roles: ['godmin'] }
+  const MANAGER_FM: Caller = { userId: 'u-mgr-fm', isGod: false, roles: ['manager'] }
+  const AUDITOR_FM: Caller = { userId: 'u-aud-fm', isGod: false, roles: ['auditor', 'field manager'] }
+
+  const exempt = [KORAY, SUPER_ADMIN_FM, GOD_FLAG_ONLY, GOD_ROLE_FM]
+  const held = [MANAGER_FM, AUDITOR_FM, FIELD_MANAGER]
+
+  const ownPlan = (caller: Caller) =>
+    script({ 'from main.five_s_audit_plans p': [{ status: 'planned', field_manager_user_ids: [caller.userId] }] })
+  const ownLocation = (caller: Caller) =>
+    script({ 'from main.five_s_locations': [{ field_manager_user_ids: [caller.userId] }] })
+
+  it('lets Merkez Ekip, Super Admin and the godmin start the plan of their own location', async () => {
+    for (const caller of exempt) {
+      const res = await enforceBusinessRules({
+        request: jsonReq('POST', '/fiveSAudits', { planId: 'p1' }),
+        body: undefined,
+        read: ownPlan(caller),
+        caller,
+      })
+      expect(res).toBeUndefined()
+    }
+  })
+
+  it('still refuses Müdür, an auditor and a field manager for the plan of their own location', async () => {
+    for (const caller of held) {
+      const res = await enforceBusinessRules({
+        request: jsonReq('POST', '/fiveSAudits', { planId: 'p1' }),
+        body: undefined,
+        read: ownPlan(caller),
+        caller,
+      })
+      expect(res?.status).toBe(400)
+      expect((await res?.json()).message).toContain('Saha sorumlusu olduğunuz lokasyonun denetimini')
+    }
+  })
+
+  it('lets each of them start any other team’s plan', async () => {
+    for (const caller of [...exempt, ...held]) {
+      const res = await enforceBusinessRules({
+        request: jsonReq('POST', '/fiveSAudits', { planId: 'p1' }),
+        body: undefined,
+        read: script({ 'from main.five_s_audit_plans p': [{ status: 'planned', field_manager_user_ids: ['u-someone-else'] }] }),
+        caller,
+      })
+      expect(res).toBeUndefined()
+    }
+  })
+
+  it('lets the godmin, by role or by the flag alone, open a plan-less single finding exactly like Merkez Ekip', async () => {
+    // The carrier row a single finding is filed under: no plan, the location named, source marked.
+    const carrier = { departmentName: 'Test Depo', source: 'single_finding', totalScore: '0.00' }
+    for (const caller of [KORAY, GOD_FLAG_ONLY, GOD_ROLE_FM]) {
+      const audit = await enforceBusinessRules({
+        request: jsonReq('POST', '/fiveSAudits', carrier),
+        body: undefined,
+        read: ownLocation(caller),
+        caller,
+      })
+      expect(audit).toBeUndefined()
+    }
+  })
+
+  it('does not ask the godmin to be a team member or the location’s field manager for the finding itself', async () => {
+    const finding = {
+      auditId: 'a1',
+      description: 'TEKİL BULGU',
+      locationName: 'Test Depo',
+      findingType: 'Uygunsuzluk',
+      detectedDate: '2026-10-01',
+    }
+    for (const caller of [KORAY, GOD_FLAG_ONLY, GOD_ROLE_FM]) {
+      const res = await enforceBusinessRules({
+        request: jsonReq('POST', '/fiveSFindings', finding),
+        body: undefined,
+        read: reader([]),
+        caller,
+      })
+      expect(res).toBeUndefined()
+    }
+  })
+
+  it('holds the same line on the plan write that links the audit', async () => {
+    const read = script({
+      'from main.five_s_audit_plans p': [{ field_manager_user_ids: ['u-koray', 'u-god-fm', 'u-mgr-fm'] }],
+      'from main.five_s_audit_plans where id': [{ planned_date: '2026-10-02', date_change_count: 0, status: 'planned' }],
+    })
+    for (const caller of [KORAY, GOD_FLAG_ONLY]) {
+      expect(
+        await enforceBusinessRules({ request: jsonReq('PUT', '/fiveSAuditPlans/p1', { auditId: 'a1' }), body: undefined, read, caller })
+      ).toBeUndefined()
+    }
+    const refused = await enforceBusinessRules({
+      request: jsonReq('PUT', '/fiveSAuditPlans/p1', { auditId: 'a1' }),
+      body: undefined,
+      read,
+      caller: MANAGER_FM,
+    })
+    expect(refused?.status).toBe(400)
+  })
+})
+
 describe('a closed finding, completely (#31)', () => {
   it('counts a photo held only by its file id', () => {
     expect(photoCount({ photo_after_file_id: 'f1' }, 'after')).toBe(1)
