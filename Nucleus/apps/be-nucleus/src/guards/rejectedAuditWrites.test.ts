@@ -180,10 +180,25 @@ describe('an audit’s identity columns are not a correction’s to write', () =
 })
 
 describe('the keys of an audit or answer write', () => {
-  it('finds the four identity columns in any spelling and nothing else', () => {
+  it('finds the identity columns in any spelling and nothing else', () => {
     const body = { isActive: 1, 'Plan-Id': 2, SOURCE: 3, client_submission_id: 4, totalScore: 5, auditorName: 6, plan: 7, sourceName: 8 }
     expect(auditStructureKeysIn(body)).toEqual(['isActive', 'Plan-Id', 'SOURCE', 'client_submission_id'])
     expect(auditStructureKeysIn({})).toEqual([])
+  })
+
+  it('also finds the place, person and period columns, and leaves scores, name and date open', () => {
+    const body = {
+      departmentName: 'x',
+      location_id: 'y',
+      'Auditor-Id': 'z',
+      periodId: 'p',
+      auditor_name: 'ok',
+      auditDate: '2026-10-05',
+      score_s3: 4,
+      total_score: 50,
+      target_score: 75,
+    }
+    expect(auditStructureKeysIn(body)).toEqual(['departmentName', 'location_id', 'Auditor-Id', 'periodId'])
   })
 
   it('finds every audit id named, under any spelling, and ignores null and blank', () => {
