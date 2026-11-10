@@ -14,6 +14,9 @@ import { looksOffline } from '@/app/_utils/offlineIdentity'
 import { choosePlan, type PickScope, pickIntro } from './_utils/planChoice'
 import { mayRaiseSingleFinding, mayStartOwnLocation, seesEveryPlan } from './_utils/planAccess'
 import { PlanNotice } from './_components/PlanNotice'
+import { RejectedAuditNotice } from './_components/RejectedAuditNotice'
+import { correctionSavedText, resendFailureText, resendPlan } from './_utils/resendPlan'
+import { correctionBannerText, isPlanRejected, RESEND_LABEL, shouldResendAfterCorrection } from '@/app/_utils/planReview'
 import { UploadedFileInfo, useUploadAnswerPhoto } from '../bulgular/hooks/useUploadAnswersPhoto'
 import { Question, questions as FALLBACK_QUESTIONS, StepCode, steps as FALLBACK_STEPS, Step } from './constants'
 import { DateInput } from '@/app/_components/DateInput'
@@ -112,6 +115,9 @@ type PlanRow = {
   assigned_team_id: string
   status: string
   audit_id: string | null
+  /** Set while Merkez Ekip has the plan returned for correction (R30). */
+  rejection_reason?: string | null
+  rejected_at?: string | null
 }
 
 type TeamRow = {
@@ -682,6 +688,11 @@ export default function FiveSAuditFormPage() {
    * (R16; planChoice.ts). It decides whether "Tekil Bulgu" is in-audit or alone.
    */
   const [assignedPlan, setAssignedPlan] = useState<PlanRow | null>(null)
+  /*
+   * R30: the audit being corrected belongs to a plan Merkez Ekip rejected. Its
+   * banner names the reason, and saving the correction sends the plan again.
+   */
+  const correctingRejected = !!editAudit && isPlanRejected(assignedPlan?.status)
   const [currentUserId, setCurrentUserId] = useState<string>('')
 
   const [availablePlans, setAvailablePlans] = useState<PlanRow[]>([])
@@ -3017,7 +3028,31 @@ export default function FiveSAuditFormPage() {
       .filter((ans): ans is QuestionAnswer => !!ans && needsFindingDetails(ans.questionId, ans) && !!ans.findingType)
     await Promise.all(newFindings.map((ans) => createFindingForAnswer(ans, target.id, header.date)))
 
-    toast.success('Denetim güncellendi.')
+    /*
+     * R30: the correction of a rejected plan sends it again — the same audit,
+     * stamped pending_approval — and only once everything above is written,
+     * because a sent audit no longer takes the team's writes. When something
+     * did not save, or the stamp itself fails, the page stays and says where
+     * to go on; the held lock also keeps a second pass here from adding the
+     * answers twice.
+     */
+    const rejectedPlan = shouldResendAfterCorrection(assignedPlan?.status) ? assignedPlan : null
+    if (rejectedPlan && failed > 0) {
+      toast.error(
+        `${failed} soru yanıtı kaydedilemedi; eksik düzeltmeyle onaya gitmesin diye denetim yeniden gönderilmedi. Ana sayfada "${RESEND_LABEL}" düğmesiyle denetimi tekrar açıp kaydedin.`,
+        { duration: 20000 }
+      )
+      return true
+    }
+    if (rejectedPlan) {
+      const outcome = await resendPlan(safeStart(A, planUpdateKey), { id: rejectedPlan.id, auditId: target.id })
+      if (!outcome.ok) {
+        toast.error(resendFailureText(outcome.message), { duration: 20000 })
+        return true
+      }
+    }
+
+    toast.success(correctionSavedText(rejectedPlan !== null))
     window.location.href = '/'
     return true
   }
@@ -4178,13 +4213,15 @@ export default function FiveSAuditFormPage() {
               </h1>
               {editAudit ? (
                 <p className="mt-2 rounded-md border border-indigo-400/60 bg-indigo-100 dark:bg-indigo-950/30 px-3 py-2 text-[11px] text-indigo-800 dark:text-indigo-200">
-                  Tamamlanmış bir denetimi düzenliyorsunuz. Kaydettiğinizde puanlar ve yanıtlar bu denetimin
-                  üzerine yazılır; yeni bir denetim açılmaz.
+                  {correctionBannerText(correctingRejected)}
                   {noAnswersNotice({
                     hadAnswers: editAudit.hadAnswers,
                     initialAttended: editAudit.initialFieldManagerAttended,
                   })}
                 </p>
+              ) : null}
+              {correctingRejected ? (
+                <RejectedAuditNotice reason={assignedPlan?.rejection_reason} rejectedAt={assignedPlan?.rejected_at} />
               ) : null}
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
                 Minimum hedef puan: <span className="font-semibold text-emerald-700 dark:text-emerald-300">75</span>
@@ -4756,7 +4793,9 @@ export default function FiveSAuditFormPage() {
                       : submitState === 'done'
                         ? 'Kaydedildi'
                         : editAudit
-                          ? 'Değişiklikleri Kaydet'
+                          ? correctingRejected
+                            ? RESEND_LABEL
+                            : 'Değişiklikleri Kaydet'
                           : 'Formu Kaydet'}
                     {hasAttempted && liveUnanswered.size > 0 && (
                       <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white">
